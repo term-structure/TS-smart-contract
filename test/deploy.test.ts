@@ -9,18 +9,26 @@ import {
   Governance__factory,
   Loan,
   Loan__factory,
+  Token,
+  Token__factory,
   ZkTrueUp,
   ZkTrueUp__factory,
+  ZkTrueUpInit,
+  ZkTrueUpInit__factory,
 } from "../typechain-types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 describe("Deploy", () => {
   let ZkTrueUp: ZkTrueUp__factory;
+  let ZkTrueUpInit: ZkTrueUpInit__factory;
   let Governance: Governance__factory;
   let Loan: Loan__factory;
+  let Token: Token__factory;
   let zkTrueUp: ZkTrueUp;
+  let zkTrueUpInit: ZkTrueUpInit;
   let governance: Governance;
   let loan: Loan;
+  let token: Token;
   let deployer: SignerWithAddress;
   let admin: SignerWithAddress;
   let operator: SignerWithAddress;
@@ -41,6 +49,17 @@ describe("Deploy", () => {
     loan = await Loan.connect(deployer).deploy();
     await loan.deployed();
 
+    // deploy token facet
+    Token = await ethers.getContractFactory("Token");
+    token = await Token.connect(deployer).deploy();
+    await token.deployed();
+
+    // deploy init facet
+    ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
+    ZkTrueUpInit.connect(deployer);
+    zkTrueUpInit = await ZkTrueUpInit.deploy();
+    await zkTrueUpInit.deployed();
+
     // deploy diamond contract
     ZkTrueUp = await ethers.getContractFactory("ZkTrueUp");
     zkTrueUp = await ZkTrueUp.connect(deployer).deploy();
@@ -59,11 +78,19 @@ describe("Deploy", () => {
       Governance
     );
 
+    // loan diamond cut
     const registeredLoanFnSelectors = await diamondCut(
       deployer,
       zkTrueUp,
       loan.address,
       Loan
+    );
+
+    const registeredTokenFnSelectors = await diamondCut(
+      deployer,
+      zkTrueUp,
+      token.address,
+      Token
     );
 
     const diamondZkTrueUp = await ethers.getContractAt(
@@ -93,11 +120,16 @@ describe("Deploy", () => {
       ).to.equal(loan.address);
     }
 
-    // diamond init
-    const ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
-    ZkTrueUpInit.connect(deployer);
-    const zkTrueUpInit = await ZkTrueUpInit.deploy();
-    await zkTrueUpInit.deployed();
+    // check that token function selectors are registered
+    expect(
+      await diamondZkTrueUp.facetFunctionSelectors(token.address)
+    ).have.members(registeredTokenFnSelectors);
+    // check that registerSelectors are registered to token
+    for (let i = 0; i < registeredTokenFnSelectors.length; i++) {
+      expect(
+        await diamondZkTrueUp.facetAddress(registeredTokenFnSelectors[i])
+      ).to.equal(token.address);
+    }
 
     const initData = ethers.utils.defaultAbiCoder.encode(
       ["address", "address", "address", "address", "address"],
@@ -119,6 +151,11 @@ describe("Deploy", () => {
       initData
     );
 
+    // check initFacet is one-time use and have not be added
+    expect(
+      await diamondZkTrueUp.facetFunctionSelectors(zkTrueUpInit.address)
+    ).to.have.lengthOf(0);
+
     // check governance facet init
     const diamondGov = await ethers.getContractAt(
       "Governance",
@@ -138,6 +175,10 @@ describe("Deploy", () => {
     const diamondLoan = await ethers.getContractAt("Loan", zkTrueUp.address);
     expect(await diamondLoan.getHalfLiquidationThreshold()).to.equal(10000);
     expect(await diamondLoan.getFlashLoanPremium()).to.equal(3);
+
+    // check token facet init
+    const diamondToken = await ethers.getContractAt("Token", zkTrueUp.address);
+    expect(await diamondToken.getTokenNum()).to.equal(0);
   });
 
   it("Failed to deploy, invalid diamond cut signer", async function () {
@@ -146,6 +187,7 @@ describe("Deploy", () => {
       diamondCut(invalidSigner, zkTrueUp, governance.address, Governance)
     ).to.be.revertedWithCustomError(ZkTrueUp, "Ownable__NotOwner");
   });
+
   it("Failed to deploy, invalid diamond init signer", async function () {
     // governance diamond cut
     await diamondCut(deployer, zkTrueUp, governance.address, Governance);

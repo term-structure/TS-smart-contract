@@ -11,7 +11,7 @@ export const diamondCut = async (
   contractAddr: string,
   factory: ContractFactory,
   excludeList?: string[], // list of function selectors to exclude
-  action?: diamondCutAction // 0 = add, 1 = remove, 2 = replace
+  action?: diamondCutAction // 0 = add, 1 = replace, 2 = remove
 ) => {
   const registerSelectors: string[] = [];
   const facets = [

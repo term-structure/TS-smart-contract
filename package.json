@@ -8,6 +8,7 @@
     "storage:layout": "hardhat storage-layout",
     "size": "hardhat size-contracts",
     "test": "hardhat test",
+    "test:deploy": "hardhat test test/deploy.test.ts",
     "coverage": "hardhat coverage",
     "generate:docs": "hardhat docgen",
     "script:deploy": "npx hardhat run scripts/deploy.ts",

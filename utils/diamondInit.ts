@@ -3,6 +3,16 @@ import { ZkTrueUp } from "../typechain-types";
 import { ContractFactory } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
+/**
+ * @notice diamondCut function
+ * @dev initFacet is a one-time facet
+ * @param signer
+ * @param diamond
+ * @param initContractAddr
+ * @param initFactory
+ * @param initData
+ * @returns initFnSelector
+ */
 export const diamondInit = async (
   signer: SignerWithAddress,
   diamond: ZkTrueUp,
@@ -10,24 +20,17 @@ export const diamondInit = async (
   initFactory: ContractFactory,
   initData: string
 ) => {
-  const initFn = initFactory.interface.functions["init(bytes)"];
-  const initFnSelector = initFactory.interface.getSighash(initFn);
-  const initCut = [
-    {
-      target: initContractAddr,
-      action: 0, // 0 = add, 1 = remove, 2 = replace
-      selectors: [initFnSelector],
-    },
-  ];
+  // const initFn = initFactory.interface.functions["init(bytes)"];
+  // const initFnSelector = initFactory.interface.getSighash(initFn);
 
   const functionCall = initFactory.interface.encodeFunctionData("init", [
     initData,
   ]);
 
-  const initCutTx = await diamond
+  // add init facet and execute init function
+  const addInitFacetTx = await diamond
     .connect(signer)
-    .diamondCut(initCut, initContractAddr, functionCall);
+    .diamondCut([], initContractAddr, functionCall);
 
-  await initCutTx.wait();
-  return initFnSelector;
+  await addInitFacetTx.wait();
 };

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {SafeOwnable} from "@solidstate/contracts/access/ownable/SafeOwnable.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {GovernanceStorage} from "../governance/GovernanceStorage.sol";
 import {LoanStorage} from "../loan/LoanStorage.sol";
@@ -9,11 +8,11 @@ import {Config, InitConfig} from "../libs/Config.sol";
 
 import "hardhat/console.sol";
 
-contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
+contract ZkTrueUpInit is AccessControlInternal {
     using GovernanceStorage for GovernanceStorage.Layout;
     using LoanStorage for LoanStorage.Layout;
 
-    function init(bytes calldata data) external onlyOwner {
+    function init(bytes calldata data) external {
         (address adminAddr, address operatorAddr, address treasuryAddr, address insuranceAddr, address vaultAddr) = abi
             .decode(data, (address, address, address, address, address));
         // set roles
