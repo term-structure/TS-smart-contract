@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {GovernanceStorage} from "../governance/GovernanceStorage.sol";
 import {LoanStorage} from "../loan/LoanStorage.sol";
-import {Config, InitConfig} from "../libs/Config.sol";
+import {Config, InitConfig} from "../libraries/Config.sol";
 
 import "hardhat/console.sol";
 

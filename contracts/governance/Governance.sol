@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {AccessControl} from "@solidstate/contracts/access/access_control/AccessControl.sol";
+import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {GovernanceStorage} from "./GovernanceStorage.sol";
 import {IGovernance} from "./IGovernance.sol";
-import {Checker} from "../libs/Checker.sol";
-import {Config} from "../libs/Config.sol";
+import {Checker} from "../libraries/Checker.sol";
+import {Config} from "../libraries/Config.sol";
 
 import "hardhat/console.sol";
 
-contract Governance is IGovernance, AccessControl {
+contract Governance is IGovernance, AccessControlInternal {
     using GovernanceStorage for GovernanceStorage.Layout;
 
     function setTreasuryAddr(address treasuryAddr) external onlyRole(Config.ADMIN_ROLE) {

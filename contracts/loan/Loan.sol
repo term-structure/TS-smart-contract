@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ILoan} from "./ILoan.sol";
 import {LoanStorage} from "./LoanStorage.sol";
-import {Config} from "../libs/Config.sol";
+import {Config} from "../libraries/Config.sol";
 
 contract Loan is ILoan, AccessControlInternal {
     using LoanStorage for LoanStorage.Layout;

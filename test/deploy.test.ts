@@ -1,7 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { utils, Wallet } from "ethers";
+import { utils, Wallet, BigNumber } from "ethers";
 import { diamondCut } from "../utils/diamondCut";
 import { diamondInit } from "../utils/diamondInit";
 import {
@@ -11,20 +11,21 @@ import {
   Loan__factory,
   Token,
   Token__factory,
-  ZkTrueUp,
-  ZkTrueUp__factory,
   ZkTrueUpInit,
   ZkTrueUpInit__factory,
+  ZkTrueUpMock,
+  ZkTrueUpMock__factory,
 } from "../typechain-types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { getSlotNum, getStorageAt } from "../utils/slotHelper";
 
 describe("Deploy", () => {
-  let ZkTrueUp: ZkTrueUp__factory;
+  let ZkTrueUpMock: ZkTrueUpMock__factory;
   let ZkTrueUpInit: ZkTrueUpInit__factory;
   let Governance: Governance__factory;
   let Loan: Loan__factory;
   let Token: Token__factory;
-  let zkTrueUp: ZkTrueUp;
+  let zkTrueUpMock: ZkTrueUpMock;
   let zkTrueUpInit: ZkTrueUpInit;
   let governance: Governance;
   let loan: Loan;
@@ -61,9 +62,9 @@ describe("Deploy", () => {
     await zkTrueUpInit.deployed();
 
     // deploy diamond contract
-    ZkTrueUp = await ethers.getContractFactory("ZkTrueUp");
-    zkTrueUp = await ZkTrueUp.connect(deployer).deploy();
-    await zkTrueUp.deployed();
+    ZkTrueUpMock = await ethers.getContractFactory("ZkTrueUpMock");
+    zkTrueUpMock = await ZkTrueUpMock.connect(deployer).deploy();
+    await zkTrueUpMock.deployed();
 
     treasury = ethers.Wallet.createRandom();
     insurance = ethers.Wallet.createRandom();
@@ -73,7 +74,7 @@ describe("Deploy", () => {
     // governance diamond cut
     const registeredGovFnSelectors = await diamondCut(
       deployer,
-      zkTrueUp,
+      zkTrueUpMock,
       governance.address,
       Governance
     );
@@ -81,53 +82,53 @@ describe("Deploy", () => {
     // loan diamond cut
     const registeredLoanFnSelectors = await diamondCut(
       deployer,
-      zkTrueUp,
+      zkTrueUpMock,
       loan.address,
       Loan
     );
 
     const registeredTokenFnSelectors = await diamondCut(
       deployer,
-      zkTrueUp,
+      zkTrueUpMock,
       token.address,
       Token
     );
 
-    const diamondZkTrueUp = await ethers.getContractAt(
-      "ZkTrueUp",
-      zkTrueUp.address
+    const diamondZkTrueUpMock = await ethers.getContractAt(
+      "ZkTrueUpMock",
+      zkTrueUpMock.address
     );
 
     // check that governance function selectors are registered
     expect(
-      await diamondZkTrueUp.facetFunctionSelectors(governance.address)
+      await diamondZkTrueUpMock.facetFunctionSelectors(governance.address)
     ).have.members(registeredGovFnSelectors);
     // check that registerSelectors are registered to governance
     for (let i = 0; i < registeredGovFnSelectors.length; i++) {
       expect(
-        await diamondZkTrueUp.facetAddress(registeredGovFnSelectors[i])
+        await diamondZkTrueUpMock.facetAddress(registeredGovFnSelectors[i])
       ).to.equal(governance.address);
     }
 
     // check that loan function selectors are registered
     expect(
-      await diamondZkTrueUp.facetFunctionSelectors(loan.address)
+      await diamondZkTrueUpMock.facetFunctionSelectors(loan.address)
     ).have.members(registeredLoanFnSelectors);
     // check that registerSelectors are registered to loan
     for (let i = 0; i < registeredLoanFnSelectors.length; i++) {
       expect(
-        await diamondZkTrueUp.facetAddress(registeredLoanFnSelectors[i])
+        await diamondZkTrueUpMock.facetAddress(registeredLoanFnSelectors[i])
       ).to.equal(loan.address);
     }
 
     // check that token function selectors are registered
     expect(
-      await diamondZkTrueUp.facetFunctionSelectors(token.address)
+      await diamondZkTrueUpMock.facetFunctionSelectors(token.address)
     ).have.members(registeredTokenFnSelectors);
     // check that registerSelectors are registered to token
     for (let i = 0; i < registeredTokenFnSelectors.length; i++) {
       expect(
-        await diamondZkTrueUp.facetAddress(registeredTokenFnSelectors[i])
+        await diamondZkTrueUpMock.facetAddress(registeredTokenFnSelectors[i])
       ).to.equal(token.address);
     }
 
@@ -145,52 +146,87 @@ describe("Deploy", () => {
     // init diamond cut
     await diamondInit(
       deployer,
-      zkTrueUp,
+      zkTrueUpMock,
       zkTrueUpInit.address,
       ZkTrueUpInit,
       initData
     );
 
+    const GovernanceStorageSlot = getSlotNum(
+      "zkTureUp.contracts.storage.Governance"
+    );
+
+    // get address from storage slot
+    const treasuryAddr = utils.getAddress(
+      utils.hexlify(await getStorageAt(zkTrueUpMock, GovernanceStorageSlot))
+    );
+    const insuranceAddr = utils.getAddress(
+      utils.hexlify(
+        await getStorageAt(zkTrueUpMock, GovernanceStorageSlot.add(1))
+      )
+    );
+    const vaultAddr = utils.getAddress(
+      utils.hexlify(
+        await getStorageAt(zkTrueUpMock, GovernanceStorageSlot.add(2))
+      )
+    );
+
     // check initFacet is one-time use and have not be added
     expect(
-      await diamondZkTrueUp.facetFunctionSelectors(zkTrueUpInit.address)
+      await diamondZkTrueUpMock.facetFunctionSelectors(zkTrueUpInit.address)
     ).to.have.lengthOf(0);
+    expect(
+      await diamondZkTrueUpMock.hasRole(utils.id("ADMIN_ROLE"), admin.address)
+    ).to.equal(true);
+    expect(
+      await diamondZkTrueUpMock.hasRole(
+        utils.id("OPERATOR_ROLE"),
+        operator.address
+      )
+    ).to.equal(true);
 
     // check governance facet init
     const diamondGov = await ethers.getContractAt(
       "Governance",
-      zkTrueUp.address
+      zkTrueUpMock.address
     );
-    expect(
-      await diamondGov.hasRole(utils.id("ADMIN_ROLE"), admin.address)
-    ).to.equal(true);
-    expect(
-      await diamondGov.hasRole(utils.id("OPERATOR_ROLE"), operator.address)
-    ).to.equal(true);
-    expect(await diamondGov.getTreasuryAddr()).to.equal(treasury.address);
-    expect(await diamondGov.getInsuranceAddr()).to.equal(insurance.address);
-    expect(await diamondGov.getVaultAddr()).to.equal(vault.address);
+
+    expect(await diamondGov.getTreasuryAddr())
+      .to.equal(treasury.address)
+      .to.equal(treasuryAddr);
+    expect(await diamondGov.getInsuranceAddr())
+      .to.equal(insurance.address)
+      .to.equal(insuranceAddr);
+    expect(await diamondGov.getVaultAddr())
+      .to.equal(vault.address)
+      .to.equal(vaultAddr);
 
     // check loan facet init
-    const diamondLoan = await ethers.getContractAt("Loan", zkTrueUp.address);
+    const diamondLoan = await ethers.getContractAt(
+      "Loan",
+      zkTrueUpMock.address
+    );
     expect(await diamondLoan.getHalfLiquidationThreshold()).to.equal(10000);
     expect(await diamondLoan.getFlashLoanPremium()).to.equal(3);
 
     // check token facet init
-    const diamondToken = await ethers.getContractAt("Token", zkTrueUp.address);
+    const diamondToken = await ethers.getContractAt(
+      "Token",
+      zkTrueUpMock.address
+    );
     expect(await diamondToken.getTokenNum()).to.equal(0);
   });
 
   it("Failed to deploy, invalid diamond cut signer", async function () {
     // fail to diamond cut with invalid owner
     await expect(
-      diamondCut(invalidSigner, zkTrueUp, governance.address, Governance)
-    ).to.be.revertedWithCustomError(ZkTrueUp, "Ownable__NotOwner");
+      diamondCut(invalidSigner, zkTrueUpMock, governance.address, Governance)
+    ).to.be.revertedWithCustomError(ZkTrueUpMock, "Ownable__NotOwner");
   });
 
   it("Failed to deploy, invalid diamond init signer", async function () {
     // governance diamond cut
-    await diamondCut(deployer, zkTrueUp, governance.address, Governance);
+    await diamondCut(deployer, zkTrueUpMock, governance.address, Governance);
 
     // diamond init
     const ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
@@ -213,11 +249,11 @@ describe("Deploy", () => {
     await expect(
       diamondInit(
         invalidSigner,
-        zkTrueUp,
+        zkTrueUpMock,
         zkTrueUpInit.address,
         ZkTrueUpInit,
         initData
       )
-    ).to.be.revertedWithCustomError(ZkTrueUp, "Ownable__NotOwner");
+    ).to.be.revertedWithCustomError(ZkTrueUpMock, "Ownable__NotOwner");
   });
 });
