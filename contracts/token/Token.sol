@@ -1,11 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {TokenStorage} from "./TokenStorage.sol";
+import {TokenInternal} from "./TokenInternal.sol";
 import {IToken} from "./IToken.sol";
+import {Config} from "../libraries/Config.sol";
 
-contract Token is IToken {
+contract Token is AccessControlInternal, TokenInternal, IToken {
     using TokenStorage for TokenStorage.Layout;
+
+    /// @notice Set paused state of the token
+    /// @param tokenAddr The token address
+    /// @param isPaused The boolean value of paused state
+    function setPaused(address tokenAddr, bool isPaused) external onlyRole(Config.ADMIN_ROLE) {
+        _getValidTokenId(tokenAddr);
+        TokenStorage.layout().setPaused(tokenAddr, isPaused);
+        emit SetPaused(tokenAddr, isPaused);
+    }
 
     /// @notice Return the token number
     /// @return tokenNum The token number

@@ -30,6 +30,13 @@ contract Governance is IGovernance, AccessControlInternal {
         emit SetVaultAddr(vaultAddr);
     }
 
+    function setFundWeight(GovernanceStorage.FundWeight memory fundWeight) external onlyRole(Config.ADMIN_ROLE) {
+        if (fundWeight.treasury + fundWeight.insurance + fundWeight.vault != Config.FUND_WEIGHT_BASE)
+            revert InvalidFundWeight();
+        GovernanceStorage.layout().setFundWeight(fundWeight);
+        emit SetFundWeight(fundWeight);
+    }
+
     function getTreasuryAddr() external view returns (address) {
         return GovernanceStorage.layout().getTreasuryAddr();
     }
@@ -40,5 +47,9 @@ contract Governance is IGovernance, AccessControlInternal {
 
     function getVaultAddr() external view returns (address) {
         return GovernanceStorage.layout().getVaultAddr();
+    }
+
+    function getFundWeight() external view returns (GovernanceStorage.FundWeight memory) {
+        return GovernanceStorage.layout().getFundWeight();
     }
 }

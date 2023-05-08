@@ -13,6 +13,14 @@ library TokenStorage {
         l.tokenIds[tokenAddr] = tokenId;
     }
 
+    function setPaused(Layout storage l, address tokenAddr, bool isPaused) internal {
+        l.isPaused[tokenAddr] = isPaused;
+    }
+
+    function setAssetConfig(Layout storage l, uint16 tokenId, AssetConfig memory assetConfig) internal {
+        l.assetConfigs[tokenId] = assetConfig;
+    }
+
     function getTokenNum(Layout storage l) internal view returns (uint16) {
         return l.tokenNum;
     }
@@ -21,11 +29,33 @@ library TokenStorage {
         return l.tokenIds[tokenAddr];
     }
 
+    function getPaused(Layout storage l, address tokenAddr) internal view returns (bool) {
+        return l.isPaused[tokenAddr];
+    }
+
+    function getAssetConfig(Layout storage l, uint16 tokenId) internal view returns (AssetConfig memory) {
+        return l.assetConfigs[tokenId];
+    }
+
+    /// @notice Configuration of the asset in the network
+    struct AssetConfig {
+        bool isStableCoin;
+        bool isTsbToken;
+        uint8 decimals;
+        uint128 minDepositAmt;
+        address tokenAddr;
+        address priceFeed;
+    }
+
     struct Layout {
         /// @notice Total number of ERC20 tokens registered in the network.
         uint16 tokenNum;
         /// @notice Mapping of L1 Token Address => L2 Token Id
         mapping(address => uint16) tokenIds;
+        /// @notice Mapping of L1 Token Address => isPaused
+        mapping(address => bool) isPaused;
+        /// @notice Mapping of Token Id => AssetConfig
+        mapping(uint16 => AssetConfig) assetConfigs;
     }
 
     function layout() internal pure returns (Layout storage l) {

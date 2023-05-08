@@ -17,6 +17,10 @@ library GovernanceStorage {
         l.vaultAddr = vaultAddr;
     }
 
+    function setFundWeight(Layout storage l, FundWeight memory fundWeight) internal {
+        l.fundWeight = fundWeight;
+    }
+
     function getTreasuryAddr(Layout storage l) internal view returns (address) {
         return l.treasuryAddr;
     }
@@ -29,6 +33,17 @@ library GovernanceStorage {
         return l.vaultAddr;
     }
 
+    function getFundWeight(Layout storage l) internal view returns (FundWeight memory) {
+        return l.fundWeight;
+    }
+
+    /// @notice The fund distribution weight of the protocol
+    struct FundWeight {
+        uint16 treasury;
+        uint16 insurance;
+        uint16 vault;
+    }
+
     struct Layout {
         /// @notice Address of the treasury
         address treasuryAddr;
@@ -36,6 +51,8 @@ library GovernanceStorage {
         address insuranceAddr;
         /// @notice Address of the vault
         address vaultAddr;
+        /// @notice Fund weight for treasury, insurance and vault
+        FundWeight fundWeight;
     }
 
     function layout() internal pure returns (Layout storage l) {

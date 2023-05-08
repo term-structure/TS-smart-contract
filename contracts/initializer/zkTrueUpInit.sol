@@ -25,10 +25,30 @@ contract ZkTrueUpInit is AccessControlInternal {
         gsl.setTreasuryAddr(treasuryAddr);
         gsl.setInsuranceAddr(insuranceAddr);
         gsl.setVaultAddr(vaultAddr);
+        GovernanceStorage.FundWeight memory fundWeight = GovernanceStorage.FundWeight({
+            treasury: InitConfig.INIT_TREASURY_WEIGHT,
+            insurance: InitConfig.INIT_INSURANCE_WEIGHT,
+            vault: InitConfig.INIT_VAULT_WEIGHT
+        });
+        gsl.setFundWeight(fundWeight);
 
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         lsl.setHalfLiquidationThreshold(InitConfig.INIT_HALF_LIQUIDATION_THRESHOLD);
         lsl.setFlashLoanPremium(InitConfig.INIT_FLASH_LOAN_PREMIUM);
+
+        LoanStorage.LiquidationFactor memory initLiquidationFactor = LoanStorage.LiquidationFactor({
+            ltvThreshold: InitConfig.INIT_LTV_THRESHOLD,
+            liquidatorIncentive: InitConfig.INIT_LIQUIDATOR_INCENTIVE,
+            protocolPenalty: InitConfig.INIT_PROTOCOL_PENALTY
+        });
+        lsl.setLiquidationFactor(initLiquidationFactor);
+
+        LoanStorage.LiquidationFactor memory initStableCoinPairLiquidationFactor = LoanStorage.LiquidationFactor({
+            ltvThreshold: InitConfig.INIT_STABLECOIN_PAIR_LTV_THRESHOLD,
+            liquidatorIncentive: InitConfig.INIT_STABLECOIN_PAIR_LIQUIDATOR_INCENTIVE,
+            protocolPenalty: InitConfig.INIT_STABLECOIN_PAIR_PROTOCOL_PENALTY
+        });
+        lsl.setStableCoinPairLiquidationFactor(initStableCoinPairLiquidationFactor);
     }
 }

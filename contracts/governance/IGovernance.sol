@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {GovernanceStorage} from "./GovernanceStorage.sol";
+
 interface IGovernance {
+    error InvalidFundWeight();
+
     /// @notice Emitted when the treasury address is set
     /// @param treasuryAddr The address of the treasury
     event SetTreasuryAddr(address indexed treasuryAddr);
@@ -13,6 +17,10 @@ interface IGovernance {
     /// @notice Emitted when the vault address is set
     /// @param vaultAddr The address of the vault
     event SetVaultAddr(address indexed vaultAddr);
+
+    /// @notice Emitted when the fund weight is set
+    /// @param fundWeight The fund weight
+    event SetFundWeight(GovernanceStorage.FundWeight indexed fundWeight);
 
     /// @notice Set the treasury address
     /// @param treasuryAddr The address of the treasury
@@ -26,6 +34,8 @@ interface IGovernance {
     /// @param vaultAddr The address of the vault
     function setVaultAddr(address vaultAddr) external;
 
+    function setFundWeight(GovernanceStorage.FundWeight memory fundWeight) external;
+
     /// @notice Return the treasury address
     /// @return treasuryAddr The address of the treasury
     function getTreasuryAddr() external view returns (address);
@@ -37,4 +47,6 @@ interface IGovernance {
     /// @notice Return the vault address
     /// @return vaultAddr The address of the vault
     function getVaultAddr() external view returns (address);
+
+    function getFundWeight() external view returns (GovernanceStorage.FundWeight memory);
 }
