@@ -20,17 +20,14 @@ export const diamondInit = async (
   initFactory: ContractFactory,
   initData: string
 ) => {
-  // const initFn = initFactory.interface.functions["init(bytes)"];
-  // const initFnSelector = initFactory.interface.getSighash(initFn);
-
   const functionCall = initFactory.interface.encodeFunctionData("init", [
     initData,
   ]);
 
-  // add init facet and execute init function
-  const addInitFacetTx = await diamond
+  // execute init function from init facet
+  const initTx = await diamond
     .connect(signer)
     .diamondCut([], initContractAddr, functionCall);
 
-  await addInitFacetTx.wait();
+  await initTx.wait();
 };

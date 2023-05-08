@@ -1,7 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { utils, Wallet, BigNumber } from "ethers";
+import { utils, Wallet } from "ethers";
 import { diamondCut } from "../utils/diamondCut";
 import { diamondInit } from "../utils/diamondInit";
 import {
