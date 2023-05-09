@@ -12,14 +12,14 @@ contract Loan is ILoan, AccessControlInternal {
     /// @notice Set the half liquidation threshold
     /// @param halfLiquidationThreshold The half liquidation threshold
     function setHalfLiquidationThreshold(uint16 halfLiquidationThreshold) external onlyRole(Config.ADMIN_ROLE) {
-        LoanStorage.layout().setHalfLiquidationThreshold(halfLiquidationThreshold);
+        LoanStorage.layout().halfLiquidationThreshold = halfLiquidationThreshold;
         emit SetHalfLiquidationThreshold(halfLiquidationThreshold);
     }
 
     /// @notice Set the flash loan premium
     /// @param flashLoanPremium The flash loan premium
     function setFlashLoanPremium(uint16 flashLoanPremium) external onlyRole(Config.ADMIN_ROLE) {
-        LoanStorage.layout().setFlashLoanPremium(flashLoanPremium);
+        LoanStorage.layout().flashLoanPremium = flashLoanPremium;
         emit SetFlashLoanPremium(flashLoanPremium);
     }
 
@@ -36,21 +36,21 @@ contract Loan is ILoan, AccessControlInternal {
             Config.MAX_LTV_RATIO
         ) revert InvalidLiquidationFactor();
         isStableCoinPair
-            ? LoanStorage.layout().setStableCoinPairLiquidationFactor(liquidationFactor)
-            : LoanStorage.layout().setLiquidationFactor(liquidationFactor);
+            ? LoanStorage.layout().stableCoinPairLiquidationFactor = liquidationFactor
+            : LoanStorage.layout().liquidationFactor = liquidationFactor;
         emit SetLiquidationFactor(liquidationFactor, isStableCoinPair);
     }
 
     /// @notice Return the half liquidation threshold
     /// @return halfLiquidationThreshold The half liquidation threshold
     function getHalfLiquidationThreshold() external view returns (uint16) {
-        return LoanStorage.layout().getHalfLiquidationThreshold();
+        return LoanStorage.layout().halfLiquidationThreshold;
     }
 
     /// @notice Return the flash loan premium
     /// @return flashLoanPremium The flash loan premium
     function getFlashLoanPremium() external view returns (uint16) {
-        return LoanStorage.layout().getFlashLoanPremium();
+        return LoanStorage.layout().flashLoanPremium;
     }
 
     /// @notice Return the liquidation factor
@@ -59,7 +59,7 @@ contract Loan is ILoan, AccessControlInternal {
     function getLiquidationFactor(bool isStableCoinPair) external view returns (LoanStorage.LiquidationFactor memory) {
         return
             isStableCoinPair
-                ? LoanStorage.layout().getStableCoinPairLiquidationFactor()
-                : LoanStorage.layout().getLiquidationFactor();
+                ? LoanStorage.layout().stableCoinPairLiquidationFactor
+                : LoanStorage.layout().liquidationFactor;
     }
 }

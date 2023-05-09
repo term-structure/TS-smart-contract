@@ -215,6 +215,12 @@ describe("Deploy", () => {
       zkTrueUpMock.address
     );
     expect(await diamondToken.getTokenNum()).to.equal(0);
+
+    const setVaultAddrTx = await diamondGov
+      .connect(admin)
+      .setVaultAddr(admin.address);
+
+    await setVaultAddrTx.wait();
   });
 
   it("Failed to deploy, invalid diamond cut signer", async function () {

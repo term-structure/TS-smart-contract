@@ -2,13 +2,14 @@
 pragma solidity ^0.8.17;
 
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
+import {SafeOwnable} from "@solidstate/contracts/access/ownable/SafeOwnable.sol";
 import {GovernanceStorage} from "../governance/GovernanceStorage.sol";
 import {LoanStorage} from "../loan/LoanStorage.sol";
 import {Config, InitConfig} from "../libraries/Config.sol";
 
 import "hardhat/console.sol";
 
-contract ZkTrueUpInit is AccessControlInternal {
+contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
     using GovernanceStorage for GovernanceStorage.Layout;
     using LoanStorage for LoanStorage.Layout;
 
@@ -17,38 +18,39 @@ contract ZkTrueUpInit is AccessControlInternal {
             .decode(data, (address, address, address, address, address));
         // set roles
         AccessControlInternal._setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
+        _transferOwnership(adminAddr);
         AccessControlInternal._grantRole(Config.ADMIN_ROLE, adminAddr);
         AccessControlInternal._grantRole(Config.OPERATOR_ROLE, operatorAddr);
 
         // init governance facet
         GovernanceStorage.Layout storage gsl = GovernanceStorage.layout();
-        gsl.setTreasuryAddr(treasuryAddr);
-        gsl.setInsuranceAddr(insuranceAddr);
-        gsl.setVaultAddr(vaultAddr);
+        gsl.treasuryAddr = treasuryAddr;
+        gsl.insuranceAddr = insuranceAddr;
+        gsl.vaultAddr = vaultAddr;
         GovernanceStorage.FundWeight memory fundWeight = GovernanceStorage.FundWeight({
             treasury: InitConfig.INIT_TREASURY_WEIGHT,
             insurance: InitConfig.INIT_INSURANCE_WEIGHT,
             vault: InitConfig.INIT_VAULT_WEIGHT
         });
-        gsl.setFundWeight(fundWeight);
+        gsl.fundWeight = fundWeight;
 
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();
-        lsl.setHalfLiquidationThreshold(InitConfig.INIT_HALF_LIQUIDATION_THRESHOLD);
-        lsl.setFlashLoanPremium(InitConfig.INIT_FLASH_LOAN_PREMIUM);
+        lsl.halfLiquidationThreshold = InitConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
+        lsl.flashLoanPremium = InitConfig.INIT_FLASH_LOAN_PREMIUM;
 
         LoanStorage.LiquidationFactor memory initLiquidationFactor = LoanStorage.LiquidationFactor({
             ltvThreshold: InitConfig.INIT_LTV_THRESHOLD,
             liquidatorIncentive: InitConfig.INIT_LIQUIDATOR_INCENTIVE,
             protocolPenalty: InitConfig.INIT_PROTOCOL_PENALTY
         });
-        lsl.setLiquidationFactor(initLiquidationFactor);
+        lsl.liquidationFactor = initLiquidationFactor;
 
         LoanStorage.LiquidationFactor memory initStableCoinPairLiquidationFactor = LoanStorage.LiquidationFactor({
             ltvThreshold: InitConfig.INIT_STABLECOIN_PAIR_LTV_THRESHOLD,
             liquidatorIncentive: InitConfig.INIT_STABLECOIN_PAIR_LIQUIDATOR_INCENTIVE,
             protocolPenalty: InitConfig.INIT_STABLECOIN_PAIR_PROTOCOL_PENALTY
         });
-        lsl.setStableCoinPairLiquidationFactor(initStableCoinPairLiquidationFactor);
+        lsl.stableCoinPairLiquidationFactor = initStableCoinPairLiquidationFactor;
     }
 }

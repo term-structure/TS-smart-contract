@@ -14,42 +14,42 @@ contract Governance is IGovernance, AccessControlInternal {
 
     function setTreasuryAddr(address treasuryAddr) external onlyRole(Config.ADMIN_ROLE) {
         Checker.noneZeroAddr(treasuryAddr);
-        GovernanceStorage.layout().setTreasuryAddr(treasuryAddr);
+        GovernanceStorage.layout().treasuryAddr = treasuryAddr;
         emit SetTreasuryAddr(treasuryAddr);
     }
 
     function setInsuranceAddr(address insuranceAddr) external onlyRole(Config.ADMIN_ROLE) {
         Checker.noneZeroAddr(insuranceAddr);
-        GovernanceStorage.layout().setInsuranceAddr(insuranceAddr);
+        GovernanceStorage.layout().insuranceAddr = insuranceAddr;
         emit SetInsuranceAddr(insuranceAddr);
     }
 
     function setVaultAddr(address vaultAddr) external onlyRole(Config.ADMIN_ROLE) {
         Checker.noneZeroAddr(vaultAddr);
-        GovernanceStorage.layout().setVaultAddr(vaultAddr);
+        GovernanceStorage.layout().vaultAddr = vaultAddr;
         emit SetVaultAddr(vaultAddr);
     }
 
     function setFundWeight(GovernanceStorage.FundWeight memory fundWeight) external onlyRole(Config.ADMIN_ROLE) {
         if (fundWeight.treasury + fundWeight.insurance + fundWeight.vault != Config.FUND_WEIGHT_BASE)
             revert InvalidFundWeight();
-        GovernanceStorage.layout().setFundWeight(fundWeight);
+        GovernanceStorage.layout().fundWeight = fundWeight;
         emit SetFundWeight(fundWeight);
     }
 
     function getTreasuryAddr() external view returns (address) {
-        return GovernanceStorage.layout().getTreasuryAddr();
+        return GovernanceStorage.layout().treasuryAddr;
     }
 
     function getInsuranceAddr() external view returns (address) {
-        return GovernanceStorage.layout().getInsuranceAddr();
+        return GovernanceStorage.layout().insuranceAddr;
     }
 
     function getVaultAddr() external view returns (address) {
-        return GovernanceStorage.layout().getVaultAddr();
+        return GovernanceStorage.layout().vaultAddr;
     }
 
     function getFundWeight() external view returns (GovernanceStorage.FundWeight memory) {
-        return GovernanceStorage.layout().getFundWeight();
+        return GovernanceStorage.layout().fundWeight;
     }
 }

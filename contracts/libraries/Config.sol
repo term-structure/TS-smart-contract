@@ -6,6 +6,12 @@ library Config {
     /// @notice The default address of ETH
     address internal constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+    /// @notice The max amount of registered tokens
+    uint32 internal constant MAX_AMOUNT_OF_REGISTERED_ACCOUNT = type(uint32).max;
+
+    /// @notice The max amount of registered tokens
+    uint32 internal constant MAX_AMOUNT_OF_REGISTERED_TOKENS = type(uint16).max;
+
     /// @notice The health factor threshold
     /// @dev Constant value 1, and the decimals is 3
     /// @dev If health factor < HEALTH_FACTOR_THRESHOLD, the loan is liquidatable
