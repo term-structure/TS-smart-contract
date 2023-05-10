@@ -43,4 +43,8 @@ abstract contract TokenInternal is ITokenInternal {
     function _getTokenNum() internal view returns (uint16 tokenNum) {
         return TokenStorage.layout().tokenNum;
     }
+
+    function _getAssetConfig(uint16 tokenId) internal view returns (TokenStorage.AssetConfig memory assetConfig) {
+        return TokenStorage.layout().assetConfigs[tokenId];
+    }
 }

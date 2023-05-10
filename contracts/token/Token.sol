@@ -5,7 +5,7 @@ import {AccessControlInternal} from "@solidstate/contracts/access/access_control
 import {TokenStorage} from "./TokenStorage.sol";
 import {TokenInternal} from "./TokenInternal.sol";
 import {IToken} from "./IToken.sol";
-import {ITsbToken} from "../tsbToken/ITsbToken.sol";
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Checker} from "../libraries/Checker.sol";
 

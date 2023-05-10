@@ -65,9 +65,9 @@ contract TsbToken is ERC20 {
     }
 
     /// @notice Get the underlying asset and maturity time of the TSB token
-    /// @return _underlyingAsset The underlying asset of the TSB token
-    /// @return _maturityTime The maturity time of the TSB token
-    function tokenInfo() external view returns (address _underlyingAsset, uint32 _maturityTime) {
+    /// @return underlyingAsset The underlying asset of the TSB token
+    /// @return maturityTime The maturity time of the TSB token
+    function tokenInfo() external view returns (address, uint32) {
         return (underlyingAsset, maturityTime);
     }
 
