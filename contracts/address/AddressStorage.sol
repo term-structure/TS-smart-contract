@@ -9,6 +9,10 @@ library AddressStorage {
         address wETHAddr;
         /// @notice Poseidon hash contract address
         address poseidonUnit2Addr;
+        /// @notice Verifier contract address
+        address verifierAddr;
+        /// @notice Evacuation verifier contract address
+        address evacuVerifierAddr;
     }
 
     function layout() internal pure returns (Layout storage l) {

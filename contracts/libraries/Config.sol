@@ -21,6 +21,39 @@ library Config {
     /// @notice Expiration block for L1 request
     uint256 internal constant EXPIRATION_BLOCK = EXPIRATION_PERIOD / BLOCK_PERIOD;
 
+    /// @notice Hash of empty string = keccak256("")
+    bytes32 internal constant EMPTY_STRING_KECCAK = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
+
+    /// @notice The bytes lengths of a chunk
+    uint8 internal constant CHUNK_BYTES = 12;
+
+    /// @notice The bytes lengths of register request
+    uint256 internal constant REGISTER_BYTES = 4 * CHUNK_BYTES;
+
+    /// @notice The bytes lengths of deposit request
+    uint256 internal constant DEPOSIT_BYTES = 2 * CHUNK_BYTES;
+
+    /// @notice The bytes lengths of withdraw request
+    uint256 internal constant WITHDRAW_BYTES = 2 * CHUNK_BYTES;
+
+    /// @notice The bytes lengths of force withdraw request
+    uint256 internal constant FORCE_WITHDRAW_BYTES = 2 * CHUNK_BYTES;
+
+    /// @notice The bytes lengths of auctionEnd request
+    uint256 internal constant AUCTION_END_BYTES = 4 * CHUNK_BYTES;
+
+    /// @notice The bytes lengths of CreateTsbToken request
+    uint256 internal constant CREATE_TS_BOND_TOKEN_BYTES = 1 * CHUNK_BYTES;
+
+    /// @notice The bytes lengths of WithdrawFee request
+    uint256 internal constant WITHDRAW_FEE_BYTES = 2 * CHUNK_BYTES;
+
+    /// @notice The bytes lengths of Evacuation request
+    uint256 internal constant EVACUATION_BYTES = 2 * CHUNK_BYTES;
+
+    /// @notice The mask for commitment
+    uint256 internal constant INPUT_MASK = (type(uint256).max >> 3);
+
     /// @notice The health factor threshold
     /// @dev Constant value 1, and the decimals is 3
     /// @dev If health factor < HEALTH_FACTOR_THRESHOLD, the loan is liquidatable

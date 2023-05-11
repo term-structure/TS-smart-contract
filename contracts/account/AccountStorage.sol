@@ -11,8 +11,6 @@ library AccountStorage {
         mapping(address => uint32) accountIds;
         /// @notice Mapping of L2 Account Id => L1 Address
         mapping(uint32 => address) accountAddres;
-        /// @notice Mapping of L2 Account Id => L1 Address => isEvacuated
-        mapping(uint32 => mapping(uint16 => bool)) evacuated;
     }
 
     function layout() internal pure returns (Layout storage l) {
