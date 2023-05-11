@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/// @notice The fund distribution weight of the protocol
+struct FundWeight {
+    uint16 treasury;
+    uint16 insurance;
+    uint16 vault;
+}
+
 library GovernanceStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTureUp.contracts.storage.Governance")) - 1);
-
-    /// @notice The fund distribution weight of the protocol
-    struct FundWeight {
-        uint16 treasury;
-        uint16 insurance;
-        uint16 vault;
-    }
 
     struct Layout {
         /// @notice Address of the treasury

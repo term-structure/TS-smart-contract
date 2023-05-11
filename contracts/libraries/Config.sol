@@ -12,6 +12,15 @@ library Config {
     /// @notice The max amount of registered tokens
     uint32 internal constant MAX_AMOUNT_OF_REGISTERED_TOKENS = type(uint16).max;
 
+    /// @notice Expected average period of block creation
+    uint256 internal constant BLOCK_PERIOD = 15 seconds;
+
+    /// @notice Expriation period for L1 request
+    uint256 internal constant EXPIRATION_PERIOD = 14 days;
+
+    /// @notice Expiration block for L1 request
+    uint256 internal constant EXPIRATION_BLOCK = EXPIRATION_PERIOD / BLOCK_PERIOD;
+
     /// @notice The health factor threshold
     /// @dev Constant value 1, and the decimals is 3
     /// @dev If health factor < HEALTH_FACTOR_THRESHOLD, the loan is liquidatable
@@ -20,8 +29,17 @@ library Config {
     /// @notice The max LTV ratio
     uint16 internal constant MAX_LTV_RATIO = 1000; // 100%
 
+    /// @notice The base of LTV ratio
+    uint16 internal constant LTV_BASE = 1000;
+
+    /// @notice The base of flashloan premium
+    uint16 internal constant FLASH_LOAN_PREMIUM_BASE = 10000;
+
     /// @notice The base of fund distribution weight of the protocol
     uint16 internal constant FUND_WEIGHT_BASE = 10000;
+
+    /// @notice The decimals of L2 system
+    uint8 internal constant SYSTEM_DECIMALS = 8;
 
     /// @notice Role for admin
     bytes32 internal constant ADMIN_ROLE = keccak256("ADMIN_ROLE");

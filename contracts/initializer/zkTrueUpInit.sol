@@ -3,8 +3,8 @@ pragma solidity ^0.8.17;
 
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {SafeOwnable} from "@solidstate/contracts/access/ownable/SafeOwnable.sol";
-import {GovernanceStorage} from "../governance/GovernanceStorage.sol";
-import {LoanStorage} from "../loan/LoanStorage.sol";
+import {GovernanceStorage, FundWeight} from "../governance/GovernanceStorage.sol";
+import {LoanStorage, LiquidationFactor} from "../loan/LoanStorage.sol";
 import {Config, InitConfig} from "../libraries/Config.sol";
 
 import "hardhat/console.sol";
@@ -27,7 +27,7 @@ contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
         gsl.treasuryAddr = treasuryAddr;
         gsl.insuranceAddr = insuranceAddr;
         gsl.vaultAddr = vaultAddr;
-        GovernanceStorage.FundWeight memory fundWeight = GovernanceStorage.FundWeight({
+        FundWeight memory fundWeight = FundWeight({
             treasury: InitConfig.INIT_TREASURY_WEIGHT,
             insurance: InitConfig.INIT_INSURANCE_WEIGHT,
             vault: InitConfig.INIT_VAULT_WEIGHT
@@ -37,16 +37,15 @@ contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         lsl.halfLiquidationThreshold = InitConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
-        lsl.flashLoanPremium = InitConfig.INIT_FLASH_LOAN_PREMIUM;
 
-        LoanStorage.LiquidationFactor memory initLiquidationFactor = LoanStorage.LiquidationFactor({
+        LiquidationFactor memory initLiquidationFactor = LiquidationFactor({
             ltvThreshold: InitConfig.INIT_LTV_THRESHOLD,
             liquidatorIncentive: InitConfig.INIT_LIQUIDATOR_INCENTIVE,
             protocolPenalty: InitConfig.INIT_PROTOCOL_PENALTY
         });
         lsl.liquidationFactor = initLiquidationFactor;
 
-        LoanStorage.LiquidationFactor memory initStableCoinPairLiquidationFactor = LoanStorage.LiquidationFactor({
+        LiquidationFactor memory initStableCoinPairLiquidationFactor = LiquidationFactor({
             ltvThreshold: InitConfig.INIT_STABLECOIN_PAIR_LTV_THRESHOLD,
             liquidatorIncentive: InitConfig.INIT_STABLECOIN_PAIR_LIQUIDATOR_INCENTIVE,
             protocolPenalty: InitConfig.INIT_STABLECOIN_PAIR_PROTOCOL_PENALTY

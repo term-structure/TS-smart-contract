@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-/**
- * @title TsbController interface
- * @author Term Structure Labs
- * @notice Interface for TsbController contract
- */
-interface ITsbController {
+interface ITsbFacet {
     /// @notice Error for create TsbToken with invalid maturity time
     error InvalidMaturityTime(uint32 maturityTime);
     /// @notice Error for create TsbToken with invalid base token address
     error UnderlyingAssetIsNotExist(uint16 underlyingTokenId);
     /// @notice Error for create TsbToken which is already exist
     error TsbTokenIsExist(address existTsbTokenAddr);
+    /// @notice Error for redeem with invalid tsb token address
+    error InvalidTsbTokenAddr(address invalidTokenAddr);
+    /// @notice Error for redeem with tsb token which is not matured
+    error TsbTokenIsNotMatured(address tsbTokenAddr);
 
     /// @notice Emitted when a new TSB token is created
     /// @param tsbTokenAddr The address of the created TSB token
@@ -20,17 +19,19 @@ interface ITsbController {
     /// @param maturity The maturity of the created TSB token
     event TsbTokenCreated(address indexed tsbTokenAddr, uint16 underlyingTokenId, uint32 maturity);
 
-    /// @notice Emitted when a TSB token is minted
-    /// @param tsbTokenAddr The address of the minted TSB token
-    /// @param accountAddr The L1 address of the minted TSB token
-    /// @param amount The amount of the minted TSB token
-    event TsbTokenMinted(address indexed tsbTokenAddr, address indexed accountAddr, uint256 amount);
-
-    /// @notice Emitted when a TSB token is burned
-    /// @param tsbTokenAddr The address of the burned TSB token
-    /// @param accountAddr The L1 address of the burned TSB token
-    /// @param amount The amount of the burned TSB token
-    event TsbTokenBurned(address indexed tsbTokenAddr, address indexed accountAddr, uint256 amount);
+    /// @notice Emitted when the lender redeem the tsbToken
+    /// @param sender The address of the sender
+    /// @param tsbTokenAddr The address of the tsbToken
+    /// @param underlyingAssetAddr The address of the underlying asset
+    /// @param amount The amount of the underlying asset
+    /// @param redeemAndDeposit Whether to deposit the underlying asset after redeem the tsbToken
+    event Redeem(
+        address indexed sender,
+        address indexed tsbTokenAddr,
+        address underlyingAssetAddr,
+        uint256 amount,
+        bool redeemAndDeposit
+    );
 
     /// @notice Create a new tsbToken
     /// @param underlyingTokenId The token id of the underlying asset
@@ -44,18 +45,6 @@ interface ITsbController {
         string memory name,
         string memory symbol
     ) external returns (address tsbTokenAddr);
-
-    /// @notice Mint tsbToken
-    /// @param tsbTokenAddr The address of the tsbToken
-    /// @param to The address of the recipient
-    /// @param amount The amount of the tsbToken
-    function mintTsbToken(address tsbTokenAddr, address to, uint128 amount) external;
-
-    /// @notice Burn tsbToken
-    /// @param tsbTokenAddr The address of the tsbToken
-    /// @param from The address of the sender
-    /// @param amount The amount of the tsbToken to burn
-    function burnTsbToken(address tsbTokenAddr, address from, uint128 amount) external;
 
     /// @notice Check the balance of the tsbToken
     /// @param account The address of the account

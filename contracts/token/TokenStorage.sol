@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/// @notice Configuration of the asset in the network
+struct AssetConfig {
+    bool isStableCoin;
+    bool isTsbToken;
+    uint8 decimals;
+    uint128 minDepositAmt;
+    address tokenAddr;
+    address priceFeed;
+}
+
 library TokenStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTureUp.contracts.storage.Token")) - 1);
-
-    /// @notice Configuration of the asset in the network
-    struct AssetConfig {
-        bool isStableCoin;
-        bool isTsbToken;
-        uint8 decimals;
-        uint128 minDepositAmt;
-        address tokenAddr;
-        address priceFeed;
-    }
 
     struct Layout {
         /// @notice Total number of ERC20 tokens registered in the network.

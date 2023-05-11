@@ -3,15 +3,15 @@ pragma solidity ^0.8.17;
 
 import {Operations} from "../libraries/Operations.sol";
 
+/// @dev The priority request needs to be executed before the expirationBlock, or the system will enter the evacuation mode
+struct L1Request {
+    Operations.OpType opType;
+    uint64 expirationBlock;
+    bytes32 hashedPubData;
+}
+
 library RollupStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTureUp.contracts.storage.Rollup")) - 1);
-
-    /// @dev The priority request needs to be executed before the expirationBlock, or the system will enter the evacuation mode
-    struct L1Request {
-        Operations.OpType opType;
-        uint64 expirationBlock;
-        bytes32 hashedPubData;
-    }
 
     struct Layout {
         /// @notice L1 request queue
@@ -32,10 +32,6 @@ library RollupStorage {
         uint32 verifiedBlockNum;
         /// @notice Total number of executed blocks
         uint32 executedBlockNum;
-        /// @notice Mode of evacuation (true: evacuation mode, false: normal mode)
-        bool evacuMode;
-        /// @notice Mapping of L2 Account Id => L1 Address => isEvacuated
-        mapping(uint32 => mapping(uint16 => bool)) evacuated;
     }
 
     function layout() internal pure returns (Layout storage l) {

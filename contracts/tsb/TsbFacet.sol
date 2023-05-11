@@ -2,15 +2,19 @@
 pragma solidity ^0.8.17;
 
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
-import {TokenInternal} from "../token/TokenInternal.sol";
+import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {TsbToken} from "../TsbToken.sol";
+import {RollupLib} from "../rollup/RollupLib.sol";
+import {TokenLib} from "../token/TokenLib.sol";
+import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
+import {AccountLib} from "../account/AccountLib.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
-import {TsbControllerStorage} from "./TsbControllerStorage.sol";
-import {TsbControllerInternal} from "./TsbControllerInternal.sol";
-import {ITsbController} from "./ITsbController.sol";
+import {TsbStorage} from "./TsbStorage.sol";
+import {TsbLib} from "./TsbLib.sol";
+import {ITsbFacet} from "./ITsbFacet.sol";
 
-contract TsbController is ITsbController, AccessControlInternal, TokenInternal, TsbControllerInternal {
+contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Create a new tsbToken
     /// @dev This function is called by governance
     /// @param underlyingTokenId The token id of the underlying asset
@@ -26,35 +30,39 @@ contract TsbController is ITsbController, AccessControlInternal, TokenInternal, 
         string memory symbol
     ) external virtual onlyRole(Config.OPERATOR_ROLE) returns (address) {
         if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime);
-        address underlyingAssetAddr = _getAssetConfig(underlyingTokenId).tokenAddr;
+        address underlyingAssetAddr = TokenLib.getAssetConfig(underlyingTokenId).tokenAddr;
         if (underlyingAssetAddr == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
-        uint48 tsbTokenKey = _getTsbTokenKey(underlyingTokenId, maturityTime);
-        address tokenAddr = _getTsbTokenAddr(tsbTokenKey);
+        uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
+        address tokenAddr = TsbLib.getTsbTokenAddr(tsbTokenKey);
         if (tokenAddr != address(0)) revert TsbTokenIsExist(tokenAddr);
         address tsbTokenAddr = address(new TsbToken(name, symbol, underlyingAssetAddr, maturityTime));
-        TsbControllerStorage.layout().tsbTokens[tsbTokenKey] = tsbTokenAddr;
+        TsbStorage.layout().tsbTokens[tsbTokenKey] = tsbTokenAddr;
         emit TsbTokenCreated(tsbTokenAddr, underlyingTokenId, maturityTime);
         return tsbTokenAddr;
     }
 
-    /// @notice Mint tsbToken
-    /// @dev This function can only be called by zkTrueUp
+    /// @notice Redeem tsbToken
+    /// @dev TSB token can be redeemed only after maturity
     /// @param tsbTokenAddr The address of the tsbToken
-    /// @param to The address of the recipient
     /// @param amount The amount of the tsbToken
-    function mintTsbToken(address tsbTokenAddr, address to, uint128 amount) external onlyRole(Config.OPERATOR_ROLE) {
-        ITsbToken(tsbTokenAddr).mint(to, amount);
-        emit TsbTokenMinted(tsbTokenAddr, to, amount);
-    }
+    /// @param redeemAndDeposit Whether to deposit the underlying asset after redeem the tsbToken
+    function redeem(address tsbTokenAddr, uint128 amount, bool redeemAndDeposit) external nonReentrant {
+        (, AssetConfig memory assetConfig) = TokenLib.getAssetConfig(tsbTokenAddr);
+        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
+        (address underlyingAsset, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+        if (block.timestamp < maturityTime) revert TsbTokenIsNotMatured(tsbTokenAddr);
 
-    /// @notice Burn tsbToken
-    /// @dev This function can only be called by zkTrueUp
-    /// @param tsbTokenAddr The address of the tsbToken
-    /// @param from The address of the sender
-    /// @param amount The amount of the tsbToken to burn
-    function burnTsbToken(address tsbTokenAddr, address from, uint128 amount) external onlyRole(Config.OPERATOR_ROLE) {
-        ITsbToken(tsbTokenAddr).burn(from, amount);
-        emit TsbTokenBurned(tsbTokenAddr, from, amount);
+        TsbLib.burnTsbToken(tsbTokenAddr, msg.sender, amount);
+        emit Redeem(msg.sender, tsbTokenAddr, underlyingAsset, amount, redeemAndDeposit);
+
+        if (redeemAndDeposit) {
+            uint32 accountId = AccountLib.getValidAccount(msg.sender);
+            (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = TokenLib.getValidToken(underlyingAsset);
+            TokenLib.validDepositAmt(amount, underlyingAssetConfig);
+            RollupLib.addDepositRequest(msg.sender, accountId, tokenId, underlyingAssetConfig.decimals, amount);
+        } else {
+            TokenLib.transfer(underlyingAsset, payable(msg.sender), amount);
+        }
     }
 
     /* ========== External View Functions ========== */
@@ -101,7 +109,7 @@ contract TsbController is ITsbController, AccessControlInternal, TokenInternal, 
     /// @param underlyingTokenId The token id of the underlying asset
     /// @param maturity The maturity of the tsbToken
     /// @return tsbTokenAddr The address of the tsbToken
-    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address tsbTokenAddr) {
-        return _getTsbTokenAddr(_getTsbTokenKey(underlyingTokenId, maturity));
+    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address) {
+        return TsbLib.getTsbTokenAddr(TsbLib.getTsbTokenKey(underlyingTokenId, maturity));
     }
 }

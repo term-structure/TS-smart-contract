@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {TokenStorage} from "./TokenStorage.sol";
+import {TokenStorage, AssetConfig} from "./TokenStorage.sol";
 
-interface IToken {
+interface ITokenFacet {
     /// @notice Error for whitelist token which is already whitelisted
     error TokenIsWhitelisted(address whitelistedTokenAddr);
     /// @notice Error for token number exceed limit
@@ -33,7 +33,7 @@ interface IToken {
     /// @param tokenAddr The token address on Layer1
     /// @param tokenId The token id on Layer2
     /// @param assetConfig The configuration of the token
-    event WhitelistBaseToken(address indexed tokenAddr, uint16 indexed tokenId, TokenStorage.AssetConfig assetConfig);
+    event WhitelistBaseToken(address indexed tokenAddr, uint16 indexed tokenId, AssetConfig assetConfig);
 
     /// @notice Emitted when a new tsb token is added to the network
     /// @param tokenAddr The token address on Layer1
@@ -43,7 +43,7 @@ interface IToken {
     event WhitelistTsbToken(
         address indexed tokenAddr,
         uint16 indexed tokenId,
-        TokenStorage.AssetConfig assetConfig,
+        AssetConfig assetConfig,
         uint32 maturityTime
     );
 
