@@ -31,4 +31,10 @@ library AccountLib {
     function getAccountId(address accountAddr) internal view returns (uint32) {
         return AccountStorage.layout().accountIds[accountAddr];
     }
+
+    /// @notice Return the total number of accounts
+    /// @return accountNum The total number of accounts
+    function getAccountNum() internal view returns (uint32) {
+        return AccountStorage.layout().accountNum;
+    }
 }

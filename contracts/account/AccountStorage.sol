@@ -5,8 +5,6 @@ library AccountStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTureUp.contracts.storage.Account")) - 1);
 
     struct Layout {
-        /// @notice Mode of evacuation (true: evacuation mode, false: normal mode)
-        bool evacuMode;
         /// @notice Total number of registered accounts
         uint32 accountNum;
         /// @notice Mapping of L1 Address => L2 Account Id

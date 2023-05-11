@@ -14,24 +14,26 @@ library RollupStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTureUp.contracts.storage.Rollup")) - 1);
 
     struct Layout {
-        /// @notice L1 request queue
-        mapping(uint64 => L1Request) l1RequestQueue;
-        /// @notice pending balances for withdrawal
-        mapping(bytes22 => uint128) pendingBalances;
-        /// @notice The total number of executed L1 requests
-        uint64 executedL1RequestNum;
-        /// @notice The total number of committed L1 requests
-        uint64 committedL1RequestNum;
-        /// @notice The total number of L1 requests including pending ones
-        uint64 totalL1RequestNum;
-        /// @notice Stored hashed StoredBlock for some block number
-        mapping(uint32 => bytes32) storedBlockHashes;
+        /// @notice Mode of evacuation (true: evacuation mode, false: normal mode)
+        bool evacuMode;
         /// @notice Total number of committed blocks
         uint32 committedBlockNum;
         /// @notice Total number of verified blocks
         uint32 verifiedBlockNum;
         /// @notice Total number of executed blocks
         uint32 executedBlockNum;
+        /// @notice The total number of executed L1 requests
+        uint64 executedL1RequestNum;
+        /// @notice The total number of committed L1 requests
+        uint64 committedL1RequestNum;
+        /// @notice The total number of L1 requests including pending ones
+        uint64 totalL1RequestNum;
+        /// @notice L1 request queue
+        mapping(uint64 => L1Request) l1RequestQueue;
+        /// @notice pending balances for withdrawal
+        mapping(bytes22 => uint128) pendingBalances;
+        /// @notice Stored hashed StoredBlock for some block number
+        mapping(uint32 => bytes32) storedBlockHashes;
     }
 
     function layout() internal pure returns (Layout storage l) {

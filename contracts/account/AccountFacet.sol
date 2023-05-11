@@ -3,19 +3,19 @@ pragma solidity ^0.8.17;
 
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {AccountStorage} from "./AccountStorage.sol";
-import {AccountInternal} from "./AccountInternal.sol";
 import {IAccountFacet} from "./IAccountFacet.sol";
 import {AddressLib} from "../address/AddressLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountLib} from "./AccountLib.sol";
 import {TsbLib} from "../tsb/TsbLib.sol";
+import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
 import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
 import {Config} from "../libraries/Config.sol";
 import {Operations} from "../libraries/Operations.sol";
 
-contract AccountFacet is IAccountFacet, AccountInternal, ReentrancyGuard {
+contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /// @notice Register account by deposit Ether or ERC20 to ZkTrueUp
     /// @dev The account is registered by depositing Ether or ERC20 to ZkTrueUp
     /// @param tsPubKeyX The X coordinate of the public key of the L2 account
@@ -23,7 +23,7 @@ contract AccountFacet is IAccountFacet, AccountInternal, ReentrancyGuard {
     /// @param tokenAddr The address of the token to be deposited
     /// @param amount The amount of the token to be deposited
     function register(uint256 tsPubKeyX, uint256 tsPubKeyY, address tokenAddr, uint128 amount) external payable {
-        _requireActive();
+        RollupLib.requireActive();
         uint32 accountId = AccountLib.getAccountId(msg.sender);
         if (accountId != 0) revert AccountIsRegistered(msg.sender);
         (, AssetConfig memory assetConfig) = TokenLib.getValidToken(tokenAddr);
@@ -38,7 +38,7 @@ contract AccountFacet is IAccountFacet, AccountInternal, ReentrancyGuard {
     /// @param tokenAddr The address of the token to be deposited
     /// @param amount The amount of the token to be deposited
     function deposit(address to, address tokenAddr, uint128 amount) external payable {
-        _requireActive();
+        RollupLib.requireActive();
         uint32 accountId = AccountLib.getValidAccount(to);
         _deposit(msg.sender, to, accountId, tokenAddr, amount);
     }
@@ -81,13 +81,13 @@ contract AccountFacet is IAccountFacet, AccountInternal, ReentrancyGuard {
     /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
     /// @dev The evacuation mode will be activated when the current block number is greater than the expiration block number of the first pending L1 request
     function activateEvacuation() external {
-        _requireActive();
+        RollupLib.requireActive();
         uint64 expirationBlock = RollupLib.getL1Request(RollupLib.getExecutedL1RequestNum()).expirationBlock;
         // If all the L1 requests are executed, the first pending L1 request is empty and the expirationBlock of empty L1 requets is 0
         bool evacuMode = block.number >= expirationBlock && expirationBlock != 0;
 
         if (evacuMode) {
-            AccountStorage.layout().evacuMode = true;
+            RollupStorage.layout().evacuMode = true;
             emit EvacuationActivated(block.number);
         }
     }
@@ -105,7 +105,7 @@ contract AccountFacet is IAccountFacet, AccountInternal, ReentrancyGuard {
         bytes20 tsAddr = bytes20(
             uint160(IPoseidonUnit2(AddressLib.getPoseidonUnit2Addr()).poseidon([tsPubKeyX, tsPubKeyY]))
         );
-        registeredAccountId = _getAccountNum();
+        registeredAccountId = AccountLib.getAccountNum();
         if (registeredAccountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT)
             revert AccountNumExceedLimit(registeredAccountId);
         Operations.Register memory op = Operations.Register({accountId: registeredAccountId, tsAddr: tsAddr});

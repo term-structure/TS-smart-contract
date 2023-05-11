@@ -9,6 +9,8 @@ import {Operations} from "../libraries/Operations.sol";
 library RollupLib {
     /// @notice Error for withdraw amount exceed pending balance
     error WithdrawAmtExceedPendingBalance(uint128 pendingBalance, uint128 withdrawAmt);
+    /// @notice Error for trying to do transactions when evacuation mode is activated
+    error EvacuModeActivated();
 
     /// @notice Emit when there is a new priority request added
     /// @dev The L1 request needs to be executed before the expiration block or the system will enter the evacuation mode
@@ -67,6 +69,17 @@ library RollupLib {
         unchecked {
             RollupStorage.layout().pendingBalances[key] = pendingBalance - amount;
         }
+    }
+
+    /// @notice Internal function to check if the contract is not in the evacuMode
+    function requireActive() internal view {
+        if (isEvacuMode()) revert EvacuModeActivated();
+    }
+
+    /// @notice Return the evacuation mode is activated or not
+    /// @return evacuMode The evacuation mode status
+    function isEvacuMode() internal view returns (bool) {
+        return RollupStorage.layout().evacuMode;
     }
 
     /// @notice Return the L1 request of the specified id
