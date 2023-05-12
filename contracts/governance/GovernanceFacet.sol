@@ -8,11 +8,7 @@ import {GovernanceLib} from "./GovernanceLib.sol";
 import {Checker} from "../libraries/Checker.sol";
 import {Config} from "../libraries/Config.sol";
 
-import "hardhat/console.sol";
-
 contract GovernanceFacet is IGovernanceFacet, AccessControlInternal {
-    using GovernanceStorage for GovernanceStorage.Layout;
-
     function setTreasuryAddr(address treasuryAddr) external onlyRole(Config.ADMIN_ROLE) {
         Checker.noneZeroAddr(treasuryAddr);
         GovernanceStorage.layout().treasuryAddr = treasuryAddr;

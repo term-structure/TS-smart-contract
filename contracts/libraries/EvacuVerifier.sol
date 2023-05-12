@@ -196,7 +196,7 @@ library Pairing {
     }
 }
 
-contract EvacuationVerifier {
+contract EvacuVerifier {
     using Pairing for *;
     struct VerifyingKey {
         Pairing.G1Point alfa1;

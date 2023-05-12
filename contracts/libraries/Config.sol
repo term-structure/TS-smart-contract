@@ -6,6 +6,9 @@ library Config {
     /// @notice The default address of ETH
     address internal constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+    /// @notice Number of reserved accountsx (reserved accountId 0 as default accountId)
+    uint8 internal constant NUM_RESERVED_ACCOUNTS = 1;
+
     /// @notice The max amount of registered tokens
     uint32 internal constant MAX_AMOUNT_OF_REGISTERED_ACCOUNT = type(uint32).max;
 

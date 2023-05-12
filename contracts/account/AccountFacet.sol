@@ -92,6 +92,10 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         }
     }
 
+    function getAccountNum() external view returns (uint32) {
+        return AccountLib.getAccountNum();
+    }
+
     /// @notice Internal register function
     /// @param sender The address of sender
     /// @param tsPubKeyX The x coordinate of the public key of the token sender

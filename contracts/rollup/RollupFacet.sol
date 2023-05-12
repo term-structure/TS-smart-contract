@@ -225,7 +225,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert InvalidExecutedBlockNum(executeBlock.storedBlock.blockNumber);
 
         bytes32 pendingRollupTxHash = Config.EMPTY_STRING_KECCAK;
-        for (uint32 i = 0; i < executeBlock.pendingRollupTxPubData.length; ++i) {
+        for (uint32 i; i < executeBlock.pendingRollupTxPubData.length; ++i) {
             bytes memory pubData = executeBlock.pendingRollupTxPubData[i];
             uint16 decimals;
             uint128 amount;
@@ -270,7 +270,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (publicData.length % Config.CHUNK_BYTES != 0) revert InvalidPubDataLength(publicData.length);
         bytes memory commitmentOffset = new bytes(publicData.length / Config.CHUNK_BYTES);
         uint64 processedL1RequestNum;
-        for (uint256 i = 0; i < newBlock.publicDataOffsets.length; i++) {
+        for (uint256 i; i < newBlock.publicDataOffsets.length; i++) {
             uint256 offset = newBlock.publicDataOffsets[i];
             if (offset >= publicData.length) revert OffsetGtPubDataLength(offset);
             if (offset % Config.CHUNK_BYTES != 0) revert InvalidOffset(offset);

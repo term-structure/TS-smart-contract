@@ -5,14 +5,13 @@ import {AccessControlInternal} from "@solidstate/contracts/access/access_control
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
-import {AddressLib} from "../address/AddressLib.sol";
 import {GovernanceLib} from "../governance/GovernanceLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
-import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
 import {TokenLib} from "../token/TokenLib.sol";
-import {LoanStorage, LiquidationFactor, Loan} from "./LoanStorage.sol";
 import {LoanLib} from "./LoanLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
+import {AssetConfig} from "../token/TokenStorage.sol";
+import {LoanStorage, LiquidationFactor, Loan} from "./LoanStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Checker} from "../libraries/Checker.sol";
 
