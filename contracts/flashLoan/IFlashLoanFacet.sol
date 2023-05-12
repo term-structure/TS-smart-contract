@@ -36,4 +36,8 @@ interface IFlashLoanFacet {
         uint128[] calldata amounts,
         bytes calldata data
     ) external;
+
+    function setFlashLoanPremium(uint16 flashLoanPremium) external;
+
+    function getFlashLoanPremium() external view returns (uint16);
 }

@@ -5,13 +5,13 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 export const deployLibs = async (
   libNames: string[],
   deployer: SignerWithAddress
-): Promise<Contract[]> => {
-  const libs: Contract[] = [];
-  for (let i = 0; i < libNames.length; i++) {
-    const Lib = await ethers.getContractFactory(libNames[i]);
-    const libContract = await Lib.connect(deployer).deploy();
-    await libContract.deployed();
-    libs.push(libContract);
+): Promise<{ [key: string]: Contract }> => {
+  const libs: { [key: string]: Contract } = {};
+  for (const libName of libNames) {
+    const libFactory = await ethers.getContractFactory(libName);
+    const deployedLib = await libFactory.connect(deployer).deploy();
+    await deployedLib.deployed();
+    libs[libName] = deployedLib;
   }
   return libs;
 };

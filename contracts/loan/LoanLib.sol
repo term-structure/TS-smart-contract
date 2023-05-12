@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {LoanStorage, Loan} from "./LoanStorage.sol";
+import {LoanStorage, Loan, LiquidationFactor} from "./LoanStorage.sol";
 import {Config} from "../libraries/Config.sol";
 
 library LoanLib {
@@ -16,6 +16,14 @@ library LoanLib {
     /// @return halfLiquidationThreshold The half liquidation threshold
     function getHalfLiquidationThreshold() internal view returns (uint16) {
         return LoanStorage.layout().halfLiquidationThreshold;
+    }
+
+    function getLiquidationFactor() internal view returns (LiquidationFactor memory) {
+        return LoanStorage.layout().liquidationFactor;
+    }
+
+    function getStableCoinPairLiquidationFactor() internal view returns (LiquidationFactor memory) {
+        return LoanStorage.layout().stableCoinPairLiquidationFactor;
     }
 
     /// @notice Return the loan id

@@ -54,6 +54,10 @@ contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
         addrsl.verifierAddr = verifierAddr;
         addrsl.evacuVerifierAddr = evacuVerifierAddr;
 
+        // init flashLoan facet
+        FlashLoanStorage.Layout storage flsl = FlashLoanStorage.layout();
+        flsl.flashLoanPremium = InitConfig.INIT_FLASH_LOAN_PREMIUM;
+
         // init governance facet
         GovernanceStorage.Layout storage gsl = GovernanceStorage.layout();
         gsl.treasuryAddr = treasuryAddr;
@@ -99,6 +103,7 @@ contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
         // init token facet
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         uint16 newTokenId = TokenLib.getTokenNum() + 1;
+        tsl.tokenNum = newTokenId;
         tsl.tokenIds[Config.ETH_ADDRESS] = newTokenId;
         tsl.assetConfigs[newTokenId] = AssetConfig({
             isStableCoin: ethConfig.isStableCoin,

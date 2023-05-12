@@ -37,7 +37,17 @@ interface IAccountFacet {
     /// @param tokenId Layer2 id of force withdraw token
     event ForceWithdraw(address indexed accountAddr, uint32 accountId, uint16 tokenId);
 
-    /// @notice Emitted when evacuation is activated
-    /// @param evacuationBlock The block number when evacuation is activated
-    event EvacuationActivated(uint256 indexed evacuationBlock);
+    function register(uint256 tsPubKeyX, uint256 tsPubKeyY, address tokenAddr, uint128 amount) external payable;
+
+    function deposit(address to, address tokenAddr, uint128 amount) external payable;
+
+    function withdraw(address tokenAddr, uint128 amount) external;
+
+    function forceWithdraw(address tokenAddr) external;
+
+    function getAccountAddr(uint32 accountId) external view returns (address);
+
+    function getAccountId(address accountAddr) external view returns (uint32);
+
+    function getAccountNum() external view returns (uint32);
 }

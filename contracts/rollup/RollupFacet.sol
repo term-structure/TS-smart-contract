@@ -146,6 +146,20 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         _evacuate(evacuation);
     }
 
+    /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
+    /// @dev The evacuation mode will be activated when the current block number is greater than the expiration block number of the first pending L1 request
+    function activateEvacuation() external {
+        RollupLib.requireActive();
+        uint64 expirationBlock = RollupLib.getL1Request(RollupLib.getExecutedL1RequestNum()).expirationBlock;
+        // If all the L1 requests are executed, the first pending L1 request is empty and the expirationBlock of empty L1 requets is 0
+        bool evacuMode = block.number >= expirationBlock && expirationBlock != 0;
+
+        if (evacuMode) {
+            RollupStorage.layout().evacuMode = true;
+            emit EvacuationActivated(block.number);
+        }
+    }
+
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id
@@ -171,6 +185,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @return executedBlockNum The number of executed blocks
     function getBlockNum() external view returns (uint32, uint32, uint32) {
         return (RollupLib.getCommittedBlockNum(), RollupLib.getVerifiedBlockNum(), RollupLib.getExecutedBlockNum());
+    }
+
+    function getStoredBlockHash(uint32 blockNum) external view returns (bytes32) {
+        return RollupLib.getStoredBlockHash(blockNum);
     }
 
     /// @notice Return the pending balance of the specified account and token

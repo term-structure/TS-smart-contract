@@ -55,4 +55,8 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
         FlashLoanStorage.layout().flashLoanPremium = flashLoanPremium;
         emit SetFlashLoanPremium(flashLoanPremium);
     }
+
+    function getFlashLoanPremium() external view returns (uint16) {
+        return FlashLoanLib.getFlashLoanPremium();
+    }
 }

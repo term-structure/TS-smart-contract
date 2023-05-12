@@ -67,6 +67,14 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
 
     /* ========== External View Functions ========== */
 
+    /// @notice Get the address of the tsbToken
+    /// @param underlyingTokenId The token id of the underlying asset
+    /// @param maturity The maturity of the tsbToken
+    /// @return tsbTokenAddr The address of the tsbToken
+    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address) {
+        return TsbLib.getTsbTokenAddr(TsbLib.getTsbTokenKey(underlyingTokenId, maturity));
+    }
+
     /// @notice Check the balance of the tsbToken
     /// @param account The address of the account
     /// @param tsbTokenAddr The address of the tsbToken
@@ -103,13 +111,5 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /// @return maturityTime The maturity time of the tsbToken
     function getMaturityTime(address tsbTokenAddr) external view returns (uint32) {
         return ITsbToken(tsbTokenAddr).maturityTime();
-    }
-
-    /// @notice Get the address of the tsbToken
-    /// @param underlyingTokenId The token id of the underlying asset
-    /// @param maturity The maturity of the tsbToken
-    /// @return tsbTokenAddr The address of the tsbToken
-    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address) {
-        return TsbLib.getTsbTokenAddr(TsbLib.getTsbTokenKey(underlyingTokenId, maturity));
     }
 }

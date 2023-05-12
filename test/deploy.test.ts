@@ -32,22 +32,15 @@ import {
 } from "../typechain-types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { getSlotNum, getStorageAt } from "../utils/slotHelper";
-import { deployLibs } from "../utils/deployLibs";
 import { ETH_ASSET_CONFIG, GENESIS_STATE_ROOT } from "../utils/config";
+import { deployFacets } from "../utils/deployFacets";
+import { AddressFacet__factory } from "../typechain-types/factories/contracts/address";
+import { AddressFacet } from "../typechain-types/contracts/address";
+import { keccak256 } from "ethers/lib/utils";
+import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
-
-enum libEnum {
-  AccountLib,
-  AddressLib,
-  FlashLoanLib,
-  GovernanceLib,
-  LoanLib,
-  RollupLib,
-  TokenLib,
-  TsbLib,
-}
 
 const contractLibs = [
   "AccountLib",
@@ -58,6 +51,17 @@ const contractLibs = [
   "RollupLib",
   "TokenLib",
   "TsbLib",
+];
+
+const contractFacets = [
+  "AccountFacet",
+  "AddressFacet",
+  "FlashLoanFacet",
+  "GovernanceFacet",
+  "LoanFacet",
+  "RollupFacet",
+  "TokenFacet",
+  "TsbFacet",
 ];
 
 describe("Deploy", () => {
@@ -72,6 +76,7 @@ describe("Deploy", () => {
   let ZkTrueUpMock: ZkTrueUpMock__factory;
   let ZkTrueUpInit: ZkTrueUpInit__factory;
   let AccountFacet: AccountFacet__factory;
+  let AddressFacet: AddressFacet__factory;
   let FlashLoanFacet: FlashLoanFacet__factory;
   let GovernanceFacet: GovernanceFacet__factory;
   let LoanFacet: LoanFacet__factory;
@@ -81,6 +86,7 @@ describe("Deploy", () => {
   let zkTrueUpMock: ZkTrueUpMock;
   let zkTrueUpInit: ZkTrueUpInit;
   let accountFacet: AccountFacet;
+  let addressFacet: AddressFacet;
   let flashLoanFacet: FlashLoanFacet;
   let governanceFacet: GovernanceFacet;
   let loanFacet: LoanFacet;
@@ -97,9 +103,33 @@ describe("Deploy", () => {
 
   beforeEach(async function () {
     [deployer, admin, operator, invalidSigner] = await ethers.getSigners();
-
-    // deploy libs
-    const libs = await deployLibs(contractLibs, deployer);
+    const facets = await deployFacets(contractFacets, deployer);
+    AccountFacet = facets.facetFactories[
+      "AccountFacet"
+    ] as AccountFacet__factory;
+    accountFacet = facets.deployedFacets["AccountFacet"] as AccountFacet;
+    AddressFacet = facets.facetFactories[
+      "AddressFacet"
+    ] as AddressFacet__factory;
+    addressFacet = facets.deployedFacets["AddressFacet"] as AddressFacet;
+    FlashLoanFacet = facets.facetFactories[
+      "FlashLoanFacet"
+    ] as FlashLoanFacet__factory;
+    flashLoanFacet = facets.deployedFacets["FlashLoanFacet"] as FlashLoanFacet;
+    GovernanceFacet = facets.facetFactories[
+      "GovernanceFacet"
+    ] as GovernanceFacet__factory;
+    governanceFacet = facets.deployedFacets[
+      "GovernanceFacet"
+    ] as GovernanceFacet;
+    LoanFacet = facets.facetFactories["LoanFacet"] as LoanFacet__factory;
+    loanFacet = facets.deployedFacets["LoanFacet"] as LoanFacet;
+    RollupFacet = facets.facetFactories["RollupFacet"] as RollupFacet__factory;
+    rollupFacet = facets.deployedFacets["RollupFacet"] as RollupFacet;
+    TokenFacet = facets.facetFactories["TokenFacet"] as TokenFacet__factory;
+    tokenFacet = facets.deployedFacets["TokenFacet"] as TokenFacet;
+    TsbFacet = facets.facetFactories["TsbFacet"] as TsbFacet__factory;
+    tsbFacet = facets.deployedFacets["TsbFacet"] as TsbFacet;
 
     // deploy weth
     WETH = await ethers.getContractFactory("WETH9");
@@ -125,63 +155,12 @@ describe("Deploy", () => {
     evacuVerifier = await EvacuVerifier.connect(deployer).deploy();
     await evacuVerifier.deployed();
 
-    // deploy account facet
-    AccountFacet = await ethers.getContractFactory("AccountFacet");
-    accountFacet = await AccountFacet.connect(deployer).deploy();
-    await accountFacet.deployed();
-
-    // deploy flash loan facet
-    FlashLoanFacet = await ethers.getContractFactory("FlashLoanFacet", {
-      libraries: {
-        GovernanceLib: libs[libEnum.GovernanceLib].address,
-      },
-    });
-    flashLoanFacet = await FlashLoanFacet.connect(deployer).deploy();
-    await flashLoanFacet.deployed();
-
-    // deploy governance facet
-    GovernanceFacet = await ethers.getContractFactory("GovernanceFacet", {
-      libraries: {
-        GovernanceLib: libs[libEnum.GovernanceLib].address,
-      },
-    });
-    governanceFacet = await GovernanceFacet.connect(deployer).deploy();
-    await governanceFacet.deployed();
-
-    // deploy loan facet
-    LoanFacet = await ethers.getContractFactory("LoanFacet", {
-      libraries: {
-        GovernanceLib: libs[libEnum.GovernanceLib].address,
-      },
-    });
-    loanFacet = await LoanFacet.connect(deployer).deploy();
-    await loanFacet.deployed();
-
-    // deploy rollup facet
-    RollupFacet = await ethers.getContractFactory("RollupFacet", {
-      libraries: {
-        GovernanceLib: libs[libEnum.GovernanceLib].address,
-      },
-    });
-    rollupFacet = await RollupFacet.connect(deployer).deploy();
-    await rollupFacet.deployed();
-
-    // deploy token facet
-    TokenFacet = await ethers.getContractFactory("TokenFacet");
-    tokenFacet = await TokenFacet.connect(deployer).deploy();
-    await tokenFacet.deployed();
-
-    // deploy tsb facet
-    TsbFacet = await ethers.getContractFactory("TsbFacet");
-    tsbFacet = await TsbFacet.connect(deployer).deploy();
-    await tsbFacet.deployed();
-
     // deploy diamond contract
     ZkTrueUpMock = await ethers.getContractFactory("ZkTrueUpMock");
     zkTrueUpMock = await ZkTrueUpMock.connect(deployer).deploy();
     await zkTrueUpMock.deployed();
 
-    // deploy init facet
+    // deploy diamond init contract
     ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
     ZkTrueUpInit.connect(deployer);
     zkTrueUpInit = await ZkTrueUpInit.deploy();
@@ -214,6 +193,25 @@ describe("Deploy", () => {
       expect(
         await diamondZkTrueUpMock.facetAddress(registeredAccFnSelectors[i])
       ).to.equal(accountFacet.address);
+    }
+
+    // address diamond cut
+    const registeredAddrFnSelectors = await diamondCut(
+      deployer,
+      zkTrueUpMock,
+      addressFacet.address,
+      AddressFacet
+    );
+
+    // check that address function selectors are registered
+    expect(
+      await diamondZkTrueUpMock.facetFunctionSelectors(addressFacet.address)
+    ).have.members(registeredAddrFnSelectors);
+    // check that registerSelectors are registered to address
+    for (let i = 0; i < registeredAddrFnSelectors.length; i++) {
+      expect(
+        await diamondZkTrueUpMock.facetAddress(registeredAddrFnSelectors[i])
+      ).to.equal(addressFacet.address);
     }
 
     // flash loan diamond cut
@@ -438,6 +436,29 @@ describe("Deploy", () => {
 
     expect(await diamondAcc.getAccountNum()).to.equal(1);
 
+    // check address facet init
+    const diamondAddr = await ethers.getContractAt(
+      "AddressFacet",
+      zkTrueUpMock.address
+    );
+
+    expect(await diamondAddr.getWETHAddr()).to.equal(weth.address);
+    expect(await diamondAddr.getPoseidonUnit2Addr()).to.equal(
+      poseidonUnit2Contract.address
+    );
+    expect(await diamondAddr.getVerifierAddr()).to.equal(verifier.address);
+    expect(await diamondAddr.getEvacuVerifierAddr()).to.equal(
+      evacuVerifier.address
+    );
+
+    // check flashLoan facet init
+    const diamondFlashLoan = await ethers.getContractAt(
+      "FlashLoanFacet",
+      zkTrueUpMock.address
+    );
+
+    expect(await diamondFlashLoan.getFlashLoanPremium()).to.equal(3);
+
     // check governance facet init
     const diamondGov = await ethers.getContractAt(
       "GovernanceFacet",
@@ -453,6 +474,9 @@ describe("Deploy", () => {
     expect(await diamondGov.getVaultAddr())
       .to.equal(vault.address)
       .to.equal(vaultAddr);
+    expect((await diamondGov.getFundWeight()).treasury).to.equal(5000);
+    expect((await diamondGov.getFundWeight()).insurance).to.equal(1000);
+    expect((await diamondGov.getFundWeight()).vault).to.equal(4000);
 
     // check loan facet init
     const diamondLoan = await ethers.getContractAt(
@@ -460,19 +484,55 @@ describe("Deploy", () => {
       zkTrueUpMock.address
     );
     expect(await diamondLoan.getHalfLiquidationThreshold()).to.equal(10000);
+    const liquidationFactor = await diamondLoan.getLiquidationFactor(false);
+    expect(liquidationFactor.ltvThreshold).to.equal(800);
+    expect(liquidationFactor.liquidatorIncentive).to.equal(50);
+    expect(liquidationFactor.protocolPenalty).to.equal(50);
+    const stableCoinPairLiquidationFactor =
+      await diamondLoan.getLiquidationFactor(true);
+    expect(stableCoinPairLiquidationFactor.ltvThreshold).to.equal(925);
+    expect(stableCoinPairLiquidationFactor.liquidatorIncentive).to.equal(30);
+    expect(stableCoinPairLiquidationFactor.protocolPenalty).to.equal(15);
+
+    // check rollup facet init
+    const diamondRollup = await ethers.getContractAt(
+      "RollupFacet",
+      zkTrueUpMock.address
+    );
+
+    const genesisBlockHash = keccak256(
+      utils.defaultAbiCoder.encode(
+        ["uint32", "uint64", "bytes32", "bytes32", "bytes32", "uint256"],
+        [
+          0,
+          0,
+          "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+          utils.hexZeroPad(ethers.utils.hexlify(0), 32),
+          GENESIS_STATE_ROOT,
+          0,
+        ]
+      )
+    );
+    expect(await diamondRollup.getStoredBlockHash(0)).to.equal(
+      genesisBlockHash
+    );
 
     // check token facet init
     const diamondToken = await ethers.getContractAt(
       "TokenFacet",
       zkTrueUpMock.address
     );
-    expect(await diamondToken.getTokenNum()).to.equal(0);
-
-    const setVaultAddrTx = await diamondGov
-      .connect(admin)
-      .setVaultAddr(admin.address);
-
-    await setVaultAddrTx.wait();
+    expect(await diamondToken.getTokenNum()).to.equal(1);
+    expect(await diamondToken.getTokenId(DEFAULT_ETH_ADDRESS)).to.equal(1);
+    const ethAssetConfig = await diamondToken.getAssetConfig(1);
+    expect(ethAssetConfig.isStableCoin).to.equal(ETH_ASSET_CONFIG.isStableCoin);
+    expect(ethAssetConfig.isTsbToken).to.equal(ETH_ASSET_CONFIG.isTsbToken);
+    expect(ethAssetConfig.decimals).to.equal(ETH_ASSET_CONFIG.decimals);
+    expect(ethAssetConfig.minDepositAmt).to.equal(
+      ETH_ASSET_CONFIG.minDepositAmt
+    );
+    expect(ethAssetConfig.tokenAddr).to.equal(ETH_ASSET_CONFIG.tokenAddr);
+    expect(ethAssetConfig.priceFeed).to.equal(ETH_ASSET_CONFIG.priceFeed);
   });
 
   it("Failed to deploy, invalid diamond cut signer", async function () {
@@ -503,13 +563,38 @@ describe("Deploy", () => {
     await zkTrueUpInit.deployed();
 
     const initData = ethers.utils.defaultAbiCoder.encode(
-      ["address", "address", "address", "address", "address"],
       [
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "bytes32",
+        "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address tokenAddr,address priceFeed)",
+      ],
+      [
+        weth.address,
+        poseidonUnit2Contract.address,
+        verifier.address,
+        evacuVerifier.address,
         admin.address,
         operator.address,
         treasury.address,
         insurance.address,
         vault.address,
+        GENESIS_STATE_ROOT,
+        {
+          isStableCoin: ETH_ASSET_CONFIG.isStableCoin,
+          isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
+          decimals: ETH_ASSET_CONFIG.decimals,
+          minDepositAmt: ETH_ASSET_CONFIG.minDepositAmt,
+          tokenAddr: ETH_ASSET_CONFIG.tokenAddr,
+          priceFeed: ETH_ASSET_CONFIG.priceFeed,
+        },
       ]
     );
 

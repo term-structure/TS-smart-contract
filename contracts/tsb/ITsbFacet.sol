@@ -46,6 +46,19 @@ interface ITsbFacet {
         string memory symbol
     ) external returns (address tsbTokenAddr);
 
+    /// @notice Redeem tsbToken
+    /// @dev TSB token can be redeemed only after maturity
+    /// @param tsbTokenAddr The address of the tsbToken
+    /// @param amount The amount of the tsbToken
+    /// @param redeemAndDeposit Whether to deposit the underlying asset after redeem the tsbToken
+    function redeem(address tsbTokenAddr, uint128 amount, bool redeemAndDeposit) external;
+
+    /// @notice Get the address of the tsbToken
+    /// @param underlyingTokenId The token id of the underlying asset
+    /// @param maturity The maturity of the tsbToken
+    /// @return tsbTokenAddr The address of the tsbToken
+    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address tsbTokenAddr);
+
     /// @notice Check the balance of the tsbToken
     /// @param account The address of the account
     /// @param tsbTokenAddr The address of the tsbToken
@@ -63,12 +76,6 @@ interface ITsbFacet {
     /// @param tsbTokenAddr The address of the tsbToken
     /// @return totalSupply The total supply of the tsbToken
     function activeSupply(address tsbTokenAddr) external view returns (uint256);
-
-    /// @notice Get the address of the tsbToken
-    /// @param underlyingTokenId The token id of the underlying asset
-    /// @param maturity The maturity of the tsbToken
-    /// @return tsbTokenAddr The address of the tsbToken
-    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address tsbTokenAddr);
 
     /// @notice Get the address of the underlying asset of the tsbToken
     /// @param tsbTokenAddr The address of the tsbToken

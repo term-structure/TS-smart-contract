@@ -78,18 +78,12 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         emit ForceWithdraw(msg.sender, accountId, tokenId);
     }
 
-    /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
-    /// @dev The evacuation mode will be activated when the current block number is greater than the expiration block number of the first pending L1 request
-    function activateEvacuation() external {
-        RollupLib.requireActive();
-        uint64 expirationBlock = RollupLib.getL1Request(RollupLib.getExecutedL1RequestNum()).expirationBlock;
-        // If all the L1 requests are executed, the first pending L1 request is empty and the expirationBlock of empty L1 requets is 0
-        bool evacuMode = block.number >= expirationBlock && expirationBlock != 0;
+    function getAccountAddr(uint32 accountId) external view returns (address) {
+        return AccountLib.getAccountAddr(accountId);
+    }
 
-        if (evacuMode) {
-            RollupStorage.layout().evacuMode = true;
-            emit EvacuationActivated(block.number);
-        }
+    function getAccountId(address accountAddr) external view returns (uint32) {
+        return AccountLib.getAccountId(accountAddr);
     }
 
     function getAccountNum() external view returns (uint32) {
@@ -101,15 +95,11 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /// @param tsPubKeyX The x coordinate of the public key of the token sender
     /// @param tsPubKeyY The y coordinate of the public key of the token sender
     /// @return registeredAccountId The registered L2 account Id
-    function _register(
-        address sender,
-        uint256 tsPubKeyX,
-        uint256 tsPubKeyY
-    ) internal returns (uint32 registeredAccountId) {
+    function _register(address sender, uint256 tsPubKeyX, uint256 tsPubKeyY) internal returns (uint32) {
         bytes20 tsAddr = bytes20(
             uint160(IPoseidonUnit2(AddressLib.getPoseidonUnit2Addr()).poseidon([tsPubKeyX, tsPubKeyY]))
         );
-        registeredAccountId = AccountLib.getAccountNum();
+        uint32 registeredAccountId = AccountLib.getAccountNum();
         if (registeredAccountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT)
             revert AccountNumExceedLimit(registeredAccountId);
         Operations.Register memory op = Operations.Register({accountId: registeredAccountId, tsAddr: tsAddr});
@@ -120,6 +110,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         asl.accountAddres[registeredAccountId] = sender;
         asl.accountNum++;
         emit Register(sender, registeredAccountId, tsPubKeyX, tsPubKeyY, tsAddr);
+        return registeredAccountId;
     }
 
     /// @notice Internal deposit function for register and deposit

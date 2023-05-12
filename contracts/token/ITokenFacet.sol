@@ -47,6 +47,10 @@ interface ITokenFacet {
         uint32 maturityTime
     );
 
+    /// @notice Add a new token to the network
+    /// @param assetConfig The configuration of the token
+    function addToken(AssetConfig memory assetConfig) external;
+
     /// @notice Set the status of a token
     /// @param tokenAddr The token address
     /// @param isPaused Whether the token is paused
@@ -70,4 +74,6 @@ interface ITokenFacet {
     function getTokenNum() external view returns (uint16);
 
     function getTokenId(address tokenAddr) external view returns (uint16);
+
+    function getAssetConfig(uint16 tokenId) external view returns (AssetConfig memory);
 }

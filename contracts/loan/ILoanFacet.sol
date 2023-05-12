@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {LoanStorage, LiquidationFactor} from "./LoanStorage.sol";
+import {LoanStorage, LiquidationFactor, Loan} from "./LoanStorage.sol";
 
 interface ILoanFacet {
     error InvalidLiquidationFactor();
@@ -83,6 +83,14 @@ interface ILoanFacet {
     /// @param isStableCoinPair Whether the liquidation factor is for stablecoin pair
     event SetLiquidationFactor(LiquidationFactor indexed liquidationFactor, bool indexed isStableCoinPair);
 
+    function addCollateral(bytes12 loanId, uint128 amount) external payable;
+
+    function removeCollateral(bytes12 loanId, uint128 amount) external;
+
+    function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable;
+
+    function liquidate(bytes12 loanId) external payable returns (uint128, uint128, uint128);
+
     /// @notice Set the half liquidation threshold
     /// @param halfLiquidationThreshold The half liquidation threshold
     function setHalfLiquidationThreshold(uint16 halfLiquidationThreshold) external;
@@ -92,6 +100,8 @@ interface ILoanFacet {
     /// @param isStableCoinPair Whether the liquidation factor is for stablecoin pair
     function setLiquidationFactor(LiquidationFactor memory liquidationFactor, bool isStableCoinPair) external;
 
+    function getHealthFactor(bytes12 loanId) external view returns (uint256);
+
     /// @notice Return the half liquidation threshold
     /// @return halfLiquidationThreshold The half liquidation threshold
     function getHalfLiquidationThreshold() external view returns (uint16);
@@ -100,4 +110,13 @@ interface ILoanFacet {
     /// @param isStableCoinPair Whether the liquidation factor is for stablecoin pair
     /// @return liquidationFactor The liquidation factor
     function getLiquidationFactor(bool isStableCoinPair) external view returns (LiquidationFactor memory);
+
+    function getLoanId(
+        uint32 accountId,
+        uint32 maturityTime,
+        uint16 debtTokenId,
+        uint16 collateralTokenId
+    ) external pure returns (bytes12);
+
+    function getLoan(bytes12 loanId) external view returns (Loan memory);
 }
