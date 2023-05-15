@@ -1,20 +1,18 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-
 import { ethers } from "hardhat";
+import { BigNumber, Signer, utils } from "ethers";
+import { BaseTokenAddresses } from "../../utils/type";
 import { deployAndInit } from "../utils/deployAndInit";
 import { whiteListBaseTokens } from "../utils/whitelistToken";
 import {
   AccountFacet,
   ERC20Mock,
-  GovernanceFacet,
   RollupFacet,
   TokenFacet,
   WETH9,
   ZkTrueUp,
 } from "../../typechain-types";
-import { BigNumber, Signer, utils } from "ethers";
-import { BaseTokenAddr } from "../../utils/type";
 import {
   DEFAULT_ETH_ADDRESS,
   MIN_DEPOSIT_AMOUNT,
@@ -41,20 +39,20 @@ const deployFixture = async () => {
 };
 
 describe("Register", function () {
-  let user1: Signer;
+  let [user1]: Signer[] = [];
+  let [user1Addr]: string[] = [];
   let weth: WETH9;
-  let operator: Signer;
   let diamondAcc: AccountFacet;
   let diamondRollup: RollupFacet;
   let diamondToken: TokenFacet;
   let zkTrueUp: ZkTrueUp;
-  let baseTokenAddresses: BaseTokenAddr;
+  let baseTokenAddresses: BaseTokenAddresses;
   let usdt: ERC20Mock;
 
   beforeEach(async function () {
     const res = await loadFixture(deployFixture);
     [user1] = await ethers.getSigners();
-    operator = res.operator;
+    [user1Addr] = await Promise.all([user1.getAddress()]);
     weth = res.weth;
     zkTrueUp = res.zkTrueUp;
     diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
@@ -69,16 +67,14 @@ describe("Register", function () {
 
   describe("Register with ERC20", function () {
     const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
-    let USDT_minDepositAmt: BigNumber;
 
     beforeEach(async () => {
-      USDT_minDepositAmt = BigNumber.from(MIN_DEPOSIT_AMOUNT.USDT).mul(
-        BigNumber.from(10).pow(await usdt.decimals())
+      const amount = utils.parseUnits(
+        MIN_DEPOSIT_AMOUNT.USDT.toString(),
+        TS_BASE_TOKEN.USDT.decimals
       );
-      await usdt
-        .connect(user1)
-        .mint(await user1.getAddress(), USDT_minDepositAmt);
-      await usdt.connect(user1).approve(zkTrueUp.address, USDT_minDepositAmt);
+      await usdt.connect(user1).mint(user1Addr, amount);
+      await usdt.connect(user1).approve(zkTrueUp.address, amount);
     });
 
     it("Success to register", async function () {
@@ -89,7 +85,10 @@ describe("Register", function () {
         .totalL1RequestNum;
 
       // call register
-      const amount = USDT_minDepositAmt;
+      const amount = utils.parseUnits(
+        MIN_DEPOSIT_AMOUNT.USDT.toString(),
+        TS_BASE_TOKEN.USDT.decimals
+      );
       await diamondAcc
         .connect(user1)
         .register(tsPubKey.X, tsPubKey.Y, usdt.address, amount);
@@ -112,7 +111,7 @@ describe("Register", function () {
       ).to.be.eq(2);
 
       // check the request is existed in the L1 request queue
-      const accountId = await diamondAcc.getAccountId(await user1.getAddress());
+      const accountId = await diamondAcc.getAccountId(user1Addr);
       const l2TokenAddr = await diamondToken.getTokenId(usdt.address);
       const register = {
         accountId: accountId,
@@ -141,7 +140,7 @@ describe("Register", function () {
       expect(success).to.be.true;
     });
 
-    it("Failed to Register, the deposited token have not be whitelisted", async function () {
+    it("Failed to register, the deposited token have not be whitelisted", async function () {
       // call register
       const amount = utils.parseUnits("100", TS_BASE_TOKEN.USDT.decimals);
 
@@ -155,7 +154,7 @@ describe("Register", function () {
       ).to.be.revertedWithCustomError(diamondAcc, "TokenIsNotExist");
     });
 
-    it("Failed to Register, the deposit amount less than the minimum deposit amount", async function () {
+    it("Failed to register, the deposit amount less than the minimum deposit amount", async function () {
       // call register
       const amount = utils.parseUnits(
         MIN_DEPOSIT_AMOUNT.USDT.toString(),
@@ -206,7 +205,7 @@ describe("Register", function () {
       ).to.be.eq(2);
 
       // check the request is existed in the L1 request queue
-      const accountId = await diamondAcc.getAccountId(await user1.getAddress());
+      const accountId = await diamondAcc.getAccountId(user1Addr);
       const l2TokenAddr = await diamondToken.getTokenId(DEFAULT_ETH_ADDRESS);
       const register = {
         accountId: accountId,
@@ -237,7 +236,7 @@ describe("Register", function () {
       expect(success).to.be.true;
     });
 
-    it("Failed to Register, the deposit amount less than the minimum deposit amount", async function () {
+    it("Failed to register, the deposit amount less than the minimum deposit amount", async function () {
       // call register
       const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const amount = utils.parseEther((MIN_DEPOSIT_AMOUNT.ETH / 2).toString());

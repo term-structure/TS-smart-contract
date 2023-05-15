@@ -10,6 +10,7 @@
     "test": "hardhat test",
     "test:deploy": "hardhat test test/deploy.test.ts",
     "test:register": "hardhat test test/account/register.test.ts",
+    "test:deposit": "hardhat test test/account/deposit.test.ts",
     "coverage": "hardhat coverage",
     "generate:docs": "hardhat docgen",
     "script:deploy": "npx hardhat run scripts/deploy.ts",
