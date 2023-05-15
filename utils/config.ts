@@ -82,3 +82,5 @@ export const BASE_TOKEN_ASSET_CONFIG = [
 
 export const GENESIS_STATE_ROOT =
   "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470";
+
+export const MAX_LTV_RATIO = 1000; // 100%

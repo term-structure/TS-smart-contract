@@ -135,6 +135,7 @@ library RollupLib {
 
     /// @notice Return the stored block hash
     /// @param blockNum The block number
+    /// @return storedBlockHash The stored block hash
     function getStoredBlockHash(uint32 blockNum) internal view returns (bytes32) {
         return RollupStorage.layout().storedBlockHashes[blockNum];
     }

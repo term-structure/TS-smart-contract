@@ -83,7 +83,7 @@ export const deployAndInit = async () => {
   await zkTrueUpInit.deployed();
 
   const facetInfos: FacetInfo[] = Object.keys(facets).map((facetName) => {
-    console.log("facetName: ", facetName);
+    // console.log("facetName: ", facetName);
     return {
       facetName: facetName,
       facetAddress: facets[facetName].address,
@@ -91,8 +91,8 @@ export const deployAndInit = async () => {
     };
   });
 
-  const fnSelectors = cutFacets(deployer, zkTrueUp, facetInfos);
-  console.log("fnSelectors: ", fnSelectors);
+  const fnSelectors = await cutFacets(deployer, zkTrueUp, facetInfos);
+  // console.log("fnSelectors: ", fnSelectors);
 
   const initData = ethers.utils.defaultAbiCoder.encode(
     [
@@ -153,7 +153,7 @@ export const deployAndInit = async () => {
     zkTrueUp,
     zkTrueUpInit,
     facetFactories,
-    facets,
+    facets, // facet contracts
     fnSelectors,
     baseTokenAddresses,
     priceFeeds,

@@ -163,7 +163,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id
-    function getL1Request(uint64 requestId) external view returns (L1Request memory) {
+    function getL1Request(uint64 requestId) external view returns (L1Request memory request) {
         return RollupLib.getL1Request(requestId);
     }
 
@@ -171,7 +171,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @return committedL1RequestNum The number of committed L1 requests
     /// @return executedL1RequestNum The number of executed L1 requests
     /// @return totalL1RequestNum The total number of L1 requests
-    function getL1RequestNum() external view returns (uint64, uint64, uint64) {
+    function getL1RequestNum()
+        external
+        view
+        returns (uint64 committedL1RequestNum, uint64 executedL1RequestNum, uint64 totalL1RequestNum)
+    {
         return (
             RollupLib.getCommittedL1RequestNum(),
             RollupLib.getExecutedL1RequestNum(),
@@ -183,11 +187,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @return committedBlockNum The number of committed blocks
     /// @return verifiedBlockNum The number of verified blocks
     /// @return executedBlockNum The number of executed blocks
-    function getBlockNum() external view returns (uint32, uint32, uint32) {
+    function getBlockNum()
+        external
+        view
+        returns (uint32 committedBlockNum, uint32 verifiedBlockNum, uint32 executedBlockNum)
+    {
         return (RollupLib.getCommittedBlockNum(), RollupLib.getVerifiedBlockNum(), RollupLib.getExecutedBlockNum());
     }
 
-    function getStoredBlockHash(uint32 blockNum) external view returns (bytes32) {
+    function getStoredBlockHash(uint32 blockNum) external view returns (bytes32 storedBlockHash) {
         return RollupLib.getStoredBlockHash(blockNum);
     }
 
@@ -195,7 +203,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param accountAddr The address of the account
     /// @param tokenAddr The address of the token
     /// @return pendingBalance The pending balance of the specified account and token
-    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128) {
+    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128 pendingBalance) {
         uint16 tokenId = TokenLib.getTokenId(tokenAddr);
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
         return RollupLib.getPendingBalances(key);
