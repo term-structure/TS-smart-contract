@@ -1,27 +1,30 @@
 import { ethers } from "hardhat";
 import { deployFacets } from "../../utils/deployFacets";
 import { cutFacets } from "../../utils/cutFacets";
-import { BaseTokenAddr, FacetInfo, PriceFeed } from "../../utils/type";
+import { BaseTokenAddresses, FacetInfo, PriceFeeds } from "../../utils/type";
 import { diamondInit } from "../../utils/diamondInit";
 import {
   BASE_TOKEN_ASSET_CONFIG,
   ETH_ASSET_CONFIG,
+  FACET_NAMES,
   GENESIS_STATE_ROOT,
-  facetNames,
 } from "../../utils/config";
 import { ERC20Mock, OracleMock } from "../../typechain-types";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
-export const deployAndInit = async () => {
+export const deployAndInit = async (facetNames?: string[]) => {
   const [deployer, admin, operator] = await ethers.getSigners();
   const treasury = ethers.Wallet.createRandom();
   const insurance = ethers.Wallet.createRandom();
   const vault = ethers.Wallet.createRandom();
-  const baseTokenAddresses: BaseTokenAddr = {};
-  const priceFeeds: PriceFeed = {};
-  const { facetFactories, facets } = await deployFacets(facetNames, deployer);
+  const baseTokenAddresses: BaseTokenAddresses = {};
+  const priceFeeds: PriceFeeds = {};
+  const { facetFactories, facets } = await deployFacets(
+    facetNames ?? FACET_NAMES,
+    deployer
+  );
 
   // set test oracle price feed
   const OracleMock = await ethers.getContractFactory("OracleMock");

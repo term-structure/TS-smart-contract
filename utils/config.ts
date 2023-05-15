@@ -1,7 +1,7 @@
 import { utils } from "ethers";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 
-export const libNames = [
+export const LIB_NAMES = [
   "AccountLib",
   "AddressLib",
   "FlashLoanLib",
@@ -12,7 +12,7 @@ export const libNames = [
   "TsbLib",
 ];
 
-export const facetNames = [
+export const FACET_NAMES = [
   "AccountFacet",
   "AddressFacet",
   "FlashLoanFacet",
@@ -22,6 +22,8 @@ export const facetNames = [
   "TokenFacet",
   "TsbFacet",
 ];
+
+export const DEFAULT_ZERO_ADDR = "0x0000000000000000000000000000000000000000";
 
 export const ETH_ASSET_CONFIG = {
   isStableCoin: false,

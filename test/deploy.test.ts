@@ -32,8 +32,8 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { getSlotNum, getStorageAt } from "../utils/slotHelper";
 import {
-  facetNames,
   ETH_ASSET_CONFIG,
+  FACET_NAMES,
   GENESIS_STATE_ROOT,
 } from "../utils/config";
 import { deployFacets } from "../utils/deployFacets";
@@ -84,7 +84,10 @@ describe("Deploy", () => {
 
   beforeEach(async function () {
     [deployer, admin, operator, invalidSigner] = await ethers.getSigners();
-    const { facetFactories, facets } = await deployFacets(facetNames, deployer);
+    const { facetFactories, facets } = await deployFacets(
+      FACET_NAMES,
+      deployer
+    );
     AccountFacet = facetFactories["AccountFacet"] as AccountFacet__factory;
     accountFacet = facets["AccountFacet"] as AccountFacet;
     AddressFacet = facetFactories["AddressFacet"] as AddressFacet__factory;

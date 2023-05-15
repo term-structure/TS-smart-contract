@@ -16,9 +16,9 @@ contract TsbToken is ERC20 {
     /// @notice The address of the ZkTrueUp contract
     address public immutable zkTrueUp;
     /// @notice The underlying asset of the TSB token
-    address public immutable underlyingAsset;
+    address private immutable _underlyingAsset;
     /// @notice The maturity time of the TSB token
-    uint32 public immutable maturityTime;
+    uint32 private immutable _maturityTime;
 
     /// @notice The constructor of the TSB token contract
     /// @param name_ The name of the TSB token
@@ -32,8 +32,8 @@ contract TsbToken is ERC20 {
         uint32 maturityTime_
     ) ERC20(name_, symbol_) {
         zkTrueUp = msg.sender;
-        underlyingAsset = underlyingAsset_;
-        maturityTime = maturityTime_;
+        _underlyingAsset = underlyingAsset_;
+        _maturityTime = maturityTime_;
     }
 
     /// @notice Only ZkTrueUp modifier
@@ -61,14 +61,14 @@ contract TsbToken is ERC20 {
     /// @notice Check if the TSB token is matured
     /// @return isMatured True if the TSB token is matured
     function isMatured() external view returns (bool) {
-        return block.timestamp >= uint256(maturityTime);
+        return block.timestamp >= uint256(_maturityTime);
     }
 
     /// @notice Get the underlying asset and maturity time of the TSB token
     /// @return underlyingAsset The underlying asset of the TSB token
     /// @return maturityTime The maturity time of the TSB token
-    function tokenInfo() external view returns (address, uint32) {
-        return (underlyingAsset, maturityTime);
+    function tokenInfo() external view returns (address underlyingAsset, uint32 maturityTime) {
+        return (_underlyingAsset, _maturityTime);
     }
 
     /// @notice Get the decimals of the TSB token

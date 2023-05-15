@@ -21,9 +21,10 @@ import {
   TsTokenId,
 } from "term-structure-sdk";
 import { toL2Amt } from "../utils/amountConvertor";
+import { FACET_NAMES } from "../../utils/config";
 
 const deployFixture = async () => {
-  const res = await deployAndInit();
+  const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp

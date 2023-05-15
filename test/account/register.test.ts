@@ -22,9 +22,10 @@ import {
 import { genTsAddr } from "../utils/helper";
 import { toL2Amt } from "../utils/amountConvertor";
 import { useFacet } from "../../utils/useFacet";
+import { FACET_NAMES } from "../../utils/config";
 
 const deployFixture = async () => {
-  const res = await deployAndInit();
+  const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp

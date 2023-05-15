@@ -103,13 +103,15 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /// @param tsbTokenAddr The address of the tsbToken
     /// @return underlyingAsset The address of the underlying asset of the tsbToken
     function getUnderlyingAsset(address tsbTokenAddr) external view returns (address) {
-        return ITsbToken(tsbTokenAddr).underlyingAsset();
+        (address underlyingAsset, ) = ITsbToken(tsbTokenAddr).tokenInfo();
+        return underlyingAsset;
     }
 
     /// @notice Get the maturity time of the tsbToken
     /// @param tsbTokenAddr The address of the tsbToken
     /// @return maturityTime The maturity time of the tsbToken
     function getMaturityTime(address tsbTokenAddr) external view returns (uint32) {
-        return ITsbToken(tsbTokenAddr).maturityTime();
+        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+        return maturityTime;
     }
 }
