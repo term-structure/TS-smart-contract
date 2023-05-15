@@ -77,15 +77,15 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         emit ForceWithdraw(msg.sender, accountId, tokenId);
     }
 
-    function getAccountAddr(uint32 accountId) external view returns (address) {
+    function getAccountAddr(uint32 accountId) external view returns (address accountAddr) {
         return AccountLib.getAccountAddr(accountId);
     }
 
-    function getAccountId(address accountAddr) external view returns (uint32) {
+    function getAccountId(address accountAddr) external view returns (uint32 accountId) {
         return AccountLib.getAccountId(accountAddr);
     }
 
-    function getAccountNum() external view returns (uint32) {
+    function getAccountNum() external view returns (uint32 accountNum) {
         return AccountLib.getAccountNum();
     }
 
