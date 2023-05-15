@@ -13,9 +13,10 @@ import {
   WETH9,
   ZkTrueUp,
 } from "../../typechain-types";
-import { BigNumber, Signer } from "ethers";
+import { BigNumber, Signer, utils } from "ethers";
 import { BaseTokenAddr } from "../../utils/type";
 import {
+  DEFAULT_ETH_ADDRESS,
   MIN_DEPOSIT_AMOUNT,
   TS_BASE_TOKEN,
   TsTokenId,
@@ -26,10 +27,10 @@ import { useFacet } from "../../utils/useFacet";
 
 const deployFixture = async () => {
   const res = await deployAndInit();
-  const diamondToken = await ethers.getContractAt(
+  const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp.address
-  );
+    res.zkTrueUp
+  )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
     res.priceFeeds,
@@ -80,7 +81,7 @@ describe("Register", function () {
       await usdt.connect(user1).approve(zkTrueUp.address, USDT_minDepositAmt);
     });
 
-    it("Legal register", async function () {
+    it("Success to register", async function () {
       // before register
       const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
       const beforeAccountNum = await diamondAcc.getAccountNum();
@@ -120,11 +121,11 @@ describe("Register", function () {
       const totalL1RequestNum = (await diamondRollup.getL1RequestNum())
         .totalL1RequestNum;
       let requestId = totalL1RequestNum.sub(2);
-      // let success = await viewer.isRegisterInL1RequestQueue(
-      //   register,
-      //   requestId
-      // );
-      // expect(success).to.be.true;
+      let success = await diamondRollup.isRegisterInL1RequestQueue(
+        register,
+        requestId
+      );
+      expect(success).to.be.true;
       const l2Amt = toL2Amt(amount, TS_BASE_TOKEN.USDT);
 
       const deposit = {
@@ -133,117 +134,120 @@ describe("Register", function () {
         amount: l2Amt,
       };
       requestId = totalL1RequestNum.sub(1);
-      // success = await viewer.isDepositInL1RequestQueue(deposit, requestId);
-      // expect(success).to.be.true;
+      success = await diamondRollup.isDepositInL1RequestQueue(
+        deposit,
+        requestId
+      );
+      expect(success).to.be.true;
     });
 
-    // it("Illegal Register - The deposit token needs to be whitelisted", async function () {
-    //   // call register
-    //   const amount = MIN_DEPOSIT_AMOUNT.USDT * 10 ** (await usdt.decimals());
+    it("Failed to Register, the deposited token have not be whitelisted", async function () {
+      // call register
+      const amount = utils.parseUnits("100", TS_BASE_TOKEN.USDT.decimals);
 
-    //   const randAddr = "0x1234567890123456789012345678901234567890";
-    //   const nonWhitelistToken = await ethers.getContractAt(
-    //     "ERC20FreeMint",
-    //     randAddr
-    //   );
+      const invalidAddr = ethers.Wallet.createRandom().address;
 
-    //   const governanceError = await ethers.getContractFactory(
-    //     "GovernanceError"
-    //   );
-    //   await usdt.connect(user1).approve(zkTrueUp.address, amount);
-    //   await expect(
-    //     zkTrueUp
-    //       .connect(user1)
-    //       .register(tsPubKey.X, tsPubKey.Y, nonWhitelistToken.address, amount)
-    //   ).to.be.revertedWithCustomError(governanceError, "TokenIsNotExist");
-    // });
+      await usdt.connect(user1).approve(zkTrueUp.address, amount);
+      await expect(
+        diamondAcc
+          .connect(user1)
+          .register(tsPubKey.X, tsPubKey.Y, invalidAddr, amount)
+      ).to.be.revertedWithCustomError(diamondAcc, "TokenIsNotExist");
+    });
 
-    // it("Illegal Register - The deposit amount needs to be greater than the minimum deposit notional", async function () {
-    //   const USDT_minDepositAmt =
-    //     MIN_DEPOSIT_AMOUNT.USDT * 10 ** (await usdt.decimals());
-    //   // call register
-    //   const zkTrueUpError = await ethers.getContractFactory("ZkTrueUpError");
-    //   const amount = BigNumber.from(USDT_minDepositAmt).sub("1");
+    it("Failed to Register, the deposit amount less than the minimum deposit amount", async function () {
+      // call register
+      const amount = utils.parseUnits(
+        MIN_DEPOSIT_AMOUNT.USDT.toString(),
+        TS_BASE_TOKEN.USDT.decimals
+      );
 
-    //   await expect(
-    //     zkTrueUp
-    //       .connect(user1)
-    //       .register(tsPubKey.X, tsPubKey.Y, usdt.address, amount)
-    //   ).to.be.revertedWithCustomError(zkTrueUpError, "InvalidDepositAmt");
-    // });
+      // invalid amount
+      const invalidAmt = amount.sub(1);
+
+      await expect(
+        diamondAcc
+          .connect(user1)
+          .register(tsPubKey.X, tsPubKey.Y, usdt.address, invalidAmt)
+      ).to.be.revertedWithCustomError(diamondAcc, "InvalidDepositAmt");
+    });
   });
 
-  // describe("Register with ETH", function () {
-  //   it("Legal register", async function () {
-  //     // get user1's states first
-  //     const oriBalance = await weth.balanceOf(zkTrueUp.address);
-  //     const oriAccountNum = await zkTrueUp.getAccountNum();
-  //     const oriTotalPendingRequests = (await zkTrueUp.getL1RequestNum())
-  //       .totalL1RequestNum;
+  describe("Register with ETH", function () {
+    it("Success to register", async function () {
+      // before register
+      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const beforeAccountNum = await diamondAcc.getAccountNum();
+      const beforeTotalPendingRequests = (await diamondRollup.getL1RequestNum())
+        .totalL1RequestNum;
 
-  //     // call register
-  //     const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
-  //     const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-  //     // await weth.connect(user1).approve(zkTrueUp.address, amount);
-  //     await zkTrueUp
-  //       .connect(user1)
-  //       .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, amount, {
-  //         value: amount,
-  //       });
+      // call register
+      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
+      const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
+      // await weth.connect(user1).approve(zkTrueUp.address, amount);
+      await diamondAcc
+        .connect(user1)
+        .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, amount, {
+          value: amount,
+        });
 
-  //     // check user1 balance
-  //     const newBalance = await weth.balanceOf(zkTrueUp.address);
-  //     expect(newBalance.sub(oriBalance)).to.be.eq(amount);
+      // after register
+      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const afterAccountNum = await diamondAcc.getAccountNum();
+      const afterTotalPendingRequests = (await diamondRollup.getL1RequestNum())
+        .totalL1RequestNum;
 
-  //     // check accountNum increased
-  //     const newAccountNum = await zkTrueUp.getAccountNum();
-  //     expect(newAccountNum - oriAccountNum).to.be.eq(1);
+      expect(afterZkTrueUpWethBalance.sub(beforeZkTrueUpWethBalance)).to.be.eq(
+        amount
+      );
+      expect(afterAccountNum - beforeAccountNum).to.be.eq(1);
+      expect(
+        afterTotalPendingRequests.sub(beforeTotalPendingRequests)
+      ).to.be.eq(2);
 
-  //     // check totalPendingRequest increased
-  //     const newTotalPendingRequests = (await zkTrueUp.getL1RequestNum())
-  //       .totalL1RequestNum;
-  //     expect(newTotalPendingRequests.sub(oriTotalPendingRequests)).to.be.eq(2);
+      // check the request is existed in the L1 request queue
+      const accountId = await diamondAcc.getAccountId(await user1.getAddress());
+      const l2TokenAddr = await diamondToken.getTokenId(DEFAULT_ETH_ADDRESS);
+      const register = {
+        accountId: accountId,
+        tsAddr: genTsAddr(tsPubKey.X, tsPubKey.Y),
+      };
+      let requestId = (
+        await diamondRollup.getL1RequestNum()
+      ).totalL1RequestNum.sub(2);
+      let success = await diamondRollup.isRegisterInL1RequestQueue(
+        register,
+        requestId
+      );
+      expect(success).to.be.true;
 
-  //     // check the request is existed in the L1 request queue
-  //     const accountId = await zkTrueUp.getAccountId(await user1.getAddress());
-  //     const l2TokenAddr = await governance.getTokenId(DEFAULT_ETH_ADDRESS);
-  //     const register = {
-  //       accountId: accountId,
-  //       tsAddr: genTsAddr(tsPubKey.X, tsPubKey.Y),
-  //     };
-  //     let requestId = (await zkTrueUp.getL1RequestNum()).totalL1RequestNum.sub(
-  //       2
-  //     );
-  //     let success = await viewer.isRegisterInL1RequestQueue(
-  //       register,
-  //       requestId
-  //     );
-  //     expect(success).to.be.true;
+      const l2Amt = toL2Amt(amount, TS_BASE_TOKEN.ETH);
+      const deposit = {
+        accountId: accountId,
+        tokenId: l2TokenAddr,
+        amount: l2Amt,
+      };
+      requestId = (await diamondRollup.getL1RequestNum()).totalL1RequestNum.sub(
+        1
+      );
+      success = await diamondRollup.isDepositInL1RequestQueue(
+        deposit,
+        requestId
+      );
+      expect(success).to.be.true;
+    });
 
-  //     const l2Amt = toL2Amt(amount, TS_BASE_TOKEN.ETH);
-  //     const deposit = {
-  //       accountId: accountId,
-  //       tokenId: l2TokenAddr,
-  //       amount: l2Amt,
-  //     };
-  //     requestId = (await zkTrueUp.getL1RequestNum()).totalL1RequestNum.sub(1);
-  //     success = await viewer.isDepositInL1RequestQueue(deposit, requestId);
-  //     expect(success).to.be.true;
-  //   });
-
-  //   it("Illegal Register - The deposit amount needs to be greater than the minimum deposit notional", async function () {
-  //     // call register
-  //     const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
-  //     const amount = utils.parseEther((MIN_DEPOSIT_AMOUNT.ETH / 2).toString());
-  //     // await weth.connect(user1).approve(zkTrueUp.address, amount);
-  //     const zkTrueUpError = await ethers.getContractFactory("ZkTrueUpError");
-  //     expect(
-  //       zkTrueUp
-  //         .connect(user1)
-  //         .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, amount, {
-  //           value: amount,
-  //         })
-  //     ).to.be.revertedWithCustomError(zkTrueUpError, "InvalidDepositAmt");
-  //   });
-  // });
+    it("Failed to Register, the deposit amount less than the minimum deposit amount", async function () {
+      // call register
+      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
+      const amount = utils.parseEther((MIN_DEPOSIT_AMOUNT.ETH / 2).toString());
+      expect(
+        diamondAcc
+          .connect(user1)
+          .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, amount, {
+            value: amount,
+          })
+      ).to.be.revertedWithCustomError(diamondAcc, "InvalidDepositAmt");
+    });
+  });
 });

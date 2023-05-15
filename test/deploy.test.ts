@@ -1,4 +1,3 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Contract, ContractFactory, utils, Wallet } from "ethers";
@@ -42,6 +41,7 @@ import { AddressFacet__factory } from "../typechain-types/factories/contracts/ad
 import { AddressFacet } from "../typechain-types/contracts/address";
 import { keccak256 } from "ethers/lib/utils";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
+import { useFacet } from "../utils/useFacet";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
@@ -145,10 +145,7 @@ describe("Deploy", () => {
     vault = ethers.Wallet.createRandom();
   });
   it("Success to deploy", async function () {
-    const diamondZkTrueUpMock = await ethers.getContractAt(
-      "ZkTrueUpMock",
-      zkTrueUpMock.address
-    );
+    const diamondZkTrueUpMock = await useFacet("ZkTrueUpMock", zkTrueUpMock);
 
     // account diamond cut
     const registeredAccFnSelectors = await diamondCut(
@@ -403,18 +400,12 @@ describe("Deploy", () => {
     ).to.equal(true);
 
     // check account facet init
-    const diamondAcc = await ethers.getContractAt(
-      "AccountFacet",
-      zkTrueUpMock.address
-    );
+    const diamondAcc = await useFacet("AccountFacet", zkTrueUpMock);
 
     expect(await diamondAcc.getAccountNum()).to.equal(1);
 
     // check address facet init
-    const diamondAddr = await ethers.getContractAt(
-      "AddressFacet",
-      zkTrueUpMock.address
-    );
+    const diamondAddr = await useFacet("AddressFacet", zkTrueUpMock);
 
     expect(await diamondAddr.getWETHAddr()).to.equal(weth.address);
     expect(await diamondAddr.getPoseidonUnit2Addr()).to.equal(
@@ -426,18 +417,12 @@ describe("Deploy", () => {
     );
 
     // check flashLoan facet init
-    const diamondFlashLoan = await ethers.getContractAt(
-      "FlashLoanFacet",
-      zkTrueUpMock.address
-    );
+    const diamondFlashLoan = await useFacet("FlashLoanFacet", zkTrueUpMock);
 
     expect(await diamondFlashLoan.getFlashLoanPremium()).to.equal(3);
 
     // check governance facet init
-    const diamondGov = await ethers.getContractAt(
-      "GovernanceFacet",
-      zkTrueUpMock.address
-    );
+    const diamondGov = await useFacet("GovernanceFacet", zkTrueUpMock);
 
     expect(await diamondGov.getTreasuryAddr())
       .to.equal(treasury.address)
@@ -453,10 +438,8 @@ describe("Deploy", () => {
     expect((await diamondGov.getFundWeight()).vault).to.equal(4000);
 
     // check loan facet init
-    const diamondLoan = await ethers.getContractAt(
-      "LoanFacet",
-      zkTrueUpMock.address
-    );
+    const diamondLoan = await useFacet("LoanFacet", zkTrueUpMock);
+
     expect(await diamondLoan.getHalfLiquidationThreshold()).to.equal(10000);
     const liquidationFactor = await diamondLoan.getLiquidationFactor(false);
     expect(liquidationFactor.ltvThreshold).to.equal(800);
@@ -469,10 +452,7 @@ describe("Deploy", () => {
     expect(stableCoinPairLiquidationFactor.protocolPenalty).to.equal(15);
 
     // check rollup facet init
-    const diamondRollup = await ethers.getContractAt(
-      "RollupFacet",
-      zkTrueUpMock.address
-    );
+    const diamondRollup = await useFacet("RollupFacet", zkTrueUpMock);
 
     const genesisBlockHash = keccak256(
       utils.defaultAbiCoder.encode(
@@ -492,10 +472,8 @@ describe("Deploy", () => {
     );
 
     // check token facet init
-    const diamondToken = await ethers.getContractAt(
-      "TokenFacet",
-      zkTrueUpMock.address
-    );
+    const diamondToken = await useFacet("TokenFacet", zkTrueUpMock);
+
     expect(await diamondToken.getTokenNum()).to.equal(1);
     expect(await diamondToken.getTokenId(DEFAULT_ETH_ADDRESS)).to.equal(1);
     const ethAssetConfig = await diamondToken.getAssetConfig(1);

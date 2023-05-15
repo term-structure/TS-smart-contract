@@ -160,6 +160,45 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         }
     }
 
+    /// @notice Check whether the register request is in the L1 request queue
+    /// @param register The register request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isRegisterInL1RequestQueue(
+        Operations.Register memory register,
+        uint64 requestId
+    ) external view returns (bool isExisted) {
+        if (_isRequestIdGtCurRequestNum(requestId)) return false;
+        _registerInL1RequestQueue(register, requestId);
+        return true;
+    }
+
+    /// @notice Check whether the deposit request is in the L1 request queue
+    /// @param deposit The deposit request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isDepositInL1RequestQueue(
+        Operations.Deposit memory deposit,
+        uint64 requestId
+    ) external view returns (bool isExisted) {
+        if (_isRequestIdGtCurRequestNum(requestId)) return false;
+        _depositInL1RequestQueue(deposit, requestId);
+        return true;
+    }
+
+    /// @notice Check whether the force withdraw request is in the L1 request queue
+    /// @param forceWithdraw The force withdraw request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isForceWithdrawInL1RequestQueue(
+        Operations.ForceWithdraw memory forceWithdraw,
+        uint64 requestId
+    ) external view returns (bool isExisted) {
+        if (_isRequestIdGtCurRequestNum(requestId)) return false;
+        _forceWithdrawInL1RequestQueue(forceWithdraw, requestId);
+        return true;
+    }
+
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id
@@ -308,12 +347,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             if (opType == Operations.OpType.REGISTER) {
                 rollupData = Bytes.slice(publicData, offset, Config.REGISTER_BYTES);
                 Operations.Register memory register = Operations.readRegisterPubData(rollupData);
-                _isRegisterInL1RequestQueue(register, nextCommittedL1RequestId + processedL1RequestNum);
+                _registerInL1RequestQueue(register, nextCommittedL1RequestId + processedL1RequestNum);
                 ++processedL1RequestNum;
             } else if (opType == Operations.OpType.DEPOSIT) {
                 rollupData = Bytes.slice(publicData, offset, Config.DEPOSIT_BYTES);
                 Operations.Deposit memory deposit = Operations.readDepositPubData(rollupData);
-                _isDepositInL1RequestQueue(deposit, nextCommittedL1RequestId + processedL1RequestNum);
+                _depositInL1RequestQueue(deposit, nextCommittedL1RequestId + processedL1RequestNum);
                 ++processedL1RequestNum;
             } else if (opType == Operations.OpType.CREATE_TS_BOND_TOKEN) {
                 rollupData = Bytes.slice(publicData, offset, Config.CREATE_TS_BOND_TOKEN_BYTES);
@@ -329,7 +368,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             } else if (opType == Operations.OpType.EVACUATION) {
                 rollupData = Bytes.slice(publicData, offset, Config.EVACUATION_BYTES);
                 Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(rollupData);
-                _isEvacuationInL1RequestQueue(evacuation, nextCommittedL1RequestId + processedL1RequestNum);
+                _evacuationInL1RequestQueue(evacuation, nextCommittedL1RequestId + processedL1RequestNum);
                 ++processedL1RequestNum;
             } else {
                 bytes memory pubData;
@@ -338,10 +377,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                     pubData = Bytes.slice(publicData, offset, Config.FORCE_WITHDRAW_BYTES);
                     Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(pubData);
-                    _isForceWithdrawInL1RequestQueue(
-                        forceWithdrawReq,
-                        nextCommittedL1RequestId + processedL1RequestNum
-                    );
+                    _forceWithdrawInL1RequestQueue(forceWithdrawReq, nextCommittedL1RequestId + processedL1RequestNum);
                     ++processedL1RequestNum;
                 } else if (opType == Operations.OpType.AUCTION_END) {
                     pubData = Bytes.slice(publicData, offset, Config.AUCTION_END_BYTES);
@@ -385,65 +421,48 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Check whether the register request is in the L1 request queue
     /// @param register The register request
     /// @param requestId The id of the request
-    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
-    function _isRegisterInL1RequestQueue(
-        Operations.Register memory register,
-        uint64 requestId
-    ) internal view returns (bool) {
+    function _registerInL1RequestQueue(Operations.Register memory register, uint64 requestId) internal view {
         L1Request memory request = RollupLib.getL1Request(requestId);
         if (request.opType != Operations.OpType.REGISTER)
             revert OpTypeIsNotMatched(request.opType, Operations.OpType.REGISTER);
         if (!Operations.isRegisterHashedPubDataMatched(register, request.hashedPubData))
             revert RequestIsNotExisted(request);
-        return true;
     }
 
     /// @notice Check whether the deposit request is in the L1 request queue
     /// @param deposit The deposit request
     /// @param requestId The id of the request
-    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
-    function _isDepositInL1RequestQueue(
-        Operations.Deposit memory deposit,
-        uint64 requestId
-    ) internal view returns (bool) {
+    function _depositInL1RequestQueue(Operations.Deposit memory deposit, uint64 requestId) internal view {
         L1Request memory request = RollupLib.getL1Request(requestId);
         if (request.opType != Operations.OpType.DEPOSIT)
             revert OpTypeIsNotMatched(request.opType, Operations.OpType.DEPOSIT);
         if (!Operations.isDepositHashedPubDataMatched(deposit, request.hashedPubData))
             revert RequestIsNotExisted(request);
-        return true;
     }
 
     /// @notice Check whether the force withdraw request is in the L1 request queue
     /// @param forceWithdraw The force withdraw request
     /// @param requestId The id of the request
-    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
-    function _isForceWithdrawInL1RequestQueue(
+    function _forceWithdrawInL1RequestQueue(
         Operations.ForceWithdraw memory forceWithdraw,
         uint64 requestId
-    ) internal view returns (bool) {
+    ) internal view {
         L1Request memory request = RollupLib.getL1Request(requestId);
         if (request.opType != Operations.OpType.FORCE_WITHDRAW)
             revert OpTypeIsNotMatched(request.opType, Operations.OpType.FORCE_WITHDRAW);
         if (!Operations.isForceWithdrawHashedPubDataMatched(forceWithdraw, request.hashedPubData))
             revert RequestIsNotExisted(request);
-        return true;
     }
 
     /// @notice Check whether the evacuation is in the L1 request queue
     /// @param evacuation The evacuation request
     /// @param requestId The id of the request
-    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
-    function _isEvacuationInL1RequestQueue(
-        Operations.Evacuation memory evacuation,
-        uint64 requestId
-    ) internal view returns (bool) {
+    function _evacuationInL1RequestQueue(Operations.Evacuation memory evacuation, uint64 requestId) internal view {
         L1Request memory request = RollupLib.getL1Request(requestId);
         if (request.opType != Operations.OpType.EVACUATION)
             revert OpTypeIsNotMatched(request.opType, Operations.OpType.EVACUATION);
         if (!Operations.isEvacuationHashedPubDataMatched(evacuation, request.hashedPubData))
             revert RequestIsNotExisted(request);
-        return true;
     }
 
     /// @notice Verify one block
@@ -576,5 +595,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         TokenLib.transfer(assetConfig.tokenAddr, payable(receiver), l1Amt);
 
         emit Evacuation(receiver, evacuation.accountId, evacuation.tokenId, l1Amt);
+    }
+
+    /// @notice Check whether the request id is greater than the current request number
+    /// @param requestId The id of the request
+    /// @return bool Return true is the request id is greater than the current request number, else return false
+    function _isRequestIdGtCurRequestNum(uint64 requestId) internal view returns (bool) {
+        uint64 curRequestNum = RollupLib.getTotalL1RequestNum();
+        return requestId >= curRequestNum;
     }
 }
