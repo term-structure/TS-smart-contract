@@ -6,7 +6,7 @@ import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/R
 import {TsbToken} from "../TsbToken.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
-import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
+import {AssetConfig} from "../token/TokenStorage.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";

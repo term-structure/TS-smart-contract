@@ -7,7 +7,7 @@ export const deployFacets = async (
   deployer: SignerWithAddress
 ): Promise<{
   facetFactories: { [key: string]: ContractFactory };
-  deployedFacets: { [key: string]: BaseContract };
+  facets: { [key: string]: BaseContract };
 }> => {
   const facetFactories: { [key: string]: ContractFactory } = {};
   const deployedFacets: { [key: string]: BaseContract } = {};
@@ -18,5 +18,5 @@ export const deployFacets = async (
     facetFactories[facet] = facetFactory;
     deployedFacets[facet] = deployedFacet;
   }
-  return { facetFactories, deployedFacets };
+  return { facetFactories, facets: deployedFacets };
 };

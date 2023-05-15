@@ -22,7 +22,7 @@ library AccountLib {
     /// @param accountId user account id in layer2
     /// @return accountAddr user account address in layer1
     function getAccountAddr(uint32 accountId) internal view returns (address) {
-        return AccountStorage.layout().accountAddres[accountId];
+        return AccountStorage.layout().accountAddresses[accountId];
     }
 
     /// @notice Return the accountId of accountAddr

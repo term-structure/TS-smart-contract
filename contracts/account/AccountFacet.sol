@@ -9,8 +9,7 @@ import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountLib} from "./AccountLib.sol";
 import {TsbLib} from "../tsb/TsbLib.sol";
-import {RollupStorage} from "../rollup/RollupStorage.sol";
-import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
+import {AssetConfig} from "../token/TokenStorage.sol";
 import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
 import {Config} from "../libraries/Config.sol";
 import {Operations} from "../libraries/Operations.sol";
@@ -107,7 +106,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         RollupLib.addL1Request(sender, Operations.OpType.REGISTER, pubData);
         AccountStorage.Layout storage asl = AccountStorage.layout();
         asl.accountIds[sender] = registeredAccountId;
-        asl.accountAddres[registeredAccountId] = sender;
+        asl.accountAddresses[registeredAccountId] = sender;
         asl.accountNum++;
         emit Register(sender, registeredAccountId, tsPubKeyX, tsPubKeyY, tsAddr);
         return registeredAccountId;

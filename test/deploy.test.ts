@@ -32,37 +32,18 @@ import {
 } from "../typechain-types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { getSlotNum, getStorageAt } from "../utils/slotHelper";
-import { ETH_ASSET_CONFIG, GENESIS_STATE_ROOT } from "../utils/config";
+import {
+  facetNames,
+  ETH_ASSET_CONFIG,
+  GENESIS_STATE_ROOT,
+} from "../utils/config";
 import { deployFacets } from "../utils/deployFacets";
 import { AddressFacet__factory } from "../typechain-types/factories/contracts/address";
 import { AddressFacet } from "../typechain-types/contracts/address";
 import { keccak256 } from "ethers/lib/utils";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
-
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
-
-const contractLibs = [
-  "AccountLib",
-  "AddressLib",
-  "FlashLoanLib",
-  "GovernanceLib",
-  "LoanLib",
-  "RollupLib",
-  "TokenLib",
-  "TsbLib",
-];
-
-const contractFacets = [
-  "AccountFacet",
-  "AddressFacet",
-  "FlashLoanFacet",
-  "GovernanceFacet",
-  "LoanFacet",
-  "RollupFacet",
-  "TokenFacet",
-  "TsbFacet",
-];
 
 describe("Deploy", () => {
   let WETH: WETH9__factory;
@@ -103,33 +84,27 @@ describe("Deploy", () => {
 
   beforeEach(async function () {
     [deployer, admin, operator, invalidSigner] = await ethers.getSigners();
-    const facets = await deployFacets(contractFacets, deployer);
-    AccountFacet = facets.facetFactories[
-      "AccountFacet"
-    ] as AccountFacet__factory;
-    accountFacet = facets.deployedFacets["AccountFacet"] as AccountFacet;
-    AddressFacet = facets.facetFactories[
-      "AddressFacet"
-    ] as AddressFacet__factory;
-    addressFacet = facets.deployedFacets["AddressFacet"] as AddressFacet;
-    FlashLoanFacet = facets.facetFactories[
+    const { facetFactories, facets } = await deployFacets(facetNames, deployer);
+    AccountFacet = facetFactories["AccountFacet"] as AccountFacet__factory;
+    accountFacet = facets["AccountFacet"] as AccountFacet;
+    AddressFacet = facetFactories["AddressFacet"] as AddressFacet__factory;
+    addressFacet = facets["AddressFacet"] as AddressFacet;
+    FlashLoanFacet = facetFactories[
       "FlashLoanFacet"
     ] as FlashLoanFacet__factory;
-    flashLoanFacet = facets.deployedFacets["FlashLoanFacet"] as FlashLoanFacet;
-    GovernanceFacet = facets.facetFactories[
+    flashLoanFacet = facets["FlashLoanFacet"] as FlashLoanFacet;
+    GovernanceFacet = facetFactories[
       "GovernanceFacet"
     ] as GovernanceFacet__factory;
-    governanceFacet = facets.deployedFacets[
-      "GovernanceFacet"
-    ] as GovernanceFacet;
-    LoanFacet = facets.facetFactories["LoanFacet"] as LoanFacet__factory;
-    loanFacet = facets.deployedFacets["LoanFacet"] as LoanFacet;
-    RollupFacet = facets.facetFactories["RollupFacet"] as RollupFacet__factory;
-    rollupFacet = facets.deployedFacets["RollupFacet"] as RollupFacet;
-    TokenFacet = facets.facetFactories["TokenFacet"] as TokenFacet__factory;
-    tokenFacet = facets.deployedFacets["TokenFacet"] as TokenFacet;
-    TsbFacet = facets.facetFactories["TsbFacet"] as TsbFacet__factory;
-    tsbFacet = facets.deployedFacets["TsbFacet"] as TsbFacet;
+    governanceFacet = facets["GovernanceFacet"] as GovernanceFacet;
+    LoanFacet = facetFactories["LoanFacet"] as LoanFacet__factory;
+    loanFacet = facets["LoanFacet"] as LoanFacet;
+    RollupFacet = facetFactories["RollupFacet"] as RollupFacet__factory;
+    rollupFacet = facets["RollupFacet"] as RollupFacet;
+    TokenFacet = facetFactories["TokenFacet"] as TokenFacet__factory;
+    tokenFacet = facets["TokenFacet"] as TokenFacet;
+    TsbFacet = facetFactories["TsbFacet"] as TsbFacet__factory;
+    tsbFacet = facets["TsbFacet"] as TsbFacet;
 
     // deploy weth
     WETH = await ethers.getContractFactory("WETH9");
@@ -162,8 +137,7 @@ describe("Deploy", () => {
 
     // deploy diamond init contract
     ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
-    ZkTrueUpInit.connect(deployer);
-    zkTrueUpInit = await ZkTrueUpInit.deploy();
+    zkTrueUpInit = await ZkTrueUpInit.connect(deployer).deploy();
     await zkTrueUpInit.deployed();
 
     treasury = ethers.Wallet.createRandom();

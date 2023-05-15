@@ -10,7 +10,7 @@ library AccountStorage {
         /// @notice Mapping of L1 Address => L2 Account Id
         mapping(address => uint32) accountIds;
         /// @notice Mapping of L2 Account Id => L1 Address
-        mapping(uint32 => address) accountAddres;
+        mapping(uint32 => address) accountAddresses;
     }
 
     function layout() internal pure returns (Layout storage l) {
