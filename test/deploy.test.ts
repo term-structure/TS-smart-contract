@@ -70,6 +70,46 @@ describe("Deploy", () => {
     insurance = ethers.Wallet.createRandom();
     vault = ethers.Wallet.createRandom();
   });
+
+  it("Failed to deploy, invalid diamond cut signer", async function () {
+    // fail to diamond cut with invalid owner
+    await expect(
+      diamondCut(invalidSigner, zkTrueUpMock, governance.address, Governance)
+    ).to.be.revertedWithCustomError(ZkTrueUpMock, "Ownable__NotOwner");
+  });
+
+  it("Failed to deploy, invalid diamond init signer", async function () {
+    // governance diamond cut
+    await diamondCut(deployer, zkTrueUpMock, governance.address, Governance);
+
+    // diamond init
+    const ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
+    ZkTrueUpInit.connect(deployer);
+    const zkTrueUpInit = await ZkTrueUpInit.deploy();
+    await zkTrueUpInit.deployed();
+
+    const initData = ethers.utils.defaultAbiCoder.encode(
+      ["address", "address", "address", "address", "address"],
+      [
+        admin.address,
+        operator.address,
+        treasury.address,
+        insurance.address,
+        vault.address,
+      ]
+    );
+
+    // invalid diamond init signer
+    await expect(
+      diamondInit(
+        invalidSigner,
+        zkTrueUpMock,
+        zkTrueUpInit.address,
+        ZkTrueUpInit,
+        initData
+      )
+    ).to.be.revertedWithCustomError(ZkTrueUpMock, "Ownable__NotOwner");
+  });
   it("Success to deploy", async function () {
     // governance diamond cut
     const registeredGovFnSelectors = await diamondCut(
@@ -215,45 +255,5 @@ describe("Deploy", () => {
       zkTrueUpMock.address
     );
     expect(await diamondToken.getTokenNum()).to.equal(0);
-  });
-
-  it("Failed to deploy, invalid diamond cut signer", async function () {
-    // fail to diamond cut with invalid owner
-    await expect(
-      diamondCut(invalidSigner, zkTrueUpMock, governance.address, Governance)
-    ).to.be.revertedWithCustomError(ZkTrueUpMock, "Ownable__NotOwner");
-  });
-
-  it("Failed to deploy, invalid diamond init signer", async function () {
-    // governance diamond cut
-    await diamondCut(deployer, zkTrueUpMock, governance.address, Governance);
-
-    // diamond init
-    const ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
-    ZkTrueUpInit.connect(deployer);
-    const zkTrueUpInit = await ZkTrueUpInit.deploy();
-    await zkTrueUpInit.deployed();
-
-    const initData = ethers.utils.defaultAbiCoder.encode(
-      ["address", "address", "address", "address", "address"],
-      [
-        admin.address,
-        operator.address,
-        treasury.address,
-        insurance.address,
-        vault.address,
-      ]
-    );
-
-    // invalid diamond init signer
-    await expect(
-      diamondInit(
-        invalidSigner,
-        zkTrueUpMock,
-        zkTrueUpInit.address,
-        ZkTrueUpInit,
-        initData
-      )
-    ).to.be.revertedWithCustomError(ZkTrueUpMock, "Ownable__NotOwner");
   });
 });
