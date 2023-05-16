@@ -16,6 +16,7 @@
     "test:forceWithdraw": "hardhat test test/account/forceWithdraw.test.ts",
     "test:activateEvacuation": "hardhat test test/rollup/activateEvacuation.test.ts",
     "test:flashLoan": "hardhat test test/flashLoan/flashLoan.test.ts",
+    "test:collateral": "hardhat test test/loan/collateral.test.ts",
     "coverage": "hardhat coverage",
     "generate:docs": "hardhat docgen",
     "script:deploy": "npx hardhat run scripts/deploy.ts",

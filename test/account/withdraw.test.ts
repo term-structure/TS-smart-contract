@@ -114,7 +114,7 @@ describe("Withdraw", () => {
         amount
       );
     });
-    it("success to withdraw base token (USDC case)", async () => {
+    it("Success to withdraw base token (USDC case)", async () => {
       // register by USDC
       const amount = utils.parseUnits("10000", TS_BASE_TOKEN.USDC.decimals);
       await register(
@@ -153,7 +153,7 @@ describe("Withdraw", () => {
       );
     });
 
-    it("fail to withdraw base token, invalid token address", async () => {
+    it("Fail to withdraw base token, invalid token address", async () => {
       // register by USDC
       const registerAmt = utils.parseUnits("10", TS_BASE_TOKEN.USDC.decimals);
       await register(
@@ -174,7 +174,7 @@ describe("Withdraw", () => {
       ).to.be.revertedWithCustomError(diamondToken, "TokenIsNotExist");
     });
 
-    it("fail to withdraw base token, a not registered account", async () => {
+    it("Fail to withdraw base token, a not registered account", async () => {
       const tokenAddr = DEFAULT_ETH_ADDRESS;
       const amount = utils.parseEther("1");
 
@@ -214,7 +214,7 @@ describe("Withdraw", () => {
         await diamondToken.connect(operator).addToken(assetConfig);
       }
     });
-    it("success to withdraw tsb token (tsbETH case)", async () => {
+    it("Success to withdraw tsb token (tsbETH case)", async () => {
       // get params, ETH case tokenId = 1
       const tokenId = tsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[0].maturity);

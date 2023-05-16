@@ -4,18 +4,21 @@ import { ethers } from "hardhat";
 import { BigNumber, Signer, utils } from "ethers";
 import { deployAndInit } from "../utils/deployAndInit";
 import { useFacet } from "../../utils/useFacet";
+import { FACET_NAMES } from "../../utils/config";
+import { register } from "../utils/register";
+import { BaseTokenAddresses, LoanData, PriceFeeds } from "../../utils/type";
+import { tsbTokensJSON } from "../data/tsbTokens";
+import { loanDataJSON } from "../data/loanData";
+import { updateRoundData } from "../utils/updateRoundData";
 import {
   getLiquidatorRewardAmt,
   getProtocolPenaltyAmt,
   toL1Amt,
 } from "../utils/amountConvertor";
-import { FACET_NAMES } from "../../utils/config";
-import { register } from "../utils/register";
 import {
   createAndWhiteListTsbToken,
   whiteListBaseTokens,
 } from "../utils/whitelistToken";
-import { BaseTokenAddresses, LoanData, PriceFeeds } from "../../utils/type";
 import {
   AccountFacet,
   ERC20Mock,
@@ -34,9 +37,6 @@ import {
   TS_BASE_TOKEN,
   TsTokenId,
 } from "term-structure-sdk";
-import { tsbTokensJSON } from "../data/tsbTokens";
-import { loanDataJSON } from "../data/loanData";
-import { updateRoundData } from "../utils/updateRoundData";
 
 //! use RollupMock instead of RollupFacet for testing
 const facetNamesMock: string[] = [];
@@ -65,6 +65,7 @@ const fixture = async () => {
 
 describe("flash loan", () => {
   let [user1]: Signer[] = [];
+  let [user1Addr]: string[] = [];
   let treasuryAddr: string;
   let operator: Signer;
   let liquidator: Signer;
@@ -82,6 +83,7 @@ describe("flash loan", () => {
   beforeEach(async () => {
     const res = await loadFixture(fixture);
     [user1, liquidator] = await ethers.getSigners();
+    [user1Addr] = await Promise.all([user1.getAddress()]);
     treasuryAddr = res.treasury.address;
     operator = res.operator;
     weth = res.weth;
@@ -168,16 +170,14 @@ describe("flash loan", () => {
       await dai.connect(user1).mint(flashLoanBase.address, daiPremiumAmt);
     });
 
-    it("success to execute flash loan and do nothing (1 token)", async () => {
+    it("Success to execute flash loan and do nothing (1 token)", async () => {
       // before balance
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
       const beforeFlashLoanBaseUsdcBalance = await usdc.balanceOf(
         flashLoanBase.address
       );
       const beforeTreasuryUsdcBalance = await usdc.balanceOf(treasuryAddr);
-      const beforeUser1UsdcBalance = await usdc.balanceOf(
-        await user1.getAddress()
-      );
+      const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
 
       // execute flash loan
       const flashLoanTx = await flashLoanBase
@@ -191,9 +191,7 @@ describe("flash loan", () => {
         flashLoanBase.address
       );
       const afterTreasuryUsdcBalance = await usdc.balanceOf(treasuryAddr);
-      const afterUser1UsdcBalance = await usdc.balanceOf(
-        await user1.getAddress()
-      );
+      const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
 
       // check balance
       expect(beforeZkTrueUpUsdcBalance).to.eq(afterZkTrueUpUsdcBalance);
@@ -216,7 +214,7 @@ describe("flash loan", () => {
           usdcPremiumAmt
         );
     });
-    it("success to execute flash loan and do nothing (multi token)", async () => {
+    it("Success to execute flash loan and do nothing (multi token)", async () => {
       // before balance
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const beforeZkTrueUpWbtcBalance = await wbtc.balanceOf(zkTrueUp.address);
@@ -369,7 +367,7 @@ describe("flash loan", () => {
           daiPremiumAmt
         );
     });
-    it("fail to execute flash loan, input length mismatch", async () => {
+    it("Fail to execute flash loan, input length mismatch", async () => {
       // execute flash loan
       const assets = [
         weth.address,

@@ -180,7 +180,7 @@ describe("Ts Bond", () => {
     });
   });
 
-  describe("view functions, tsb token info", () => {
+  describe("View functions, tsb token info", () => {
     beforeEach(async () => {
       // create tsb tokens, tsbETH
       const underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
@@ -293,7 +293,7 @@ describe("Ts Bond", () => {
     });
   });
 
-  describe("view function (get function)", () => {
+  describe("View function (get function)", () => {
     it("getTsbTokenAddr", async () => {
       for (let i = 0; i < tsbTokensJSON.length; i++) {
         const underlyingTokenId = tsbTokensJSON[i].underlyingTokenId;
@@ -313,7 +313,7 @@ describe("Ts Bond", () => {
       }
     });
 
-    it("get underlying asset", async () => {
+    it("getUnderlyingAsset", async () => {
       for (let i = 0; i < tsbTokensJSON.length; i++) {
         const underlyingTokenId = tsbTokensJSON[i].underlyingTokenId;
         const underlyingContractAddress =
@@ -340,7 +340,7 @@ describe("Ts Bond", () => {
       }
     });
 
-    it("get maturity time", async () => {
+    it("getMaturityTime", async () => {
       for (let i = 0; i < tsbTokensJSON.length; i++) {
         const underlyingTokenId = tsbTokensJSON[i].underlyingTokenId;
         const maturity = BigNumber.from(tsbTokensJSON[i].maturity);
