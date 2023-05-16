@@ -13,7 +13,6 @@ import { baseTokensJSON } from "../data/baseTokens";
 import {
   AccountMock,
   ERC20Mock,
-  RollupFacet,
   TokenFacet,
   TsbFacet,
   WETH9,
@@ -58,7 +57,6 @@ describe("Withdraw", () => {
   let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
   let diamondAcc: AccountMock;
-  let diamondRollup: RollupFacet;
   let diamondToken: TokenFacet;
   let diamondTsb: TsbFacet;
   let baseTokenAddresses: BaseTokenAddresses;
@@ -72,7 +70,6 @@ describe("Withdraw", () => {
     weth = res.weth;
     zkTrueUp = res.zkTrueUp;
     diamondAcc = (await useFacet("AccountMock", zkTrueUp)) as AccountMock;
-    diamondRollup = (await useFacet("RollupFacet", zkTrueUp)) as RollupFacet;
     diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
     baseTokenAddresses = res.baseTokenAddresses;

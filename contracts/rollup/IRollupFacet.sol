@@ -129,6 +129,10 @@ interface IRollupFacet {
     /// @dev The evacuation mode will be activated when the current block number is greater than the expiration block number of the first pending L1 request
     function activateEvacuation() external;
 
+    /// @notice Return the evacuation mode is activated or not
+    /// @return evacuMode The evacuation mode status
+    function isEvacuMode() external view returns (bool);
+
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id

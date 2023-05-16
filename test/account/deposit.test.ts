@@ -22,6 +22,7 @@ import {
 } from "term-structure-sdk";
 import { toL2Amt } from "../utils/amountConvertor";
 import { FACET_NAMES } from "../../utils/config";
+import { register } from "../utils/register";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -71,14 +72,14 @@ describe("Deposit", function () {
   describe("Deposit with ERC20", function () {
     it("Success to deposit", async function () {
       // mimic register
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const regAmount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-      await weth.connect(user1).approve(zkTrueUp.address, regAmount);
-      await diamondAcc
-        .connect(user1)
-        .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, regAmount, {
-          value: regAmount,
-        });
+      await register(
+        user1,
+        Number(TsTokenId.ETH),
+        regAmount,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
       // before deposit
       const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
@@ -165,14 +166,14 @@ describe("Deposit", function () {
 
     it("Failed to deposit, the deposit amount less than the minimum deposit amount", async function () {
       // mimic register
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const regAmount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-      await weth.connect(user1).approve(zkTrueUp.address, regAmount);
-      await diamondAcc
-        .connect(user1)
-        .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, regAmount, {
-          value: regAmount,
-        });
+      await register(
+        user1,
+        Number(TsTokenId.ETH),
+        regAmount,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
       // 5 < min deposit amount
       const amount = utils.parseUnits("5", await usdt.decimals());
@@ -187,14 +188,14 @@ describe("Deposit", function () {
   describe("Deposit with ETH", function () {
     it("Success to deposit", async function () {
       // mimic register
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const regAmount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-      await weth.connect(user1).approve(zkTrueUp.address, regAmount);
-      await diamondAcc
-        .connect(user1)
-        .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, regAmount, {
-          value: regAmount,
-        });
+      await register(
+        user1,
+        Number(TsTokenId.ETH),
+        regAmount,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
       // before deposit
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
@@ -260,14 +261,14 @@ describe("Deposit", function () {
 
     it("Failed to deposit, the deposit amount less than the minimum deposit amount", async function () {
       // mimic register
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const regAmount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-      await weth.connect(user1).approve(zkTrueUp.address, regAmount);
-      await diamondAcc
-        .connect(user1)
-        .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, regAmount, {
-          value: regAmount,
-        });
+      await register(
+        user1,
+        Number(TsTokenId.ETH),
+        regAmount,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
       // call deposit
       const amount = ethers.utils.parseEther(

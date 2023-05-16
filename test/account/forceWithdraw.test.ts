@@ -12,7 +12,6 @@ import {
   ERC20Mock,
   RollupFacet,
   TokenFacet,
-  WETH9,
   ZkTrueUp,
 } from "../../typechain-types";
 import {
@@ -20,6 +19,7 @@ import {
   MIN_DEPOSIT_AMOUNT,
   TsTokenId,
 } from "term-structure-sdk";
+import { register } from "../utils/register";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -39,7 +39,6 @@ const fixture = async () => {
 describe("Force withdraw", function () {
   let [user1]: Signer[] = [];
   let [user1Addr]: string[] = [];
-  let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
   let diamondAcc: AccountFacet;
   let diamondRollup: RollupFacet;
@@ -51,7 +50,6 @@ describe("Force withdraw", function () {
     const res = await loadFixture(fixture);
     [user1] = await ethers.getSigners();
     [user1Addr] = await Promise.all([user1.getAddress()]);
-    weth = res.weth;
     zkTrueUp = res.zkTrueUp;
     diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
     diamondRollup = (await useFacet("RollupFacet", zkTrueUp)) as RollupFacet;
@@ -66,14 +64,14 @@ describe("Force withdraw", function () {
   describe("ForceWithdraw with ETH", function () {
     it("Success to forceWithdraw with ETH", async function () {
       // register user1
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-      await weth.connect(user1).approve(zkTrueUp.address, amount);
-      await diamondAcc
-        .connect(user1)
-        .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, amount, {
-          value: amount,
-        });
+      await register(
+        user1,
+        Number(TsTokenId.ETH),
+        amount,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
       const tokenAddr = DEFAULT_ETH_ADDRESS;
       await diamondAcc.connect(user1).forceWithdraw(tokenAddr);
@@ -106,14 +104,14 @@ describe("Force withdraw", function () {
   describe("ForceWithdraw with ERC20", function () {
     it("Success to forceWithdraw with ERC20", async function () {
       // register user1
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-      await weth.connect(user1).approve(zkTrueUp.address, amount);
-      await diamondAcc
-        .connect(user1)
-        .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, amount, {
-          value: amount,
-        });
+      await register(
+        user1,
+        Number(TsTokenId.ETH),
+        amount,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
       const tokenAddr = usdt.address;
       await diamondAcc.connect(user1).forceWithdraw(tokenAddr);
@@ -144,14 +142,14 @@ describe("Force withdraw", function () {
 
     it("Failed to forceWithdraw, forceWithdraw with ERC20 but the token is not exist", async function () {
       // register user1
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-      await weth.connect(user1).approve(zkTrueUp.address, amount);
-      await diamondAcc
-        .connect(user1)
-        .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, amount, {
-          value: amount,
-        });
+      await register(
+        user1,
+        Number(TsTokenId.ETH),
+        amount,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
       const randAddr = ethers.Wallet.createRandom().address;
       expect(

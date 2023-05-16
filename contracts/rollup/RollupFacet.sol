@@ -160,6 +160,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         }
     }
 
+    /// @notice Return the evacuation mode is activated or not
+    /// @return evacuMode The evacuation mode status
+    function isEvacuMode() external view returns (bool) {
+        return RollupStorage.layout().evacuMode;
+    }
+
     /// @notice Check whether the register request is in the L1 request queue
     /// @param register The register request
     /// @param requestId The id of the request
