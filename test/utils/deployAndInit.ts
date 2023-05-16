@@ -10,7 +10,7 @@ import {
   GENESIS_STATE_ROOT,
 } from "../../utils/config";
 import { ERC20Mock, OracleMock } from "../../typechain-types";
-import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
+import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
@@ -28,20 +28,20 @@ export const deployAndInit = async (facetNames?: string[]) => {
 
   // set test oracle price feed
   const OracleMock = await ethers.getContractFactory("OracleMock");
-  OracleMock.connect(operator);
   const ERC20Mock = await ethers.getContractFactory("ERC20Mock");
-  ERC20Mock.connect(operator);
 
   for (let i = 0; i < BASE_TOKEN_ASSET_CONFIG.length; i++) {
     const token = BASE_TOKEN_ASSET_CONFIG[i];
-    const oracleMock = (await OracleMock.deploy()) as OracleMock;
+    const oracleMock = (await OracleMock.connect(
+      operator
+    ).deploy()) as OracleMock;
     await oracleMock.deployed();
     priceFeeds[token.tokenId] = oracleMock.address;
 
     if (token.symbol == "ETH") {
       baseTokenAddresses[token.tokenId] = DEFAULT_ETH_ADDRESS;
     } else {
-      const testERC20 = (await ERC20Mock.deploy(
+      const testERC20 = (await ERC20Mock.connect(operator).deploy(
         token.name,
         token.symbol,
         token.decimals
@@ -128,7 +128,7 @@ export const deployAndInit = async (facetNames?: string[]) => {
         decimals: ETH_ASSET_CONFIG.decimals,
         minDepositAmt: ETH_ASSET_CONFIG.minDepositAmt,
         tokenAddr: ETH_ASSET_CONFIG.tokenAddr,
-        priceFeed: ETH_ASSET_CONFIG.priceFeed,
+        priceFeed: priceFeeds[TsTokenId.ETH],
       },
     ]
   );

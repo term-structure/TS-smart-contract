@@ -15,6 +15,8 @@ import {LoanStorage, LiquidationFactor, Loan} from "./LoanStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Checker} from "../libraries/Checker.sol";
 
+import "hardhat/console.sol";
+
 contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Add collateral to the loan
     /// @dev Anyone can add collateral to the loan

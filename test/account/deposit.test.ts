@@ -4,6 +4,11 @@ import { ethers } from "hardhat";
 import { BigNumber, Signer, utils } from "ethers";
 import { deployAndInit } from "../utils/deployAndInit";
 import { useFacet } from "../../utils/useFacet";
+import { toL2Amt } from "../utils/amountConvertor";
+import { FACET_NAMES } from "../../utils/config";
+import { register } from "../utils/register";
+import { whiteListBaseTokens } from "../utils/whitelistToken";
+import { BaseTokenAddresses } from "../../utils/type";
 import {
   AccountFacet,
   ERC20Mock,
@@ -12,17 +17,12 @@ import {
   WETH9,
   ZkTrueUp,
 } from "../../typechain-types";
-import { whiteListBaseTokens } from "../utils/whitelistToken";
-import { BaseTokenAddresses } from "../../utils/type";
 import {
   DEFAULT_ETH_ADDRESS,
   MIN_DEPOSIT_AMOUNT,
   TS_BASE_TOKEN,
   TsTokenId,
 } from "term-structure-sdk";
-import { toL2Amt } from "../utils/amountConvertor";
-import { FACET_NAMES } from "../../utils/config";
-import { register } from "../utils/register";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -43,10 +43,10 @@ describe("Deposit", function () {
   let [user1, user2]: Signer[] = [];
   let [user1Addr, user2Addr]: string[] = [];
   let weth: WETH9;
+  let zkTrueUp: ZkTrueUp;
   let diamondAcc: AccountFacet;
   let diamondRollup: RollupFacet;
   let diamondToken: TokenFacet;
-  let zkTrueUp: ZkTrueUp;
   let baseTokenAddresses: BaseTokenAddresses;
   let usdt: ERC20Mock;
 

@@ -80,6 +80,7 @@ library TokenLib {
     /// @return tokenId The token id on Layer2
     /// @return assetConfig The configuration of the token
     function getValidToken(address tokenAddr) internal view returns (uint16, AssetConfig memory) {
+        tokenAddr = tokenAddr == AddressLib.getWETHAddr() ? Config.ETH_ADDRESS : tokenAddr;
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         bool isPaused = tsl.isPaused[tokenAddr];
         if (isPaused) revert TokenIsPaused(tokenAddr);

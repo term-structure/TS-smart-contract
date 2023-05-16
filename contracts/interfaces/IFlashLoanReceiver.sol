@@ -26,7 +26,7 @@ interface IFlashLoanReceiver {
         bytes calldata data
     ) external returns (bool);
 
-    /// @notice Get the loan facet
-    /// @return ILoanFacet The loan facet
-    function loanFacet() external view returns (ILoanFacet);
+    // /// @notice Get the loan facet
+    // /// @return ILoanFacet The loan facet
+    // function loanFacet() external view returns (ILoanFacet);
 }
