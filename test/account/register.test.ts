@@ -5,6 +5,10 @@ import { BigNumber, Signer, utils } from "ethers";
 import { BaseTokenAddresses } from "../../utils/type";
 import { deployAndInit } from "../utils/deployAndInit";
 import { whiteListBaseTokens } from "../utils/whitelistToken";
+import { genTsAddr } from "../utils/helper";
+import { toL2Amt } from "../utils/amountConvertor";
+import { useFacet } from "../../utils/useFacet";
+import { FACET_NAMES } from "../../utils/config";
 import {
   AccountFacet,
   ERC20Mock,
@@ -19,12 +23,8 @@ import {
   TS_BASE_TOKEN,
   TsTokenId,
 } from "term-structure-sdk";
-import { genTsAddr } from "../utils/helper";
-import { toL2Amt } from "../utils/amountConvertor";
-import { useFacet } from "../../utils/useFacet";
-import { FACET_NAMES } from "../../utils/config";
 
-const deployFixture = async () => {
+const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
@@ -43,15 +43,15 @@ describe("Register", function () {
   let [user1]: Signer[] = [];
   let [user1Addr]: string[] = [];
   let weth: WETH9;
+  let zkTrueUp: ZkTrueUp;
   let diamondAcc: AccountFacet;
   let diamondRollup: RollupFacet;
   let diamondToken: TokenFacet;
-  let zkTrueUp: ZkTrueUp;
   let baseTokenAddresses: BaseTokenAddresses;
   let usdt: ERC20Mock;
 
   beforeEach(async function () {
-    const res = await loadFixture(deployFixture);
+    const res = await loadFixture(fixture);
     [user1] = await ethers.getSigners();
     [user1Addr] = await Promise.all([user1.getAddress()]);
     weth = res.weth;

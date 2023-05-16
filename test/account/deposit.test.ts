@@ -23,7 +23,7 @@ import {
 import { toL2Amt } from "../utils/amountConvertor";
 import { FACET_NAMES } from "../../utils/config";
 
-const deployFixture = async () => {
+const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
@@ -50,7 +50,7 @@ describe("Deposit", function () {
   let usdt: ERC20Mock;
 
   beforeEach(async function () {
-    const res = await loadFixture(deployFixture);
+    const res = await loadFixture(fixture);
     [user1, user2] = await ethers.getSigners();
     [user1Addr, user2Addr] = await Promise.all([
       user1.getAddress(),

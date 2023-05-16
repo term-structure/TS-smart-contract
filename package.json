@@ -12,6 +12,8 @@
     "test:register": "hardhat test test/account/register.test.ts",
     "test:deposit": "hardhat test test/account/deposit.test.ts",
     "test:tsb": "hardhat test test/tsb/tsb.test.ts",
+    "test:withdraw": "hardhat test test/account/withdraw.test.ts",
+    "test:forceWithdraw": "hardhat test test/account/forceWithdraw.test.ts",
     "coverage": "hardhat coverage",
     "generate:docs": "hardhat docgen",
     "script:deploy": "npx hardhat run scripts/deploy.ts",

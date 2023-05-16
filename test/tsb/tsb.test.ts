@@ -30,7 +30,7 @@ for (let i = 0; i < FACET_NAMES.length; i++) {
   }
 }
 
-const deployFixture = async () => {
+const fixture = async () => {
   const res = await deployAndInit(facetNamesMock);
   const diamondToken = (await useFacet(
     "TokenFacet",
@@ -58,7 +58,7 @@ describe("Ts Bond", () => {
   const INVALID_CLASS_ID = 100;
 
   beforeEach(async () => {
-    const res = await loadFixture(deployFixture);
+    const res = await loadFixture(fixture);
     [user1, user2] = await ethers.getSigners();
     [user1Addr, user2Addr] = await Promise.all([
       user1.getAddress(),
