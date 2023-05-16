@@ -230,7 +230,7 @@ describe("Ts Bond", () => {
         await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, amount)
       ).wait(); //! ignore _updateWithdrawalRecord in AccountMock
     });
-    it("balanceOf", async () => {
+    it("Success to get balanceOf", async () => {
       // get params
       const underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[0].maturity);
@@ -251,7 +251,7 @@ describe("Ts Bond", () => {
       expect(await tsbToken.balanceOf(user1Addr)).to.equal(amount);
     });
 
-    it("allowance", async () => {
+    it("Success to get allowance", async () => {
       // get params
       const underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[0].maturity);
@@ -273,7 +273,7 @@ describe("Ts Bond", () => {
       expect(await tsbToken.allowance(user1Addr, user2Addr)).to.equal(amount);
     });
 
-    it("activeSupply", async () => {
+    it("Success to get activeSupply", async () => {
       // get params
       const underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[0].maturity);
@@ -294,7 +294,7 @@ describe("Ts Bond", () => {
   });
 
   describe("View function (get function)", () => {
-    it("getTsbTokenAddr", async () => {
+    it("Success to get tsb tokenAddr", async () => {
       for (let i = 0; i < tsbTokensJSON.length; i++) {
         const underlyingTokenId = tsbTokensJSON[i].underlyingTokenId;
         const maturity = BigNumber.from(tsbTokensJSON[i].maturity);
@@ -313,7 +313,7 @@ describe("Ts Bond", () => {
       }
     });
 
-    it("getUnderlyingAsset", async () => {
+    it("Success to get underlying asset", async () => {
       for (let i = 0; i < tsbTokensJSON.length; i++) {
         const underlyingTokenId = tsbTokensJSON[i].underlyingTokenId;
         const underlyingContractAddress =
@@ -340,7 +340,7 @@ describe("Ts Bond", () => {
       }
     });
 
-    it("getMaturityTime", async () => {
+    it("Success to get maturity time", async () => {
       for (let i = 0; i < tsbTokensJSON.length; i++) {
         const underlyingTokenId = tsbTokensJSON[i].underlyingTokenId;
         const maturity = BigNumber.from(tsbTokensJSON[i].maturity);

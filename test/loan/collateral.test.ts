@@ -20,7 +20,6 @@ import {
 import {
   AccountFacet,
   ERC20Mock,
-  FlashLoanFacet,
   LoanFacet,
   RollupMock,
   TokenFacet,
