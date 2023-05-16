@@ -18,6 +18,7 @@
     "test:healthFactor": "hardhat test test/loan/healthFactor.test.ts",
     "test:flashLoan": "hardhat test test/flashLoan/flashLoan.test.ts",
     "test:collateral": "hardhat test test/loan/collateral.test.ts",
+    "test:repay": "hardhat test test/loan/repay.test.ts",
     "coverage": "hardhat coverage",
     "generate:docs": "hardhat docgen",
     "script:deploy": "npx hardhat run scripts/deploy.ts",
