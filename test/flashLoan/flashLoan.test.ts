@@ -68,6 +68,7 @@ describe("flash loan", () => {
   let [user1]: Signer[] = [];
   let [user1Addr]: string[] = [];
   let treasuryAddr: string;
+  let admin: Signer;
   let operator: Signer;
   let liquidator: Signer;
   let weth: WETH9;
@@ -86,6 +87,7 @@ describe("flash loan", () => {
     [user1, liquidator] = await ethers.getSigners();
     [user1Addr] = await Promise.all([user1.getAddress()]);
     treasuryAddr = res.treasury.address;
+    admin = res.admin;
     operator = res.operator;
     weth = res.weth;
     zkTrueUp = res.zkTrueUp;
@@ -602,6 +604,24 @@ describe("flash loan", () => {
           usdcAmt,
           usdcPremiumAmt
         );
+    });
+  });
+  describe("Set & Get flash loan premium", () => {
+    it("Success to set & get flash loan premium", async () => {
+      const newFlashLoanPremium = 9;
+      const setFlashLoanPremiumTx = await diamondFlashLoan
+        .connect(admin)
+        .setFlashLoanPremium(newFlashLoanPremium);
+      await setFlashLoanPremiumTx.wait();
+
+      const flashLoanPremium = await diamondFlashLoan.getFlashLoanPremium();
+      expect(flashLoanPremium).to.be.equal(newFlashLoanPremium);
+    });
+    it("Fail to set flash loan premium, sender is not admin", async () => {
+      const newFlashLoanPremium = 9;
+      await expect(
+        diamondFlashLoan.connect(user1).setFlashLoanPremium(newFlashLoanPremium)
+      ).to.be.reverted;
     });
   });
 });

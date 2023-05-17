@@ -86,6 +86,7 @@ const fixture = async () => {
 describe("Liquidation", () => {
   let [user1, liquidator]: Signer[] = [];
   let [liquidatorAddr]: string[] = [];
+  let admin: Signer;
   let operator: Signer;
   let treasuryAddr: string;
   let weth: WETH9;
@@ -102,6 +103,7 @@ describe("Liquidation", () => {
     const res = await loadFixture(fixture);
     [user1, liquidator] = await ethers.getSigners();
     [liquidatorAddr] = await Promise.all([liquidator.getAddress()]);
+    admin = res.admin;
     operator = res.operator;
     treasuryAddr = res.treasury.address;
     weth = res.weth;
@@ -1870,6 +1872,105 @@ describe("Liquidation", () => {
 
       // check health factor
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+  });
+  describe("Set & Get half liquidation threshold", () => {
+    it("Success to set & get half liquidation threshold", async () => {
+      const newHalfLiquidationThreshold = 5000;
+      const setHalfLiquidationThresholdTx = await diamondLoan
+        .connect(admin)
+        .setHalfLiquidationThreshold(newHalfLiquidationThreshold);
+      await setHalfLiquidationThresholdTx.wait();
+
+      const halfLiquidationThreshold =
+        await diamondLoan.getHalfLiquidationThreshold();
+      expect(halfLiquidationThreshold).to.be.equal(newHalfLiquidationThreshold);
+    });
+    it("Fail to set half liquidation, sender is not admin", async () => {
+      const newHalfLiquidationThreshold = 5000;
+      await expect(
+        diamondLoan
+          .connect(user1)
+          .setHalfLiquidationThreshold(newHalfLiquidationThreshold)
+      ).to.be.reverted;
+    });
+  });
+  describe("Set & Get liquidation factor", () => {
+    it("Success to set & get liquidation factor", async () => {
+      // new liquidation factor
+      const newLiquidationFactor = {
+        ltvThreshold: 700,
+        liquidatorIncentive: 60,
+        protocolPenalty: 40,
+      };
+      const isStableCoinPair = false;
+
+      // set new liquidation factor
+      const setLiquidationFactorTx = await diamondLoan
+        .connect(admin)
+        .setLiquidationFactor(newLiquidationFactor, isStableCoinPair);
+      const setLiquidationFactorReceipt = await setLiquidationFactorTx.wait();
+
+      // check
+      const liquidationFactor = await diamondLoan.getLiquidationFactor(false);
+      expect(liquidationFactor.ltvThreshold).to.be.equal(700);
+      expect(liquidationFactor.liquidatorIncentive).to.be.equal(60);
+      expect(liquidationFactor.protocolPenalty).to.be.equal(40);
+    });
+    it("Success to set & get stable coin pair liquidation factor", async () => {
+      // new stable coin pair liquidation factor
+      const newStableCoinPairLiquidationFactor = {
+        ltvThreshold: 500,
+        liquidatorIncentive: 60,
+        protocolPenalty: 40,
+      };
+      const isStableCoinPair = true;
+
+      // set new stable coin pair liquidation factor
+      const setStableCoinPairLiquidationFactorTx = await diamondLoan
+        .connect(admin)
+        .setLiquidationFactor(
+          newStableCoinPairLiquidationFactor,
+          isStableCoinPair
+        );
+
+      // check
+      const liquidationFactor = await diamondLoan.getLiquidationFactor(true);
+      expect(liquidationFactor.ltvThreshold).to.be.equal(500);
+      expect(liquidationFactor.liquidatorIncentive).to.be.equal(60);
+      expect(liquidationFactor.protocolPenalty).to.be.equal(40);
+    });
+    it("Fail to set liquidation factor, sender is not admin", async () => {
+      // new liquidation factor
+      const newLiquidationFactor = {
+        ltvThreshold: 700,
+        liquidatorIncentive: 60,
+        protocolPenalty: 40,
+      };
+
+      // set new liquidation factor with invalid sender
+      const isStableCoinPair = false;
+      await expect(
+        diamondLoan
+          .connect(user1)
+          .setLiquidationFactor(newLiquidationFactor, isStableCoinPair)
+      ).to.be.reverted;
+    });
+    it("Fail to set liquidation factor, invalid liquidation factor", async () => {
+      // new liquidation factor
+      const invalidLiquidationFactor = {
+        ltvThreshold: 950,
+        liquidatorIncentive: 60,
+        protocolPenalty: 40,
+      };
+      const isStableCoinPair = false;
+
+      // set invalid liquidation factor
+      await expect(
+        diamondLoan
+          .connect(admin)
+          .setLiquidationFactor(invalidLiquidationFactor, isStableCoinPair)
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidLiquidationFactor");
     });
   });
 });
