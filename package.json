@@ -22,6 +22,7 @@
     "test:repay": "hardhat test test/loan/repay.test.ts",
     "test:repayAndDeposit": "hardhat test test/loan/repayAndDeposit.test.ts",
     "test:liquidation": "hardhat test test/loan/liquidation.test.ts",
+    "test:token": "hardhat test test/token/token.test.ts",
     "test:oracleMock": "hardhat test test/oracleMock/oracleMock.test.ts",
     "test:tsFaucet": "hardhat test test/tsFaucet/tsFaucet.test.ts",
     "test:rollup": "hardhat test test/rollup/rollup.test.ts",

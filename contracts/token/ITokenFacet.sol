@@ -76,4 +76,6 @@ interface ITokenFacet {
     function getTokenId(address tokenAddr) external view returns (uint16);
 
     function getAssetConfig(uint16 tokenId) external view returns (AssetConfig memory);
+
+    function isTokenPaused(address tokenAddr) external view returns (bool);
 }

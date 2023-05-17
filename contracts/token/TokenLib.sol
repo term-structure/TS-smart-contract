@@ -113,4 +113,8 @@ library TokenLib {
     function getTokenId(address tokenAddr) internal view returns (uint16) {
         return TokenStorage.layout().tokenIds[tokenAddr];
     }
+
+    function isPaused(address tokenAddr) internal view returns (bool) {
+        return TokenStorage.layout().isPaused[tokenAddr];
+    }
 }

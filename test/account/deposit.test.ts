@@ -1,7 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Signer, utils } from "ethers";
+import { Signer, utils } from "ethers";
 import { deployAndInit } from "../utils/deployAndInit";
 import { useFacet } from "../../utils/useFacet";
 import { toL2Amt } from "../utils/amountConvertor";

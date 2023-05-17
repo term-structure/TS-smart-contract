@@ -82,4 +82,8 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
     function getAssetConfig(uint16 tokenId) external view returns (AssetConfig memory) {
         return TokenLib.getAssetConfig(tokenId);
     }
+
+    function isTokenPaused(address tokenAddr) external view returns (bool) {
+        return TokenLib.isPaused(tokenAddr);
+    }
 }
