@@ -74,7 +74,7 @@ describe("repay and deposit", () => {
   let diamondTsb: TsbFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   let priceFeeds: PriceFeeds;
-  let diamondAccWithAccountLib: AccountLib;
+  let diamondWithAccountLib: AccountLib;
 
   beforeEach(async () => {
     const res = await loadFixture(fixture);
@@ -93,9 +93,9 @@ describe("repay and deposit", () => {
     diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     priceFeeds = res.priceFeeds;
-    diamondAccWithAccountLib = await ethers.getContractAt(
+    diamondWithAccountLib = await ethers.getContractAt(
       "AccountLib",
-      diamondAcc.address
+      zkTrueUp.address
     );
   });
 
@@ -227,7 +227,7 @@ describe("repay and deposit", () => {
           true
         );
       await expect(repayAndDepositTx)
-        .to.emit(diamondAccWithAccountLib, "Deposit")
+        .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user1Addr,
           loan.accountId,
@@ -329,7 +329,7 @@ describe("repay and deposit", () => {
         );
 
       await expect(repayAndDepositTx)
-        .to.emit(diamondAccWithAccountLib, "Deposit")
+        .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user1Addr,
           loan.accountId,
@@ -539,7 +539,7 @@ describe("repay and deposit", () => {
           true
         );
       await expect(repayAndDepositTx)
-        .to.emit(diamondAccWithAccountLib, "Deposit")
+        .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user1Addr,
           loan.accountId,
@@ -834,7 +834,7 @@ describe("repay and deposit", () => {
           true
         );
       await expect(repayAndDepositTx)
-        .to.emit(diamondAccWithAccountLib, "Deposit")
+        .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user2Addr,
           loan.accountId,
@@ -929,7 +929,7 @@ describe("repay and deposit", () => {
           true
         );
       await expect(repayAndDepositTx)
-        .to.emit(diamondAccWithAccountLib, "Deposit")
+        .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user2Addr,
           loan.accountId,
@@ -1019,7 +1019,7 @@ describe("repay and deposit", () => {
           true
         );
       await expect(secondRepayAndDepositTx)
-        .to.emit(diamondAccWithAccountLib, "Deposit")
+        .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user2Addr,
           loan.accountId,
@@ -1131,7 +1131,7 @@ describe("repay and deposit", () => {
           true
         );
       await expect(repayAndDepositTx)
-        .to.emit(diamondAccWithAccountLib, "Deposit")
+        .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user2Addr,
           loan.accountId,
@@ -1224,7 +1224,7 @@ describe("repay and deposit", () => {
           true
         );
       await expect(secondRepayAndDepositTx)
-        .to.emit(diamondAccWithAccountLib, "Deposit")
+        .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user2Addr,
           loan.accountId,

@@ -15,6 +15,7 @@ import {
   ERC20Mock,
   TokenFacet,
   TsbFacet,
+  TsbLib,
   WETH9,
   ZkTrueUp,
 } from "../../typechain-types";
@@ -62,6 +63,7 @@ describe("Withdraw", () => {
   let diamondToken: TokenFacet;
   let diamondTsb: TsbFacet;
   let baseTokenAddresses: BaseTokenAddresses;
+  let diamondWithTsbLib: TsbLib;
   const INVALID_TOKEN_ADDRESS = "0x1234567890123456789012345678901234567890";
 
   beforeEach(async () => {
@@ -75,6 +77,7 @@ describe("Withdraw", () => {
     diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
     baseTokenAddresses = res.baseTokenAddresses;
+    diamondWithTsbLib = await ethers.getContractAt("TsbLib", zkTrueUp.address);
   });
 
   describe("Withdraw base token", () => {
@@ -97,7 +100,7 @@ describe("Withdraw", () => {
       const amount = utils.parseEther("1");
       const withdrawTx = await diamondAcc
         .connect(user1)
-        .withdraw(DEFAULT_ETH_ADDRESS, amount); //! ignore _withdraw in testZkTrueUp
+        .withdraw(DEFAULT_ETH_ADDRESS, amount); //! ignore _withdraw in AccountMock
       const withdrawReceipt = await withdrawTx.wait();
 
       const withdrawGas = BigNumber.from(withdrawReceipt.gasUsed).mul(
@@ -139,7 +142,7 @@ describe("Withdraw", () => {
       // withdraw tsb token
       const withdrawTx = await diamondAcc
         .connect(user1)
-        .withdraw(usdc.address, amount); //! ignore _withdraw in testZkTrueUp
+        .withdraw(usdc.address, amount); //! ignore _withdraw in AccountMock
       await withdrawTx.wait();
 
       // after balance
@@ -244,7 +247,7 @@ describe("Withdraw", () => {
       const amount = utils.parseEther("1");
       const withdrawTsbTokenTx = await diamondAcc
         .connect(user1)
-        .withdraw(tsbTokenAddr, amount); //! ignore _withdraw in testZkTrueUp
+        .withdraw(tsbTokenAddr, amount); //! ignore _withdraw in AccountMock
       await withdrawTsbTokenTx.wait();
 
       // after balance
@@ -255,12 +258,8 @@ describe("Withdraw", () => {
       const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
 
       // check event
-      const diamondAccWithTsbLib = await ethers.getContractAt(
-        "TsbLib",
-        diamondAcc.address
-      );
       await expect(withdrawTsbTokenTx)
-        .to.emit(diamondAccWithTsbLib, "TsbTokenMinted")
+        .to.emit(diamondWithTsbLib, "TsbTokenMinted")
         .withArgs(tsbTokenAddr, user1Addr, amount);
 
       // check balance
@@ -316,7 +315,7 @@ describe("Withdraw", () => {
       // withdraw tsb token
       const withdrawTsbTokenTx = await diamondAcc
         .connect(user1)
-        .withdraw(tsbTokenAddr, amount); //! ignore _withdraw in testZkTrueUp
+        .withdraw(tsbTokenAddr, amount); //! ignore _withdraw in AccountMock
       await withdrawTsbTokenTx.wait();
 
       // after balance
@@ -336,12 +335,8 @@ describe("Withdraw", () => {
         .to.emit(diamondAcc, "Withdraw")
         .withArgs(user1Addr, accId, tokenId, amount);
 
-      const diamondAccWithTsbLib = await ethers.getContractAt(
-        "TsbLib",
-        diamondAcc.address
-      );
       await expect(withdrawTsbTokenTx)
-        .to.emit(diamondAccWithTsbLib, "TsbTokenMinted")
+        .to.emit(diamondWithTsbLib, "TsbTokenMinted")
         .withArgs(tsbTokenAddr, user1Addr, amount);
 
       // check balance
