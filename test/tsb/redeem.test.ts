@@ -9,7 +9,7 @@ import { BaseTokenAddresses, PriceFeeds } from "../../utils/type";
 import { maturedTsbTokensJSON, tsbTokensJSON } from "../data/tsbTokens";
 import { whiteListBaseTokens } from "../utils/whitelistToken";
 import { TS_BASE_TOKEN, TS_DECIMALS, TsTokenId } from "term-structure-sdk";
-import { DEFAULT_ZERO_ADDR, FACET_NAMES } from "../../utils/config";
+import { DEFAULT_ZERO_ADDR } from "../../utils/config";
 import { baseTokensJSON } from "../data/baseTokens";
 import {
   AccountFacet,
@@ -21,7 +21,7 @@ import {
   ZkTrueUp,
 } from "../../typechain-types";
 
-//! use RollupMock and TsbMock for testing
+//! use AccountMock and TsbMock for testing
 export const FACET_NAMES_MOCK = [
   "AccountMock", // replace AccountFacet with AccountMock
   "AddressFacet",
