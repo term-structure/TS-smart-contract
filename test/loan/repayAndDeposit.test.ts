@@ -4,7 +4,6 @@ import { ethers } from "hardhat";
 import { BigNumber, Signer, utils } from "ethers";
 import { deployAndInit } from "../utils/deployAndInit";
 import { useFacet } from "../../utils/useFacet";
-import { FACET_NAMES } from "../../utils/config";
 import { register } from "../utils/register";
 import { BaseTokenAddresses, LoanData, PriceFeeds } from "../../utils/type";
 import { tsbTokensJSON } from "../data/tsbTokens";
@@ -36,17 +35,19 @@ import {
 } from "term-structure-sdk";
 
 //! use RollupMock instead of RollupFacet for testing
-const facetNamesMock: string[] = [];
-for (let i = 0; i < FACET_NAMES.length; i++) {
-  if (FACET_NAMES[i] != "RollupFacet") {
-    facetNamesMock.push(FACET_NAMES[i]);
-  } else {
-    facetNamesMock.push("RollupMock");
-  }
-}
+export const FACET_NAMES_MOCK = [
+  "AccountFacet",
+  "AddressFacet",
+  "FlashLoanFacet",
+  "GovernanceFacet",
+  "LoanFacet",
+  "RollupMock", // replace RollupFacet with RollupMock
+  "TokenFacet",
+  "TsbFacet",
+];
 
 const fixture = async () => {
-  const res = await deployAndInit(facetNamesMock);
+  const res = await deployAndInit(FACET_NAMES_MOCK);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp

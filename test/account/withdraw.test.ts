@@ -6,7 +6,7 @@ import { BaseTokenAddresses } from "../../utils/type";
 import { deployAndInit } from "../utils/deployAndInit";
 import { whiteListBaseTokens } from "../utils/whitelistToken";
 import { useFacet } from "../../utils/useFacet";
-import { DEFAULT_ZERO_ADDR, FACET_NAMES } from "../../utils/config";
+import { DEFAULT_ZERO_ADDR } from "../../utils/config";
 import { register } from "../utils/register";
 import { tsbTokensJSON } from "../data/tsbTokens";
 import { baseTokensJSON } from "../data/baseTokens";
@@ -26,17 +26,19 @@ import {
 } from "term-structure-sdk";
 
 //! use AccountMock instead of AccountFacet for testing
-const facetNamesMock: string[] = [];
-for (let i = 0; i < FACET_NAMES.length; i++) {
-  if (FACET_NAMES[i] != "AccountFacet") {
-    facetNamesMock.push(FACET_NAMES[i]);
-  } else {
-    facetNamesMock.push("AccountMock");
-  }
-}
+export const FACET_NAMES_MOCK = [
+  "AccountMock", // replace AccountFacet with AccountMock
+  "AddressFacet",
+  "FlashLoanFacet",
+  "GovernanceFacet",
+  "LoanFacet",
+  "RollupFacet",
+  "TokenFacet",
+  "TsbFacet",
+];
 
 const fixture = async () => {
-  const res = await deployAndInit(facetNamesMock);
+  const res = await deployAndInit(FACET_NAMES_MOCK);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp
