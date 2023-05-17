@@ -7,12 +7,15 @@ import {
   BASE_TOKEN_ASSET_CONFIG,
   ETH_ASSET_CONFIG,
   FACET_NAMES,
-  GENESIS_STATE_ROOT,
+  DEFAULT_GENESIS_STATE_ROOT,
 } from "../../utils/config";
 import { ERC20Mock, OracleMock } from "../../typechain-types";
 import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
+import initStates from "../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
+const genesisStateRoot = initStates.stateRoot;
 
 export const deployAndInit = async (facetNames?: string[]) => {
   const [deployer, admin, operator] = await ethers.getSigners();
@@ -121,7 +124,7 @@ export const deployAndInit = async (facetNames?: string[]) => {
       treasury.address,
       insurance.address,
       vault.address,
-      GENESIS_STATE_ROOT,
+      genesisStateRoot ?? DEFAULT_GENESIS_STATE_ROOT,
       {
         isStableCoin: ETH_ASSET_CONFIG.isStableCoin,
         isTsbToken: ETH_ASSET_CONFIG.isTsbToken,

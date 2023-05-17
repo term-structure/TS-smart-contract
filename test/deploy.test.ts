@@ -34,7 +34,7 @@ import { getSlotNum, getStorageAt } from "../utils/slotHelper";
 import {
   ETH_ASSET_CONFIG,
   FACET_NAMES,
-  GENESIS_STATE_ROOT,
+  DEFAULT_GENESIS_STATE_ROOT,
 } from "../utils/config";
 import { deployFacets } from "../utils/deployFacets";
 import { AddressFacet__factory } from "../typechain-types/factories/contracts/address";
@@ -328,7 +328,7 @@ describe("Deploy", () => {
         treasury.address,
         insurance.address,
         vault.address,
-        GENESIS_STATE_ROOT,
+        DEFAULT_GENESIS_STATE_ROOT,
         {
           isStableCoin: ETH_ASSET_CONFIG.isStableCoin,
           isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
@@ -465,7 +465,7 @@ describe("Deploy", () => {
           0,
           "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
           utils.hexZeroPad(ethers.utils.hexlify(0), 32),
-          GENESIS_STATE_ROOT,
+          DEFAULT_GENESIS_STATE_ROOT,
           0,
         ]
       )
@@ -541,7 +541,7 @@ describe("Deploy", () => {
         treasury.address,
         insurance.address,
         vault.address,
-        GENESIS_STATE_ROOT,
+        DEFAULT_GENESIS_STATE_ROOT,
         {
           isStableCoin: ETH_ASSET_CONFIG.isStableCoin,
           isTsbToken: ETH_ASSET_CONFIG.isTsbToken,

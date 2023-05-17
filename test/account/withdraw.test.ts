@@ -59,7 +59,7 @@ describe("Withdraw", () => {
   let operator: Signer;
   let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
-  let diamondAcc: AccountMock;
+  let diamondAccMock: AccountMock;
   let diamondToken: TokenFacet;
   let diamondTsb: TsbFacet;
   let baseTokenAddresses: BaseTokenAddresses;
@@ -73,7 +73,7 @@ describe("Withdraw", () => {
     operator = res.operator;
     weth = res.weth;
     zkTrueUp = res.zkTrueUp;
-    diamondAcc = (await useFacet("AccountMock", zkTrueUp)) as AccountMock;
+    diamondAccMock = (await useFacet("AccountMock", zkTrueUp)) as AccountMock;
     diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
     baseTokenAddresses = res.baseTokenAddresses;
@@ -89,7 +89,7 @@ describe("Withdraw", () => {
         Number(TS_BASE_TOKEN.ETH.tokenId),
         registerAmt,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // before balance
@@ -98,7 +98,7 @@ describe("Withdraw", () => {
 
       // withdraw tsb token
       const amount = utils.parseEther("1");
-      const withdrawTx = await diamondAcc
+      const withdrawTx = await diamondAccMock
         .connect(user1)
         .withdraw(DEFAULT_ETH_ADDRESS, amount); //! ignore _withdraw in AccountMock
       const withdrawReceipt = await withdrawTx.wait();
@@ -127,7 +127,7 @@ describe("Withdraw", () => {
         Number(TS_BASE_TOKEN.USDC.tokenId),
         amount,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       const usdc = (await ethers.getContractAt(
@@ -140,7 +140,7 @@ describe("Withdraw", () => {
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
       // withdraw tsb token
-      const withdrawTx = await diamondAcc
+      const withdrawTx = await diamondAccMock
         .connect(user1)
         .withdraw(usdc.address, amount); //! ignore _withdraw in AccountMock
       await withdrawTx.wait();
@@ -166,7 +166,7 @@ describe("Withdraw", () => {
         Number(TS_BASE_TOKEN.USDC.tokenId),
         registerAmt,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // get params
@@ -175,7 +175,7 @@ describe("Withdraw", () => {
 
       // withdraw tsb token with invalid token address
       await expect(
-        diamondAcc.connect(user1).withdraw(invalidTokenAddr, amount)
+        diamondAccMock.connect(user1).withdraw(invalidTokenAddr, amount)
       ).to.be.revertedWithCustomError(diamondToken, "TokenIsNotExist");
     });
 
@@ -185,8 +185,8 @@ describe("Withdraw", () => {
 
       // withdraw tsb token with invalid address
       await expect(
-        diamondAcc.connect(user1).withdraw(tokenAddr, amount)
-      ).to.be.revertedWithCustomError(diamondAcc, "AccountIsNotRegistered");
+        diamondAccMock.connect(user1).withdraw(tokenAddr, amount)
+      ).to.be.revertedWithCustomError(diamondAccMock, "AccountIsNotRegistered");
     });
   });
 
@@ -231,7 +231,7 @@ describe("Withdraw", () => {
         tokenId,
         registerAmt,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // get tsb token address
@@ -245,7 +245,7 @@ describe("Withdraw", () => {
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       // withdraw tsb token
       const amount = utils.parseEther("1");
-      const withdrawTsbTokenTx = await diamondAcc
+      const withdrawTsbTokenTx = await diamondAccMock
         .connect(user1)
         .withdraw(tsbTokenAddr, amount); //! ignore _withdraw in AccountMock
       await withdrawTsbTokenTx.wait();
@@ -283,7 +283,7 @@ describe("Withdraw", () => {
         underlyingTokenId,
         registerAmt,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // transfer default amount to zkTrueUp
@@ -313,7 +313,7 @@ describe("Withdraw", () => {
       );
 
       // withdraw tsb token
-      const withdrawTsbTokenTx = await diamondAcc
+      const withdrawTsbTokenTx = await diamondAccMock
         .connect(user1)
         .withdraw(tsbTokenAddr, amount); //! ignore _withdraw in AccountMock
       await withdrawTsbTokenTx.wait();
@@ -327,12 +327,12 @@ describe("Withdraw", () => {
         zkTrueUp.address
       );
 
-      const accId = await diamondAcc.getAccountId(user1Addr);
+      const accId = await diamondAccMock.getAccountId(user1Addr);
       const tokenId = await diamondToken.getTokenId(tsbTokenAddr);
 
       // check event
       await expect(withdrawTsbTokenTx)
-        .to.emit(diamondAcc, "Withdraw")
+        .to.emit(diamondAccMock, "Withdraw")
         .withArgs(user1Addr, accId, tokenId, amount);
 
       await expect(withdrawTsbTokenTx)
@@ -362,7 +362,7 @@ describe("Withdraw", () => {
         tokenId,
         registerAmt,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // get params
@@ -371,7 +371,7 @@ describe("Withdraw", () => {
 
       // withdraw tsb token with invalid token address
       await expect(
-        diamondAcc.connect(user1).withdraw(invalidTsbTokenAddr, amount)
+        diamondAccMock.connect(user1).withdraw(invalidTsbTokenAddr, amount)
       ).to.be.revertedWithCustomError(diamondToken, "TokenIsNotExist");
     });
 
@@ -387,8 +387,8 @@ describe("Withdraw", () => {
 
       // withdraw tsb token with invalid address
       await expect(
-        diamondAcc.connect(user1).withdraw(tsbTokenAddr, amount)
-      ).to.be.revertedWithCustomError(diamondAcc, "AccountIsNotRegistered");
+        diamondAccMock.connect(user1).withdraw(tsbTokenAddr, amount)
+      ).to.be.revertedWithCustomError(diamondAccMock, "AccountIsNotRegistered");
     });
   });
 });

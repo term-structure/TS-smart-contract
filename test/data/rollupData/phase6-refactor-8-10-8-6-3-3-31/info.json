@@ -1,0 +1,175 @@
+{
+  "mainCircuitName": "phase6-refactor-8-10-8-6-3-3-31",
+  "config": {
+    "order_tree_height": 8,
+    "account_tree_height": 10,
+    "token_tree_height": 8,
+    "nullifier_tree_height": 6,
+    "fee_tree_height": 3,
+    "bond_tree_height": 8,
+    "numOfReqs": 3,
+    "numOfChunks": 31
+  },
+  "mainSuffix": "8-10-8-6-3-3-31",
+  "outputPath": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31",
+  "circuitMainPath": "D:/abner/zk-circom/build/phase6-refactor-8-10-8-6-3-3-31/phase6-refactor-8-10-8-6-3-3-31.circom",
+  "fileLogs": [
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "0_noop-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/0_noop-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "1_create-bond-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/1_create-bond-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "2_register-acc1-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/2_register-acc1-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "3_deposit-acc1-usdt-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/3_deposit-acc1-usdt-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "4_register-acc1-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/4_register-acc1-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "5_deposit-acc2-eth-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/5_deposit-acc2-eth-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "6_withdraw-acc1-usdt-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/6_withdraw-acc1-usdt-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "7_auction-order-acc1-eth-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/7_auction-order-acc1-eth-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "8_cancel-order-acc1-lend-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/8_cancel-order-acc1-lend-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "9_auction-order-acc2-usdt-eth-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/9_auction-order-acc2-usdt-eth-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "10_cancel-order-acc2-borrow-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/10_cancel-order-acc2-borrow-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "11_auction-order-match-eth-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/11_auction-order-match-eth-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "12_second-order-acc1-sell-tslusdt-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/12_second-order-acc1-sell-tslusdt-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "13_second-order-acc2-buy-tslusdt-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/13_second-order-acc2-buy-tslusdt-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "14_match-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/14_match-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "15_transfer-acc1-usdt-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/15_transfer-acc1-usdt-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "16_transfer-acc2-eth-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/16_transfer-acc2-eth-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "17_increase-epoch-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/17_increase-epoch-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "18_force-withdraw-acc1-usdt-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/18_force-withdraw-acc1-usdt-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "19_withdraw-fee-usdt-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/19_withdraw-fee-usdt-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "20_set-admin-tsaddr-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/20_set-admin-tsaddr-8-10-8-6-3-3-31-inputs.json"
+    },
+    {
+      "circuitName": "phase6-refactor-8-10-8-6-3-3-31",
+      "name": "21_redeem-acc2-tslusdt-8-10-8-6-3-3-31",
+      "path": "D:/abner/zk-circom/circuits_src/phase6-refactor-8-10-8-6-3-3-31/21_redeem-acc2-tslusdt-8-10-8-6-3-3-31-inputs.json"
+    }
+  ],
+  "metadata": {
+    "TsSystemAccountAddress": {
+      "BURN_ADDR": "0"
+    },
+    "TsTokenId": {
+      "UNKNOWN": "0",
+      "ETH": "1",
+      "WBTC": "2",
+      "USDT": "3",
+      "USDC": "4",
+      "DAI": "5",
+      "TslETH20231231": "6",
+      "TslWBTC20231231": "7",
+      "TslUSDT20231231": "8",
+      "TslUSDC20231231": "9",
+      "TslDAI20231231": "10"
+    },
+    "TsTxType": {
+      "NOOP": "0",
+      "REGISTER": "1",
+      "DEPOSIT": "2",
+      "FORCE_WITHDRAW": "3",
+      "TRANSFER": "4",
+      "WITHDRAW": "5",
+      "AUCTION_LEND": "6",
+      "AUCTION_BORROW": "7",
+      "AUCTION_START": "8",
+      "AUCTION_MATCH": "9",
+      "AUCTION_END": "10",
+      "SECOND_LIMIT_ORDER": "11",
+      "SECOND_LIMIT_START": "12",
+      "SECOND_LIMIT_EXCHANGE": "13",
+      "SECOND_LIMIT_END": "14",
+      "SECOND_MARKET_ORDER": "15",
+      "SECOND_MARKET_EXCHANGE": "16",
+      "SECOND_MARKET_END": "17",
+      "ADMIN_CANCEL_ORDER": "18",
+      "CANCEL_ORDER": "19",
+      "INCREASE_EPOCH": "20",
+      "CREATE_BOND_TOKEN": "21",
+      "REDEEM": "22",
+      "WITHDRAW_FEE": "23",
+      "EVACUATION": "24",
+      "SET_ADMIN_TS_ADDR": "25",
+      "CHANGE_PUBLIC_KEY": "26"
+    }
+  }
+}

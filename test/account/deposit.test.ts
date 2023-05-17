@@ -144,14 +144,14 @@ describe("Deposit", function () {
         randAddr
       );
       // mimic register
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const regAmount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-      await weth.connect(user1).approve(zkTrueUp.address, regAmount);
-      await diamondAcc
-        .connect(user1)
-        .register(tsPubKey.X, tsPubKey.Y, DEFAULT_ETH_ADDRESS, regAmount, {
-          value: regAmount,
-        });
+      await register(
+        user1,
+        Number(TsTokenId.ETH),
+        regAmount,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
       // call deposit
       const amount = utils.parseUnits("10", TS_BASE_TOKEN.ETH.decimals);

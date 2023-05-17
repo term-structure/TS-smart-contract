@@ -39,3 +39,11 @@ export type FacetInfo = {
 };
 
 export type FnSelectors = string[];
+
+export type LoanPubData = {
+  accountId: BigNumber;
+  collateralTokenId: BigNumber;
+  bondTokenId: BigNumber;
+  debtAmt: BigNumber;
+  collateralAmt: BigNumber;
+};

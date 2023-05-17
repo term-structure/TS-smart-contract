@@ -1,8 +1,12 @@
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { Signer } from "ethers";
+import { Signer, utils } from "ethers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { MIN_DEPOSIT_AMOUNT } from "term-structure-sdk";
+import {
+  MIN_DEPOSIT_AMOUNT,
+  TS_BASE_TOKEN,
+  TsTokenId,
+} from "term-structure-sdk";
 import { FACET_NAMES } from "../../utils/config";
 import { deployAndInit } from "../utils/deployAndInit";
 import {
@@ -14,6 +18,7 @@ import {
   ZkTrueUp,
 } from "../../typechain-types";
 import { useFacet } from "../../utils/useFacet";
+import { register } from "../utils/register";
 import { getRandomUint256 } from "../utils/helper";
 
 const fixture = async () => {
@@ -48,7 +53,6 @@ describe("TsFaucet", () => {
     diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
 
     const TsFaucet = await ethers.getContractFactory("TsFaucet");
-    TsFaucet.connect(operator);
     const TsFaucetConstructorParams = ethers.utils.defaultAbiCoder.encode(
       ["address"],
       [zkTrueUp.address]
@@ -195,18 +199,20 @@ describe("TsFaucet", () => {
 
   describe("Transfer TsERC20", () => {
     it("Success to transfer, deposit to ZkTrueUp", async () => {
-      const USDT_minDepositAmt =
-        MIN_DEPOSIT_AMOUNT.USDT * 10 ** (await usdtMock.decimals());
-      const USDT_assetConfig = {
+      const minDepositAmt = utils.parseUnits(
+        MIN_DEPOSIT_AMOUNT.USDT.toString(),
+        TS_BASE_TOKEN.USDT.decimals
+      );
+      const usdtAssetConfig = {
         isStableCoin: true,
         isTsbToken: false,
         decimals: await usdtMock.decimals(),
-        minDepositAmt: USDT_minDepositAmt,
+        minDepositAmt: minDepositAmt,
         tokenAddr: usdtMock.address,
         priceFeed: "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
       };
 
-      await diamondToken.connect(operator).addToken(USDT_assetConfig);
+      await diamondToken.connect(operator).addToken(usdtAssetConfig);
 
       // before balance
       const beforeUsdtBalance = await usdtMock.balanceOf(user1Addr);
@@ -217,15 +223,11 @@ describe("TsFaucet", () => {
       await (
         await usdtMock.connect(user1).approve(zkTrueUp.address, amount)
       ).wait();
+      const regAmount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
       const pubKey = { X: getRandomUint256(), Y: getRandomUint256() };
       const registerTx = await diamondAcc
         .connect(user1)
-        .register(
-          pubKey.X,
-          pubKey.Y,
-          usdtMock.address,
-          ethers.utils.parseUnits("10", await usdtMock.decimals())
-        );
+        .register(pubKey.X, pubKey.Y, usdtMock.address, regAmount);
       await registerTx.wait();
 
       // after balance

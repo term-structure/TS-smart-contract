@@ -24,6 +24,7 @@
     "test:liquidation": "hardhat test test/loan/liquidation.test.ts",
     "test:oracleMock": "hardhat test test/oracleMock/oracleMock.test.ts",
     "test:tsFaucet": "hardhat test test/tsFaucet/tsFaucet.test.ts",
+    "test:rollup": "hardhat test test/rollup/rollup.test.ts",
     "coverage": "hardhat coverage",
     "generate:docs": "hardhat docgen",
     "script:deploy": "npx hardhat run scripts/deploy.ts",

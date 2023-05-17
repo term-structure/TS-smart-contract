@@ -27,7 +27,7 @@ import {
   LoanFacet,
   RollupMock,
   TokenFacet,
-  TsbFacet,
+  TsbMock,
   WETH9,
   ZkTrueUp,
 } from "../../typechain-types";
@@ -94,7 +94,7 @@ describe("Liquidation", () => {
   let diamondLoan: LoanFacet;
   let diamondRollupMock: RollupMock;
   let diamondToken: TokenFacet;
-  let diamondTsb: TsbFacet;
+  let diamondTsbMock: TsbMock;
   let baseTokenAddresses: BaseTokenAddresses;
   let priceFeeds: PriceFeeds;
 
@@ -110,7 +110,7 @@ describe("Liquidation", () => {
     diamondLoan = (await useFacet("LoanFacet", zkTrueUp)) as LoanFacet;
     diamondRollupMock = (await useFacet("RollupMock", zkTrueUp)) as RollupMock;
     diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
-    diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
+    diamondTsbMock = (await useFacet("TsbMock", zkTrueUp)) as TsbMock;
     baseTokenAddresses = res.baseTokenAddresses;
     priceFeeds = res.priceFeeds;
   });
@@ -138,7 +138,7 @@ describe("Liquidation", () => {
       // tsb USDC
       await createAndWhiteListTsbToken(
         diamondToken,
-        diamondTsb,
+        diamondTsbMock,
         operator,
         tsbTokenData
       );
@@ -631,7 +631,7 @@ describe("Liquidation", () => {
       // tsb dai
       await createAndWhiteListTsbToken(
         diamondToken,
-        diamondTsb,
+        diamondTsbMock,
         operator,
         tsbTokenData
       );
@@ -1075,7 +1075,7 @@ describe("Liquidation", () => {
       // tsb USDC
       await createAndWhiteListTsbToken(
         diamondToken,
-        diamondTsb,
+        diamondTsbMock,
         operator,
         tsbTokenData
       );
@@ -1270,7 +1270,7 @@ describe("Liquidation", () => {
       // tsb dai
       await createAndWhiteListTsbToken(
         diamondToken,
-        diamondTsb,
+        diamondTsbMock,
         operator,
         tsbTokenData
       );
@@ -1479,7 +1479,7 @@ describe("Liquidation", () => {
       // using test tsbFactory for ignore maturity check
       await createAndWhiteListTsbToken(
         diamondToken,
-        diamondTsb,
+        diamondTsbMock,
         operator,
         tsbTokenData
       );
@@ -1690,7 +1690,7 @@ describe("Liquidation", () => {
       // using testTsbFactory to ignore the maturity check
       await createAndWhiteListTsbToken(
         diamondToken,
-        diamondTsb,
+        diamondTsbMock,
         operator,
         tsbTokenData
       );

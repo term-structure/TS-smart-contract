@@ -12,11 +12,12 @@ import { TS_BASE_TOKEN, TS_DECIMALS, TsTokenId } from "term-structure-sdk";
 import { DEFAULT_ZERO_ADDR } from "../../utils/config";
 import { baseTokensJSON } from "../data/baseTokens";
 import {
-  AccountFacet,
+  AccountMock,
   ERC20Mock,
   TokenFacet,
   TsbFacet,
   TsbLib,
+  TsbMock,
   TsbToken,
   ZkTrueUp,
 } from "../../typechain-types";
@@ -53,9 +54,9 @@ describe("Redeem TsbToken", () => {
   let [user1Addr, user2Addr]: string[] = [];
   let operator: Signer;
   let zkTrueUp: ZkTrueUp;
-  let diamondAcc: AccountFacet;
+  let diamondAccMock: AccountMock;
   let diamondToken: TokenFacet;
-  let diamondTsb: TsbFacet;
+  let diamondTsbMock: TsbMock;
   let baseTokenAddresses: BaseTokenAddresses;
   let priceFeeds: PriceFeeds;
   let diamondWithTsbLib: TsbLib;
@@ -69,9 +70,9 @@ describe("Redeem TsbToken", () => {
     ]);
     operator = res.operator;
     zkTrueUp = res.zkTrueUp;
-    diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
+    diamondAccMock = (await useFacet("AccountMock", zkTrueUp)) as AccountMock;
     diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
-    diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
+    diamondTsbMock = (await useFacet("TsbMock", zkTrueUp)) as TsbMock;
     baseTokenAddresses = res.baseTokenAddresses;
     priceFeeds = res.priceFeeds;
     diamondWithTsbLib = await ethers.getContractAt("TsbLib", zkTrueUp.address);
@@ -87,13 +88,13 @@ describe("Redeem TsbToken", () => {
         const name = maturedTsbTokensJSON[i].name;
         const symbol = maturedTsbTokensJSON[i].symbol;
         await (
-          await diamondTsb
+          await diamondTsbMock
             .connect(operator)
             .createTsbToken(underlyingTokenId, maturity, name, symbol)
         ).wait();
 
         // whitelist tsb token
-        const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+        const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
           underlyingTokenId,
           maturity
         );
@@ -122,7 +123,7 @@ describe("Redeem TsbToken", () => {
         tokenId,
         registerAmt,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // transfer default amount to zkTrueUp
@@ -137,9 +138,12 @@ describe("Redeem TsbToken", () => {
       ).wait();
 
       // withdraw tsb token
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(tokenId, maturity);
+      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
+        tokenId,
+        maturity
+      );
       await (
-        await diamondAcc.connect(user1).withdraw(tsbTokenAddr, amount)
+        await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, amount)
       ).wait(); //! ignore _withdraw in AccountMock
     });
 
@@ -147,7 +151,7 @@ describe("Redeem TsbToken", () => {
       // get params tsbUSDC
       const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
         underlyingTokenId,
         maturity
       );
@@ -159,28 +163,28 @@ describe("Redeem TsbToken", () => {
       )) as ERC20Mock;
 
       // before balance
-      const beforeUser1TsbTokenBalance = await diamondTsb.balanceOf(
+      const beforeUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
         user1Addr,
         tsbTokenAddr
       );
-      const beforeTsbTokenTotalSupply = await diamondTsb.activeSupply(
+      const beforeTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
         tsbTokenAddr
       );
       const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
       // redeem tsb token
-      const redeemTx = await diamondTsb
+      const redeemTx = await diamondTsbMock
         .connect(user1)
         .redeem(tsbTokenAddr, amount, false);
       await redeemTx.wait();
 
       // after balance
-      const afterUser1TsbTokenBalance = await diamondTsb.balanceOf(
+      const afterUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
         user1Addr,
         tsbTokenAddr
       );
-      const afterTsbTokenTotalSupply = await diamondTsb.activeSupply(
+      const afterTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
         tsbTokenAddr
       );
       const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
@@ -220,15 +224,15 @@ describe("Redeem TsbToken", () => {
 
       // redeem tsb token with invalid token address
       await expect(
-        diamondTsb.connect(user1).redeem(invalidTsbTokenAddr, amount, false)
-      ).to.be.revertedWithCustomError(diamondTsb, "InvalidTsbTokenAddr");
+        diamondTsbMock.connect(user1).redeem(invalidTsbTokenAddr, amount, false)
+      ).to.be.revertedWithCustomError(diamondTsbMock, "InvalidTsbTokenAddr");
     });
 
     it("Fail to redeem tsb token, tsb token is not matured", async () => {
       // get params
       const underlyingTokenId = maturedTsbTokensJSON[1].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[1].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
         underlyingTokenId,
         maturity
       );
@@ -236,8 +240,8 @@ describe("Redeem TsbToken", () => {
 
       // redeem tsb token not matured
       await expect(
-        diamondTsb.connect(user1).redeem(tsbTokenAddr, amount, false)
-      ).to.be.revertedWithCustomError(diamondTsb, "TsbTokenIsNotMatured");
+        diamondTsbMock.connect(user1).redeem(tsbTokenAddr, amount, false)
+      ).to.be.revertedWithCustomError(diamondTsbMock, "TsbTokenIsNotMatured");
     });
   });
 
@@ -250,13 +254,13 @@ describe("Redeem TsbToken", () => {
         const name = maturedTsbTokensJSON[i].name;
         const symbol = maturedTsbTokensJSON[i].symbol;
         await (
-          await diamondTsb
+          await diamondTsbMock
             .connect(operator)
             .createTsbToken(underlyingTokenId, maturity, name, symbol)
         ).wait();
 
         // whitelist tsb token
-        const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+        const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
           underlyingTokenId,
           maturity
         );
@@ -285,7 +289,7 @@ describe("Redeem TsbToken", () => {
         tokenId,
         registerAmt,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // transfer default amount to zkTrueUp
@@ -301,9 +305,12 @@ describe("Redeem TsbToken", () => {
 
       // withdraw tsb token
       const tsbTokenAmt = utils.parseUnits("500", TS_DECIMALS.AMOUNT);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(tokenId, maturity);
+      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
+        tokenId,
+        maturity
+      );
       await (
-        await diamondAcc.connect(user1).withdraw(tsbTokenAddr, tsbTokenAmt)
+        await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, tsbTokenAmt)
       ).wait(); //! ignore _withdraw in AccountMock
     });
 
@@ -311,7 +318,7 @@ describe("Redeem TsbToken", () => {
       // get params tsbUSDC
       const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
         underlyingTokenId,
         maturity
       );
@@ -323,28 +330,28 @@ describe("Redeem TsbToken", () => {
       )) as ERC20Mock;
 
       // before balance
-      const beforeUser1TsbTokenBalance = await diamondTsb.balanceOf(
+      const beforeUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
         user1Addr,
         tsbTokenAddr
       );
-      const beforeTsbTokenTotalSupply = await diamondTsb.activeSupply(
+      const beforeTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
         tsbTokenAddr
       );
       const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
       // redeem tsb token for deposit
-      const redeemAndDepositTx = await diamondTsb
+      const redeemAndDepositTx = await diamondTsbMock
         .connect(user1)
         .redeem(tsbTokenAddr, amount, true);
       await redeemAndDepositTx.wait();
 
       // after balance
-      const afterUser1TsbTokenBalance = await diamondTsb.balanceOf(
+      const afterUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
         user1Addr,
         tsbTokenAddr
       );
-      const afterTsbTokenTotalSupply = await diamondTsb.activeSupply(
+      const afterTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
         tsbTokenAddr
       );
       const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
@@ -380,15 +387,15 @@ describe("Redeem TsbToken", () => {
 
       // redeem for deposit tsb token with invalid token address
       await expect(
-        diamondTsb.connect(user1).redeem(invalidTsbTokenAddr, amount, true)
-      ).to.be.revertedWithCustomError(diamondTsb, "InvalidTsbTokenAddr");
+        diamondTsbMock.connect(user1).redeem(invalidTsbTokenAddr, amount, true)
+      ).to.be.revertedWithCustomError(diamondTsbMock, "InvalidTsbTokenAddr");
     });
 
     it("Fail to redeem tsb token for deposit, tsb token is not matured", async () => {
       // get params
       const underlyingTokenId = maturedTsbTokensJSON[2].underlyingTokenId;
       const maturity = BigNumber.from(maturedTsbTokensJSON[2].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
         underlyingTokenId,
         maturity
       );
@@ -396,15 +403,15 @@ describe("Redeem TsbToken", () => {
 
       // redeem for deposit tsb token with invalid token address
       await expect(
-        diamondTsb.connect(user1).redeem(tsbTokenAddr, amount, true)
-      ).to.be.revertedWithCustomError(diamondTsb, "TsbTokenIsNotMatured");
+        diamondTsbMock.connect(user1).redeem(tsbTokenAddr, amount, true)
+      ).to.be.revertedWithCustomError(diamondTsbMock, "TsbTokenIsNotMatured");
     });
 
     it("Fail to redeem tsb token for deposit, not a registered account", async () => {
       // get params
       const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
         underlyingTokenId,
         maturity
       );
@@ -417,8 +424,8 @@ describe("Redeem TsbToken", () => {
 
       // redeem for deposit tsb token with invalid token address
       await expect(
-        diamondTsb.connect(user2).redeem(tsbTokenAddr, amount, true)
-      ).to.be.revertedWithCustomError(diamondTsb, "AccountIsNotRegistered");
+        diamondTsbMock.connect(user2).redeem(tsbTokenAddr, amount, true)
+      ).to.be.revertedWithCustomError(diamondTsbMock, "AccountIsNotRegistered");
     });
   });
 });

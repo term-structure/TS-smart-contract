@@ -82,7 +82,21 @@ export const BASE_TOKEN_ASSET_CONFIG = [
   },
 ];
 
-export const GENESIS_STATE_ROOT =
+export const DEFAULT_GENESIS_STATE_ROOT =
   "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470";
 
 export const MAX_LTV_RATIO = 1000; // 100%
+
+export const CHUNK_BYTES = 12;
+
+export const REGISTER_BYTES = 4 * CHUNK_BYTES;
+
+export const DEPOSIT_BYTES = 2 * CHUNK_BYTES;
+
+export const WITHDRAW_BYTES = 2 * CHUNK_BYTES;
+
+export const FORCE_WITHDRAW_BYTES = 2 * CHUNK_BYTES;
+
+export const AUCTION_END_BYTES = 4 * CHUNK_BYTES;
+
+export const WITHDRAW_FEE_BYTES = 2 * CHUNK_BYTES;
