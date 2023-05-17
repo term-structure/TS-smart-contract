@@ -10,6 +10,8 @@ import {AssetConfig} from "../token/TokenStorage.sol";
 
 //! Mock contract for testing
 contract AccountMock is AccountFacet {
+    event Withdraw(address indexed accountAddr, uint32 accountId, uint16 tokenId, uint128 amount);
+
     function withdraw(address tokenAddr, uint128 amount) external override nonReentrant {
         uint32 accountId = AccountLib.getValidAccount(msg.sender);
         (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(tokenAddr);

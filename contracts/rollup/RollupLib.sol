@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {RollupStorage, L1Request} from "./RollupStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Operations} from "../libraries/Operations.sol";
@@ -26,18 +25,6 @@ library RollupLib {
         bytes pubData,
         uint64 expirationBlock
     );
-
-    /// @notice Add Deposit request and emit Deposit event
-    /// @param to The address of the receiver
-    /// @param accountId The user account id on layer2
-    /// @param tokenId The token id on layer2
-    /// @param amount The amount of the token
-    function addDepositRequest(address to, uint32 accountId, uint16 tokenId, uint8 decimals, uint128 amount) internal {
-        uint128 l2Amt = SafeCast.toUint128((amount * 10 ** Config.SYSTEM_DECIMALS) / 10 ** decimals);
-        Operations.Deposit memory op = Operations.Deposit({accountId: accountId, tokenId: tokenId, amount: l2Amt});
-        bytes memory pubData = Operations.encodeDepositPubData(op);
-        addL1Request(to, Operations.OpType.DEPOSIT, pubData);
-    }
 
     /// @notice Add the L1 request into L1 request queue
     /// @dev The pubData will be hashed with keccak256 and store in the priority queue with its expiration block and operation type

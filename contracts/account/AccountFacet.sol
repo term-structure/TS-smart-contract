@@ -4,15 +4,12 @@ pragma solidity ^0.8.17;
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {AccountStorage} from "./AccountStorage.sol";
 import {IAccountFacet} from "./IAccountFacet.sol";
-import {AddressLib} from "../address/AddressLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountLib} from "./AccountLib.sol";
 import {TsbLib} from "../tsb/TsbLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
-import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
 import {Config} from "../libraries/Config.sol";
-import {Operations} from "../libraries/Operations.sol";
 
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /// @notice Register account by deposit Ether or ERC20 to ZkTrueUp
@@ -51,8 +48,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     function withdraw(address tokenAddr, uint128 amount) external virtual nonReentrant {
         uint32 accountId = AccountLib.getValidAccount(msg.sender);
         (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(tokenAddr);
-        RollupLib.updateWithdrawalRecord(msg.sender, tokenId, amount);
-        emit Withdraw(msg.sender, accountId, tokenId, amount);
+        AccountLib.updateWithdrawRecord(msg.sender, accountId, tokenId, amount);
         assetConfig.isTsbToken
             ? TsbLib.mintTsbToken(tokenAddr, msg.sender, amount)
             : TokenLib.transfer(tokenAddr, payable(msg.sender), amount);
@@ -65,16 +61,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     function forceWithdraw(address tokenAddr) external {
         uint32 accountId = AccountLib.getValidAccount(msg.sender);
         (uint16 tokenId, ) = TokenLib.getValidToken(tokenAddr);
-        Operations.ForceWithdraw memory op = Operations.ForceWithdraw({
-            accountId: accountId,
-            tokenId: tokenId,
-            // user will not specify the amount
-            // since forceWithdraw will refund all the available balance of the account
-            amount: uint128(0)
-        });
-        bytes memory pubData = Operations.encodeForceWithdrawPubData(op);
-        RollupLib.addL1Request(msg.sender, Operations.OpType.FORCE_WITHDRAW, pubData);
-        emit ForceWithdraw(msg.sender, accountId, tokenId);
+        AccountLib.addForceWithdrawReq(msg.sender, accountId, tokenId);
     }
 
     function getAccountAddr(uint32 accountId) external view returns (address accountAddr) {
@@ -95,21 +82,14 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /// @param tsPubKeyY The y coordinate of the public key of the token sender
     /// @return registeredAccountId The registered L2 account Id
     function _register(address sender, uint256 tsPubKeyX, uint256 tsPubKeyY) internal returns (uint32) {
-        bytes20 tsAddr = bytes20(
-            uint160(IPoseidonUnit2(AddressLib.getPoseidonUnit2Addr()).poseidon([tsPubKeyX, tsPubKeyY]))
-        );
-        uint32 registeredAccountId = AccountLib.getAccountNum();
-        if (registeredAccountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT)
-            revert AccountNumExceedLimit(registeredAccountId);
-        Operations.Register memory op = Operations.Register({accountId: registeredAccountId, tsAddr: tsAddr});
-        bytes memory pubData = Operations.encodeRegisterPubData(op);
-        RollupLib.addL1Request(sender, Operations.OpType.REGISTER, pubData);
+        uint32 accountId = AccountLib.getAccountNum();
+        if (accountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT) revert AccountNumExceedLimit(accountId);
         AccountStorage.Layout storage asl = AccountStorage.layout();
-        asl.accountIds[sender] = registeredAccountId;
-        asl.accountAddresses[registeredAccountId] = sender;
+        asl.accountIds[sender] = accountId;
+        asl.accountAddresses[accountId] = sender;
         asl.accountNum++;
-        emit Register(sender, registeredAccountId, tsPubKeyX, tsPubKeyY, tsAddr);
-        return registeredAccountId;
+        AccountLib.addRegisterReq(sender, accountId, tsPubKeyX, tsPubKeyY);
+        return accountId;
     }
 
     /// @notice Internal deposit function for register and deposit
@@ -125,7 +105,6 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
             ? TsbLib.burnTsbToken(tokenAddr, to, amount)
             : TokenLib.transferFrom(tokenAddr, depositor, amount, msg.value);
 
-        RollupLib.addDepositRequest(to, accountId, tokenId, assetConfig.decimals, amount);
-        emit Deposit(to, accountId, tokenId, amount);
+        AccountLib.addDepositReq(to, accountId, tokenId, assetConfig.decimals, amount);
     }
 }
