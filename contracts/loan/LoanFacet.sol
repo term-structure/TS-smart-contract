@@ -8,7 +8,6 @@ import {GovernanceLib} from "../governance/GovernanceLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {LoanLib} from "./LoanLib.sol";
-import {RollupLib} from "../rollup/RollupLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {LoanStorage, LiquidationFactor, Loan} from "./LoanStorage.sol";
 import {Config} from "../libraries/Config.sol";
@@ -21,9 +20,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @param amount The amount of the collateral
     function addCollateral(bytes12 loanId, uint128 amount) external payable {
         Loan memory loan = LoanLib.getLoan(loanId);
-        (, AssetConfig memory collateralAsset, ) = _getLoanInfo(loan);
+        (, AssetConfig memory collateralAsset, ) = LoanLib.getLoanInfo(loan);
         loan.collateralAmt += amount;
-        TokenLib.transferFrom(collateralAsset.tokenAddr, msg.sender, amount, msg.value);
+        Utils.transferFrom(collateralAsset.tokenAddr, msg.sender, amount, msg.value);
         LoanStorage.layout().loans[loanId] = loan;
         emit AddCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
     }
@@ -38,12 +37,17 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = _getLoanInfo(loan);
+        ) = LoanLib.getLoanInfo(loan);
         loan.collateralAmt -= amount;
-        (uint256 healthFactor, , ) = _getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
+        (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
+            loan,
+            liquidationFactor.ltvThreshold,
+            collateralAsset,
+            debtAsset
+        );
         LoanLib.safeHealthFactor(healthFactor);
         LoanStorage.layout().loans[loanId] = loan;
-        TokenLib.transfer(collateralAsset.tokenAddr, payable(msg.sender), amount);
+        Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), amount);
         emit RemoveCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
     }
 
@@ -59,13 +63,18 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = _getLoanInfo(loan);
+        ) = LoanLib.getLoanInfo(loan);
         loan.debtAmt -= debtAmt;
         loan.collateralAmt -= collateralAmt;
 
-        (uint256 healthFactor, , ) = _getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
+        (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
+            loan,
+            liquidationFactor.ltvThreshold,
+            collateralAsset,
+            debtAsset
+        );
         LoanLib.safeHealthFactor(healthFactor);
-        TokenLib.transferFrom(debtAsset.tokenAddr, msg.sender, debtAmt, msg.value);
+        Utils.transferFrom(debtAsset.tokenAddr, msg.sender, debtAmt, msg.value);
         LoanStorage.layout().loans[loanId] = loan;
         emit Repay(
             loanId,
@@ -80,10 +89,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (repayAndDeposit) {
             (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(collateralAsset.tokenAddr);
             TokenLib.validDepositAmt(collateralAmt, assetConfig);
-            // RollupLib.addDepositRequest(msg.sender, loan.accountId, tokenId, assetConfig.decimals, collateralAmt);
             AccountLib.addDepositReq(msg.sender, loan.accountId, tokenId, assetConfig.decimals, collateralAmt);
         } else {
-            TokenLib.transfer(collateralAsset.tokenAddr, payable(msg.sender), collateralAmt);
+            Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), collateralAmt);
         }
     }
 
@@ -101,7 +109,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = _getLoanInfo(loan);
+        ) = LoanLib.getLoanInfo(loan);
 
         (uint128 repayAmt, uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt) = _liquidationCalculator(
             loan,
@@ -109,12 +117,12 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             debtAsset,
             liquidationFactor
         );
-        TokenLib.transferFrom(debtAsset.tokenAddr, msg.sender, repayAmt, msg.value);
+        Utils.transferFrom(debtAsset.tokenAddr, msg.sender, repayAmt, msg.value);
         loan.debtAmt -= repayAmt;
         loan.collateralAmt -= (liquidatorRewardAmt + protocolPenaltyAmt);
         LoanStorage.layout().loans[loanId] = loan;
-        TokenLib.transfer(collateralAsset.tokenAddr, payable(msg.sender), liquidatorRewardAmt);
-        TokenLib.transfer(collateralAsset.tokenAddr, payable(GovernanceLib.getTreasuryAddr()), protocolPenaltyAmt);
+        Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), liquidatorRewardAmt);
+        Utils.transfer(collateralAsset.tokenAddr, payable(GovernanceLib.getTreasuryAddr()), protocolPenaltyAmt);
         emit Liquidate(loanId, msg.sender, liquidatorRewardAmt, protocolPenaltyAmt);
         return (repayAmt, liquidatorRewardAmt, protocolPenaltyAmt);
     }
@@ -153,8 +161,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = _getLoanInfo(loan);
-        (uint256 healthFactor, , ) = _getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
+        ) = LoanLib.getLoanInfo(loan);
+        (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
+            loan,
+            liquidationFactor.ltvThreshold,
+            collateralAsset,
+            debtAsset
+        );
         return healthFactor;
     }
 
@@ -216,14 +229,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         AssetConfig memory debtAsset,
         LiquidationFactor memory liquidationFactor
     ) internal view returns (uint128, uint128, uint128) {
-        (uint256 healthFactor, uint256 normalizedCollateralPrice, uint256 normalizedDebtPrice) = _getHealthFactor(
-            loan,
-            liquidationFactor.ltvThreshold,
-            collateralAsset,
-            debtAsset
-        );
-        if (healthFactor >= Config.HEALTH_FACTOR_THRESHOLD && loan.maturityTime >= block.timestamp)
-            revert LoanIsHealthy(healthFactor);
+        (uint256 healthFactor, uint256 normalizedCollateralPrice, uint256 normalizedDebtPrice) = LoanLib
+            .getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
+        LoanLib.loanIsLiquidable(healthFactor, loan.maturityTime);
 
         // if the collateral value is less than half liquidation threshold or the loan is expired,
         // then the liquidator will repay the full debt
@@ -288,58 +296,5 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                 normalizedCollateralPrice
         );
         return (repayAmt, liquidatorRewardAmt, protocolPenaltyAmt);
-    }
-
-    /// @notice Internal function to get the health factor of the loan
-    /// @dev The health factor formula: ltvThreshold * (collateralValue / collateralDecimals) / (debtValue / debtDecimals)
-    /// @dev The health factor decimals is 3
-    /// @param loan The loan to be calculated
-    /// @param ltvThreshold The LTV threshold of the loan
-    /// @param collateralAsset The collateral asset of the loan
-    /// @param debtAsset The debt asset of the loan
-    /// @return healthFactor The health factor of the loan
-    /// @return normalizedCollateralPrice The normalized price of the collateral asset
-    /// @return normalizedDebtPrice The normalized price of the debt asset
-    function _getHealthFactor(
-        Loan memory loan,
-        uint256 ltvThreshold,
-        AssetConfig memory collateralAsset,
-        AssetConfig memory debtAsset
-    ) internal view returns (uint256, uint256, uint256) {
-        uint256 normalizedCollateralPrice = Utils.getPrice(collateralAsset.priceFeed);
-        uint256 normalizedDebtPrice = Utils.getPrice(debtAsset.priceFeed);
-        if (loan.debtAmt == 0) return (type(uint256).max, normalizedCollateralPrice, normalizedDebtPrice);
-
-        // The health factor formula: ltvThreshold * collateralValue / debtValue
-        // ==> healthFactor =
-        //      ltvThreshold * (normalizedCollateralPrice * collateralAmt / 10**collateralDecimals) /
-        //      (normalizedDebtPrice * loan.debtAmt / 10**debtDecimals)
-        // ==> healthFactor =
-        //      ltvThreshold * normalizedCollateralPrice * collateralAmt * 10**debtDecimals /
-        //      (normalizedDebtPrice * loan.debtAmt) / 10**collateralDecimals
-        uint256 healthFactor = (ltvThreshold *
-            normalizedCollateralPrice *
-            loan.collateralAmt *
-            10 ** debtAsset.decimals) /
-            (normalizedDebtPrice * loan.debtAmt) /
-            10 ** collateralAsset.decimals;
-        return (healthFactor, normalizedCollateralPrice, normalizedDebtPrice);
-    }
-
-    /// @notice Internal function to get the loan info
-    /// @param loan The loan to be get its info
-    /// @return liquidationFactor The liquidation factor of the loan
-    /// @return collateralAsset The collateral asset of the loan
-    /// @return debtAsset The debt asset of the loan
-    function _getLoanInfo(
-        Loan memory loan
-    ) internal view returns (LiquidationFactor memory, AssetConfig memory, AssetConfig memory) {
-        if (loan.accountId == 0) revert LoanIsNotExist();
-        AssetConfig memory collateralAsset = TokenLib.getAssetConfig(loan.collateralTokenId);
-        AssetConfig memory debtAsset = TokenLib.getAssetConfig(loan.debtTokenId);
-        LiquidationFactor memory liquidationFactor = debtAsset.isStableCoin && collateralAsset.isStableCoin
-            ? LoanLib.getStableCoinPairLiquidationFactor()
-            : LoanLib.getLiquidationFactor();
-        return (liquidationFactor, collateralAsset, debtAsset);
     }
 }

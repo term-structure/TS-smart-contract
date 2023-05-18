@@ -562,18 +562,18 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint128 amount = (l1Amt * fundWeight.insurance) / Config.FUND_WEIGHT_BASE;
         address toAddr = GovernanceLib.getInsuranceAddr();
         Utils.noneZeroAddr(toAddr);
-        TokenLib.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
+        Utils.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
         l1Amt -= amount;
         // vault
         amount = (l1Amt * fundWeight.vault) / Config.FUND_WEIGHT_BASE;
         toAddr = GovernanceLib.getVaultAddr();
         Utils.noneZeroAddr(toAddr);
-        TokenLib.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
+        Utils.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
         l1Amt -= amount;
         // treasury
         toAddr = GovernanceLib.getTreasuryAddr();
         Utils.noneZeroAddr(toAddr);
-        TokenLib.transfer(assetConfig.tokenAddr, payable(toAddr), l1Amt);
+        Utils.transfer(assetConfig.tokenAddr, payable(toAddr), l1Amt);
     }
 
     /// @notice Verify evacuation block
@@ -599,7 +599,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.layout().evacuated[evacuation.accountId][evacuation.tokenId] = true;
         bytes memory pubData = Operations.encodeEvacuationPubData(evacuation);
         RollupLib.addL1Request(receiver, Operations.OpType.EVACUATION, pubData);
-        TokenLib.transfer(assetConfig.tokenAddr, payable(receiver), l1Amt);
+        Utils.transfer(assetConfig.tokenAddr, payable(receiver), l1Amt);
 
         emit Evacuation(receiver, evacuation.accountId, evacuation.tokenId, l1Amt);
     }

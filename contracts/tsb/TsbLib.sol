@@ -5,6 +5,9 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {TsbStorage} from "./TsbStorage.sol";
 
 library TsbLib {
+    /// @notice Error for redeem with tsb token which is not matured
+    error TsbTokenIsNotMatured(address tsbTokenAddr);
+
     /// @notice Emitted when a TSB token is minted
     /// @param tsbTokenAddr The address of the minted TSB token
     /// @param accountAddr The L1 address of the minted TSB token
@@ -16,6 +19,10 @@ library TsbLib {
     /// @param accountAddr The L1 address of the burned TSB token
     /// @param amount The amount of the burned TSB token
     event TsbTokenBurned(address indexed tsbTokenAddr, address indexed accountAddr, uint256 amount);
+
+    function requireMatured(address tsbTokenAddr, uint32 maturityTime) internal view {
+        if (block.timestamp < maturityTime) revert TsbTokenIsNotMatured(tsbTokenAddr);
+    }
 
     /// @notice Mint tsbToken
     /// @dev This function can only be called by zkTrueUp

@@ -11,7 +11,9 @@ import {Config} from "../libraries/Config.sol";
 
 library AccountLib {
     /// @notice Error for get account which is not registered
-    error AccountIsNotRegistered(address l1AccountAddr);
+    error AccountIsNotRegistered(address accountAddr);
+    /// @notice Error for register account which is already registered
+    error AccountIsRegistered(address sender);
 
     /// @notice Emit when there is a new account registered
     /// @param accountAddr The user account address in layer1
@@ -40,6 +42,10 @@ library AccountLib {
     /// @param tokenId Layer2 id of withdraw token
     /// @param amount The withdraw amount
     event Withdraw(address indexed accountAddr, uint32 accountId, uint16 tokenId, uint128 amount);
+
+    function requireNotRegistered(address accountAddr) internal view {
+        if (getAccountId(accountAddr) != 0) revert AccountIsRegistered(accountAddr);
+    }
 
     /// @notice Internal function to get the valid account id
     /// @dev Valid account is the account that is registered on Layer2

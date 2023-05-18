@@ -7,6 +7,7 @@ import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {TsbLib} from "../tsb/TsbLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
+import {Utils} from "../libraries/Utils.sol";
 
 //! Mock contract for testing
 contract AccountMock is AccountFacet {
@@ -19,6 +20,6 @@ contract AccountMock is AccountFacet {
         emit Withdraw(msg.sender, accountId, tokenId, amount);
         assetConfig.isTsbToken
             ? TsbLib.mintTsbToken(tokenAddr, msg.sender, amount)
-            : TokenLib.transfer(tokenAddr, payable(msg.sender), amount);
+            : Utils.transfer(tokenAddr, payable(msg.sender), amount);
     }
 }

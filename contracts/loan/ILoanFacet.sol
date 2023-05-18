@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {LoanStorage, LiquidationFactor, Loan} from "./LoanStorage.sol";
+import {LiquidationFactor, Loan} from "./LoanStorage.sol";
 
 interface ILoanFacet {
     error InvalidLiquidationFactor();
-    /// @notice Error for get loan which is not exist
-    error LoanIsNotExist();
-    /// @notice Error for liquidate the loan which is healthy
-    error LoanIsHealthy(uint256 healthFactor);
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan

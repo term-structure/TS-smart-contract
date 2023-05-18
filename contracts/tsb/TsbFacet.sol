@@ -3,16 +3,16 @@ pragma solidity ^0.8.17;
 
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
+import {TsbStorage} from "./TsbStorage.sol";
+import {TsbLib} from "./TsbLib.sol";
+import {ITsbFacet} from "./ITsbFacet.sol";
 import {TsbToken} from "../TsbToken.sol";
-import {RollupLib} from "../rollup/RollupLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
-import {TsbStorage} from "./TsbStorage.sol";
-import {TsbLib} from "./TsbLib.sol";
-import {ITsbFacet} from "./ITsbFacet.sol";
+import {Utils} from "../libraries/Utils.sol";
 
 contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Create a new tsbToken
@@ -50,7 +50,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         (, AssetConfig memory assetConfig) = TokenLib.getAssetConfig(tsbTokenAddr);
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
         (address underlyingAsset, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
-        if (block.timestamp < maturityTime) revert TsbTokenIsNotMatured(tsbTokenAddr);
+        TsbLib.requireMatured(tsbTokenAddr, maturityTime);
 
         TsbLib.burnTsbToken(tsbTokenAddr, msg.sender, amount);
         emit Redeem(msg.sender, tsbTokenAddr, underlyingAsset, amount, redeemAndDeposit);
@@ -61,7 +61,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
             TokenLib.validDepositAmt(amount, underlyingAssetConfig);
             AccountLib.addDepositReq(msg.sender, accountId, tokenId, underlyingAssetConfig.decimals, amount);
         } else {
-            TokenLib.transfer(underlyingAsset, payable(msg.sender), amount);
+            Utils.transfer(underlyingAsset, payable(msg.sender), amount);
         }
     }
 

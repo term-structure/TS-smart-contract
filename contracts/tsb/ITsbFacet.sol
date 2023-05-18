@@ -10,8 +10,6 @@ interface ITsbFacet {
     error TsbTokenIsExist(address existTsbTokenAddr);
     /// @notice Error for redeem with invalid tsb token address
     error InvalidTsbTokenAddr(address invalidTokenAddr);
-    /// @notice Error for redeem with tsb token which is not matured
-    error TsbTokenIsNotMatured(address tsbTokenAddr);
 
     /// @notice Emitted when a new TSB token is created
     /// @param tsbTokenAddr The address of the created TSB token

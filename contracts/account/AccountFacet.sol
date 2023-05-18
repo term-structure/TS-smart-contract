@@ -10,6 +10,7 @@ import {AccountLib} from "./AccountLib.sol";
 import {TsbLib} from "../tsb/TsbLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {Config} from "../libraries/Config.sol";
+import {Utils} from "../libraries/Utils.sol";
 
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /// @notice Register account by deposit Ether or ERC20 to ZkTrueUp
@@ -20,11 +21,9 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /// @param amount The amount of the token to be deposited
     function register(uint256 tsPubKeyX, uint256 tsPubKeyY, address tokenAddr, uint128 amount) external payable {
         RollupLib.requireActive();
-        uint32 accountId = AccountLib.getAccountId(msg.sender);
-        if (accountId != 0) revert AccountIsRegistered(msg.sender);
-        (, AssetConfig memory assetConfig) = TokenLib.getValidToken(tokenAddr);
-        if (assetConfig.isTsbToken) revert InvalidBaseTokenAddr(tokenAddr);
-        accountId = _register(msg.sender, tsPubKeyX, tsPubKeyY);
+        AccountLib.requireNotRegistered(msg.sender);
+        TokenLib.requireBaseToken(tokenAddr);
+        uint32 accountId = _register(msg.sender, tsPubKeyX, tsPubKeyY);
         _deposit(msg.sender, msg.sender, accountId, tokenAddr, amount);
     }
 
@@ -51,7 +50,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         AccountLib.updateWithdrawRecord(msg.sender, accountId, tokenId, amount);
         assetConfig.isTsbToken
             ? TsbLib.mintTsbToken(tokenAddr, msg.sender, amount)
-            : TokenLib.transfer(tokenAddr, payable(msg.sender), amount);
+            : Utils.transfer(tokenAddr, payable(msg.sender), amount);
     }
 
     /// @notice Force withdraw Ether or ERC20 from ZkTrueUp
@@ -103,7 +102,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         TokenLib.validDepositAmt(amount, assetConfig);
         assetConfig.isTsbToken
             ? TsbLib.burnTsbToken(tokenAddr, to, amount)
-            : TokenLib.transferFrom(tokenAddr, depositor, amount, msg.value);
+            : Utils.transferFrom(tokenAddr, depositor, amount, msg.value);
 
         AccountLib.addDepositReq(to, accountId, tokenId, assetConfig.decimals, amount);
     }
