@@ -5,17 +5,17 @@ import {AccessControlInternal} from "@solidstate/contracts/access/access_control
 import {AddressStorage} from "./AddressStorage.sol";
 import {IAddressFacet} from "./IAddressFacet.sol";
 import {AddressLib} from "./AddressLib.sol";
-import {Checker} from "../libraries/Checker.sol";
+import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
 
 contract AddressFacet is IAddressFacet, AccessControlInternal {
     function setVerifierAddr(address newVerifierAddr) external onlyRole(Config.ADMIN_ROLE) {
-        Checker.noneZeroAddr(newVerifierAddr);
+        Utils.noneZeroAddr(newVerifierAddr);
         AddressStorage.layout().verifierAddr = newVerifierAddr;
     }
 
     function setEvacuVerifierAddr(address newEvacuVerifierAddr) external onlyRole(Config.ADMIN_ROLE) {
-        Checker.noneZeroAddr(newEvacuVerifierAddr);
+        Utils.noneZeroAddr(newEvacuVerifierAddr);
         AddressStorage.layout().evacuVerifierAddr = newEvacuVerifierAddr;
     }
 

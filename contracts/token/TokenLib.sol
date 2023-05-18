@@ -82,8 +82,8 @@ library TokenLib {
     function getValidToken(address tokenAddr) internal view returns (uint16, AssetConfig memory) {
         tokenAddr = tokenAddr == AddressLib.getWETHAddr() ? Config.ETH_ADDRESS : tokenAddr;
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        bool isPaused = tsl.isPaused[tokenAddr];
-        if (isPaused) revert TokenIsPaused(tokenAddr);
+        bool isTokenPaused = tsl.isPaused[tokenAddr];
+        if (isTokenPaused) revert TokenIsPaused(tokenAddr);
         uint16 tokenId = getValidTokenId(tokenAddr);
         AssetConfig memory assetConfig = tsl.assetConfigs[tokenId];
         return (tokenId, assetConfig);

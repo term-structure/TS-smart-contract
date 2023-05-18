@@ -5,24 +5,24 @@ import {AccessControlInternal} from "@solidstate/contracts/access/access_control
 import {GovernanceStorage, FundWeight} from "./GovernanceStorage.sol";
 import {IGovernanceFacet} from "./IGovernanceFacet.sol";
 import {GovernanceLib} from "./GovernanceLib.sol";
-import {Checker} from "../libraries/Checker.sol";
+import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
 
 contract GovernanceFacet is IGovernanceFacet, AccessControlInternal {
     function setTreasuryAddr(address treasuryAddr) external onlyRole(Config.ADMIN_ROLE) {
-        Checker.noneZeroAddr(treasuryAddr);
+        Utils.noneZeroAddr(treasuryAddr);
         GovernanceStorage.layout().treasuryAddr = treasuryAddr;
         emit SetTreasuryAddr(treasuryAddr);
     }
 
     function setInsuranceAddr(address insuranceAddr) external onlyRole(Config.ADMIN_ROLE) {
-        Checker.noneZeroAddr(insuranceAddr);
+        Utils.noneZeroAddr(insuranceAddr);
         GovernanceStorage.layout().insuranceAddr = insuranceAddr;
         emit SetInsuranceAddr(insuranceAddr);
     }
 
     function setVaultAddr(address vaultAddr) external onlyRole(Config.ADMIN_ROLE) {
-        Checker.noneZeroAddr(vaultAddr);
+        Utils.noneZeroAddr(vaultAddr);
         GovernanceStorage.layout().vaultAddr = vaultAddr;
         emit SetVaultAddr(vaultAddr);
     }

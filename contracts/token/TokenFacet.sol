@@ -7,14 +7,14 @@ import {TokenLib} from "./TokenLib.sol";
 import {ITokenFacet} from "./ITokenFacet.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
-import {Checker} from "../libraries/Checker.sol";
+import {Utils} from "../libraries/Utils.sol";
 
 contract TokenFacet is AccessControlInternal, ITokenFacet {
     /// @notice Add a new token to the network
     /// @param assetConfig The configuration of the token
     function addToken(AssetConfig memory assetConfig) external onlyRole(Config.OPERATOR_ROLE) {
         address tokenAddr = assetConfig.tokenAddr;
-        Checker.noneZeroAddr(tokenAddr);
+        Utils.noneZeroAddr(tokenAddr);
         if (TokenLib.getTokenId(tokenAddr) != 0) revert TokenIsWhitelisted(tokenAddr);
         uint16 newTokenId = TokenLib.getTokenNum() + 1;
         if (newTokenId > Config.MAX_AMOUNT_OF_REGISTERED_TOKENS) revert TokenNumExceedLimit(newTokenId);
@@ -42,7 +42,7 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
     /// @param tokenAddr The token address
     /// @param priceFeed The address of the price feed
     function setPriceFeed(address tokenAddr, address priceFeed) external onlyRole(Config.ADMIN_ROLE) {
-        Checker.noneZeroAddr(priceFeed);
+        Utils.noneZeroAddr(priceFeed);
         uint16 tokenId = TokenLib.getValidTokenId(tokenAddr);
         TokenStorage.layout().assetConfigs[tokenId].priceFeed = priceFeed;
         emit SetPriceFeed(tokenAddr, priceFeed);

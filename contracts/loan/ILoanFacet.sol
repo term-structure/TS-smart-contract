@@ -7,12 +7,6 @@ interface ILoanFacet {
     error InvalidLiquidationFactor();
     /// @notice Error for get loan which is not exist
     error LoanIsNotExist();
-    /// @notice Error for sender is not the loan owner
-    error SenderIsNotLoanOwner(address sender, address loanOwner);
-    /// @notice Error for health factor is under thresholds
-    error HealthFactorUnderThreshold(uint256 healthFactor);
-    /// @notice Error for get invalid price
-    error InvalidPrice(int256 price);
     /// @notice Error for liquidate the loan which is healthy
     error LoanIsHealthy(uint256 healthFactor);
 

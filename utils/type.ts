@@ -1,4 +1,5 @@
 import { BigNumber, ContractFactory } from "ethers";
+import { LoanStruct } from "../typechain-types/contracts/loan/ILoanFacet";
 
 // { TsTokenId: BaseTokenAddr }
 export type BaseTokenAddresses = { [key: number]: string };
@@ -47,3 +48,14 @@ export type LoanPubData = {
   debtAmt: BigNumber;
   collateralAmt: BigNumber;
 };
+
+export class AccountState {
+  pendingBalances: { [key: number]: BigNumber };
+  loans: { [key: string]: LoanStruct };
+  withdrawFees: { [key: number]: BigNumber };
+  constructor() {
+    this.pendingBalances = {};
+    this.loans = {};
+    this.withdrawFees = {};
+  }
+}

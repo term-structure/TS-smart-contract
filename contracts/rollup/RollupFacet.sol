@@ -19,7 +19,7 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Bytes} from "../libraries/Bytes.sol";
 import {Config} from "../libraries/Config.sol";
-import {Checker} from "../libraries/Checker.sol";
+import {Utils} from "../libraries/Utils.sol";
 
 contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Commit blocks
@@ -124,6 +124,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param newBlock The new block to be committed with the evacuation operation
     /// @param proof The proof of the new block
     function evacuate(StoredBlock memory lastExecutedBlock, CommitBlock memory newBlock, Proof memory proof) external {
+        if (!RollupLib.isEvacuMode()) revert NotEvacuMode();
         if (RollupLib.getStoredBlockHash(RollupLib.getExecutedBlockNum()) != keccak256(abi.encode(lastExecutedBlock)))
             revert InvalidLastExecutedBlock(lastExecutedBlock);
         if (newBlock.timestamp < lastExecutedBlock.timestamp)
@@ -163,7 +164,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Return the evacuation mode is activated or not
     /// @return evacuMode The evacuation mode status
     function isEvacuMode() external view returns (bool) {
-        return RollupStorage.layout().evacuMode;
+        return RollupLib.isEvacuMode();
     }
 
     /// @notice Check whether the register request is in the L1 request queue
@@ -487,9 +488,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param amount The amount of the token
     function _increasePendingBalance(uint32 accountId, uint16 tokenId, uint128 amount) internal {
         address accountAddr = AccountLib.getAccountAddr(accountId);
-        Checker.noneZeroAddr(accountAddr);
+        Utils.noneZeroAddr(accountAddr);
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(tokenId);
-        Checker.noneZeroAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(assetConfig.tokenAddr);
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
         RollupStorage.layout().pendingBalances[key] += amount;
     }
@@ -497,10 +498,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Update the onchain loan info
     /// @param auctionEnd The auction end request
     function _updateLoan(Operations.AuctionEnd memory auctionEnd) internal {
-        Checker.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
+        Utils.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
         // tsbToken config
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(auctionEnd.tsbTokenId);
-        Checker.noneZeroAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(assetConfig.tokenAddr);
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(assetConfig.tokenAddr);
 
         // debt token config
@@ -509,7 +510,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         // collateral token config
         assetConfig = TokenLib.getAssetConfig(auctionEnd.collateralTokenId);
-        Checker.noneZeroAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(assetConfig.tokenAddr);
 
         // update loan info
         bytes12 loanId = LoanLib.getLoanId(
@@ -560,18 +561,18 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         // insurance
         uint128 amount = (l1Amt * fundWeight.insurance) / Config.FUND_WEIGHT_BASE;
         address toAddr = GovernanceLib.getInsuranceAddr();
-        Checker.noneZeroAddr(toAddr);
+        Utils.noneZeroAddr(toAddr);
         TokenLib.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
         l1Amt -= amount;
         // vault
         amount = (l1Amt * fundWeight.vault) / Config.FUND_WEIGHT_BASE;
         toAddr = GovernanceLib.getVaultAddr();
-        Checker.noneZeroAddr(toAddr);
+        Utils.noneZeroAddr(toAddr);
         TokenLib.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
         l1Amt -= amount;
         // treasury
         toAddr = GovernanceLib.getTreasuryAddr();
-        Checker.noneZeroAddr(toAddr);
+        Utils.noneZeroAddr(toAddr);
         TokenLib.transfer(assetConfig.tokenAddr, payable(toAddr), l1Amt);
     }
 
@@ -589,9 +590,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (RollupLib.isEvacuated(evacuation.accountId, evacuation.tokenId))
             revert Evacuated(evacuation.accountId, evacuation.tokenId);
         address receiver = AccountLib.getAccountAddr(evacuation.accountId);
-        Checker.noneZeroAddr(receiver);
+        Utils.noneZeroAddr(receiver);
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(evacuation.tokenId);
-        Checker.noneZeroAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(assetConfig.tokenAddr);
         uint128 l1Amt = SafeCast.toUint128(
             ((evacuation.amount * (10 ** assetConfig.decimals)) / (10 ** Config.SYSTEM_DECIMALS))
         );

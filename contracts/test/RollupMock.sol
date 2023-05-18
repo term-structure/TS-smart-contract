@@ -9,15 +9,15 @@ import {Operations} from "../libraries/Operations.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
-import {Checker} from "../libraries/Checker.sol";
+import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
 
 contract RollupMock is RollupFacet {
     function updateLoanMock(Operations.AuctionEnd memory auctionEnd) external {
-        // Checker.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
+        // Utils.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
         // // tsbToken config
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(auctionEnd.tsbTokenId);
-        // Checker.noneZeroAddr(assetConfig.tokenAddr);
+        // Utils.noneZeroAddr(assetConfig.tokenAddr);
         // if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(assetConfig.tokenAddr);
 
         // debt token config
@@ -26,7 +26,7 @@ contract RollupMock is RollupFacet {
 
         // collateral token config
         assetConfig = TokenLib.getAssetConfig(auctionEnd.collateralTokenId);
-        Checker.noneZeroAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(assetConfig.tokenAddr);
 
         // update loan info
         bytes12 loanId = LoanLib.getLoanId(

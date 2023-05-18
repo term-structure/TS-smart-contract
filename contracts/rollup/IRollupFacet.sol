@@ -53,6 +53,8 @@ interface IRollupFacet {
     error PendingRollupTxHashIsNotMatched();
     /// @notice Error for the specified accountId and tokenId is already evacuated
     error Evacuated(uint32 accountId, uint16 tokenId);
+    /// @notice The system is not in evacuation mode
+    error NotEvacuMode();
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block

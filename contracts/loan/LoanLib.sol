@@ -5,6 +5,24 @@ import {LoanStorage, Loan, LiquidationFactor} from "./LoanStorage.sol";
 import {Config} from "../libraries/Config.sol";
 
 library LoanLib {
+    /// @notice Error for sender is not the loan owner
+    error SenderIsNotLoanOwner(address sender, address loanOwner);
+    /// @notice Error for health factor is under thresholds
+    error HealthFactorUnderThreshold(uint256 healthFactor);
+
+    /// @notice Internal function to check if the sender is the loan owner
+    /// @param sender The address of the sender
+    /// @param loanOwner The address of the loan owner
+    function senderIsLoanOwner(address sender, address loanOwner) internal pure {
+        if (sender != loanOwner) revert SenderIsNotLoanOwner(sender, loanOwner);
+    }
+
+    /// @notice Internal function to check if the health factor is safe
+    /// @param healthFactor The health factor to be checked
+    function safeHealthFactor(uint256 healthFactor) internal pure {
+        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert HealthFactorUnderThreshold(healthFactor);
+    }
+
     /// @notice Return the loan
     /// @param loanId The id of the loan
     /// @return loan The loan info

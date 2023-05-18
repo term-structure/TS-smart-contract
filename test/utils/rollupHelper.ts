@@ -1,20 +1,43 @@
-import { BigNumber, BytesLike, utils } from "ethers";
+import { BigNumber, BytesLike, Signer, utils } from "ethers";
+import { expect } from "chai";
 import fs from "fs";
 import { resolve } from "path";
 import {
   AUCTION_END_BYTES,
   CHUNK_BYTES,
+  DEFAULT_ZERO_ADDR,
+  ETH_ASSET_CONFIG,
   FORCE_WITHDRAW_BYTES,
   WITHDRAW_BYTES,
   WITHDRAW_FEE_BYTES,
 } from "../../utils/config";
-import { EMPTY_HASH, TS_BASE_TOKEN, TsTxType } from "term-structure-sdk";
+import {
+  EMPTY_HASH,
+  TS_BASE_TOKEN,
+  TS_SYSTEM_DECIMALS,
+  TsTxType,
+} from "term-structure-sdk";
 import {
   CommitBlockStruct,
   ExecuteBlockStruct,
   StoredBlockStruct,
 } from "../../typechain-types/contracts/rollup/IRollupFacet";
-import { LoanPubData } from "../../utils/type";
+import {
+  AccountState,
+  BaseTokenAddresses,
+  LoanPubData,
+} from "../../utils/type";
+import {
+  AccountFacet,
+  GovernanceFacet,
+  LoanFacet,
+  RollupFacet,
+  TokenFacet,
+  TsbFacet,
+} from "../../typechain-types";
+import { AssetConfigStruct } from "../../typechain-types/contracts/token/ITokenFacet";
+import { ethers } from "hardhat";
+import { LoanStruct } from "../../typechain-types/contracts/loan/ILoanFacet";
 
 export function initTestData(baseDir: string) {
   const result = [];
@@ -45,6 +68,415 @@ export function initTestData(baseDir: string) {
   }
   return result.sort((a, b) => parseInt(a.index) - parseInt(b.index));
 }
+
+export function initEvacuationTestData(baseDir: string) {
+  const result = [];
+  const files = fs.readdirSync(baseDir, {
+    withFileTypes: true,
+  });
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index];
+    if (file.isFile() && file.name.endsWith("-commitment.json")) {
+      const index = file.name.split("_")[0];
+      const name = file.name.replace("-commitment.json", "");
+      const commitmentPath = resolve(baseDir, file.name);
+      const calldataPath = resolve(baseDir, `${name}-calldata-raw.json`);
+      const commitmentData = JSON.parse(
+        fs.readFileSync(commitmentPath, "utf-8")
+      );
+      const callData = JSON.parse(fs.readFileSync(calldataPath, "utf-8"));
+
+      result.push({
+        index: index,
+        path: resolve(baseDir, file.name),
+        commitmentData,
+        callData,
+      });
+    }
+  }
+  return result.sort((a, b) => parseInt(a.index) - parseInt(b.index));
+}
+
+export const getStates = async (
+  accounts: Signer[],
+  baseTokenAddresses: BaseTokenAddresses,
+  diamondGov: GovernanceFacet,
+  diamondLoan: LoanFacet,
+  diamondToken: TokenFacet,
+  diamondRollup: RollupFacet,
+  diamondTsb: TsbFacet,
+  testCase: any
+) => {
+  class Collection {
+    withdrawTokenIds: Set<number>;
+    withdrawFeeTokenIds: Set<number>;
+    loanIds: Set<string>;
+    constructor() {
+      this.withdrawTokenIds = new Set();
+      this.withdrawFeeTokenIds = new Set();
+      this.loanIds = new Set();
+    }
+  }
+
+  const rollupTxPubData = getRollupTxPubData(testCase);
+  const collections: { [key: number]: Collection } = {};
+  for (let i = 0; i < testCase.requests.reqData.length; i++) {
+    const reqType = testCase.requests.reqData[i][0];
+    if (
+      reqType == TsTxType.WITHDRAW.toString() ||
+      reqType == TsTxType.FORCE_WITHDRAW.toString()
+    ) {
+      const accountId = Number(testCase.requests.reqData[i][1]);
+      const tokenId = Number(testCase.requests.reqData[i][2]);
+      if (!collections[accountId]) {
+        collections[accountId] = new Collection();
+      }
+      collections[accountId].withdrawTokenIds.add(tokenId);
+    } else if (reqType == TsTxType.AUCTION_END.toString()) {
+      const loanPubData = readAuctionEndPubData(rollupTxPubData[i]);
+      const accountId = loanPubData.accountId.toNumber();
+      const tsbTokenConfig: AssetConfigStruct =
+        await diamondToken.getAssetConfig(loanPubData.bondTokenId);
+      const maturityTime = await diamondTsb.getMaturityTime(
+        tsbTokenConfig.tokenAddr
+      );
+      const baseTokenAddr = await diamondTsb.getUnderlyingAsset(
+        tsbTokenConfig.tokenAddr
+      );
+      const baseTokenId = await diamondToken.getTokenId(baseTokenAddr);
+      const loanId = `${accountId}-${loanPubData.collateralTokenId}-${baseTokenId}-${maturityTime}`;
+      if (!collections[accountId]) {
+        collections[accountId] = new Collection();
+      }
+      collections[accountId].loanIds.add(loanId);
+    } else if (reqType == TsTxType.WITHDRAW_FEE.toString()) {
+      const withdrawFeePubData = readWithdrawFeePubData(rollupTxPubData[i]);
+      const tokenId = withdrawFeePubData.tokenId.toNumber();
+      const accountId = 0;
+      if (!collections[accountId]) {
+        collections[accountId] = new Collection();
+      }
+      collections[accountId].withdrawFeeTokenIds.add(tokenId);
+    }
+  }
+  const states: { [key: number]: AccountState } = {};
+
+  for (const accountId in collections) {
+    const collection: Collection = collections[accountId];
+
+    for (const tokenId of collection.withdrawTokenIds) {
+      const tokenAddr = baseTokenAddresses[tokenId];
+      const sender = accounts[accountId];
+      const pendingBalance = await diamondRollup.getPendingBalances(
+        await sender.getAddress(),
+        tokenAddr
+      );
+      if (!states[accountId]) {
+        states[accountId] = new AccountState();
+      }
+      states[accountId].pendingBalances[tokenId] = pendingBalance;
+    }
+
+    for (const tokenId of collection.withdrawFeeTokenIds) {
+      const tokenAddr = baseTokenAddresses[tokenId];
+      const token = await ethers.getContractAt(
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
+        tokenAddr
+      );
+      const treasuryAmt = await token.balanceOf(
+        await diamondGov.getTreasuryAddr()
+      );
+      const vaultAmt = await token.balanceOf(await diamondGov.getVaultAddr());
+      const insuranceAmt = await token.balanceOf(
+        await diamondGov.getInsuranceAddr()
+      );
+
+      if (!states[accountId]) {
+        states[accountId] = new AccountState();
+      }
+      states[accountId].withdrawFees[tokenId] = treasuryAmt
+        .add(vaultAmt)
+        .add(insuranceAmt);
+    }
+
+    for (const id of collection.loanIds) {
+      const [accountId, collateralTokenId, baseTokenId, maturityTime] =
+        id.split("-");
+      const loanId = await diamondLoan.getLoanId(
+        BigNumber.from(accountId),
+        BigNumber.from(maturityTime),
+        BigNumber.from(baseTokenId),
+        BigNumber.from(collateralTokenId)
+      );
+      const loan = await diamondLoan.getLoan(loanId);
+      if (!states[Number(accountId)]) {
+        states[Number(accountId)] = new AccountState();
+      }
+      states[Number(accountId)].loans[loanId] = loan;
+    }
+  }
+  return states;
+};
+
+export const checkStates = async (
+  diamondToken: TokenFacet,
+  diamondLoan: LoanFacet,
+  diamondTsb: TsbFacet,
+  testCase: any,
+  oriStates: any,
+  newStates: any
+) => {
+  const rollupTxPubData = getRollupTxPubData(testCase);
+  const deltaStates: { [key: number]: AccountState } = {};
+  for (let i = 0; i < testCase.requests.reqData.length; i++) {
+    const reqType = testCase.requests.reqData[i][0];
+    if (reqType == TsTxType.WITHDRAW || reqType == TsTxType.FORCE_WITHDRAW) {
+      const accountId = Number(testCase.requests.reqData[i][1]);
+      const tokenId = Number(testCase.requests.reqData[i][2]);
+      const tokenDecimals = getDecimals(tokenId);
+      const amount = BigNumber.from(testCase.requests.reqData[i][3])
+        .mul(BigNumber.from(10).pow(tokenDecimals))
+        .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+      if (!deltaStates[accountId]) {
+        deltaStates[accountId] = new AccountState();
+      }
+
+      if (!deltaStates[accountId].pendingBalances[tokenId]) {
+        deltaStates[accountId].pendingBalances[tokenId] = BigNumber.from("0");
+      }
+      deltaStates[accountId].pendingBalances[tokenId] =
+        deltaStates[accountId].pendingBalances[tokenId].add(amount);
+    } else if (reqType == TsTxType.AUCTION_END) {
+      const loanPubData = readAuctionEndPubData(rollupTxPubData[i]);
+      const accountId = loanPubData.accountId.toNumber();
+      const tsbTokenConfig = await diamondToken.getAssetConfig(
+        loanPubData.bondTokenId
+      );
+      const maturityTime = await diamondTsb.getMaturityTime(
+        tsbTokenConfig.tokenAddr
+      );
+      const baseTokenAddr = await diamondTsb.getUnderlyingAsset(
+        tsbTokenConfig.tokenAddr
+      );
+      const debtTokenId = await diamondToken.getTokenId(baseTokenAddr);
+      const debtTokenConfig = await diamondToken.getAssetConfig(debtTokenId);
+      const collateralTokenConfig = await diamondToken.getAssetConfig(
+        loanPubData.collateralTokenId
+      );
+
+      const loanId = await diamondLoan.getLoanId(
+        BigNumber.from(accountId),
+        BigNumber.from(maturityTime),
+        BigNumber.from(debtTokenId),
+        BigNumber.from(loanPubData.collateralTokenId)
+      );
+
+      const debtAmt = BigNumber.from(loanPubData.debtAmt)
+        .mul(BigNumber.from(10).pow(BigNumber.from(debtTokenConfig.decimals)))
+        .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+      const collateralAmt = BigNumber.from(loanPubData.collateralAmt)
+        .mul(
+          BigNumber.from(10).pow(BigNumber.from(collateralTokenConfig.decimals))
+        )
+        .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+      const loan: LoanStruct = {
+        accountId: accountId,
+        maturityTime: maturityTime,
+        collateralTokenId: loanPubData.collateralTokenId.toNumber(),
+        debtTokenId: debtTokenId,
+        debtAmt: debtAmt,
+        collateralAmt: collateralAmt,
+      };
+
+      if (!deltaStates[accountId]) {
+        deltaStates[accountId] = new AccountState();
+      }
+      if (!deltaStates[accountId].loans[loanId]) {
+        deltaStates[accountId].loans[loanId] = loan;
+      } else {
+        const oriLoan = deltaStates[accountId].loans[loanId];
+        deltaStates[accountId].loans[loanId].collateralAmt = BigNumber.from(
+          oriLoan.collateralAmt
+        ).add(BigNumber.from(loan.collateralAmt));
+        deltaStates[accountId].loans[loanId].debtAmt = BigNumber.from(
+          oriLoan.debtAmt
+        ).add(BigNumber.from(loan.debtAmt));
+      }
+    } else if (reqType == TsTxType.WITHDRAW_FEE) {
+      const withdrawFeePubData = readWithdrawFeePubData(rollupTxPubData[i]);
+      const accountId = 0;
+      const tokenId = withdrawFeePubData.tokenId.toNumber();
+      const tokenConfig = await diamondToken.getAssetConfig(tokenId);
+      const amount = BigNumber.from(withdrawFeePubData.amount)
+        .mul(BigNumber.from(10).pow(tokenConfig.decimals))
+        .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+      if (!deltaStates[accountId]) {
+        deltaStates[accountId] = new AccountState();
+      }
+      if (!deltaStates[accountId].withdrawFees[tokenId]) {
+        deltaStates[accountId].withdrawFees[tokenId] = BigNumber.from("0");
+      }
+      const oriAmt = deltaStates[accountId].withdrawFees[tokenId];
+      deltaStates[accountId].withdrawFees[tokenId] = oriAmt.add(amount);
+    }
+  }
+  for (const accountId in deltaStates) {
+    for (const tokenId in deltaStates[accountId].pendingBalances) {
+      const amount = deltaStates[accountId].pendingBalances[tokenId];
+
+      expect(
+        newStates[accountId].pendingBalances[tokenId].sub(
+          oriStates[accountId].pendingBalances[tokenId]
+        )
+      ).to.be.eq(amount);
+    }
+    for (const tokenId in deltaStates[accountId].withdrawFees) {
+      const amount = deltaStates[accountId].withdrawFees[tokenId];
+      expect(
+        newStates[accountId].withdrawFees[tokenId].sub(
+          oriStates[accountId].withdrawFees[tokenId]
+        )
+      ).to.be.eq(amount);
+    }
+    for (const loanId in deltaStates[accountId].loans) {
+      const loan = deltaStates[accountId].loans[loanId];
+      expect(
+        newStates[accountId].loans[loanId].collateralAmt.sub(
+          oriStates[accountId].loans[loanId].collateralAmt
+        )
+      ).to.be.eq(loan.collateralAmt);
+      expect(
+        newStates[accountId].loans[loanId].debtAmt.sub(
+          oriStates[accountId].loans[loanId].debtAmt
+        )
+      ).to.be.eq(loan.debtAmt);
+    }
+  }
+};
+
+export const doRegister = async (
+  accounts: Signer[],
+  baseTokenAddresses: BaseTokenAddresses,
+  diamondAcc: AccountFacet,
+  testCase: any,
+  requestId: number
+) => {
+  const accountId = Number(testCase.requests.reqData[requestId][7]);
+  const signer = accounts[accountId];
+  const signerAddr = await signer.getAddress();
+  const [tsPubKeyX, tsPubKeyY] = testCase.requests.tsPubKey[requestId];
+  const tokenId = Number(testCase.requests.reqData[requestId + 1][2]);
+  const tokenAddr = baseTokenAddresses[tokenId];
+  const tokenDecimals = getDecimals(tokenId);
+
+  const amount = BigNumber.from(testCase.requests.reqData[requestId + 1][3])
+    .mul(BigNumber.from(10).pow(tokenDecimals))
+    .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+  if (tokenId.toString() == TS_BASE_TOKEN.ETH.tokenId.toString()) {
+    const tokenAddr = ETH_ASSET_CONFIG.tokenAddr;
+    await diamondAcc
+      .connect(signer)
+      .register(
+        BigNumber.from(tsPubKeyX),
+        BigNumber.from(tsPubKeyY),
+        tokenAddr,
+        BigNumber.from(amount),
+        { value: amount }
+      );
+  } else {
+    const token = await ethers.getContractAt("ERC20Mock", tokenAddr);
+    await token.connect(signer).mint(signerAddr, amount);
+    await token.connect(signer).approve(diamondAcc.address, amount);
+    await diamondAcc
+      .connect(signer)
+      .register(
+        BigNumber.from(tsPubKeyX),
+        BigNumber.from(tsPubKeyY),
+        token.address,
+        BigNumber.from(amount)
+      );
+  }
+};
+export const doDeposit = async (
+  accounts: Signer[],
+  baseTokenAddresses: BaseTokenAddresses,
+  diamondAcc: AccountFacet,
+  testCase: any,
+  requestId: number
+) => {
+  const accountId = Number(testCase.requests.reqData[requestId][7]);
+  const signer = accounts[accountId];
+  const signerAddr = await signer.getAddress();
+  const tokenId = Number(testCase.requests.reqData[requestId][2]);
+  const tokenAddr = baseTokenAddresses[tokenId];
+  const tokenDecimals = getDecimals(tokenId);
+
+  const amount = BigNumber.from(testCase.requests.reqData[requestId][3])
+    .mul(BigNumber.from(10).pow(tokenDecimals))
+    .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+  if (tokenId.toString() == TS_BASE_TOKEN.ETH.tokenId.toString()) {
+    const tokenAddr = ETH_ASSET_CONFIG.tokenAddr;
+    await diamondAcc
+      .connect(signer)
+      .deposit(signerAddr, tokenAddr, amount, { value: amount });
+  } else {
+    const token = await ethers.getContractAt("ERC20Mock", tokenAddr);
+    await token.connect(signer).mint(signerAddr, amount);
+    await token.connect(signer).approve(diamondAcc.address, amount);
+    await diamondAcc.connect(signer).deposit(signerAddr, token.address, amount);
+  }
+};
+export const doForceWithdraw = async (
+  accounts: Signer[],
+  baseTokenAddresses: BaseTokenAddresses,
+  diamondAcc: AccountFacet,
+  testCase: any,
+  requestId: number
+) => {
+  const accountId = Number(testCase.requests.reqData[requestId][7]);
+  const signer = accounts[accountId];
+  const tokenId = Number(testCase.requests.reqData[requestId][2]);
+  const tokenAddr = baseTokenAddresses[tokenId];
+
+  await diamondAcc.connect(signer).forceWithdraw(tokenAddr);
+};
+export const doCreateBondToken = async (
+  operator: Signer,
+  diamondToken: TokenFacet,
+  diamondTsb: TsbFacet,
+  testCase: any,
+  requestId: number
+) => {
+  const baseTokenId = BigNumber.from(
+    testCase.requests.reqData[requestId][2]
+  ).sub(5);
+  const maturityTime = BigNumber.from(testCase.requests.reqData[requestId][8]);
+  const name = "TslToken";
+  const symbol = "TSL";
+
+  await diamondTsb
+    .connect(operator)
+    .createTsbToken(baseTokenId, maturityTime, name, symbol);
+  const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+    baseTokenId,
+    maturityTime
+  );
+
+  const assetConfig: AssetConfigStruct = {
+    isStableCoin: baseTokenId <= BigNumber.from("2") ? false : true,
+    isTsbToken: true,
+    decimals: TS_SYSTEM_DECIMALS,
+    minDepositAmt: "0",
+    tokenAddr: tsbTokenAddr,
+    priceFeed: DEFAULT_ZERO_ADDR,
+  };
+  await diamondToken.connect(operator).addToken(assetConfig);
+  const tokenId = await diamondToken.getTokenId(tsbTokenAddr);
+
+  expect(tokenId).to.be.eq(
+    BigNumber.from(testCase.requests.reqData[requestId][2])
+  );
+};
 
 export function getPendingRollupTxHash(commitmentData: any) {
   let pendingRollupTxHash = EMPTY_HASH;
@@ -135,6 +567,15 @@ export const readWithdrawFeePubData = (pubData: string) => {
     amount: BigNumber.from(pubDataBytes.slice(3, 19)),
   };
   return withdrawFeePubData;
+};
+export const readEvacuationPubData = (pubData: string) => {
+  const pubDataBytes = utils.arrayify(pubData);
+  const evacuationPubData = {
+    accountId: BigNumber.from(pubDataBytes.slice(1, 5)),
+    tokenId: BigNumber.from(pubDataBytes.slice(5, 7)),
+    amount: BigNumber.from(pubDataBytes.slice(7, 23)),
+  };
+  return evacuationPubData;
 };
 
 export function getRollupTxPubData(testCase: any) {

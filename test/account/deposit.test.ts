@@ -1,19 +1,21 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Signer, utils } from "ethers";
+import { BigNumber, Signer, utils } from "ethers";
 import { deployAndInit } from "../utils/deployAndInit";
 import { useFacet } from "../../utils/useFacet";
 import { toL2Amt } from "../utils/amountConvertor";
-import { FACET_NAMES } from "../../utils/config";
+import { DEFAULT_ZERO_ADDR } from "../../utils/config";
 import { register } from "../utils/register";
 import { whiteListBaseTokens } from "../utils/whitelistToken";
 import { BaseTokenAddresses } from "../../utils/type";
 import {
-  AccountFacet,
+  AccountMock,
   ERC20Mock,
   RollupFacet,
   TokenFacet,
+  TsbFacet,
+  TsbToken,
   WETH9,
   ZkTrueUp,
 } from "../../typechain-types";
@@ -21,11 +23,25 @@ import {
   DEFAULT_ETH_ADDRESS,
   MIN_DEPOSIT_AMOUNT,
   TS_BASE_TOKEN,
+  TS_DECIMALS,
   TsTokenId,
 } from "term-structure-sdk";
+import { tsbTokensJSON } from "../data/tsbTokens";
+
+//! use AccountMock instead of AccountFacet for testing
+export const FACET_NAMES_MOCK = [
+  "AccountMock", // replace AccountFacet with AccountMock
+  "AddressFacet",
+  "FlashLoanFacet",
+  "GovernanceFacet",
+  "LoanFacet",
+  "RollupFacet",
+  "TokenFacet",
+  "TsbFacet",
+];
 
 const fixture = async () => {
-  const res = await deployAndInit(FACET_NAMES);
+  const res = await deployAndInit(FACET_NAMES_MOCK);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp
@@ -44,11 +60,14 @@ describe("Deposit", function () {
   let [user1Addr, user2Addr]: string[] = [];
   let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
-  let diamondAcc: AccountFacet;
+  let operator: Signer;
+  let diamondAccMock: AccountMock;
   let diamondRollup: RollupFacet;
   let diamondToken: TokenFacet;
+  let diamondTsb: TsbFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   let usdt: ERC20Mock;
+  const INVALID_TOKEN_ADDRESS = "0x1234567890123456789012345678901234567890";
 
   beforeEach(async function () {
     const res = await loadFixture(fixture);
@@ -59,9 +78,11 @@ describe("Deposit", function () {
     ]);
     weth = res.weth;
     zkTrueUp = res.zkTrueUp;
-    diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
+    operator = res.operator;
+    diamondAccMock = (await useFacet("AccountMock", zkTrueUp)) as AccountMock;
     diamondRollup = (await useFacet("RollupFacet", zkTrueUp)) as RollupFacet;
     diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
+    diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     usdt = await ethers.getContractAt(
       "ERC20Mock",
@@ -78,12 +99,12 @@ describe("Deposit", function () {
         Number(TsTokenId.ETH),
         regAmount,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // before deposit
       const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
-      const beforeAccountNum = await diamondAcc.getAccountNum();
+      const beforeAccountNum = await diamondAccMock.getAccountNum();
       const beforeTotalPendingRequests = (await diamondRollup.getL1RequestNum())
         .totalL1RequestNum;
 
@@ -91,10 +112,12 @@ describe("Deposit", function () {
       const amount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
       await usdt.connect(user1).mint(user1Addr, amount);
       await usdt.connect(user1).approve(zkTrueUp.address, amount);
-      await diamondAcc.connect(user1).deposit(user1Addr, usdt.address, amount);
+      await diamondAccMock
+        .connect(user1)
+        .deposit(user1Addr, usdt.address, amount);
 
       const afterZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
-      const afterAccountNum = await diamondAcc.getAccountNum();
+      const afterAccountNum = await diamondAccMock.getAccountNum();
       const afterTotalPendingRequests = (await diamondRollup.getL1RequestNum())
         .totalL1RequestNum;
 
@@ -108,7 +131,7 @@ describe("Deposit", function () {
       ).to.be.eq(1);
 
       // check the request is existed in the priority queue
-      const l2Addr = await diamondAcc.getAccountId(user1Addr);
+      const l2Addr = await diamondAccMock.getAccountId(user1Addr);
       const l2TokenAddr = await diamondToken.getTokenId(usdt.address);
       const l2Amt = toL2Amt(amount, TS_BASE_TOKEN.USDT);
 
@@ -133,8 +156,8 @@ describe("Deposit", function () {
       await usdt.connect(user2).mint(user2Addr, amount);
       await usdt.connect(user2).approve(zkTrueUp.address, amount);
       await expect(
-        diamondAcc.connect(user2).deposit(user2Addr, usdt.address, amount)
-      ).to.be.revertedWithCustomError(diamondAcc, "AccountIsNotRegistered");
+        diamondAccMock.connect(user2).deposit(user2Addr, usdt.address, amount)
+      ).to.be.revertedWithCustomError(diamondAccMock, "AccountIsNotRegistered");
     });
 
     it("Failed to deposit, the deposit token needs to be whitelisted", async function () {
@@ -150,7 +173,7 @@ describe("Deposit", function () {
         Number(TsTokenId.ETH),
         regAmount,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // call deposit
@@ -158,7 +181,7 @@ describe("Deposit", function () {
       await nonWhitelistToken.connect(user1).mint(user1Addr, amount);
       await nonWhitelistToken.connect(user1).approve(zkTrueUp.address, amount);
       await expect(
-        diamondAcc
+        diamondAccMock
           .connect(user1)
           .deposit(user1Addr, nonWhitelistToken.address, amount)
       ).to.be.revertedWithCustomError(diamondToken, "TokenIsNotExist");
@@ -172,7 +195,7 @@ describe("Deposit", function () {
         Number(TsTokenId.ETH),
         regAmount,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // 5 < min deposit amount
@@ -180,8 +203,8 @@ describe("Deposit", function () {
       await usdt.connect(user1).mint(user1Addr, amount);
       await usdt.connect(user1).approve(zkTrueUp.address, amount);
       await expect(
-        diamondAcc.connect(user1).deposit(user1Addr, usdt.address, amount)
-      ).to.be.revertedWithCustomError(diamondAcc, "InvalidDepositAmt");
+        diamondAccMock.connect(user1).deposit(user1Addr, usdt.address, amount)
+      ).to.be.revertedWithCustomError(diamondAccMock, "InvalidDepositAmt");
     });
   });
 
@@ -194,27 +217,27 @@ describe("Deposit", function () {
         Number(TsTokenId.ETH),
         regAmount,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // before deposit
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
-      const beforeAccountNum = await diamondAcc.getAccountNum();
+      const beforeAccountNum = await diamondAccMock.getAccountNum();
       const beforeTotalPendingRequests = (await diamondRollup.getL1RequestNum())
         .totalL1RequestNum;
 
       // call deposit
       const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
       await weth.connect(user1).approve(zkTrueUp.address, amount);
-      await diamondAcc
+      await diamondAccMock
         .connect(user1)
-        .deposit(user1.getAddress(), DEFAULT_ETH_ADDRESS, amount, {
+        .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
           value: amount,
         });
 
       // after deposit
       const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
-      const afterAccountNum = await diamondAcc.getAccountNum();
+      const afterAccountNum = await diamondAccMock.getAccountNum();
       const afterTotalPendingRequests = (await diamondRollup.getL1RequestNum())
         .totalL1RequestNum;
 
@@ -228,7 +251,7 @@ describe("Deposit", function () {
       ).to.be.eq(1);
 
       // check the request is existed in the priority queue
-      const l2Addr = await diamondAcc.getAccountId(user1Addr);
+      const l2Addr = await diamondAccMock.getAccountId(user1Addr);
       const l2TokenAddr = await diamondToken.getTokenId(DEFAULT_ETH_ADDRESS);
       const l2Amt = toL2Amt(amount, TS_BASE_TOKEN.ETH);
       const deposit = {
@@ -251,12 +274,12 @@ describe("Deposit", function () {
       const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
       await weth.connect(user1).approve(zkTrueUp.address, amount);
       await expect(
-        diamondAcc
+        diamondAccMock
           .connect(user1)
-          .deposit(user1.getAddress(), DEFAULT_ETH_ADDRESS, amount, {
+          .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
             value: amount,
           })
-      ).to.be.revertedWithCustomError(diamondAcc, "AccountIsNotRegistered");
+      ).to.be.revertedWithCustomError(diamondAccMock, "AccountIsNotRegistered");
     });
 
     it("Failed to deposit, the deposit amount less than the minimum deposit amount", async function () {
@@ -267,7 +290,7 @@ describe("Deposit", function () {
         Number(TsTokenId.ETH),
         regAmount,
         baseTokenAddresses,
-        diamondAcc
+        diamondAccMock
       );
 
       // call deposit
@@ -276,12 +299,206 @@ describe("Deposit", function () {
       );
       await weth.connect(user1).approve(zkTrueUp.address, amount);
       await expect(
-        diamondAcc
+        diamondAccMock
           .connect(user1)
           .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
             value: amount,
           })
-      ).to.be.revertedWithCustomError(diamondAcc, "InvalidDepositAmt");
+      ).to.be.revertedWithCustomError(diamondAccMock, "InvalidDepositAmt");
+    });
+  });
+
+  describe("Deposit TSB token", () => {
+    beforeEach(async () => {
+      // create tsb tokens
+      for (let i = 0; i < tsbTokensJSON.length; i++) {
+        const underlyingTokenId = tsbTokensJSON[i].underlyingTokenId;
+        const maturity = BigNumber.from(tsbTokensJSON[i].maturity);
+        const name = tsbTokensJSON[i].name;
+        const symbol = tsbTokensJSON[i].symbol;
+        await (
+          await diamondTsb
+            .connect(operator)
+            .createTsbToken(underlyingTokenId, maturity, name, symbol)
+        ).wait();
+
+        // whitelist tsb token
+        const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+          underlyingTokenId,
+          maturity
+        );
+        const assetConfig = {
+          isStableCoin: tsbTokensJSON[i].isStableCoin,
+          isTsbToken: true,
+          decimals: TS_DECIMALS.AMOUNT,
+          minDepositAmt: tsbTokensJSON[1].minDepositAmt,
+          tokenAddr: tsbTokenAddr,
+          priceFeed: DEFAULT_ZERO_ADDR,
+        };
+        await diamondToken.connect(operator).addToken(assetConfig);
+      }
+
+      // register by ETH
+      const registerAmt = utils.parseUnits("10", TS_BASE_TOKEN.ETH.decimals);
+      await register(
+        user1,
+        Number(TsTokenId.ETH),
+        registerAmt,
+        baseTokenAddresses,
+        diamondAccMock
+      );
+
+      // transfer default WETH amount to zkTrueUp
+      const wethAmount = utils.parseEther("10");
+      await (
+        await weth.connect(operator).deposit({ value: wethAmount })
+      ).wait();
+      await (
+        await weth.connect(operator).transfer(zkTrueUp.address, wethAmount)
+      ).wait();
+
+      // transfer default USDT amount to zkTrueUp
+      const usdtAmount = utils.parseUnits("1000", TS_BASE_TOKEN.USDT.decimals);
+      const underlyingAssetAddr = baseTokenAddresses[TsTokenId.USDT];
+      const baseToken = (await ethers.getContractAt(
+        "ERC20Mock",
+        underlyingAssetAddr
+      )) as ERC20Mock;
+      await (
+        await baseToken.connect(operator).mint(zkTrueUp.address, usdtAmount)
+      ).wait(); // mint to zkTrueUp
+
+      // withdraw tsbETH token
+      const tsbEthAmt = utils.parseUnits("10", TS_DECIMALS.AMOUNT);
+      let underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
+      let maturity = BigNumber.from(tsbTokensJSON[0].maturity);
+      const tsbEth = await diamondTsb.getTsbTokenAddr(
+        underlyingTokenId,
+        maturity
+      );
+      await (
+        await diamondAccMock.connect(user1).withdraw(tsbEth, tsbEthAmt)
+      ).wait(); //! ignore _withdraw in AccountMock
+
+      // withdraw tsbUSDT token
+      const tsbUsdtAmt = utils.parseUnits("100", TS_DECIMALS.AMOUNT);
+      underlyingTokenId = tsbTokensJSON[2].underlyingTokenId;
+      maturity = BigNumber.from(tsbTokensJSON[2].maturity);
+      const tsbUsdt = await diamondTsb.getTsbTokenAddr(
+        underlyingTokenId,
+        maturity
+      );
+      await (
+        await diamondAccMock.connect(user1).withdraw(tsbUsdt, tsbUsdtAmt)
+      ).wait(); //! ignore _withdraw in AccountMock
+    });
+
+    it("Success to deposit tsb token", async () => {
+      // get params tsbUSDT
+      const underlyingTokenId = tsbTokensJSON[2].underlyingTokenId;
+      const maturity = BigNumber.from(tsbTokensJSON[2].maturity);
+      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+        underlyingTokenId,
+        maturity
+      );
+
+      // tsb token token decimals is 8
+      const amount = utils.parseUnits("100", TS_DECIMALS.AMOUNT);
+      const underlyingAssetAddr = baseTokenAddresses[underlyingTokenId];
+      const usdt = (await ethers.getContractAt(
+        "ERC20Mock",
+        underlyingAssetAddr
+      )) as ERC20Mock;
+
+      // before balance
+      const beforeUser1TsbTokenBalance = await diamondTsb.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const beforeTsbTokenTotalSupply = await diamondTsb.activeSupply(
+        tsbTokenAddr
+      );
+      const beforeUser1UsdtBalance = await usdt.balanceOf(user1Addr);
+      const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+
+      // deposit tsb token
+      const depositTsbTokenTx = await diamondAccMock
+        .connect(user1)
+        .deposit(user1Addr, tsbTokenAddr, amount);
+      await depositTsbTokenTx.wait();
+
+      // after balance
+      const afterUser1TsbTokenBalance = await diamondTsb.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const afterTsbTokenTotalSupply = await diamondTsb.activeSupply(
+        tsbTokenAddr
+      );
+      const afterUser1UsdtBalance = await usdt.balanceOf(user1Addr);
+      const afterZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+
+      const diamondWithTsbLib = await ethers.getContractAt(
+        "TsbLib",
+        zkTrueUp.address
+      );
+      // check event
+      await expect(depositTsbTokenTx)
+        .to.emit(diamondWithTsbLib, "TsbTokenBurned")
+        .withArgs(tsbTokenAddr, user1Addr, amount);
+
+      // check tsb token amount
+      expect(
+        beforeUser1TsbTokenBalance.sub(afterUser1TsbTokenBalance)
+      ).to.equal(amount);
+      expect(beforeTsbTokenTotalSupply.sub(afterTsbTokenTotalSupply)).to.equal(
+        amount
+      );
+      const tsbToken = (await ethers.getContractAt(
+        "TsbToken",
+        tsbTokenAddr
+      )) as TsbToken;
+      expect(await tsbToken.balanceOf(zkTrueUp.address)).to.equal(0);
+
+      // check underlying asset amount
+      expect(beforeUser1UsdtBalance).to.equal(afterUser1UsdtBalance);
+      expect(beforeZkTrueUpUsdtBalance).to.equal(afterZkTrueUpUsdtBalance);
+    });
+
+    it("Fail to deposit tsb token, invalid token address", async () => {
+      // get params
+      const invalidTsbTokenAddr = INVALID_TOKEN_ADDRESS; // invalid tsb token address
+      const amount = utils.parseEther("0.5");
+
+      // deposit tsb token with invalid token address
+      await expect(
+        diamondAccMock
+          .connect(user1)
+          .deposit(user1Addr, invalidTsbTokenAddr, amount)
+      ).to.be.revertedWithCustomError(diamondAccMock, "TokenIsNotExist");
+    });
+
+    it("Fail to deposit tsb token, not a registered account", async () => {
+      // get params tsbUSDT
+      const underlyingTokenId = tsbTokensJSON[2].underlyingTokenId;
+      const maturity = BigNumber.from(tsbTokensJSON[2].maturity);
+      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+        underlyingTokenId,
+        maturity
+      );
+
+      // tsb token token decimals is 8
+      const amount = utils.parseUnits("0.5", TS_DECIMALS.AMOUNT);
+      const tsbToken = (await ethers.getContractAt(
+        "TsbToken",
+        tsbTokenAddr
+      )) as TsbToken;
+      await (await tsbToken.connect(user1).transfer(user2Addr, amount)).wait();
+
+      // deposit tsb token with a not registered account
+      await expect(
+        diamondAccMock.connect(user2).deposit(user2Addr, tsbTokenAddr, amount)
+      ).to.be.revertedWithCustomError(diamondAccMock, "AccountIsNotRegistered");
     });
   });
 });
