@@ -352,7 +352,7 @@ describe("Deploy", () => {
     );
 
     const GovernanceStorageSlot = getSlotNum(
-      "zkTureUp.contracts.storage.Governance"
+      "zkTrueUp.contracts.storage.Governance"
     );
 
     // get address from storage slot

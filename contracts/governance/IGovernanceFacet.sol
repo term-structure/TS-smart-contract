@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {GovernanceStorage, FundWeight} from "./GovernanceStorage.sol";
 
 interface IGovernanceFacet {
+    /// Error for setting invalid fund weight value
     error InvalidFundWeight();
 
     /// @notice Emitted when the treasury address is set
@@ -34,19 +35,23 @@ interface IGovernanceFacet {
     /// @param vaultAddr The address of the vault
     function setVaultAddr(address vaultAddr) external;
 
+    /// @notice Set the fund weight
+    /// @param fundWeight The fund weight
     function setFundWeight(FundWeight memory fundWeight) external;
 
-    /// @notice Return the treasury address
+    /// @notice Get the treasury address
     /// @return treasuryAddr The address of the treasury
-    function getTreasuryAddr() external view returns (address);
+    function getTreasuryAddr() external view returns (address treasuryAddr);
 
-    /// @notice Return the insurance address
+    /// @notice Get the insurance address
     /// @return insuranceAddr The address of the insurance
-    function getInsuranceAddr() external view returns (address);
+    function getInsuranceAddr() external view returns (address insuranceAddr);
 
-    /// @notice Return the vault address
+    /// @notice Get the vault address
     /// @return vaultAddr The address of the vault
-    function getVaultAddr() external view returns (address);
+    function getVaultAddr() external view returns (address vaultAddr);
 
-    function getFundWeight() external view returns (FundWeight memory);
+    /// @notice Get the fund weight
+    /// @return fundWeight The fund weight
+    function getFundWeight() external view returns (FundWeight memory fundWeight);
 }

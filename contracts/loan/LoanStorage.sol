@@ -19,7 +19,7 @@ struct Loan {
 }
 
 library LoanStorage {
-    bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTureUp.contracts.storage.Loan")) - 1);
+    bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Loan")) - 1);
 
     struct Layout {
         /// @notice The half liquidation threshold

@@ -20,6 +20,9 @@ library TsbLib {
     /// @param amount The amount of the burned TSB token
     event TsbTokenBurned(address indexed tsbTokenAddr, address indexed accountAddr, uint256 amount);
 
+    /// @notice Internal  function to check whether the tsbToken is matured
+    /// @param tsbTokenAddr The address of the tsbToken
+    /// @param maturityTime The maturity time of the tsbToken
     function requireMatured(address tsbTokenAddr, uint32 maturityTime) internal view {
         if (block.timestamp < maturityTime) revert TsbTokenIsNotMatured(tsbTokenAddr);
     }
@@ -44,6 +47,9 @@ library TsbLib {
         emit TsbTokenBurned(tsbTokenAddr, from, amount);
     }
 
+    /// @notice Internal function to get the tsbToken address
+    /// @param tsbTokenKey The key of the tsbToken
+    /// @return tsbTokenAddr The address of the tsbToken
     function getTsbTokenAddr(uint48 tsbTokenKey) internal view returns (address) {
         return TsbStorage.layout().tsbTokens[tsbTokenKey];
     }

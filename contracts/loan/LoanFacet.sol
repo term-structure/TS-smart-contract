@@ -14,10 +14,10 @@ import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
 contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
-    /// @notice Add collateral to the loan
-    /// @dev Anyone can add collateral to the loan
-    /// @param loanId The id of the loan
-    /// @param amount The amount of the collateral
+    /**
+     * @inheritdoc ILoanFacet
+     * @dev Anyone can add collateral to the loan
+     */
     function addCollateral(bytes12 loanId, uint128 amount) external payable {
         Loan memory loan = LoanLib.getLoan(loanId);
         (, AssetConfig memory collateralAsset, ) = LoanLib.getLoanInfo(loan);
@@ -27,9 +27,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit AddCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
     }
 
-    /// @notice Remove collateral from the loan
-    /// @param loanId The id of the loan
-    /// @param amount The amount of the collateral
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function removeCollateral(bytes12 loanId, uint128 amount) external nonReentrant {
         Loan memory loan = LoanLib.getLoan(loanId);
         LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountAddr(loan.accountId));
@@ -51,11 +51,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit RemoveCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
     }
 
-    /// @notice Repay the loan, only the loan owner can repay the loan
-    /// @param loanId The id of the loan
-    /// @param collateralAmt The amount of collateral to be returned
-    /// @param debtAmt The amount of debt to be repaid
-    /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable {
         Loan memory loan = LoanLib.getLoan(loanId);
         LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountAddr(loan.accountId));
@@ -95,14 +93,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         }
     }
 
-    /// @notice Liquidate the loan
-    /// @notice Liquidate the loan if the health factor is lower than the threshold or the loan is expired
-    /// @notice Half liquidation will be triggered if the collateral value is larger than half liquidation threshold
-    /// @notice The liquidator will repay the debt and get the collateral
-    /// @param loanId The id of the loan to be liquidated
-    /// @return repayAmt The amount of debt has been repaid
-    /// @return liquidatorRewardAmt The amount of collateral to be returned to the liquidator
-    /// @return protocolPenaltyAmt The amount of collateral to be returned to the protocol
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function liquidate(bytes12 loanId) external payable returns (uint128, uint128, uint128) {
         Loan memory loan = LoanLib.getLoan(loanId);
         (
@@ -127,16 +120,17 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return (repayAmt, liquidatorRewardAmt, protocolPenaltyAmt);
     }
 
-    /// @notice Set the half liquidation threshold
-    /// @param halfLiquidationThreshold The half liquidation threshold
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function setHalfLiquidationThreshold(uint16 halfLiquidationThreshold) external onlyRole(Config.ADMIN_ROLE) {
         LoanStorage.layout().halfLiquidationThreshold = halfLiquidationThreshold;
         emit SetHalfLiquidationThreshold(halfLiquidationThreshold);
     }
 
-    /// @notice Set the liquidation factor
-    /// @param liquidationFactor The liquidation factor
-    /// @param isStableCoinPair Whether the liquidation factor is for stablecoin pair
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function setLiquidationFactor(
         LiquidationFactor memory liquidationFactor,
         bool isStableCoinPair
@@ -152,57 +146,52 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit SetLiquidationFactor(liquidationFactor, isStableCoinPair);
     }
 
-    /// @notice Get the health factor of the loan
-    /// @param loanId The id of the loan
-    /// @return healthFactor The health factor of the loan
-    function getHealthFactor(bytes12 loanId) external view returns (uint256) {
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getHealthFactor(bytes12 loanId) external view returns (uint256 healthFactor) {
         Loan memory loan = LoanLib.getLoan(loanId);
         (
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
         ) = LoanLib.getLoanInfo(loan);
-        (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
-            loan,
-            liquidationFactor.ltvThreshold,
-            collateralAsset,
-            debtAsset
-        );
+        (healthFactor, , ) = LoanLib.getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
         return healthFactor;
     }
 
-    /// @notice Return the half liquidation threshold
-    /// @return halfLiquidationThreshold The half liquidation threshold
-    function getHalfLiquidationThreshold() external view returns (uint16) {
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getHalfLiquidationThreshold() external view returns (uint16 halfLiquidationThreshold) {
         return LoanLib.getHalfLiquidationThreshold();
     }
 
-    /// @notice Return the liquidation factor
-    /// @param isStableCoinPair Whether the liquidation factor is for stablecoin pair
-    /// @return liquidationFactor The liquidation factor
-    function getLiquidationFactor(bool isStableCoinPair) external view returns (LiquidationFactor memory) {
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getLiquidationFactor(
+        bool isStableCoinPair
+    ) external view returns (LiquidationFactor memory liquidationFactor) {
         return isStableCoinPair ? LoanLib.getStableCoinPairLiquidationFactor() : LoanLib.getLiquidationFactor();
     }
 
-    /// @notice Return the loan id
-    /// @param accountId The id of the account
-    /// @param maturityTime The maturity time of the loan
-    /// @param debtTokenId The id of the debt token
-    /// @param collateralTokenId The id of the collateral token
-    /// @return loanId The loan id
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function getLoanId(
         uint32 accountId,
         uint32 maturityTime,
         uint16 debtTokenId,
         uint16 collateralTokenId
-    ) external pure returns (bytes12) {
+    ) external pure returns (bytes12 loanId) {
         return LoanLib.getLoanId(accountId, maturityTime, debtTokenId, collateralTokenId);
     }
 
-    /// @notice Return the loan info
-    /// @param loanId The id of the loan
-    /// @return loan The loan info
-    function getLoan(bytes12 loanId) external view returns (Loan memory) {
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getLoan(bytes12 loanId) external view returns (Loan memory loan) {
         return LoanLib.getLoan(loanId);
     }
 

@@ -13,12 +13,10 @@ import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
-    /// @notice Register account by deposit Ether or ERC20 to ZkTrueUp
-    /// @dev The account is registered by depositing Ether or ERC20 to ZkTrueUp
-    /// @param tsPubKeyX The X coordinate of the public key of the L2 account
-    /// @param tsPubKeyY The Y coordinate of the public key of the L2 account
-    /// @param tokenAddr The address of the token to be deposited
-    /// @param amount The amount of the token to be deposited
+    /**
+     * @inheritdoc IAccountFacet
+     * @dev The account is registered by depositing Ether or ERC20 to ZkTrueUp
+     */
     function register(uint256 tsPubKeyX, uint256 tsPubKeyY, address tokenAddr, uint128 amount) external payable {
         RollupLib.requireActive();
         AccountLib.requireNotRegistered(msg.sender);
@@ -27,22 +25,21 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         _deposit(msg.sender, msg.sender, accountId, tokenAddr, amount);
     }
 
-    /// @notice Deposit Ether or ERC20 to ZkTrueUp
-    /// @dev Only registered accounts can deposit
-    /// @param to The address of the L2 account to be deposited
-    /// @param tokenAddr The address of the token to be deposited
-    /// @param amount The amount of the token to be deposited
+    /**
+     * @inheritdoc IAccountFacet
+     * @dev Only registered accounts can deposit
+     */
     function deposit(address to, address tokenAddr, uint128 amount) external payable {
         RollupLib.requireActive();
         uint32 accountId = AccountLib.getValidAccount(to);
         _deposit(msg.sender, to, accountId, tokenAddr, amount);
     }
 
-    /// @notice Withdraw Ether or ERC20 from ZkTrueUp
-    /// @dev Only registered accounts can withdraw
-    /// @dev The token cannot be TSB token
-    /// @param tokenAddr The address of the token to be withdrawn
-    /// @param amount The amount of the token to be withdrawn
+    /**
+     * @inheritdoc IAccountFacet
+     * @dev Only registered accounts can withdraw
+     * @dev The token cannot be TSB token
+     */
     //! virtual for test
     function withdraw(address tokenAddr, uint128 amount) external virtual nonReentrant {
         uint32 accountId = AccountLib.getValidAccount(msg.sender);
@@ -53,24 +50,32 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
             : Utils.transfer(tokenAddr, payable(msg.sender), amount);
     }
 
-    /// @notice Force withdraw Ether or ERC20 from ZkTrueUp
-    /// @notice When the L2 system is down or user's asset is censored, user can do forceWithdraw to withdraw asset from ZkTrueUp
-    /// @notice If the forceWithdraw request is not processed before the expirationBlock, user can do activateEvacuation to activate the evacuation
-    /// @param tokenAddr The address of the token to be withdrawn
+    /**
+     * @inheritdoc IAccountFacet
+     */
     function forceWithdraw(address tokenAddr) external {
         uint32 accountId = AccountLib.getValidAccount(msg.sender);
         (uint16 tokenId, ) = TokenLib.getValidToken(tokenAddr);
         AccountLib.addForceWithdrawReq(msg.sender, accountId, tokenId);
     }
 
+    /**
+     * @inheritdoc IAccountFacet
+     */
     function getAccountAddr(uint32 accountId) external view returns (address accountAddr) {
         return AccountLib.getAccountAddr(accountId);
     }
 
+    /**
+     * @inheritdoc IAccountFacet
+     */
     function getAccountId(address accountAddr) external view returns (uint32 accountId) {
         return AccountLib.getAccountId(accountAddr);
     }
 
+    /**
+     * @inheritdoc IAccountFacet
+     */
     function getAccountNum() external view returns (uint32 accountNum) {
         return AccountLib.getAccountNum();
     }
@@ -79,7 +84,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /// @param sender The address of sender
     /// @param tsPubKeyX The x coordinate of the public key of the token sender
     /// @param tsPubKeyY The y coordinate of the public key of the token sender
-    /// @return registeredAccountId The registered L2 account Id
+    /// @return accountId The registered L2 account Id
     function _register(address sender, uint256 tsPubKeyX, uint256 tsPubKeyY) internal returns (uint32) {
         uint32 accountId = AccountLib.getAccountNum();
         if (accountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT) revert AccountNumExceedLimit(accountId);

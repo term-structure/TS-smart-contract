@@ -10,8 +10,9 @@ import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
 contract TokenFacet is AccessControlInternal, ITokenFacet {
-    /// @notice Add a new token to the network
-    /// @param assetConfig The configuration of the token
+    /**
+     * @inheritdoc ITokenFacet
+     */
     function addToken(AssetConfig memory assetConfig) external onlyRole(Config.OPERATOR_ROLE) {
         address tokenAddr = assetConfig.tokenAddr;
         Utils.noneZeroAddr(tokenAddr);
@@ -29,18 +30,18 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
         }
     }
 
-    /// @notice Set paused state of the token
-    /// @param tokenAddr The token address
-    /// @param isPaused The boolean value of paused state
+    /**
+     * @inheritdoc ITokenFacet
+     */
     function setPaused(address tokenAddr, bool isPaused) external onlyRole(Config.ADMIN_ROLE) {
         TokenLib.getValidTokenId(tokenAddr);
         TokenStorage.layout().isPaused[tokenAddr] = isPaused;
         emit SetPaused(tokenAddr, isPaused);
     }
 
-    /// @notice Set the price feed address of the token
-    /// @param tokenAddr The token address
-    /// @param priceFeed The address of the price feed
+    /**
+     * @inheritdoc ITokenFacet
+     */
     function setPriceFeed(address tokenAddr, address priceFeed) external onlyRole(Config.ADMIN_ROLE) {
         Utils.noneZeroAddr(priceFeed);
         uint16 tokenId = TokenLib.getValidTokenId(tokenAddr);
@@ -48,41 +49,48 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
         emit SetPriceFeed(tokenAddr, priceFeed);
     }
 
-    /// @notice Set is stable coin of the token
-    /// @param tokenAddr The token address
-    /// @param isStableCoin The boolean value of is stable coin
+    /**
+     * @inheritdoc ITokenFacet
+     */
     function setIsStableCoin(address tokenAddr, bool isStableCoin) external onlyRole(Config.ADMIN_ROLE) {
         uint16 tokenId = TokenLib.getValidTokenId(tokenAddr);
         TokenStorage.layout().assetConfigs[tokenId].isStableCoin = isStableCoin;
         emit SetIsStableCoin(tokenAddr, isStableCoin);
     }
 
-    /// @notice Set the minimum deposit amount of the token
-    /// @param tokenAddr The token address
-    /// @param minDepositAmt The minimum deposit amount
+    /**
+     * @inheritdoc ITokenFacet
+     */
     function setMinDepositAmt(address tokenAddr, uint128 minDepositAmt) external onlyRole(Config.ADMIN_ROLE) {
         uint16 tokenId = TokenLib.getValidTokenId(tokenAddr);
         TokenStorage.layout().assetConfigs[tokenId].minDepositAmt = minDepositAmt;
         emit SetMinDepositAmt(tokenAddr, minDepositAmt);
     }
 
-    /// @notice Return the token number
-    /// @return tokenNum The token number
-    function getTokenNum() external view returns (uint16) {
+    /**
+     * @inheritdoc ITokenFacet
+     */
+    function getTokenNum() external view returns (uint16 tokenNum) {
         return TokenLib.getTokenNum();
     }
 
-    /// @notice Return the token id
-    /// @param tokenAddr The token address
-    /// @return tokenId The token id
-    function getTokenId(address tokenAddr) external view returns (uint16) {
+    /**
+     * @inheritdoc ITokenFacet
+     */
+    function getTokenId(address tokenAddr) external view returns (uint16 tokenId) {
         return TokenLib.getTokenId(tokenAddr);
     }
 
+    /**
+     * @inheritdoc ITokenFacet
+     */
     function getAssetConfig(uint16 tokenId) external view returns (AssetConfig memory) {
         return TokenLib.getAssetConfig(tokenId);
     }
 
+    /**
+     * @inheritdoc ITokenFacet
+     */
     function isTokenPaused(address tokenAddr) external view returns (bool) {
         return TokenLib.isPaused(tokenAddr);
     }

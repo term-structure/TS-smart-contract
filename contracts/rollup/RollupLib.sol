@@ -63,13 +63,13 @@ library RollupLib {
         if (isEvacuMode()) revert EvacuModeActivated();
     }
 
-    /// @notice Return the evacuation mode is activated or not
+    /// @notice Internal function to get evacuation mode status
     /// @return evacuMode The evacuation mode status
     function isEvacuMode() internal view returns (bool) {
         return RollupStorage.layout().evacuMode;
     }
 
-    /// @notice Whether the specified accountId and tokenId is evacuated
+    /// @notice Internal function to get whether the specified accountId and tokenId is evacuated
     /// @param accountId The account id
     /// @param tokenId The token id
     /// @return isEvacuated Whether the specified accountId and tokenId is evacuated
@@ -77,64 +77,64 @@ library RollupLib {
         return RollupStorage.layout().evacuated[accountId][tokenId];
     }
 
-    /// @notice Return the L1 request of the specified id
+    /// @notice Internal function to get the L1 request of the specified id
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id
     function getL1Request(uint64 requestId) internal view returns (L1Request memory) {
         return RollupStorage.layout().l1RequestQueue[requestId];
     }
 
-    /// @notice Return the number of committed L1 request
+    /// @notice Internal function to get the number of committed L1 request
     /// @return committedL1RequestNum The number of committed L1 requests
     function getCommittedL1RequestNum() internal view returns (uint64) {
         return RollupStorage.layout().committedL1RequestNum;
     }
 
-    /// @notice Return the number of executed L1 request
+    /// @notice Internal function to get the number of executed L1 request
     /// @return executedL1RequestNum The number of executed L1 requests
     function getExecutedL1RequestNum() internal view returns (uint64) {
         return RollupStorage.layout().executedL1RequestNum;
     }
 
-    /// @notice Return the total number of L1 request
+    /// @notice Internal function to get the total number of L1 request
     /// @return totalL1RequestNum The total number of L1 requests
     function getTotalL1RequestNum() internal view returns (uint64) {
         return RollupStorage.layout().totalL1RequestNum;
     }
 
-    /// @notice Return the number of committed block
+    /// @notice Internal function to get the number of committed block
     /// @return committedBlockNum The number of committed block
     function getCommittedBlockNum() internal view returns (uint32) {
         return RollupStorage.layout().committedBlockNum;
     }
 
-    /// @notice Return the number of verified block
+    /// @notice Internal function to get the number of verified block
     /// @return verifiedBlockNum The number of verified block
     function getVerifiedBlockNum() internal view returns (uint32) {
         return RollupStorage.layout().verifiedBlockNum;
     }
 
-    /// @notice Return the number of executed block
+    /// @notice Internal function to get the number of executed block
     /// @return executedBlockNum The number of executed block
     function getExecutedBlockNum() internal view returns (uint32) {
         return RollupStorage.layout().executedBlockNum;
     }
 
-    /// @notice Return the stored block hash
+    /// @notice Internal function to get the stored block hash
     /// @param blockNum The block number
     /// @return storedBlockHash The stored block hash
     function getStoredBlockHash(uint32 blockNum) internal view returns (bytes32) {
         return RollupStorage.layout().storedBlockHashes[blockNum];
     }
 
-    /// @notice Return the pending balance of the specified key
+    /// @notice Internal function to get the pending balance of the specified key
     /// @param key The key of the pending balance
     /// @return pendingBalances The pending balance of the specified key
     function getPendingBalances(bytes22 key) internal view returns (uint128) {
         return RollupStorage.layout().pendingBalances[key];
     }
 
-    /// @notice Return the key of pending balance
+    /// @notice Internal function to get the key of pending balance
     /// @param addr The user address
     /// @param tokenId The token id
     /// @return pendingBalanceKey The key of pending balance

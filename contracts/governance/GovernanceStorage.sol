@@ -9,7 +9,7 @@ struct FundWeight {
 }
 
 library GovernanceStorage {
-    bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTureUp.contracts.storage.Governance")) - 1);
+    bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Governance")) - 1);
 
     struct Layout {
         /// @notice Address of the treasury

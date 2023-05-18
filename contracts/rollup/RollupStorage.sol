@@ -45,7 +45,7 @@ struct L1Request {
 }
 
 library RollupStorage {
-    bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTureUp.contracts.storage.Rollup")) - 1);
+    bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Rollup")) - 1);
 
     struct Layout {
         /// @notice Mode of evacuation (true: evacuation mode, false: normal mode)

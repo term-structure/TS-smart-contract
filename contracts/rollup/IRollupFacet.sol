@@ -121,42 +121,76 @@ interface IRollupFacet {
     function revertBlocks(StoredBlock[] memory revertedBlocks) external;
 
     /// @notice Evacuate the funds of a specified user and token in the evacuMode
-    /// @dev The evacuate fuction will not commit a new state root to make all the users evacuate their funds from the same state
     /// @param lastExecutedBlock The last executed block
     /// @param newBlock The new block to be committed with the evacuation operation
     /// @param proof The proof of the new block
     function evacuate(StoredBlock memory lastExecutedBlock, CommitBlock memory newBlock, Proof memory proof) external;
 
     /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
-    /// @dev The evacuation mode will be activated when the current block number is greater than the expiration block number of the first pending L1 request
     function activateEvacuation() external;
 
     /// @notice Return the evacuation mode is activated or not
     /// @return evacuMode The evacuation mode status
-    function isEvacuMode() external view returns (bool);
+    function isEvacuMode() external view returns (bool evacuMode);
+
+    /// @notice Check whether the register request is in the L1 request queue
+    /// @param register The register request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isRegisterInL1RequestQueue(
+        Operations.Register memory register,
+        uint64 requestId
+    ) external view returns (bool isExisted);
+
+    /// @notice Check whether the deposit request is in the L1 request queue
+    /// @param deposit The deposit request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isDepositInL1RequestQueue(
+        Operations.Deposit memory deposit,
+        uint64 requestId
+    ) external view returns (bool isExisted);
+
+    /// @notice Check whether the force withdraw request is in the L1 request queue
+    /// @param forceWithdraw The force withdraw request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isForceWithdrawInL1RequestQueue(
+        Operations.ForceWithdraw memory forceWithdraw,
+        uint64 requestId
+    ) external view returns (bool isExisted);
 
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
-    /// @return request The request of the specified id
-    function getL1Request(uint64 requestId) external view returns (L1Request memory);
+    /// @return l1Request The request of the specified id
+    function getL1Request(uint64 requestId) external view returns (L1Request memory l1Request);
 
     /// @notice Return the L1 request number
     /// @return committedL1RequestNum The number of committed L1 requests
     /// @return executedL1RequestNum The number of executed L1 requests
     /// @return totalL1RequestNum The total number of L1 requests
-    function getL1RequestNum() external view returns (uint64, uint64, uint64);
+    function getL1RequestNum()
+        external
+        view
+        returns (uint64 committedL1RequestNum, uint64 executedL1RequestNum, uint64 totalL1RequestNum);
 
     /// @notice Return the block number
     /// @return committedBlockNum The number of committed blocks
     /// @return verifiedBlockNum The number of verified blocks
     /// @return executedBlockNum The number of executed blocks
-    function getBlockNum() external view returns (uint32, uint32, uint32);
+    function getBlockNum()
+        external
+        view
+        returns (uint32 committedBlockNum, uint32 verifiedBlockNum, uint32 executedBlockNum);
 
-    function getStoredBlockHash(uint32 blockNum) external view returns (bytes32);
+    /// @notice Return the block hash of the specified block number
+    /// @param blockNum The number of the specified block
+    /// @return blockHash The block hash of the specified block number
+    function getStoredBlockHash(uint32 blockNum) external view returns (bytes32 blockHash);
 
     /// @notice Return the pending balance of the specified account and token
     /// @param accountAddr The address of the account
     /// @param tokenAddr The address of the token
     /// @return pendingBalance The pending balance of the specified account and token
-    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128);
+    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128 pendingBalance);
 }

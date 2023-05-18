@@ -22,9 +22,9 @@ import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
 contract RollupFacet is IRollupFacet, AccessControlInternal {
-    /// @notice Commit blocks
-    /// @param lastCommittedBlock The last committed block
-    /// @param newBlocks The new blocks to be committed
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function commitBlocks(
         StoredBlock memory lastCommittedBlock,
         CommitBlock[] memory newBlocks
@@ -50,9 +50,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         rsl.committedBlockNum += uint32(newBlocks.length);
     }
 
-    /// @notice Verify blocks
-    /// @param committedBlocks The committed blocks to be verified
-    /// @param proof The proof of the committed blocks
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function verifyBlocks(
         StoredBlock[] memory committedBlocks,
         Proof[] memory proof
@@ -71,8 +71,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.layout().verifiedBlockNum = verifiedBlockNum;
     }
 
-    /// @notice Execute blocks
-    /// @param pendingBlocks The pending blocks to be executed
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function executeBlocks(ExecuteBlock[] memory pendingBlocks) external onlyRole(Config.EXECUTER_ROLE) {
         RollupLib.requireActive();
         uint32 blockNum = uint32(pendingBlocks.length);
@@ -89,8 +90,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         rsl.executedBlockNum = executedBlockNum;
     }
 
-    /// @notice Revert blocks
-    /// @param revertedBlocks The blocks to be reverted
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function revertBlocks(StoredBlock[] memory revertedBlocks) external onlyRole(Config.COMMITTER_ROLE) {
         RollupLib.requireActive();
         uint32 committedBlockNum = RollupLib.getCommittedBlockNum();
@@ -118,11 +120,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         emit BlockReverted(committedBlockNum);
     }
 
-    /// @notice Evacuate the funds of a specified user and token in the evacuMode
-    /// @dev The evacuate fuction will not commit a new state root to make all the users evacuate their funds from the same state
-    /// @param lastExecutedBlock The last executed block
-    /// @param newBlock The new block to be committed with the evacuation operation
-    /// @param proof The proof of the new block
+    /**
+     * @inheritdoc IRollupFacet
+     * @dev The evacuate fuction will not commit a new state root to make all the users evacuate their funds from the same state
+     */
     function evacuate(StoredBlock memory lastExecutedBlock, CommitBlock memory newBlock, Proof memory proof) external {
         if (!RollupLib.isEvacuMode()) revert NotEvacuMode();
         if (RollupLib.getStoredBlockHash(RollupLib.getExecutedBlockNum()) != keccak256(abi.encode(lastExecutedBlock)))
@@ -147,8 +148,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         _evacuate(evacuation);
     }
 
-    /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
-    /// @dev The evacuation mode will be activated when the current block number is greater than the expiration block number of the first pending L1 request
+    /**
+     * @inheritdoc IRollupFacet
+     * @dev The evacuation mode will be activated when the current block number is greater than the expiration block number of the first pending L1 request
+     */
     function activateEvacuation() external {
         RollupLib.requireActive();
         uint64 expirationBlock = RollupLib.getL1Request(RollupLib.getExecutedL1RequestNum()).expirationBlock;
@@ -161,16 +164,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         }
     }
 
-    /// @notice Return the evacuation mode is activated or not
-    /// @return evacuMode The evacuation mode status
-    function isEvacuMode() external view returns (bool) {
+    /**
+     * @inheritdoc IRollupFacet
+     */
+    function isEvacuMode() external view returns (bool evacuMode) {
         return RollupLib.isEvacuMode();
     }
 
-    /// @notice Check whether the register request is in the L1 request queue
-    /// @param register The register request
-    /// @param requestId The id of the request
-    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function isRegisterInL1RequestQueue(
         Operations.Register memory register,
         uint64 requestId
@@ -180,10 +183,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         return true;
     }
 
-    /// @notice Check whether the deposit request is in the L1 request queue
-    /// @param deposit The deposit request
-    /// @param requestId The id of the request
-    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function isDepositInL1RequestQueue(
         Operations.Deposit memory deposit,
         uint64 requestId
@@ -193,10 +195,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         return true;
     }
 
-    /// @notice Check whether the force withdraw request is in the L1 request queue
-    /// @param forceWithdraw The force withdraw request
-    /// @param requestId The id of the request
-    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function isForceWithdrawInL1RequestQueue(
         Operations.ForceWithdraw memory forceWithdraw,
         uint64 requestId
@@ -206,17 +207,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         return true;
     }
 
-    /// @notice Return the L1 request of the specified id
-    /// @param requestId The id of the specified request
-    /// @return request The request of the specified id
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function getL1Request(uint64 requestId) external view returns (L1Request memory request) {
         return RollupLib.getL1Request(requestId);
     }
 
-    /// @notice Return the L1 request number
-    /// @return committedL1RequestNum The number of committed L1 requests
-    /// @return executedL1RequestNum The number of executed L1 requests
-    /// @return totalL1RequestNum The total number of L1 requests
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function getL1RequestNum()
         external
         view
@@ -229,10 +229,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         );
     }
 
-    /// @notice Return the block number
-    /// @return committedBlockNum The number of committed blocks
-    /// @return verifiedBlockNum The number of verified blocks
-    /// @return executedBlockNum The number of executed blocks
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function getBlockNum()
         external
         view
@@ -241,23 +240,26 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         return (RollupLib.getCommittedBlockNum(), RollupLib.getVerifiedBlockNum(), RollupLib.getExecutedBlockNum());
     }
 
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function getStoredBlockHash(uint32 blockNum) external view returns (bytes32 storedBlockHash) {
         return RollupLib.getStoredBlockHash(blockNum);
     }
 
-    /// @notice Return the pending balance of the specified account and token
-    /// @param accountAddr The address of the account
-    /// @param tokenAddr The address of the token
-    /// @return pendingBalance The pending balance of the specified account and token
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128 pendingBalance) {
         uint16 tokenId = TokenLib.getTokenId(tokenAddr);
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
         return RollupLib.getPendingBalances(key);
     }
 
-    /// @notice Commit on block
+    /// @notice Internal function to commit one block
     /// @param previousBlock The previous block
     /// @param newBlock The new block to be committed
+    /// @return storedBlock The committed block
     function _commitOneBlock(
         StoredBlock memory previousBlock,
         CommitBlock memory newBlock
@@ -285,7 +287,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             });
     }
 
-    /// @notice Execute one block
+    /// @notice Internal function to execute one block
     /// @param executeBlock The block to be executed
     /// @param blockNum The block number to be executed
     function _executeOneBlock(ExecuteBlock memory executeBlock, uint32 blockNum) internal {
@@ -333,8 +335,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert PendingRollupTxHashIsNotMatched();
     }
 
-    /// @notice Collect and check the rollup requests
+    /// @notice Internal function to collect and check the rollup requests
     /// @param newBlock The new block to be committed
+    /// @return processableRollupTxHash The hash of the rollup txs to be processed
+    /// @return nextCommittedL1RequestId The next committed L1 request ID
+    /// @return commitmentOffset The offset of the commitment
     function _collectRollupRequests(CommitBlock memory newBlock) internal view returns (bytes32, uint64, bytes memory) {
         bytes memory publicData = newBlock.publicData;
         uint64 nextCommittedL1RequestId = RollupLib.getCommittedL1RequestNum();
@@ -402,10 +407,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         return (processableRollupTxHash, processedL1RequestNum, commitmentOffset);
     }
 
-    /// @notice Create the commitment of the new block
+    /// @notice Internal function create the commitment of the new block
     /// @param previousBlock The previous block
     /// @param newBlock The new block to be committed
     /// @param commitmentOffset The offset of the commitment
+    /// @return commitment The commitment of the new block
     function _createBlockCommitment(
         StoredBlock memory previousBlock,
         CommitBlock memory newBlock,
@@ -425,7 +431,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             );
     }
 
-    /// @notice Check whether the register request is in the L1 request queue
+    /// @notice Internal function to check whether the register request is in the L1 request queue
     /// @param register The register request
     /// @param requestId The id of the request
     function _registerInL1RequestQueue(Operations.Register memory register, uint64 requestId) internal view {
@@ -436,7 +442,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert RequestIsNotExisted(request);
     }
 
-    /// @notice Check whether the deposit request is in the L1 request queue
+    /// @notice Internal function to check whether the deposit request is in the L1 request queue
     /// @param deposit The deposit request
     /// @param requestId The id of the request
     function _depositInL1RequestQueue(Operations.Deposit memory deposit, uint64 requestId) internal view {
@@ -447,7 +453,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert RequestIsNotExisted(request);
     }
 
-    /// @notice Check whether the force withdraw request is in the L1 request queue
+    /// @notice Internal function to check whether the force withdraw request is in the L1 request queue
     /// @param forceWithdraw The force withdraw request
     /// @param requestId The id of the request
     function _forceWithdrawInL1RequestQueue(
@@ -461,7 +467,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert RequestIsNotExisted(request);
     }
 
-    /// @notice Check whether the evacuation is in the L1 request queue
+    /// @notice Internal function to check whether the evacuation is in the L1 request queue
     /// @param evacuation The evacuation request
     /// @param requestId The id of the request
     function _evacuationInL1RequestQueue(Operations.Evacuation memory evacuation, uint64 requestId) internal view {
@@ -472,7 +478,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert RequestIsNotExisted(request);
     }
 
-    /// @notice Verify one block
+    /// @notice Internal function to verify one block
     /// @param committedBlock The committed block
     /// @param proof The proof of the block
     function _verifyOneBlock(StoredBlock memory committedBlock, Proof memory proof) internal view {
@@ -482,7 +488,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
 
-    /// @notice Increase the pending balance of an account
+    /// @notice Internal function to increase the pending balance of an account
     /// @param accountId The id of the account
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
@@ -495,7 +501,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.layout().pendingBalances[key] += amount;
     }
 
-    /// @notice Update the onchain loan info
+    /// @notice Internal function to update the onchain loan info
     /// @param auctionEnd The auction end request
     function _updateLoan(Operations.AuctionEnd memory auctionEnd) internal {
         Utils.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
@@ -550,7 +556,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         );
     }
 
-    /// @notice Withdraw fee to treasury, vault, and insurance
+    /// @notice Internal function to withdraw fee to treasury, vault, and insurance
     /// @param withdrawFee The withdraw fee request
     function _withdrawFee(Operations.WithdrawFee memory withdrawFee) internal {
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(withdrawFee.tokenId);
@@ -576,7 +582,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Utils.transfer(assetConfig.tokenAddr, payable(toAddr), l1Amt);
     }
 
-    /// @notice Verify evacuation block
+    /// @notice Internal function to verify evacuation block
     /// @param commitment The commitment of the block
     /// @param proof The proof of the block
     function _verifyEvacuationBlock(bytes32 commitment, Proof memory proof) internal view {
@@ -586,6 +592,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
 
+    /// @notice Internal function to evacuate token to L1
+    /// @param evacuation The evacuation request
     function _evacuate(Operations.Evacuation memory evacuation) internal {
         if (RollupLib.isEvacuated(evacuation.accountId, evacuation.tokenId))
             revert Evacuated(evacuation.accountId, evacuation.tokenId);
@@ -604,7 +612,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         emit Evacuation(receiver, evacuation.accountId, evacuation.tokenId, l1Amt);
     }
 
-    /// @notice Check whether the request id is greater than the current request number
+    /// @notice Internal function to check whether the request id is greater than the current request number
     /// @param requestId The id of the request
     /// @return bool Return true is the request id is greater than the current request number, else return false
     function _isRequestIdGtCurRequestNum(uint64 requestId) internal view returns (bool) {

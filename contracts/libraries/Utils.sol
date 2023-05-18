@@ -23,6 +23,8 @@ library Utils {
     /// @notice Error for get invalid price
     error InvalidPrice(int256 price);
 
+    /// @notice Internal function to check the address is not zero address
+    /// @param addr The address to be checked
     function noneZeroAddr(address addr) internal pure {
         if (addr == address(0)) revert InvalidZeroAddr();
     }
@@ -63,7 +65,7 @@ library Utils {
         }
     }
 
-    /// @notice Get the price of the token
+    /// @notice Internal function to get the price from price feed contract
     /// @dev The price is normalized to 18 decimals
     /// @param priceFeed The address of the price feed
     /// @return normalizedPirce The price with 18 decimals

@@ -30,6 +30,9 @@ library LoanLib {
         if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert HealthFactorUnderThreshold(healthFactor);
     }
 
+    /// @notice Internal function to check if the loan is liquidable
+    /// @param healthFactor The health factor of the loan
+    /// @param maturityTime The maturity time of the loan
     function loanIsLiquidable(uint256 healthFactor, uint32 maturityTime) internal view {
         if (healthFactor >= Config.HEALTH_FACTOR_THRESHOLD && maturityTime >= block.timestamp)
             revert LoanIsHealthy(healthFactor);
@@ -88,28 +91,32 @@ library LoanLib {
         return (liquidationFactor, collateralAsset, debtAsset);
     }
 
-    /// @notice Return the loan
+    /// @notice Internal function to get the loan
     /// @param loanId The id of the loan
     /// @return loan The loan info
     function getLoan(bytes12 loanId) internal view returns (Loan memory) {
         return LoanStorage.layout().loans[loanId];
     }
 
-    /// @notice Return half liquidation threshold
+    /// @notice Internal function to get the half liquidation threshold
     /// @return halfLiquidationThreshold The half liquidation threshold
     function getHalfLiquidationThreshold() internal view returns (uint16) {
         return LoanStorage.layout().halfLiquidationThreshold;
     }
 
+    /// @notice Internal function to get the liquidation factor
+    /// @return liquidationFactor The liquidation factor
     function getLiquidationFactor() internal view returns (LiquidationFactor memory) {
         return LoanStorage.layout().liquidationFactor;
     }
 
+    /// @notice Internal function to get the stable coin pair liquidation factor
+    /// @return liquidationFactor The stable coin pair liquidation factor
     function getStableCoinPairLiquidationFactor() internal view returns (LiquidationFactor memory) {
         return LoanStorage.layout().stableCoinPairLiquidationFactor;
     }
 
-    /// @notice Return the loan id
+    /// @notice Internal function to get the loan id by the loan info
     /// @param accountId The account id
     /// @param maturityTime The maturity time
     /// @param debtTokenId The debt token id

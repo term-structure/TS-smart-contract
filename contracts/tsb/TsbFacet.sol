@@ -15,20 +15,17 @@ import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
 contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
-    /// @notice Create a new tsbToken
-    /// @dev This function is called by governance
-    /// @param underlyingTokenId The token id of the underlying asset
-    /// @param maturityTime The maturity time of the tsbToken
-    /// @param name The name of the tsbToken
-    /// @param symbol The symbol of the tsbToken
-    /// @return tsbTokenAddr The address of the tsbToken
+    /**
+     * @inheritdoc ITsbFacet
+     * @dev This function is only called by the operator
+     */
     //! virtual for test
     function createTsbToken(
         uint16 underlyingTokenId,
         uint32 maturityTime,
         string memory name,
         string memory symbol
-    ) external virtual onlyRole(Config.OPERATOR_ROLE) returns (address) {
+    ) external virtual onlyRole(Config.OPERATOR_ROLE) returns (address tsbTokenAddr) {
         if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime);
         address underlyingAssetAddr = TokenLib.getAssetConfig(underlyingTokenId).tokenAddr;
         if (underlyingAssetAddr == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
@@ -41,11 +38,10 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         return tsbTokenAddr;
     }
 
-    /// @notice Redeem tsbToken
-    /// @dev TSB token can be redeemed only after maturity
-    /// @param tsbTokenAddr The address of the tsbToken
-    /// @param amount The amount of the tsbToken
-    /// @param redeemAndDeposit Whether to deposit the underlying asset after redeem the tsbToken
+    /**
+     * @inheritdoc ITsbFacet
+     * @dev TSB token can be redeemed only after maturity
+     */
     function redeem(address tsbTokenAddr, uint128 amount, bool redeemAndDeposit) external nonReentrant {
         (, AssetConfig memory assetConfig) = TokenLib.getAssetConfig(tsbTokenAddr);
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
@@ -65,53 +61,51 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         }
     }
 
-    /* ========== External View Functions ========== */
-
-    /// @notice Get the address of the tsbToken
-    /// @param underlyingTokenId The token id of the underlying asset
-    /// @param maturity The maturity of the tsbToken
-    /// @return tsbTokenAddr The address of the tsbToken
-    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address) {
+    /**
+     * @inheritdoc ITsbFacet
+     */
+    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address tsbTokenAddr) {
         return TsbLib.getTsbTokenAddr(TsbLib.getTsbTokenKey(underlyingTokenId, maturity));
     }
 
-    /// @notice Check the balance of the tsbToken
-    /// @param account The address of the account
-    /// @param tsbTokenAddr The address of the tsbToken
-    /// @return balance The balance of the tsbToken
-    function balanceOf(address account, address tsbTokenAddr) external view returns (uint256) {
+    /**
+     * @inheritdoc ITsbFacet
+     */
+    function balanceOf(address account, address tsbTokenAddr) external view returns (uint256 balance) {
         return ITsbToken(tsbTokenAddr).balanceOf(account);
     }
 
-    /// @notice Check the allowance of the tsbToken
-    /// @param owner The address of the owner
-    /// @param spender The address of the spender
-    /// @param tsbTokenAddr The address of the tsbToken
-    /// @return allowance_ The allowance of the tsbToken
-    function allowance(address owner, address spender, address tsbTokenAddr) external view returns (uint256) {
+    /**
+     * @inheritdoc ITsbFacet
+     */
+    function allowance(
+        address owner,
+        address spender,
+        address tsbTokenAddr
+    ) external view returns (uint256 allowance_) {
         return ITsbToken(tsbTokenAddr).allowance(owner, spender);
     }
 
-    /// @notice Check the total supply of the tsbToken
-    /// @param tsbTokenAddr The address of the tsbToken
-    /// @return totalSupply The total supply of the tsbToken
-    function activeSupply(address tsbTokenAddr) external view returns (uint256) {
+    /**
+     * @inheritdoc ITsbFacet
+     */
+    function activeSupply(address tsbTokenAddr) external view returns (uint256 totalSupply) {
         return ITsbToken(tsbTokenAddr).totalSupply();
     }
 
-    /// @notice Get the address of the underlying asset of the tsbToken
-    /// @param tsbTokenAddr The address of the tsbToken
-    /// @return underlyingAsset The address of the underlying asset of the tsbToken
-    function getUnderlyingAsset(address tsbTokenAddr) external view returns (address) {
-        (address underlyingAsset, ) = ITsbToken(tsbTokenAddr).tokenInfo();
+    /**
+     * @inheritdoc ITsbFacet
+     */
+    function getUnderlyingAsset(address tsbTokenAddr) external view returns (address underlyingAsset) {
+        (underlyingAsset, ) = ITsbToken(tsbTokenAddr).tokenInfo();
         return underlyingAsset;
     }
 
-    /// @notice Get the maturity time of the tsbToken
-    /// @param tsbTokenAddr The address of the tsbToken
-    /// @return maturityTime The maturity time of the tsbToken
-    function getMaturityTime(address tsbTokenAddr) external view returns (uint32) {
-        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+    /**
+     * @inheritdoc ITsbFacet
+     */
+    function getMaturityTime(address tsbTokenAddr) external view returns (uint32 maturityTime) {
+        (, maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
         return maturityTime;
     }
 }

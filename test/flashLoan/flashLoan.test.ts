@@ -64,7 +64,7 @@ const fixture = async () => {
   return res;
 };
 
-describe("flash loan", () => {
+describe("Flash loan", () => {
   let [user1]: Signer[] = [];
   let [user1Addr]: string[] = [];
   let treasuryAddr: string;
@@ -104,7 +104,7 @@ describe("flash loan", () => {
     priceFeeds = res.priceFeeds;
   });
 
-  describe("flash loan but do nothing", () => {
+  describe("Flash loan but do nothing", () => {
     let wbtc: ERC20Mock;
     let usdt: ERC20Mock;
     let usdc: ERC20Mock;
@@ -388,7 +388,7 @@ describe("flash loan", () => {
       ).revertedWithCustomError(diamondFlashLoan, "InputLengthMismatch");
     });
   });
-  describe("flash loan to liquidation", () => {
+  describe("Flash loan to liquidation", () => {
     let flashLoanToLiquidation: FlashLoanToLiquidation;
     const liquidationFactor = LIQUIDATION_FACTOR;
     const tsbTokenData = tsbTokensJSON[3]; // tsb USDC

@@ -71,11 +71,22 @@ interface ITokenFacet {
     /// @param minDepositAmt The minimum deposit amount
     function setMinDepositAmt(address tokenAddr, uint128 minDepositAmt) external;
 
-    function getTokenNum() external view returns (uint16);
+    /// @notice Return the token number
+    /// @return tokenNum The token number
+    function getTokenNum() external view returns (uint16 tokenNum);
 
-    function getTokenId(address tokenAddr) external view returns (uint16);
+    /// @notice Return the token id
+    /// @param tokenAddr The token address
+    /// @return tokenId The token id
+    function getTokenId(address tokenAddr) external view returns (uint16 tokenId);
 
-    function getAssetConfig(uint16 tokenId) external view returns (AssetConfig memory);
+    /// @notice Return the asset config of a token by token id
+    /// @param tokenId The token id
+    /// @return assetConfig The asset config of the token
+    function getAssetConfig(uint16 tokenId) external view returns (AssetConfig memory assetConfig);
 
-    function isTokenPaused(address tokenAddr) external view returns (bool);
+    /// @notice Return the status of a token
+    /// @param tokenAddr The token address
+    /// @return isPaused Whether the token is paused
+    function isTokenPaused(address tokenAddr) external view returns (bool isPaused);
 }

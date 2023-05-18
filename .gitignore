@@ -10,5 +10,7 @@ cache
 artifacts
 
 .history
+docgen
 reports
+.VSCodeCounter
 

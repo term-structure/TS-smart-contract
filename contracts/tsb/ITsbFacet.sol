@@ -68,19 +68,19 @@ interface ITsbFacet {
     /// @param spender The address of the spender
     /// @param tsbTokenAddr The address of the tsbToken
     /// @return allowance_ The allowance of the tsbToken
-    function allowance(address owner, address spender, address tsbTokenAddr) external view returns (uint256);
+    function allowance(address owner, address spender, address tsbTokenAddr) external view returns (uint256 allowance_);
 
     /// @notice Check the total supply of the tsbToken
     /// @param tsbTokenAddr The address of the tsbToken
     /// @return totalSupply The total supply of the tsbToken
-    function activeSupply(address tsbTokenAddr) external view returns (uint256);
+    function activeSupply(address tsbTokenAddr) external view returns (uint256 totalSupply);
 
-    /// @notice Get the address of the underlying asset of the tsbToken
+    /// @notice Return the address of the underlying asset of the tsbToken
     /// @param tsbTokenAddr The address of the tsbToken
     /// @return underlyingAsset The address of the underlying asset of the tsbToken
     function getUnderlyingAsset(address tsbTokenAddr) external view returns (address underlyingAsset);
 
-    /// @notice Get the maturity time of the tsbToken
+    /// @notice Return the maturity time of the tsbToken
     /// @param tsbTokenAddr The address of the tsbToken
     /// @return maturityTime The maturity time of the tsbToken
     function getMaturityTime(address tsbTokenAddr) external view returns (uint32 maturityTime);

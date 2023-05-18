@@ -49,13 +49,14 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     runOnCompile: true,
     strict: true,
-    // outputFile: resolve(__dirname, "./reports/contract-sizes.txt"),
+    outputFile: resolve(__dirname, "./reports/contract-sizes.txt"),
   },
   gasReporter: {
     enabled: getBoolean(process.env.REPORT_GAS, true),
     currency: "USD",
     gasPrice: 20,
-    // outputFile: resolve(__dirname, './reports/gas-report.txt'),
+    noColors: true,
+    outputFile: resolve(__dirname, "./reports/gas-report.txt"),
   },
 };
 

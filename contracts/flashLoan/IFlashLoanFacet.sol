@@ -37,7 +37,11 @@ interface IFlashLoanFacet {
         bytes calldata data
     ) external;
 
+    /// @notice Set the flash loan premium
+    /// @param flashLoanPremium The flash loan premium
     function setFlashLoanPremium(uint16 flashLoanPremium) external;
 
-    function getFlashLoanPremium() external view returns (uint16);
+    /// @notice Get the flash loan premium
+    /// @return flashLoanPremium The flash loan premium
+    function getFlashLoanPremium() external view returns (uint16 flashLoanPremium);
 }

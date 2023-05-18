@@ -15,14 +15,12 @@ import {Config} from "../libraries/Config.sol";
 contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
     using SafeERC20 for ISolidStateERC20;
 
-    /// @notice flash loan function
-    /// @notice The flash loan function is used to borrow tokens from ZkTrueUp
-    /// @notice The borrower must repay the borrowed tokens and the premium to ZkTrueUp
-    /// @notice The flash loan function is borrow WETH instead of ETH
-    /// @param receiver The address of the receiver contract which will implement the IFlashLoanReceiver interface
-    /// @param assets The array of the token addresses
-    /// @param amounts The array of the token amounts
-    /// @param data The data to be passed to the receiver contract
+    /**
+     * @inheritdoc IFlashLoanFacet
+     * @notice The flash loan function is used to borrow tokens from ZkTrueUp
+     * @notice The borrower must repay the borrowed tokens and the premium to ZkTrueUp
+     * @notice The flash loan function is borrow WETH instead of ETH
+     */
     function flashLoan(
         address payable receiver,
         address[] memory assets,
@@ -49,13 +47,17 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
         }
     }
 
-    /// @notice Set the flash loan premium
-    /// @param flashLoanPremium The flash loan premium
+    /**
+     * @inheritdoc IFlashLoanFacet
+     */
     function setFlashLoanPremium(uint16 flashLoanPremium) external onlyRole(Config.ADMIN_ROLE) {
         FlashLoanStorage.layout().flashLoanPremium = flashLoanPremium;
         emit SetFlashLoanPremium(flashLoanPremium);
     }
 
+    /**
+     * @inheritdoc IFlashLoanFacet
+     */
     function getFlashLoanPremium() external view returns (uint16) {
         return FlashLoanLib.getFlashLoanPremium();
     }

@@ -15,6 +15,8 @@ library TokenLib {
     /// @notice Error for register account with tsb token
     error InvalidBaseTokenAddr(address invalidTokenAddr);
 
+    /// Internal function to check if the token is base token
+    /// @param tokenAddr The token address to be checked
     function requireBaseToken(address tokenAddr) internal view {
         (, AssetConfig memory assetConfig) = getValidToken(tokenAddr);
         if (assetConfig.isTsbToken) revert InvalidBaseTokenAddr(tokenAddr);
@@ -27,13 +29,13 @@ library TokenLib {
         if (depositAmt < assetConfig.minDepositAmt) revert InvalidDepositAmt(depositAmt);
     }
 
-    /// @notice Return the total number of the registered tokens
+    /// @notice Internal function to get the total number of the registered tokens
     /// @return tokenNum The total number of the registered tokens
     function getTokenNum() internal view returns (uint16) {
         return TokenStorage.layout().tokenNum;
     }
 
-    /// @notice Return the valid Layer2 token address and the configuration of the token
+    /// @notice Internal function to get the valid Layer2 token address and the configuration of the token
     /// @dev The L1 token address of a valid token cannot be 0 address and the token can not be paused
     /// @param tokenAddr The token address on Layer1
     /// @return tokenId The token id on Layer2
@@ -48,7 +50,7 @@ library TokenLib {
         return (tokenId, assetConfig);
     }
 
-    /// @notice Get valid token id by l1 token address
+    /// @notice Internal function to get valid token id by l1 token address
     /// @param tokenAddr The token address on Layer1
     /// @return tokenId The token id on Layer2
     function getValidTokenId(address tokenAddr) internal view returns (uint16) {
@@ -57,22 +59,32 @@ library TokenLib {
         return tokenId;
     }
 
+    /// @notice Internal function to get the configuration of the token by token id
+    /// @param tokenId The token id on Layer2
+    /// @return assetConfig The configuration of the token
     function getAssetConfig(uint16 tokenId) internal view returns (AssetConfig memory) {
         return TokenStorage.layout().assetConfigs[tokenId];
     }
 
+    /// @notice Internal function to get the configuration of the token by token address
+    /// @param tokenAddr The token address on Layer1
+    /// @return tokenId The token id on Layer2
+    /// @return assetConfig The configuration of the token
     function getAssetConfig(address tokenAddr) internal view returns (uint16, AssetConfig memory) {
         uint16 tokenId = getTokenId(tokenAddr);
         return (tokenId, TokenStorage.layout().assetConfigs[tokenId]);
     }
 
-    /// @notice Return the Layer2 token address of the Layer1 token
+    /// @notice Internal function to get the Layer2 token id by token address
     /// @param tokenAddr The token address on Layer1
     /// @return tokenId The token id on Layer2
     function getTokenId(address tokenAddr) internal view returns (uint16) {
         return TokenStorage.layout().tokenIds[tokenAddr];
     }
 
+    /// @notice Internal function to get the status of the token
+    /// @param tokenAddr The token address on Layer1
+    /// @return isPaused The status of the token
     function isPaused(address tokenAddr) internal view returns (bool) {
         return TokenStorage.layout().isPaused[tokenAddr];
     }

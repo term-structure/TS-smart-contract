@@ -61,7 +61,7 @@ const fixture = async () => {
   return res;
 };
 
-describe("repay and deposit", () => {
+describe("Repay and deposit", () => {
   let [user1, user2]: Signer[] = [];
   let [user1Addr, user2Addr]: string[] = [];
   let operator: Signer;
