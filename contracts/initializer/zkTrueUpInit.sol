@@ -13,8 +13,6 @@ import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {Config, InitConfig} from "../libraries/Config.sol";
 
-import "hardhat/console.sol";
-
 contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
     function init(bytes calldata data) external {
         (
