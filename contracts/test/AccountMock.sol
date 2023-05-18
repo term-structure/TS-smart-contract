@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {AccountFacet} from "../account/AccountFacet.sol";
-import {AccountLib} from "../account/AccountLib.sol";
-import {TokenLib} from "../token/TokenLib.sol";
-import {RollupLib} from "../rollup/RollupLib.sol";
-import {TsbLib} from "../tsb/TsbLib.sol";
-import {AssetConfig} from "../token/TokenStorage.sol";
-import {Utils} from "../libraries/Utils.sol";
+import {AccountFacet} from "../zkTrueUp/account/AccountFacet.sol";
+import {AccountLib} from "../zkTrueUp/account/AccountLib.sol";
+import {TokenLib} from "../zkTrueUp/token/TokenLib.sol";
+import {RollupLib} from "../zkTrueUp/rollup/RollupLib.sol";
+import {TsbLib} from "../zkTrueUp/tsb/TsbLib.sol";
+import {AssetConfig} from "../zkTrueUp/token/TokenStorage.sol";
+import {Utils} from "../zkTrueUp/libraries/Utils.sol";
 
 //! Mock contract for testing
 contract AccountMock is AccountFacet {

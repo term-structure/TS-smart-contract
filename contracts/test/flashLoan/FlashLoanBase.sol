@@ -3,9 +3,9 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IFlashLoanFacet} from "../../flashLoan/IFlashLoanFacet.sol";
-import {ILoanFacet} from "../../loan/ILoanFacet.sol";
-import {IFlashLoanReceiver} from "../../interfaces/IFlashLoanReceiver.sol";
+import {IFlashLoanFacet} from "../../zkTrueUp/flashLoan/IFlashLoanFacet.sol";
+import {ILoanFacet} from "../../zkTrueUp/loan/ILoanFacet.sol";
+import {IFlashLoanReceiver} from "../../zkTrueUp/interfaces/IFlashLoanReceiver.sol";
 
 /// @title FlashLoanBase
 /// @notice Flash Loan base contract

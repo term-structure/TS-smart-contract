@@ -3,10 +3,10 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IFlashLoanFacet} from "../../flashLoan/IFlashLoanFacet.sol";
-import {ILoanFacet, Loan} from "../../loan/ILoanFacet.sol";
-import {ITokenFacet} from "../../token/ITokenFacet.sol";
-import {IFlashLoanReceiver} from "../../interfaces/IFlashLoanReceiver.sol";
+import {IFlashLoanFacet} from "../../zkTrueUp/flashLoan/IFlashLoanFacet.sol";
+import {ILoanFacet, Loan} from "../../zkTrueUp/loan/ILoanFacet.sol";
+import {ITokenFacet} from "../../zkTrueUp/token/ITokenFacet.sol";
+import {IFlashLoanReceiver} from "../../zkTrueUp/interfaces/IFlashLoanReceiver.sol";
 
 /// @title FlashLoanToLiquidation
 /// @notice Flash Loan to liquidate a loan

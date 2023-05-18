@@ -3,7 +3,7 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../interfaces/AggregatorV3Interface.sol";
+import "../zkTrueUp/interfaces/AggregatorV3Interface.sol";
 
 contract OracleMock is AggregatorV3Interface, Ownable {
     struct RoundData {

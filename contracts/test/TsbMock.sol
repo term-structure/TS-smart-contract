@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {TsbFacet} from "../tsb/TsbFacet.sol";
-import {TokenLib} from "../token/TokenLib.sol";
-import {TsbLib} from "../tsb/TsbLib.sol";
-import {TsbStorage} from "../tsb/TsbStorage.sol";
-import {TsbToken} from "../TsbToken.sol";
-import {Config} from "../libraries/Config.sol";
+import {TsbFacet} from "../zkTrueUp/tsb/TsbFacet.sol";
+import {TokenLib} from "../zkTrueUp/token/TokenLib.sol";
+import {TsbLib} from "../zkTrueUp/tsb/TsbLib.sol";
+import {TsbStorage} from "../zkTrueUp/tsb/TsbStorage.sol";
+import {TsbToken} from "../zkTrueUp/tsb/TsbToken.sol";
+import {Config} from "../zkTrueUp/libraries/Config.sol";
 
 contract TsbMock is TsbFacet {
     //! Mock contract for testing

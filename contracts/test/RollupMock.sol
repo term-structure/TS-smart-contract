@@ -2,15 +2,15 @@
 pragma solidity ^0.8.17;
 
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
-import {RollupFacet} from "../rollup/RollupFacet.sol";
-import {TokenLib} from "../token/TokenLib.sol";
-import {LoanLib} from "../loan/LoanLib.sol";
-import {Operations} from "../libraries/Operations.sol";
-import {ITsbToken} from "../interfaces/ITsbToken.sol";
-import {AssetConfig} from "../token/TokenStorage.sol";
-import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
-import {Utils} from "../libraries/Utils.sol";
-import {Config} from "../libraries/Config.sol";
+import {RollupFacet} from "../zkTrueUp/rollup/RollupFacet.sol";
+import {TokenLib} from "../zkTrueUp/token/TokenLib.sol";
+import {LoanLib} from "../zkTrueUp/loan/LoanLib.sol";
+import {Operations} from "../zkTrueUp/libraries/Operations.sol";
+import {ITsbToken} from "../zkTrueUp/interfaces/ITsbToken.sol";
+import {AssetConfig} from "../zkTrueUp/token/TokenStorage.sol";
+import {LoanStorage, Loan} from "../zkTrueUp/loan/LoanStorage.sol";
+import {Utils} from "../zkTrueUp/libraries/Utils.sol";
+import {Config} from "../zkTrueUp/libraries/Config.sol";
 
 contract RollupMock is RollupFacet {
     function updateLoanMock(Operations.AuctionEnd memory auctionEnd) external {
