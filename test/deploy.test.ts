@@ -42,6 +42,8 @@ import { AddressFacet } from "../typechain-types/contracts/address";
 import { keccak256 } from "ethers/lib/utils";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 import { useFacet } from "../utils/useFacet";
+import initStates from "./data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+const genesisStateRoot = initStates.stateRoot;
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
@@ -148,8 +150,10 @@ describe("Deploy", () => {
     vault = ethers.Wallet.createRandom();
   });
   it("Success to deploy", async function () {
-    const diamondZkTrueUpMock = await useFacet("ZkTrueUpMock", zkTrueUpMock);
-
+    const diamondZkTrueUpMock = (await useFacet(
+      "ZkTrueUpMock",
+      zkTrueUpMock
+    )) as ZkTrueUpMock;
     // account diamond cut
     const registeredAccFnSelectors = await diamondCut(
       deployer,
@@ -157,7 +161,6 @@ describe("Deploy", () => {
       accountFacet.address,
       AccountFacet
     );
-
     // check that account function selectors are registered
     expect(
       await diamondZkTrueUpMock.facetFunctionSelectors(accountFacet.address)
@@ -328,7 +331,7 @@ describe("Deploy", () => {
         treasury.address,
         insurance.address,
         vault.address,
-        DEFAULT_GENESIS_STATE_ROOT,
+        genesisStateRoot ?? DEFAULT_GENESIS_STATE_ROOT,
         {
           isStableCoin: ETH_ASSET_CONFIG.isStableCoin,
           isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
@@ -339,7 +342,6 @@ describe("Deploy", () => {
         },
       ]
     );
-
     // init diamond cut
     await diamondInit(
       deployer,
@@ -464,8 +466,8 @@ describe("Deploy", () => {
           0,
           0,
           "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-          utils.hexZeroPad(ethers.utils.hexlify(0), 32),
-          DEFAULT_GENESIS_STATE_ROOT,
+          utils.hexZeroPad(utils.hexlify(0), 32),
+          genesisStateRoot ?? DEFAULT_GENESIS_STATE_ROOT,
           0,
         ]
       )
@@ -541,7 +543,7 @@ describe("Deploy", () => {
         treasury.address,
         insurance.address,
         vault.address,
-        DEFAULT_GENESIS_STATE_ROOT,
+        genesisStateRoot ?? DEFAULT_GENESIS_STATE_ROOT,
         {
           isStableCoin: ETH_ASSET_CONFIG.isStableCoin,
           isTsbToken: ETH_ASSET_CONFIG.isTsbToken,

@@ -75,7 +75,7 @@ describe("TsFaucet", () => {
   });
 
   describe("Deploy tsFaucet", () => {
-    it("Deploy success", async () => {
+    it("Success to deploy", async () => {
       // constructor params
       expect(await tsFaucet.zkTrueUp()).to.equal(zkTrueUp.address);
 
