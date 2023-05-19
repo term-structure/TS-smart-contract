@@ -37,8 +37,8 @@ import {
   DEFAULT_GENESIS_STATE_ROOT,
 } from "../../utils/config";
 import { deployFacets } from "../../utils/deployFacets";
-import { AddressFacet__factory } from "../../typechain-types/factories/contracts/address";
-import { AddressFacet } from "../../typechain-types/contracts/address";
+import { AddressFacet__factory } from "../../typechain-types/factories/contracts/zkTrueUp/address";
+import { AddressFacet } from "../../typechain-types/contracts/zkTrueUp/address";
 import { keccak256 } from "ethers/lib/utils";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 import { useFacet } from "../../utils/useFacet";

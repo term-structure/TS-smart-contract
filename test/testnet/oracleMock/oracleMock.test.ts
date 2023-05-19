@@ -1,6 +1,5 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-
 import { OracleMock, TokenFacet } from "../../../typechain-types";
 import { FACET_NAMES } from "../../../utils/config";
 import { useFacet } from "../../../utils/useFacet";

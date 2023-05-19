@@ -6,14 +6,14 @@ import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
 import { DEFAULT_ZERO_ADDR, FACET_NAMES } from "../../../utils/config";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
+import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
+import { tsbTokensJSON } from "../../data/tsbTokens";
 import {
   TokenFacet,
   TsbFacet,
   TsbToken,
   ZkTrueUp,
 } from "../../../typechain-types";
-import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
-import { tsbTokensJSON } from "../../data/tsbTokens";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);

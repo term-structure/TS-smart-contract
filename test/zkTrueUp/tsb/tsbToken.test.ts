@@ -5,6 +5,12 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
+import { whiteListBaseTokens } from "../../utils/whitelistToken";
+import { BaseTokenAddresses } from "../../../utils/type";
+import { tsbTokensJSON } from "../../data/tsbTokens";
+import { DEFAULT_ETH_ADDRESS, TS_DECIMALS } from "term-structure-sdk";
+import { DEFAULT_ZERO_ADDR } from "../../../utils/config";
+import { register } from "../../utils/register";
 import {
   AccountMock,
   TokenFacet,
@@ -13,12 +19,6 @@ import {
   WETH9,
   ZkTrueUp,
 } from "../../../typechain-types";
-import { whiteListBaseTokens } from "../../utils/whitelistToken";
-import { BaseTokenAddresses } from "../../../utils/type";
-import { tsbTokensJSON } from "../../data/tsbTokens";
-import { DEFAULT_ETH_ADDRESS, TS_DECIMALS } from "term-structure-sdk";
-import { DEFAULT_ZERO_ADDR, FACET_NAMES } from "../../../utils/config";
-import { register } from "../../utils/register";
 
 //! use AccountMock instead of AccountFacet for testing
 export const FACET_NAMES_MOCK = [

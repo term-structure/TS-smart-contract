@@ -7,6 +7,7 @@ import { deployAndInit } from "../../utils/deployAndInit";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import { useFacet } from "../../../utils/useFacet";
 import { FACET_NAMES } from "../../../utils/config";
+import { register } from "../../utils/register";
 import {
   AccountFacet,
   ERC20Mock,
@@ -19,7 +20,6 @@ import {
   MIN_DEPOSIT_AMOUNT,
   TsTokenId,
 } from "term-structure-sdk";
-import { register } from "../../utils/register";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);

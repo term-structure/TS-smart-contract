@@ -13,4 +13,5 @@ artifacts
 docgen
 reports
 .VSCodeCounter
+.vscode
 

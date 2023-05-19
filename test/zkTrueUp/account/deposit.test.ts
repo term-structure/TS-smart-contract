@@ -9,6 +9,7 @@ import { DEFAULT_ZERO_ADDR } from "../../../utils/config";
 import { register } from "../../utils/register";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import { BaseTokenAddresses } from "../../../utils/type";
+import { tsbTokensJSON } from "../../data/tsbTokens";
 import {
   AccountMock,
   ERC20Mock,
@@ -26,7 +27,6 @@ import {
   TS_DECIMALS,
   TsTokenId,
 } from "term-structure-sdk";
-import { tsbTokensJSON } from "../../data/tsbTokens";
 
 //! use AccountMock instead of AccountFacet for testing
 export const FACET_NAMES_MOCK = [

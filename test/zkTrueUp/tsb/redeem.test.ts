@@ -15,7 +15,6 @@ import {
   AccountMock,
   ERC20Mock,
   TokenFacet,
-  TsbFacet,
   TsbLib,
   TsbMock,
   TsbToken,

@@ -3,6 +3,12 @@ import { BigNumber, utils, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { resolve } from "path";
+import { useFacet } from "../../../utils/useFacet";
+import { deployAndInit } from "../../utils/deployAndInit";
+import { FACET_NAMES } from "../../../utils/config";
+import { whiteListBaseTokens } from "../../utils/whitelistToken";
+import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+import { AccountState, BaseTokenAddresses } from "../../../utils/type";
 import {
   DEFAULT_ETH_ADDRESS,
   EMPTY_HASH,
@@ -20,9 +26,6 @@ import {
   WETH9,
   ZkTrueUp,
 } from "../../../typechain-types";
-import { useFacet } from "../../../utils/useFacet";
-import { deployAndInit } from "../../utils/deployAndInit";
-import { FACET_NAMES } from "../../../utils/config";
 import {
   checkStates,
   doCreateBondToken,
@@ -39,9 +42,6 @@ import {
   initTestData,
   readEvacuationPubData,
 } from "../../utils/rollupHelper";
-import { whiteListBaseTokens } from "../../utils/whitelistToken";
-import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
-import { AccountState, BaseTokenAddresses } from "../../../utils/type";
 import {
   CommitBlockStruct,
   ExecuteBlockStruct,

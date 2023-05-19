@@ -6,6 +6,11 @@ import { resolve } from "path";
 import { EMPTY_HASH, TsTxType } from "term-structure-sdk";
 // import initStates from '../../../data/rollupTestData/phase6-refactor-8-10-8-6-3-3-31/initStates.json';
 import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+import { FACET_NAMES } from "../../../utils/config";
+import { useFacet } from "../../../utils/useFacet";
+import { deployAndInit } from "../../utils/deployAndInit";
+import { whiteListBaseTokens } from "../../utils/whitelistToken";
+import { AccountState, BaseTokenAddresses } from "../../../utils/type";
 import {
   CommitBlockStruct,
   ExecuteBlockStruct,
@@ -21,11 +26,6 @@ import {
   TsbFacet,
   ZkTrueUp,
 } from "../../../typechain-types";
-import { FACET_NAMES } from "../../../utils/config";
-import { useFacet } from "../../../utils/useFacet";
-import { deployAndInit } from "../../utils/deployAndInit";
-import { whiteListBaseTokens } from "../../utils/whitelistToken";
-import { AccountState, BaseTokenAddresses } from "../../../utils/type";
 import {
   checkStates,
   doCreateBondToken,
