@@ -1,4 +1,3 @@
-import { ethers } from "hardhat";
 import { ZkTrueUp } from "../typechain-types";
 import { ContractFactory } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -24,7 +23,7 @@ export const diamondInit = async (
     initData,
   ]);
 
-  // execute init function from init facet
+  // execute init function from init facet, only call once and not register functions
   const initTx = await diamond
     .connect(signer)
     .diamondCut([], initContractAddr, functionCall);
