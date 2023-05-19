@@ -60,17 +60,19 @@ export class AccountState {
   }
 }
 
-export function getBoolean(str: string | undefined, _default: boolean) {
+export function getBoolean(str: string | undefined) {
   try {
-    if (str === "" || typeof str === "undefined") return _default;
+    if (str === "" || typeof str === "undefined")
+      throw new Error(`'${str}' is not a boolean`);
     return !!JSON.parse(str.toLowerCase());
   } catch (error) {
     throw new Error(`'${str}' is not a boolean`);
   }
 }
 
-export function getNumber(str: string | undefined, _default: number) {
-  if (str === "" || typeof str === "undefined") return _default;
+export function getNumber(str: string | undefined) {
+  if (str === "" || typeof str === "undefined")
+    throw new Error(`'${str}' is not a number`);
   const num = JSON.parse(str);
   if (typeof num === "number") {
     return num;
@@ -78,7 +80,12 @@ export function getNumber(str: string | undefined, _default: number) {
   throw new Error(`'${str}' is not a number`);
 }
 
-export function getString(str: string | undefined, _default: string) {
-  if (str === "" || typeof str === "undefined") return _default;
-  return str;
+export function getString(str: string | undefined) {
+  try {
+    if (str === "" || typeof str === "undefined")
+      throw new Error(`'${str}' is not a string`);
+    return str;
+  } catch (error) {
+    throw new Error(`'${str}' is not a string`);
+  }
 }

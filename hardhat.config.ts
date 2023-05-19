@@ -57,7 +57,7 @@ const config: HardhatUserConfig = {
     outputFile: resolve(__dirname, "./reports/contract-sizes.txt"),
   },
   gasReporter: {
-    enabled: getBoolean(process.env.REPORT_GAS, true),
+    enabled: true,
     currency: "USD",
     gasPrice: 20,
     noColors: true,
@@ -72,8 +72,8 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
     },
     goerli: {
-      url: getString(process.env.GOERLI_RPC_URL, ""),
-      accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY, "")],
+      url: getString(process.env.GOERLI_RPC_URL),
+      accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY)],
     },
   },
 };

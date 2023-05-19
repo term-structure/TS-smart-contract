@@ -2,7 +2,7 @@ import { Wallet, utils } from "ethers";
 import { ethers } from "hardhat";
 import { deployBaseTokens } from "../utils/deployBaseTokens";
 import { deployFacets } from "../../utils/deployFacets";
-import { FacetInfo } from "../../utils/type";
+import { FacetInfo, getString } from "../../utils/type";
 import { cutFacets } from "../../utils/cutFacets";
 import { diamondInit } from "../../utils/diamondInit";
 import { TsTokenId } from "term-structure-sdk";
@@ -17,35 +17,16 @@ const { createCode, generateABI } = circomlibjs.poseidonContract;
 
 export const main = async () => {
   const provider = new ethers.providers.JsonRpcProvider(
-    process.env.GOERLI_RPC_URL || "http://localhost:8545"
+    process.env.GOERLI_RPC_URL
   );
 
-  const node = utils.HDNode.fromMnemonic(
-    process.env.DEVNET_MNEMONIC ||
-      "test test test test test test test test test test test junk"
-  );
-
-  const wallets = [];
-  for (let i = 0; i < 1000; i++) {
-    // eslint-disable-next-line quotes
-    const path = "m/44'/60'/0'/0/" + i;
-    const wallet = node.derivePath(path);
-    wallets.push(wallet);
-  }
-
-  const operatorAddr =
-    process.env.DEVNET_OPERATOR_ADDRESS || wallets[3].address;
-
-  const deployerPrivKey =
-    process.env.DEVNET_DEPLOYER_PRIVATE_KEY || wallets[4].privateKey;
+  const operatorAddr = getString(process.env.GOERLI_OPERATOR_ADDRESS);
+  const deployerPrivKey = getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY);
   const deployer = new Wallet(deployerPrivKey, provider);
-
-  const adminAddr = process.env.DEVNET_ADMIN_ADDRESS || wallets[5].address;
-  const treasuryAddr =
-    process.env.DEVNET_TREASURY_ADDRESS || wallets[6].address;
-  const insuranceAddr =
-    process.env.DEVNET_INSURANCE_ADDRESS || wallets[7].address;
-  const vaultAddr = process.env.DEVNET_VAULT_ADDRESS || wallets[8].address;
+  const adminAddr = getString(process.env.GOERLI_ADMIN_ADDRESS);
+  const treasuryAddr = getString(process.env.GOERLI_TREASURY_ADDRESS);
+  const insuranceAddr = getString(process.env.GOERLI_INSURANCE_ADDRESS);
+  const vaultAddr = getString(process.env.GOERLI_VAULT_ADDRESS);
 
   console.log(
     "Deploying contracts with deployer:",
