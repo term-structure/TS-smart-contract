@@ -19,9 +19,12 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
         if (TokenLib.getTokenId(tokenAddr) != 0) revert TokenIsWhitelisted(tokenAddr);
         uint16 newTokenId = TokenLib.getTokenNum() + 1;
         if (newTokenId > Config.MAX_AMOUNT_OF_REGISTERED_TOKENS) revert TokenNumExceedLimit(newTokenId);
-        TokenStorage.layout().tokenNum = newTokenId;
-        TokenStorage.layout().tokenIds[tokenAddr] = newTokenId;
-        TokenStorage.layout().assetConfigs[newTokenId] = assetConfig;
+
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        tsl.tokenNum = newTokenId;
+        tsl.tokenIds[tokenAddr] = newTokenId;
+        tsl.assetConfigs[newTokenId] = assetConfig;
+
         if (assetConfig.isTsbToken) {
             (, uint32 maturityTime) = ITsbToken(tokenAddr).tokenInfo();
             emit WhitelistTsbToken(tokenAddr, newTokenId, assetConfig, maturityTime);

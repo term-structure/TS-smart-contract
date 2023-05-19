@@ -29,9 +29,11 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime);
         address underlyingAssetAddr = TokenLib.getAssetConfig(underlyingTokenId).tokenAddr;
         if (underlyingAssetAddr == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
+
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
         address tokenAddr = TsbLib.getTsbTokenAddr(tsbTokenKey);
         if (tokenAddr != address(0)) revert TsbTokenIsExist(tokenAddr);
+
         tsbTokenAddr = address(new TsbToken(name, symbol, underlyingAssetAddr, maturityTime));
         TsbStorage.layout().tsbTokens[tsbTokenKey] = tsbTokenAddr;
         emit TsbTokenCreated(tsbTokenAddr, underlyingTokenId, maturityTime);
@@ -65,7 +67,8 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ITsbFacet
      */
     function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address tsbTokenAddr) {
-        return TsbLib.getTsbTokenAddr(TsbLib.getTsbTokenKey(underlyingTokenId, maturity));
+        uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturity);
+        return TsbLib.getTsbTokenAddr(tsbTokenKey);
     }
 
     /**

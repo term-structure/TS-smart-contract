@@ -21,8 +21,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     function addCollateral(bytes12 loanId, uint128 amount) external payable {
         Loan memory loan = LoanLib.getLoan(loanId);
         (, AssetConfig memory collateralAsset, ) = LoanLib.getLoanInfo(loan);
-        loan.collateralAmt += amount;
         Utils.transferFrom(collateralAsset.tokenAddr, msg.sender, amount, msg.value);
+        loan.collateralAmt += amount;
         LoanStorage.layout().loans[loanId] = loan;
         emit AddCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
     }
@@ -38,6 +38,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
         ) = LoanLib.getLoanInfo(loan);
+
         loan.collateralAmt -= amount;
         (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
             loan,
@@ -62,9 +63,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
         ) = LoanLib.getLoanInfo(loan);
+        Utils.transferFrom(debtAsset.tokenAddr, msg.sender, debtAmt, msg.value);
+
         loan.debtAmt -= debtAmt;
         loan.collateralAmt -= collateralAmt;
-
         (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
             loan,
             liquidationFactor.ltvThreshold,
@@ -72,7 +74,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             debtAsset
         );
         LoanLib.safeHealthFactor(healthFactor);
-        Utils.transferFrom(debtAsset.tokenAddr, msg.sender, debtAmt, msg.value);
+
         LoanStorage.layout().loans[loanId] = loan;
         emit Repay(
             loanId,
@@ -111,9 +113,11 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             liquidationFactor
         );
         Utils.transferFrom(debtAsset.tokenAddr, msg.sender, repayAmt, msg.value);
+
         loan.debtAmt -= repayAmt;
         loan.collateralAmt -= (liquidatorRewardAmt + protocolPenaltyAmt);
         LoanStorage.layout().loans[loanId] = loan;
+
         Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), liquidatorRewardAmt);
         Utils.transfer(collateralAsset.tokenAddr, payable(GovernanceLib.getTreasuryAddr()), protocolPenaltyAmt);
         emit Liquidate(loanId, msg.sender, liquidatorRewardAmt, protocolPenaltyAmt);

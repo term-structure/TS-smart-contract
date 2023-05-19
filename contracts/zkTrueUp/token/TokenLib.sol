@@ -22,13 +22,6 @@ library TokenLib {
         if (assetConfig.isTsbToken) revert InvalidBaseTokenAddr(tokenAddr);
     }
 
-    /// @notice Internal function to check if the deposit amount is valid
-    /// @param depositAmt The deposit amount to be checked
-    /// @param assetConfig The configuration of the token
-    function validDepositAmt(uint128 depositAmt, AssetConfig memory assetConfig) internal pure {
-        if (depositAmt < assetConfig.minDepositAmt) revert InvalidDepositAmt(depositAmt);
-    }
-
     /// @notice Internal function to get the total number of the registered tokens
     /// @return tokenNum The total number of the registered tokens
     function getTokenNum() internal view returns (uint16) {
@@ -87,5 +80,12 @@ library TokenLib {
     /// @return isPaused The status of the token
     function isPaused(address tokenAddr) internal view returns (bool) {
         return TokenStorage.layout().isPaused[tokenAddr];
+    }
+
+    /// @notice Internal function to check if the deposit amount is valid
+    /// @param depositAmt The deposit amount to be checked
+    /// @param assetConfig The configuration of the token
+    function validDepositAmt(uint128 depositAmt, AssetConfig memory assetConfig) internal pure {
+        if (depositAmt < assetConfig.minDepositAmt) revert InvalidDepositAmt(depositAmt);
     }
 }

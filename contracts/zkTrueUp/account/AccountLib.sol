@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
 import {AddressLib} from "../address/AddressLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountStorage} from "./AccountStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
-import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
 library AccountLib {
     /// @notice Error for get account which is not registered
     error AccountIsNotRegistered(address accountAddr);
-    /// @notice Error for register account which is already registered
-    error AccountIsRegistered(address sender);
 
     /// @notice Emit when there is a new account registered
     /// @param accountAddr The user account address in layer1
@@ -98,12 +94,6 @@ library AccountLib {
     function updateWithdrawRecord(address sender, uint32 accountId, uint16 tokenId, uint128 amount) internal {
         RollupLib.updateWithdrawalRecord(sender, tokenId, amount);
         emit Withdraw(sender, accountId, tokenId, amount);
-    }
-
-    /// @notice Internal function to check if the account is registered
-    /// @param accountAddr The L1 address of the account
-    function requireNotRegistered(address accountAddr) internal view {
-        if (getAccountId(accountAddr) != 0) revert AccountIsRegistered(accountAddr);
     }
 
     /// @notice Internal function to get the valid account id

@@ -19,7 +19,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      */
     function register(uint256 tsPubKeyX, uint256 tsPubKeyY, address tokenAddr, uint128 amount) external payable {
         RollupLib.requireActive();
-        AccountLib.requireNotRegistered(msg.sender);
+        if (AccountLib.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);
         TokenLib.requireBaseToken(tokenAddr);
         uint32 accountId = _register(msg.sender, tsPubKeyX, tsPubKeyY);
         _deposit(msg.sender, msg.sender, accountId, tokenAddr, amount);

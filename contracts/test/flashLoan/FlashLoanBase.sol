@@ -37,7 +37,6 @@ contract FlashLoanBase is IFlashLoanReceiver {
             IERC20(assets[i]).approve(_zkTrueUpAddr, MAX_UINT_256);
         }
         bytes memory data = "";
-        address addr = address(flashLoanFacet);
         flashLoanFacet.flashLoan(payable(address(this)), assets, amounts, data);
     }
 }

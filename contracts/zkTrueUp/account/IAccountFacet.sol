@@ -2,6 +2,8 @@
 pragma solidity ^0.8.17;
 
 interface IAccountFacet {
+    /// @notice Error for register account which is already registered
+    error AccountIsRegistered(address sender);
     /// @notice Error for register account when exceed account number limit
     error AccountNumExceedLimit(uint32 registeredAccountId);
 
