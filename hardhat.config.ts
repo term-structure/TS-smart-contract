@@ -9,7 +9,7 @@ import "hardhat-storage-layout";
 import "hardhat-tracer";
 import "hardhat-gas-reporter";
 import { resolve } from "path";
-import { getBoolean, getString } from "./utils/type";
+import { getString } from "./utils/type";
 
 task("storage-layout", "Prints the storage layout", async (_, hre) => {
   await hre.storageLayout.export();

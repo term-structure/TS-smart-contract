@@ -2,7 +2,7 @@
 // solhint-disable-next-line
 pragma solidity ^0.8.17;
 
-import "./Bytes.sol";
+import {Bytes} from "./Bytes.sol";
 
 /**
   * @title Operations Library

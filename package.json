@@ -35,7 +35,8 @@
     "generate:docs": "hardhat docgen",
     "script:deploy": "npx hardhat run scripts/deploy.ts",
     "format": "prettier --write 'contracts/**/*.sol' '**/*.{js,ts}' && eslint --fix '**/*.{js,ts}'",
-    "lint": "prettier --check 'contracts/**/*.sol' '**/*.ts' && eslint '**/*.{js,ts}'"
+    "lint": "prettier --check 'contracts/**/*.sol' '**/*.ts' && eslint '**/*.{js,ts}'",
+    "lint-contracts": "solhint 'contracts/**/*.sol'"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
