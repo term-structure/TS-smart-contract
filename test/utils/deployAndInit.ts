@@ -44,13 +44,13 @@ export const deployAndInit = async (facetNames?: string[]) => {
     if (token.symbol == "ETH") {
       baseTokenAddresses[token.tokenId] = DEFAULT_ETH_ADDRESS;
     } else {
-      const testERC20 = (await ERC20Mock.connect(operator).deploy(
+      const erc20Mock = (await ERC20Mock.connect(operator).deploy(
         token.name,
         token.symbol,
         token.decimals
       )) as ERC20Mock;
-      await testERC20.deployed();
-      baseTokenAddresses[token.tokenId] = testERC20.address;
+      await erc20Mock.deployed();
+      baseTokenAddresses[token.tokenId] = erc20Mock.address;
     }
   }
 

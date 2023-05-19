@@ -1,10 +1,10 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ZkTrueUp } from "../typechain-types";
 import { FacetInfo, FnSelectors } from "./type";
 import { diamondCut } from "./diamondCut";
+import { Signer } from "ethers";
 
 export const cutFacets = async (
-  deployer: SignerWithAddress,
+  deployer: Signer,
   diamond: ZkTrueUp,
   facets: FacetInfo[]
 ): Promise<{ [key: string]: FnSelectors }> => {

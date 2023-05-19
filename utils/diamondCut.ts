@@ -1,12 +1,11 @@
 import { ethers } from "hardhat";
 import { ZkTrueUp } from "../typechain-types";
-import { ContractFactory } from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { ContractFactory, Signer } from "ethers";
 
 type diamondCutAction = 0 | 1 | 2;
 
 export const diamondCut = async (
-  signer: SignerWithAddress,
+  signer: Signer,
   diamond: ZkTrueUp,
   contractAddr: string,
   factory: ContractFactory,

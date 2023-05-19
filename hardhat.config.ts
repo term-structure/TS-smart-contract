@@ -9,10 +9,15 @@ import "hardhat-storage-layout";
 import "hardhat-tracer";
 import "hardhat-gas-reporter";
 import { resolve } from "path";
+import { getBoolean, getString } from "./utils/type";
 
 task("storage-layout", "Prints the storage layout", async (_, hre) => {
   await hre.storageLayout.export();
 });
+
+const mnemonic =
+  process.env.MNEMONIC ||
+  "test test test test test test test test test test test junk";
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -58,15 +63,19 @@ const config: HardhatUserConfig = {
     noColors: true,
     outputFile: resolve(__dirname, "./reports/gas-report.txt"),
   },
+  networks: {
+    hardhat: {
+      accounts: {
+        count: 20,
+        mnemonic,
+      },
+      allowUnlimitedContractSize: true,
+    },
+    goerli: {
+      url: getString(process.env.GOERLI_RPC_URL, ""),
+      accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY, "")],
+    },
+  },
 };
-
-function getBoolean(str: string | undefined, _default: boolean) {
-  try {
-    if (str === "" || typeof str === "undefined") return _default;
-    return !!JSON.parse(str.toLowerCase());
-  } catch (error) {
-    throw new Error(`'${str}' is not a boolean`);
-  }
-}
 
 export default config;

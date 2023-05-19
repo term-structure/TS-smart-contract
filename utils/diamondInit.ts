@@ -1,6 +1,5 @@
 import { ZkTrueUp } from "../typechain-types";
-import { ContractFactory } from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { ContractFactory, Signer } from "ethers";
 
 /**
  * @notice diamondCut function
@@ -13,7 +12,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
  * @returns initFnSelector
  */
 export const diamondInit = async (
-  signer: SignerWithAddress,
+  signer: Signer,
   diamond: ZkTrueUp,
   initContractAddr: string,
   initFactory: ContractFactory,

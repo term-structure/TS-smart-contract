@@ -1,10 +1,9 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { BaseContract, ContractFactory } from "ethers";
+import { BaseContract, ContractFactory, Signer } from "ethers";
 import { ethers } from "hardhat";
 
 export const deployFacets = async (
   facetNames: string[],
-  deployer: SignerWithAddress
+  deployer: Signer
 ): Promise<{
   facetFactories: { [key: string]: ContractFactory };
   facets: { [key: string]: BaseContract };

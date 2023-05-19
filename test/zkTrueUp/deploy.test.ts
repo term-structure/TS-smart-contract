@@ -124,7 +124,7 @@ describe("Deploy", () => {
     PoseidonFactory = new ethers.ContractFactory(
       generateABI(2),
       createCode(2),
-      operator
+      deployer
     );
     poseidonUnit2Contract = await PoseidonFactory.deploy();
     await poseidonUnit2Contract.deployed();

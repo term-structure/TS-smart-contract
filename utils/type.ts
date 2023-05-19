@@ -1,5 +1,5 @@
 import { BigNumber, ContractFactory } from "ethers";
-import { LoanStruct } from "../typechain-types/contracts/loan/ILoanFacet";
+import { LoanStruct } from "../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 
 // { TsTokenId: BaseTokenAddr }
 export type BaseTokenAddresses = { [key: number]: string };
@@ -58,4 +58,27 @@ export class AccountState {
     this.loans = {};
     this.withdrawFees = {};
   }
+}
+
+export function getBoolean(str: string | undefined, _default: boolean) {
+  try {
+    if (str === "" || typeof str === "undefined") return _default;
+    return !!JSON.parse(str.toLowerCase());
+  } catch (error) {
+    throw new Error(`'${str}' is not a boolean`);
+  }
+}
+
+export function getNumber(str: string | undefined, _default: number) {
+  if (str === "" || typeof str === "undefined") return _default;
+  const num = JSON.parse(str);
+  if (typeof num === "number") {
+    return num;
+  }
+  throw new Error(`'${str}' is not a number`);
+}
+
+export function getString(str: string | undefined, _default: string) {
+  if (str === "" || typeof str === "undefined") return _default;
+  return str;
 }
