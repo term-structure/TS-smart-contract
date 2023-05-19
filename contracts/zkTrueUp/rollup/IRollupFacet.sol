@@ -21,8 +21,6 @@ interface IRollupFacet {
     error TimestampLtPrevious(uint256 newBlockTimestamp, uint256 previousBlockTimestamp);
     /// @notice Error for invalid block number
     error InvalidBlockNum(uint32 newBlockNum);
-    /// @notice Error for operation type is not matched
-    error OpTypeIsNotMatched(Operations.OpType requestOpType, Operations.OpType expectedOpType);
     /// @notice Error for request is not existed
     error RequestIsNotExisted(L1Request request);
     /// @notice Error for invalid invalid public data length

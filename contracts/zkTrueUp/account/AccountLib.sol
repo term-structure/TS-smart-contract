@@ -8,6 +8,7 @@ import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountStorage} from "./AccountStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Config} from "../libraries/Config.sol";
+import {Utils} from "../libraries/Utils.sol";
 
 library AccountLib {
     /// @notice Error for get account which is not registered
@@ -65,7 +66,7 @@ library AccountLib {
     /// @param decimals The decimals of the deposit token
     /// @param amount The deposit amount
     function addDepositReq(address to, uint32 accountId, uint16 tokenId, uint8 decimals, uint128 amount) internal {
-        uint128 l2Amt = SafeCast.toUint128((amount * 10 ** Config.SYSTEM_DECIMALS) / 10 ** decimals);
+        uint128 l2Amt = Utils.toL2Amt(amount, decimals);
         Operations.Deposit memory op = Operations.Deposit({accountId: accountId, tokenId: tokenId, amount: l2Amt});
         bytes memory pubData = Operations.encodeDepositPubData(op);
         RollupLib.addL1Request(to, Operations.OpType.DEPOSIT, pubData);

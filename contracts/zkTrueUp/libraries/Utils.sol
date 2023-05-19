@@ -23,12 +23,6 @@ library Utils {
     /// @notice Error for get invalid price
     error InvalidPrice(int256 price);
 
-    /// @notice Internal function to check the address is not zero address
-    /// @param addr The address to be checked
-    function noneZeroAddr(address addr) internal pure {
-        if (addr == address(0)) revert InvalidZeroAddr();
-    }
-
     /// @notice Internal transfer function
     /// @dev Mutated transfer function to handle the case of ETH and ERC20
     /// @param tokenAddr The address of the token to be transferred
@@ -75,5 +69,27 @@ library Utils {
         (, int256 price, , , ) = AggregatorV3Interface(priceFeed).latestRoundData();
         if (price <= 0) revert InvalidPrice(price);
         return uint256(price) * 10 ** (18 - decimals);
+    }
+
+    /// @notice Internal function to check the address is not zero address
+    /// @param addr The address to be checked
+    function noneZeroAddr(address addr) internal pure {
+        if (addr == address(0)) revert InvalidZeroAddr();
+    }
+
+    /// @notice Internal function to convert L2 amount to L1 amount
+    /// @param l2Amt The amount in L2
+    /// @param decimals The decimals of the token
+    /// @return The amount in L1
+    function toL1Amt(uint128 l2Amt, uint8 decimals) internal pure returns (uint128) {
+        return SafeCast.toUint128((l2Amt * (10 ** decimals)) / (10 ** Config.SYSTEM_DECIMALS));
+    }
+
+    /// @notice Internal function to convert L1 amount to L2 amount
+    /// @param l1Amt The amount in L1
+    /// @param decimals The decimals of the token
+    /// @return The amount in L2
+    function toL2Amt(uint128 l1Amt, uint8 decimals) internal pure returns (uint128) {
+        return SafeCast.toUint128((l1Amt * 10 ** Config.SYSTEM_DECIMALS) / 10 ** decimals);
     }
 }

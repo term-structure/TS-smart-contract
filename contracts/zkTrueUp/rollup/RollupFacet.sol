@@ -301,20 +301,18 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         bytes32 pendingRollupTxHash = Config.EMPTY_STRING_KECCAK;
         for (uint32 i; i < executeBlock.pendingRollupTxPubData.length; ++i) {
             bytes memory pubData = executeBlock.pendingRollupTxPubData[i];
-            uint16 decimals;
+            uint8 decimals;
             uint128 amount;
             Operations.OpType opType = Operations.OpType(uint8(pubData[0]));
             if (opType == Operations.OpType.WITHDRAW) {
                 Operations.Withdraw memory withdrawReq = Operations.readWithdrawPubData(pubData);
                 decimals = TokenLib.getAssetConfig(withdrawReq.tokenId).decimals;
-                amount = SafeCast.toUint128(((withdrawReq.amount * (10 ** decimals)) / (10 ** Config.SYSTEM_DECIMALS)));
+                amount = Utils.toL1Amt(withdrawReq.amount, decimals);
                 _increasePendingBalance(withdrawReq.accountId, withdrawReq.tokenId, amount);
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                 Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(pubData);
                 decimals = TokenLib.getAssetConfig(forceWithdrawReq.tokenId).decimals;
-                amount = SafeCast.toUint128(
-                    ((forceWithdrawReq.amount * (10 ** decimals)) / (10 ** Config.SYSTEM_DECIMALS))
-                );
+                amount = Utils.toL1Amt(forceWithdrawReq.amount, decimals);
                 _increasePendingBalance(forceWithdrawReq.accountId, forceWithdrawReq.tokenId, amount);
             } else if (opType == Operations.OpType.AUCTION_END) {
                 Operations.AuctionEnd memory auctionEnd = Operations.readAuctionEndPubData(pubData);
@@ -436,8 +434,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param requestId The id of the request
     function _registerInL1RequestQueue(Operations.Register memory register, uint64 requestId) internal view {
         L1Request memory request = RollupLib.getL1Request(requestId);
-        if (request.opType != Operations.OpType.REGISTER)
-            revert OpTypeIsNotMatched(request.opType, Operations.OpType.REGISTER);
+        RollupLib.requireMatchedOpType(request.opType, Operations.OpType.REGISTER);
         if (!Operations.isRegisterHashedPubDataMatched(register, request.hashedPubData))
             revert RequestIsNotExisted(request);
     }
@@ -447,8 +444,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param requestId The id of the request
     function _depositInL1RequestQueue(Operations.Deposit memory deposit, uint64 requestId) internal view {
         L1Request memory request = RollupLib.getL1Request(requestId);
-        if (request.opType != Operations.OpType.DEPOSIT)
-            revert OpTypeIsNotMatched(request.opType, Operations.OpType.DEPOSIT);
+        RollupLib.requireMatchedOpType(request.opType, Operations.OpType.DEPOSIT);
         if (!Operations.isDepositHashedPubDataMatched(deposit, request.hashedPubData))
             revert RequestIsNotExisted(request);
     }
@@ -461,8 +457,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) internal view {
         L1Request memory request = RollupLib.getL1Request(requestId);
-        if (request.opType != Operations.OpType.FORCE_WITHDRAW)
-            revert OpTypeIsNotMatched(request.opType, Operations.OpType.FORCE_WITHDRAW);
+        RollupLib.requireMatchedOpType(request.opType, Operations.OpType.FORCE_WITHDRAW);
         if (!Operations.isForceWithdrawHashedPubDataMatched(forceWithdraw, request.hashedPubData))
             revert RequestIsNotExisted(request);
     }
@@ -472,8 +467,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param requestId The id of the request
     function _evacuationInL1RequestQueue(Operations.Evacuation memory evacuation, uint64 requestId) internal view {
         L1Request memory request = RollupLib.getL1Request(requestId);
-        if (request.opType != Operations.OpType.EVACUATION)
-            revert OpTypeIsNotMatched(request.opType, Operations.OpType.EVACUATION);
+        RollupLib.requireMatchedOpType(request.opType, Operations.OpType.EVACUATION);
         if (!Operations.isEvacuationHashedPubDataMatched(evacuation, request.hashedPubData))
             revert RequestIsNotExisted(request);
     }
@@ -533,16 +527,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         // calculate increase amount
         uint8 decimals = underlyingAssetConfig.decimals;
-        uint128 increaseDebtAmt = SafeCast.toUint128(
-            (auctionEnd.debtAmt * 10 ** decimals) / 10 ** Config.SYSTEM_DECIMALS
-        );
+        uint128 increaseDebtAmt = Utils.toL1Amt(auctionEnd.debtAmt, decimals);
         decimals = assetConfig.decimals;
-        uint128 increaseCollateralAmt = SafeCast.toUint128(
-            (auctionEnd.collateralAmt * 10 ** decimals) / 10 ** Config.SYSTEM_DECIMALS
-        );
+        uint128 increaseCollateralAmt = Utils.toL1Amt(auctionEnd.collateralAmt, decimals);
+
         loan.debtAmt += increaseDebtAmt;
         loan.collateralAmt += increaseCollateralAmt;
-
         LoanStorage.layout().loans[loanId] = loan;
 
         emit UpdateLoan(
@@ -560,9 +550,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param withdrawFee The withdraw fee request
     function _withdrawFee(Operations.WithdrawFee memory withdrawFee) internal {
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(withdrawFee.tokenId);
-        uint128 l1Amt = SafeCast.toUint128(
-            ((withdrawFee.amount * (10 ** assetConfig.decimals)) / (10 ** Config.SYSTEM_DECIMALS))
-        );
+        uint128 l1Amt = Utils.toL1Amt(withdrawFee.amount, assetConfig.decimals);
         FundWeight memory fundWeight = GovernanceLib.getFundWeight();
         // insurance
         uint128 amount = (l1Amt * fundWeight.insurance) / Config.FUND_WEIGHT_BASE;
@@ -601,9 +589,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Utils.noneZeroAddr(receiver);
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(evacuation.tokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
-        uint128 l1Amt = SafeCast.toUint128(
-            ((evacuation.amount * (10 ** assetConfig.decimals)) / (10 ** Config.SYSTEM_DECIMALS))
-        );
+        uint128 l1Amt = Utils.toL1Amt(evacuation.amount, assetConfig.decimals);
         RollupStorage.layout().evacuated[evacuation.accountId][evacuation.tokenId] = true;
         bytes memory pubData = Operations.encodeEvacuationPubData(evacuation);
         RollupLib.addL1Request(receiver, Operations.OpType.EVACUATION, pubData);

@@ -32,7 +32,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
         address tokenAddr = TsbLib.getTsbTokenAddr(tsbTokenKey);
         if (tokenAddr != address(0)) revert TsbTokenIsExist(tokenAddr);
-        address tsbTokenAddr = address(new TsbToken(name, symbol, underlyingAssetAddr, maturityTime));
+        tsbTokenAddr = address(new TsbToken(name, symbol, underlyingAssetAddr, maturityTime));
         TsbStorage.layout().tsbTokens[tsbTokenKey] = tsbTokenAddr;
         emit TsbTokenCreated(tsbTokenAddr, underlyingTokenId, maturityTime);
         return tsbTokenAddr;

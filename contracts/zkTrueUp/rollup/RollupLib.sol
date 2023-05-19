@@ -10,6 +10,8 @@ library RollupLib {
     error WithdrawAmtExceedPendingBalance(uint128 pendingBalance, uint128 withdrawAmt);
     /// @notice Error for trying to do transactions when evacuation mode is activated
     error EvacuModeActivated();
+    /// @notice Error for operation type is not matched
+    error OpTypeIsNotMatched(Operations.OpType requestOpType, Operations.OpType expectedOpType);
 
     /// @notice Emit when there is a new priority request added
     /// @dev The L1 request needs to be executed before the expiration block or the system will enter the evacuation mode
@@ -132,6 +134,13 @@ library RollupLib {
     /// @return pendingBalances The pending balance of the specified key
     function getPendingBalances(bytes22 key) internal view returns (uint128) {
         return RollupStorage.layout().pendingBalances[key];
+    }
+
+    /// @notice Internal function check if the operation type is matched
+    /// @param opType The operation type of the request
+    /// @param expectedOpType The expected operation type
+    function requireMatchedOpType(Operations.OpType opType, Operations.OpType expectedOpType) internal pure {
+        if (opType != expectedOpType) revert OpTypeIsNotMatched(opType, expectedOpType);
     }
 
     /// @notice Internal function to get the key of pending balance

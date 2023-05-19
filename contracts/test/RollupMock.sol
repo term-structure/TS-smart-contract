@@ -43,13 +43,9 @@ contract RollupMock is RollupFacet {
 
         // calculate increase amount
         uint8 decimals = underlyingAssetConfig.decimals;
-        uint128 increaseDebtAmt = SafeCast.toUint128(
-            (auctionEnd.debtAmt * 10 ** decimals) / 10 ** Config.SYSTEM_DECIMALS
-        );
+        uint128 increaseDebtAmt = Utils.toL1Amt(auctionEnd.debtAmt, decimals);
         decimals = assetConfig.decimals;
-        uint128 increaseCollateralAmt = SafeCast.toUint128(
-            (auctionEnd.collateralAmt * 10 ** decimals) / 10 ** Config.SYSTEM_DECIMALS
-        );
+        uint128 increaseCollateralAmt = Utils.toL1Amt(auctionEnd.collateralAmt, decimals);
         loan.debtAmt += increaseDebtAmt;
         loan.collateralAmt += increaseCollateralAmt;
 
