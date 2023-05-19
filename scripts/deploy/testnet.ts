@@ -1,6 +1,6 @@
 import { Wallet, utils } from "ethers";
 import { ethers } from "hardhat";
-import { deployBaseTokens } from "../utils/deployBaseTokens";
+import { deployBaseTokens } from "../../utils/deployBaseTokens";
 import { deployFacets } from "../../utils/deployFacets";
 import { FacetInfo, getString } from "../../utils/type";
 import { cutFacets } from "../../utils/cutFacets";
