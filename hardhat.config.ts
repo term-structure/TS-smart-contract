@@ -71,10 +71,10 @@ const config: HardhatUserConfig = {
       },
       allowUnlimitedContractSize: true,
     },
-    goerli: {
-      url: getString(process.env.GOERLI_RPC_URL),
-      accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY)],
-    },
+    // goerli: {
+    //   url: getString(process.env.GOERLI_RPC_URL),
+    //   accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY)],
+    // },
   },
 };
 
