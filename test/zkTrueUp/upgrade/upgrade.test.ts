@@ -153,6 +153,18 @@ describe("Upgrade diamond", function () {
           newFacet.address
         );
       }
+
+      // call new facet function
+      const diamondUpgradeMockFacet = (await useFacet(
+        "UpgradeMockFacet",
+        zkTrueUp
+      )) as UpgradeMockFacet;
+
+      // check the new facet function is called successfully
+      await diamondUpgradeMockFacet.connect(admin).setValue(1);
+      await diamondUpgradeMockFacet.connect(admin).setAddress(user1Addr);
+      expect(await diamondUpgradeMockFacet.getValue()).to.equal(1);
+      expect(await diamondUpgradeMockFacet.getAddress()).to.equal(user1Addr);
     });
   });
 
@@ -259,6 +271,14 @@ describe("Upgrade diamond", function () {
           await zkTrueUp.facetAddress(newAccountFacetFnSelectors[i])
         ).to.equal(newAccountFacet.address);
       }
+
+      // check the new facet function works and the storage is not changed
+      const diamondAcc = (await useFacet(
+        "AccountFacet",
+        zkTrueUp
+      )) as AccountFacet;
+      const accountNum = await diamondAcc.getAccountNum();
+      expect(accountNum).to.equal(1);
     });
   });
   describe("Remove facet", function () {
