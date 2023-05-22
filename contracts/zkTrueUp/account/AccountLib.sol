@@ -8,6 +8,9 @@ import {AccountStorage} from "./AccountStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+/**
+ * @title Term Structure Account Library
+ */
 library AccountLib {
     /// @notice Error for get account which is not registered
     error AccountIsNotRegistered(address accountAddr);

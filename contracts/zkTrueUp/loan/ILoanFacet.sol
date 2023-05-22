@@ -3,6 +3,9 @@ pragma solidity ^0.8.17;
 
 import {LiquidationFactor, Loan} from "./LoanStorage.sol";
 
+/**
+ * @title Term Structure Loan Facet Interface
+ */
 interface ILoanFacet {
     /// @notice Error for setting invalid liquidation factor
     error InvalidLiquidationFactor();

@@ -13,6 +13,10 @@ import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {Config, InitConfig} from "../libraries/Config.sol";
 
+/**
+ * @title Zk-TureUp Initializer Contract
+ * @notice This contract is used to initialize the zkTrueUp protocol
+ */
 contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
     function init(bytes calldata data) external {
         (

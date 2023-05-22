@@ -7,6 +7,9 @@ import {LoanStorage, Loan, LiquidationFactor} from "./LoanStorage.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
 
+/**
+ * @title Term Structure Loan Library
+ */
 library LoanLib {
     /// @notice Error for sender is not the loan owner
     error SenderIsNotLoanOwner(address sender, address loanOwner);

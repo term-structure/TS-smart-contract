@@ -21,6 +21,9 @@ import {Bytes} from "../libraries/Bytes.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+/**
+ * @title Term Structure Rollup Facet Contract
+ */
 contract RollupFacet is IRollupFacet, AccessControlInternal {
     /**
      * @inheritdoc IRollupFacet

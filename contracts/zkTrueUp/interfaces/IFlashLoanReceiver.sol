@@ -5,9 +5,7 @@ pragma solidity ^0.8.17;
 import {ILoanFacet} from "../loan/ILoanFacet.sol";
 
 /**
- * @title Flashloan Receiver interface
- * @author Term Structure Labs
- * @notice Interface for flashloan receiver contract
+ * @title Term Structure FlashLoan Receiver interface
  */
 interface IFlashLoanReceiver {
     /// @notice Execute operation to be called in flash loan function

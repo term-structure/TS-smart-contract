@@ -12,6 +12,9 @@ import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {Config} from "../libraries/Config.sol";
 
+/**
+ * @title Term Structure Flash Loan Facet Contract
+ */
 contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
     using SafeERC20 for ISolidStateERC20;
 

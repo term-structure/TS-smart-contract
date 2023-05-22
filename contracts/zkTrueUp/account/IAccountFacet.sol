@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/**
+ * @title Term Structure Account Facet Interface
+ */
 interface IAccountFacet {
     /// @notice Error for register account which is already registered
     error AccountIsRegistered(address sender);

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/**
+ * @title Term Structure Address Facet Interface
+ */
 interface IAddressFacet {
     /// @notice Set the address of verifier contract
     /// @param newVerifierAddr The new verifier contract address

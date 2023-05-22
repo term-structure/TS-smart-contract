@@ -4,9 +4,7 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
- * @title TsbToken Interface
- * @author Term Structure Labs
- * @notice The interface of the TsbToken contract
+ * @title Term Structure Bond Interface
  */
 interface ITsbToken is IERC20 {
     /// @notice Mint TSB token

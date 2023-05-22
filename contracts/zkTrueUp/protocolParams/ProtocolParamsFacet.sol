@@ -8,6 +8,9 @@ import {ProtocolParamsLib} from "./ProtocolParamsLib.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
 
+/**
+ * @title Term Structure Protocol Params Facet Contract
+ */
 contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
     /**
      * @inheritdoc IProtocolParamsFacet

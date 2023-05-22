@@ -9,6 +9,9 @@ import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
 import {Config} from "../libraries/Config.sol";
 
+/**
+ * @title Term Structure Utils Library
+ */
 library Utils {
     using SafeERC20 for ISolidStateERC20;
 

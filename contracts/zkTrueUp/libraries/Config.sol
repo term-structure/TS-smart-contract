@@ -2,6 +2,9 @@
 // solhint-disable-next-line
 pragma solidity ^0.8.17;
 
+/**
+ * @title Term Structure Config Library
+ */
 library Config {
     /// @notice The default address of ETH
     address internal constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -93,6 +96,9 @@ library Config {
     bytes32 internal constant EXECUTER_ROLE = keccak256("EXECUTER_ROLE");
 }
 
+/**
+ * @title Term Structure Initial Config Library
+ */
 library InitConfig {
     /// @notice The initial weight of the treasury
     uint16 internal constant INIT_TREASURY_WEIGHT = 5000; // 50%

@@ -4,6 +4,9 @@ pragma solidity ^0.8.17;
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {TsbStorage} from "./TsbStorage.sol";
 
+/**
+ * @title Term Structure Bond Library
+ */
 library TsbLib {
     /// @notice Error for redeem with tsb token which is not matured
     error TsbTokenIsNotMatured(address tsbTokenAddr);

@@ -3,6 +3,9 @@ pragma solidity ^0.8.17;
 
 import {ProtocolParamsStorage, FundWeight} from "./ProtocolParamsStorage.sol";
 
+/**
+ * @title Term Structure Protocol Params Library
+ */
 library ProtocolParamsLib {
     /// @notice Internal function to return the address of treasury
     /// @return treasuryAddr Address of treasury

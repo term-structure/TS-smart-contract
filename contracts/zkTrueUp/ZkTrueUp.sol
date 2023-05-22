@@ -4,4 +4,12 @@ pragma solidity ^0.8.17;
 import {SolidStateDiamond} from "@solidstate/contracts/proxy/diamond/SolidStateDiamond.sol";
 import {AccessControl} from "@solidstate/contracts/access/access_control/AccessControl.sol";
 
-contract ZkTrueUp is SolidStateDiamond, AccessControl {}
+/**
+  * @title Zk-TrueUp Contract
+  * @author Term Structure Labs
+  * @notice The core contract of Term Structure Protocol, including the on-chain overcollateral lending business logic
+            and the zk-rollup logic.
+ */
+contract ZkTrueUp is SolidStateDiamond, AccessControl {
+
+}

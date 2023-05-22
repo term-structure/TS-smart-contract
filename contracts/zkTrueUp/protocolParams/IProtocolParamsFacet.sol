@@ -3,6 +3,9 @@ pragma solidity ^0.8.17;
 
 import {ProtocolParamsStorage, FundWeight} from "./ProtocolParamsStorage.sol";
 
+/**
+ * @title Term Structure Protocol Params Library
+ */
 interface IProtocolParamsFacet {
     /// Error for setting invalid fund weight value
     error InvalidFundWeight();

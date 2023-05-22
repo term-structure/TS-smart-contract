@@ -5,6 +5,9 @@ import {TokenStorage, AssetConfig} from "./TokenStorage.sol";
 import {AddressLib} from "../address/AddressLib.sol";
 import {Config} from "../libraries/Config.sol";
 
+/**
+ * @title Term Structure Token Library
+ */
 library TokenLib {
     /// @notice Error for get invalid token which is paused
     error TokenIsPaused(address pausedTokenAddr);

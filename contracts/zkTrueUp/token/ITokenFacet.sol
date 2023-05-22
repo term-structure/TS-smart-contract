@@ -3,6 +3,9 @@ pragma solidity ^0.8.17;
 
 import {TokenStorage, AssetConfig} from "./TokenStorage.sol";
 
+/**
+ * @title Term Structure Token Facet Interface
+ */
 interface ITokenFacet {
     /// @notice Error for whitelist token which is already whitelisted
     error TokenIsWhitelisted(address whitelistedTokenAddr);

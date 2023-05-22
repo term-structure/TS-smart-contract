@@ -8,6 +8,9 @@ import {AddressLib} from "./AddressLib.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
 
+/**
+ * @title Term Structure Address Facet Contract
+ */
 contract AddressFacet is IAddressFacet, AccessControlInternal {
     /**
      * @inheritdoc IAddressFacet

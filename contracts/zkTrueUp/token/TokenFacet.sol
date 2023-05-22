@@ -9,6 +9,9 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+/**
+ * @title Term Structure Token Facet Contract
+ */
 contract TokenFacet is AccessControlInternal, ITokenFacet {
     /**
      * @inheritdoc ITokenFacet

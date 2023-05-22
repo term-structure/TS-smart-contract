@@ -3,6 +3,9 @@ pragma solidity ^0.8.17;
 
 import {AddressStorage} from "./AddressStorage.sol";
 
+/**
+ * @title Term Structure Address Library
+ */
 library AddressLib {
     /// @notice Internal function to return the address of wETH contract
     /// @return wETHAddr Address of wETH

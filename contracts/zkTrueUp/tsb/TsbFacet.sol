@@ -14,6 +14,11 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+/**
+ * @title Term Structure Bond Facet Contract
+ * @author Term Structure Labs
+ * @notice The Term Structure Bond Facet (TsbFacet) is a contract to manages TsbTokens
+ */
 contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ITsbFacet

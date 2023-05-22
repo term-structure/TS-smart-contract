@@ -12,6 +12,9 @@ import {AssetConfig} from "../token/TokenStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+/**
+ * @title Term Structure Account Facet Contract
+ */
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /**
      * @inheritdoc IAccountFacet

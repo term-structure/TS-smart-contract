@@ -3,9 +3,7 @@
 pragma solidity ^0.8.17;
 
 /**
- * @title Verifier interface
- * @author Term Structure Labs
- * @notice Interface for verifier contract
+ * @title Term Structure ZK-rollup Verifier Interface
  */
 interface IVerifier {
     function verifyProof(

@@ -5,6 +5,9 @@ import {RollupStorage, L1Request} from "./RollupStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Operations} from "../libraries/Operations.sol";
 
+/**
+ * @title Term Structure Rollup Library
+ */
 library RollupLib {
     /// @notice Error for withdraw amount exceed pending balance
     error WithdrawAmtExceedPendingBalance(uint128 pendingBalance, uint128 withdrawAmt);

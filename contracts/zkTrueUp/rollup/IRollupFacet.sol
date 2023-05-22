@@ -4,6 +4,9 @@ pragma solidity ^0.8.17;
 import {RollupStorage, CommitBlock, StoredBlock, ExecuteBlock, Proof, L1Request} from "./RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 
+/**
+ * @title Term Structure Rollup Facet Interface
+ */
 interface IRollupFacet {
     /// @notice Error for invalid last committed block
     error InvalidLastCommittedBlock(StoredBlock lastCommittedBlock);

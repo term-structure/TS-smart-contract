@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/**
+ * @title Term Structure Bond Facet Interface
+ */
 interface ITsbFacet {
     /// @notice Error for create TsbToken with invalid maturity time
     error InvalidMaturityTime(uint32 maturityTime);

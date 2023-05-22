@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/**
+ * @title Term Structure Flash Loan Facet Interface
+ */
 interface IFlashLoanFacet {
     /// @notice Error for input length mismatch in flash loan function
     error InputLengthMismatch(uint256 assetLength, uint256 amountLength);

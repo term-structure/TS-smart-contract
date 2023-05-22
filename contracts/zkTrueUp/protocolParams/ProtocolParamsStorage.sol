@@ -8,6 +8,9 @@ struct FundWeight {
     uint16 vault;
 }
 
+/**
+ * @title Term Structure Protocol Params Storage
+ */
 library ProtocolParamsStorage {
     bytes32 internal constant STORAGE_SLOT =
         bytes32(uint256(keccak256("zkTrueUp.contracts.storage.ProtocolParams")) - 1);
