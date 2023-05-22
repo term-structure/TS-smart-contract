@@ -18,7 +18,7 @@ import {
 } from "term-structure-sdk";
 import {
   AccountFacet,
-  GovernanceFacet,
+  ProtocolParamsFacet,
   LoanFacet,
   RollupFacet,
   TokenFacet,
@@ -92,7 +92,7 @@ describe("Evacuate", function () {
   let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
   let diamondAcc: AccountFacet;
-  let diamondGov: GovernanceFacet;
+  let diamondProtocolParams: ProtocolParamsFacet;
   let diamondLoan: LoanFacet;
   let diamondRollup: RollupFacet;
   let diamondTsb: TsbFacet;
@@ -114,10 +114,10 @@ describe("Evacuate", function () {
     // [user1Addr] = await Promise.all([user1.getAddress()]);
     zkTrueUp = res.zkTrueUp;
     diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
-    diamondGov = (await useFacet(
-      "GovernanceFacet",
+    diamondProtocolParams = (await useFacet(
+      "ProtocolParamsFacet",
       zkTrueUp
-    )) as GovernanceFacet;
+    )) as ProtocolParamsFacet;
     diamondLoan = (await useFacet("LoanFacet", zkTrueUp)) as LoanFacet;
     diamondRollup = (await useFacet("RollupFacet", zkTrueUp)) as RollupFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
@@ -129,7 +129,7 @@ describe("Evacuate", function () {
       oriStates = await getStates(
         accounts,
         baseTokenAddresses,
-        diamondGov,
+        diamondProtocolParams,
         diamondLoan,
         diamondToken,
         diamondRollup,
@@ -276,7 +276,7 @@ describe("Evacuate", function () {
       const newStates = await getStates(
         accounts,
         baseTokenAddresses,
-        diamondGov,
+        diamondProtocolParams,
         diamondLoan,
         diamondToken,
         diamondRollup,

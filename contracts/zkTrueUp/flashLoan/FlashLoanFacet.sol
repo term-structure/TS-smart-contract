@@ -8,7 +8,7 @@ import {FlashLoanStorage} from "./FlashLoanStorage.sol";
 import {FlashLoanLib} from "./FlashLoanLib.sol";
 import {IFlashLoanFacet} from "./IFlashLoanFacet.sol";
 import {IFlashLoanReceiver} from "../interfaces/IFlashLoanReceiver.sol";
-import {GovernanceLib} from "../governance/GovernanceLib.sol";
+import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {Config} from "../libraries/Config.sol";
 
@@ -39,7 +39,7 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
         if (!IFlashLoanReceiver(receiver).executeOperation(msg.sender, assets, amounts, premiums, data))
             revert FlashLoanExecuteFailed();
 
-        address treasuryAddr = GovernanceLib.getTreasuryAddr();
+        address treasuryAddr = ProtocolParamsLib.getTreasuryAddr();
         for (uint256 i; i < assets.length; i++) {
             ISolidStateERC20(assets[i]).safeTransferFrom(receiver, address(this), amounts[i] + premiums[i]);
             ISolidStateERC20(assets[i]).safeTransfer(treasuryAddr, premiums[i]);

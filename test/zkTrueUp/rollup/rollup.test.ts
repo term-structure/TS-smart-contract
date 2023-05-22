@@ -19,7 +19,7 @@ import {
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 import {
   AccountFacet,
-  GovernanceFacet,
+  ProtocolParamsFacet,
   LoanFacet,
   RollupFacet,
   TokenFacet,
@@ -81,7 +81,7 @@ describe("Rollup", function () {
   let operator: Signer;
   let zkTrueUp: ZkTrueUp;
   let diamondAcc: AccountFacet;
-  let diamondGov: GovernanceFacet;
+  let diamondProtocolParams: ProtocolParamsFacet;
   let diamondLoan: LoanFacet;
   let diamondRollup: RollupFacet;
   let diamondTsb: TsbFacet;
@@ -95,10 +95,10 @@ describe("Rollup", function () {
     zkTrueUp = res.zkTrueUp;
     accounts = await ethers.getSigners();
     diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
-    diamondGov = (await useFacet(
-      "GovernanceFacet",
+    diamondProtocolParams = (await useFacet(
+      "ProtocolParamsFacet",
       zkTrueUp
-    )) as GovernanceFacet;
+    )) as ProtocolParamsFacet;
     diamondLoan = (await useFacet("LoanFacet", zkTrueUp)) as LoanFacet;
     diamondRollup = (await useFacet("RollupFacet", zkTrueUp)) as RollupFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
@@ -117,7 +117,7 @@ describe("Rollup", function () {
       oriStates = await getStates(
         accounts,
         baseTokenAddresses,
-        diamondGov,
+        diamondProtocolParams,
         diamondLoan,
         diamondToken,
         diamondRollup,
@@ -266,7 +266,7 @@ describe("Rollup", function () {
       const newStates = await getStates(
         accounts,
         baseTokenAddresses,
-        diamondGov,
+        diamondProtocolParams,
         diamondLoan,
         diamondToken,
         diamondRollup,

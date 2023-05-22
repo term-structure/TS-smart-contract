@@ -31,7 +31,7 @@ export const FACET_NAMES_MOCK = [
   "AccountMock", // replace AccountFacet with AccountMock
   "AddressFacet",
   "FlashLoanFacet",
-  "GovernanceFacet",
+  "ProtocolParamsFacet",
   "LoanFacet",
   "RollupFacet",
   "TokenFacet",

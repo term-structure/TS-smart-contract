@@ -6,7 +6,7 @@ import {SafeOwnable} from "@solidstate/contracts/access/ownable/SafeOwnable.sol"
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {FlashLoanStorage} from "../flashLoan/FlashLoanStorage.sol";
-import {GovernanceStorage, FundWeight} from "../governance/GovernanceStorage.sol";
+import {ProtocolParamsStorage, FundWeight} from "../protocolParams/ProtocolParamsStorage.sol";
 import {LoanStorage, LiquidationFactor} from "../loan/LoanStorage.sol";
 import {RollupStorage, StoredBlock} from "../rollup/RollupStorage.sol";
 import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
@@ -56,17 +56,17 @@ contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
         FlashLoanStorage.Layout storage flsl = FlashLoanStorage.layout();
         flsl.flashLoanPremium = InitConfig.INIT_FLASH_LOAN_PREMIUM;
 
-        // init governance facet
-        GovernanceStorage.Layout storage gsl = GovernanceStorage.layout();
-        gsl.treasuryAddr = treasuryAddr;
-        gsl.insuranceAddr = insuranceAddr;
-        gsl.vaultAddr = vaultAddr;
+        // init protocolParams facet
+        ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
+        ppsl.treasuryAddr = treasuryAddr;
+        ppsl.insuranceAddr = insuranceAddr;
+        ppsl.vaultAddr = vaultAddr;
         FundWeight memory fundWeight = FundWeight({
             treasury: InitConfig.INIT_TREASURY_WEIGHT,
             insurance: InitConfig.INIT_INSURANCE_WEIGHT,
             vault: InitConfig.INIT_VAULT_WEIGHT
         });
-        gsl.fundWeight = fundWeight;
+        ppsl.fundWeight = fundWeight;
 
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();

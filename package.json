@@ -16,7 +16,7 @@
     "test:deposit": "hardhat test test/zkTrueUp/account/deposit.test.ts",
     "test:withdraw": "hardhat test test/zkTrueUp/account/withdraw.test.ts",
     "test:forceWithdraw": "hardhat test test/zkTrueUp/account/forceWithdraw.test.ts",
-    "test:governance": "hardhat test test/zkTrueUp/governance/governance.test.ts",
+    "test:protocolParams": "hardhat test test/zkTrueUp/protocolParams/protocolParams.test.ts",
     "test:tsbToken": "hardhat test test/zkTrueUp/tsb/tsbToken.test.ts",
     "test:redeem": "hardhat test test/zkTrueUp/tsb/redeem.test.ts",
     "test:activateEvacuation": "hardhat test test/zkTrueUp/rollup/activateEvacuation.test.ts",

@@ -23,8 +23,8 @@ import {
   EvacuVerifier__factory,
   FlashLoanFacet,
   FlashLoanFacet__factory,
-  GovernanceFacet,
-  GovernanceFacet__factory,
+  ProtocolParamsFacet,
+  ProtocolParamsFacet__factory,
   LoanFacet,
   LoanFacet__factory,
   RollupFacet,
@@ -65,7 +65,7 @@ describe("Deploy", () => {
   let AccountFacet: AccountFacet__factory;
   let AddressFacet: AddressFacet__factory;
   let FlashLoanFacet: FlashLoanFacet__factory;
-  let GovernanceFacet: GovernanceFacet__factory;
+  let ProtocolParamsFacet: ProtocolParamsFacet__factory;
   let LoanFacet: LoanFacet__factory;
   let RollupFacet: RollupFacet__factory;
   let TokenFacet: TokenFacet__factory;
@@ -75,7 +75,7 @@ describe("Deploy", () => {
   let accountFacet: AccountFacet;
   let addressFacet: AddressFacet;
   let flashLoanFacet: FlashLoanFacet;
-  let governanceFacet: GovernanceFacet;
+  let protocolParamsFacet: ProtocolParamsFacet;
   let loanFacet: LoanFacet;
   let rollupFacet: RollupFacet;
   let tokenFacet: TokenFacet;
@@ -102,10 +102,10 @@ describe("Deploy", () => {
       "FlashLoanFacet"
     ] as FlashLoanFacet__factory;
     flashLoanFacet = facets["FlashLoanFacet"] as FlashLoanFacet;
-    GovernanceFacet = facetFactories[
-      "GovernanceFacet"
-    ] as GovernanceFacet__factory;
-    governanceFacet = facets["GovernanceFacet"] as GovernanceFacet;
+    ProtocolParamsFacet = facetFactories[
+      "ProtocolParamsFacet"
+    ] as ProtocolParamsFacet__factory;
+    protocolParamsFacet = facets["ProtocolParamsFacet"] as ProtocolParamsFacet;
     LoanFacet = facetFactories["LoanFacet"] as LoanFacet__factory;
     loanFacet = facets["LoanFacet"] as LoanFacet;
     RollupFacet = facetFactories["RollupFacet"] as RollupFacet__factory;
@@ -160,19 +160,19 @@ describe("Deploy", () => {
       diamondCut(
         invalidSigner,
         zkTrueUpMock,
-        governanceFacet.address,
-        GovernanceFacet
+        protocolParamsFacet.address,
+        ProtocolParamsFacet
       )
     ).to.be.revertedWithCustomError(ZkTrueUpMock, "Ownable__NotOwner");
   });
 
   it("Failed to deploy, invalid diamond init signer", async function () {
-    // governance diamond cut
+    // protocolParams diamond cut
     await diamondCut(
       deployer,
       zkTrueUpMock,
-      governanceFacet.address,
-      GovernanceFacet
+      protocolParamsFacet.address,
+      ProtocolParamsFacet
     );
 
     // diamond init
@@ -293,23 +293,25 @@ describe("Deploy", () => {
       ).to.equal(flashLoanFacet.address);
     }
 
-    // governance diamond cut
+    // protocolParams diamond cut
     const registeredGovFnSelectors = await diamondCut(
       deployer,
       zkTrueUpMock,
-      governanceFacet.address,
-      GovernanceFacet
+      protocolParamsFacet.address,
+      ProtocolParamsFacet
     );
 
-    // check that governance facet function selectors are registered
+    // check that protocolParams facet function selectors are registered
     expect(
-      await diamondZkTrueUpMock.facetFunctionSelectors(governanceFacet.address)
+      await diamondZkTrueUpMock.facetFunctionSelectors(
+        protocolParamsFacet.address
+      )
     ).have.members(registeredGovFnSelectors);
-    // check that registerSelectors are registered to governance facet address
+    // check that registerSelectors are registered to protocolParams facet address
     for (let i = 0; i < registeredGovFnSelectors.length; i++) {
       expect(
         await diamondZkTrueUpMock.facetAddress(registeredGovFnSelectors[i])
-      ).to.equal(governanceFacet.address);
+      ).to.equal(protocolParamsFacet.address);
     }
 
     // loan diamond cut
@@ -439,8 +441,8 @@ describe("Deploy", () => {
     const flashLoanStorageSlot = getSlotNum(
       "zkTrueUp.contracts.storage.FlashLoan"
     );
-    const governanceStorageSlot = getSlotNum(
-      "zkTrueUp.contracts.storage.Governance"
+    const protocolParamsStorageSlot = getSlotNum(
+      "zkTrueUp.contracts.storage.ProtocolParams"
     );
     const loanStorageSlot = getSlotNum("zkTrueUp.contracts.storage.Loan");
     const rollupStorageSlot = getSlotNum("zkTrueUp.contracts.storage.Rollup");
@@ -477,18 +479,18 @@ describe("Deploy", () => {
     );
     expect(flashLoanPremium).to.equal(3);
 
-    // check governance storage slot value after init
+    // check protocolParams storage slot value after init
     const treasuryAddr = utils.getAddress(
-      utils.hexlify(await getStorageAt(zkTrueUpMock, governanceStorageSlot))
+      utils.hexlify(await getStorageAt(zkTrueUpMock, protocolParamsStorageSlot))
     );
     const insuranceAddr = utils.getAddress(
       utils.hexlify(
-        await getStorageAt(zkTrueUpMock, governanceStorageSlot.add(1))
+        await getStorageAt(zkTrueUpMock, protocolParamsStorageSlot.add(1))
       )
     );
     const vaultAddr = utils.getAddress(
       utils.hexlify(
-        await getStorageAt(zkTrueUpMock, governanceStorageSlot.add(2))
+        await getStorageAt(zkTrueUpMock, protocolParamsStorageSlot.add(2))
       )
     );
     expect(treasuryAddr).to.equal(treasury.address);
@@ -596,15 +598,26 @@ describe("Deploy", () => {
 
     expect(await diamondFlashLoan.getFlashLoanPremium()).to.equal(3);
 
-    // check governance facet init
-    const diamondGov = await useFacet("GovernanceFacet", zkTrueUpMock);
+    // check protocolParams facet init
+    const diamondProtocolParams = await useFacet(
+      "ProtocolParamsFacet",
+      zkTrueUpMock
+    );
 
-    expect(await diamondGov.getTreasuryAddr()).to.equal(treasury.address);
-    expect(await diamondGov.getInsuranceAddr()).to.equal(insurance.address);
-    expect(await diamondGov.getVaultAddr()).to.equal(vault.address);
-    expect((await diamondGov.getFundWeight()).treasury).to.equal(5000);
-    expect((await diamondGov.getFundWeight()).insurance).to.equal(1000);
-    expect((await diamondGov.getFundWeight()).vault).to.equal(4000);
+    expect(await diamondProtocolParams.getTreasuryAddr()).to.equal(
+      treasury.address
+    );
+    expect(await diamondProtocolParams.getInsuranceAddr()).to.equal(
+      insurance.address
+    );
+    expect(await diamondProtocolParams.getVaultAddr()).to.equal(vault.address);
+    expect((await diamondProtocolParams.getFundWeight()).treasury).to.equal(
+      5000
+    );
+    expect((await diamondProtocolParams.getFundWeight()).insurance).to.equal(
+      1000
+    );
+    expect((await diamondProtocolParams.getFundWeight()).vault).to.equal(4000);
 
     // check loan facet init
     const diamondLoan = await useFacet("LoanFacet", zkTrueUpMock);

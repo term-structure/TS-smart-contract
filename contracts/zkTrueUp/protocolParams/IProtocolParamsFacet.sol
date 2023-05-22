@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {GovernanceStorage, FundWeight} from "./GovernanceStorage.sol";
+import {ProtocolParamsStorage, FundWeight} from "./ProtocolParamsStorage.sol";
 
-interface IGovernanceFacet {
+interface IProtocolParamsFacet {
     /// Error for setting invalid fund weight value
     error InvalidFundWeight();
 

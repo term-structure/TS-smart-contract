@@ -29,7 +29,7 @@ import {
 } from "../../utils/type";
 import {
   AccountFacet,
-  GovernanceFacet,
+  ProtocolParamsFacet,
   LoanFacet,
   RollupFacet,
   TokenFacet,
@@ -100,7 +100,7 @@ export function initEvacuationTestData(baseDir: string) {
 export const getStates = async (
   accounts: Signer[],
   baseTokenAddresses: BaseTokenAddresses,
-  diamondGov: GovernanceFacet,
+  diamondProtocolParams: ProtocolParamsFacet,
   diamondLoan: LoanFacet,
   diamondToken: TokenFacet,
   diamondRollup: RollupFacet,
@@ -184,11 +184,13 @@ export const getStates = async (
         tokenAddr
       );
       const treasuryAmt = await token.balanceOf(
-        await diamondGov.getTreasuryAddr()
+        await diamondProtocolParams.getTreasuryAddr()
       );
-      const vaultAmt = await token.balanceOf(await diamondGov.getVaultAddr());
+      const vaultAmt = await token.balanceOf(
+        await diamondProtocolParams.getVaultAddr()
+      );
       const insuranceAmt = await token.balanceOf(
-        await diamondGov.getInsuranceAddr()
+        await diamondProtocolParams.getInsuranceAddr()
       );
 
       if (!states[accountId]) {

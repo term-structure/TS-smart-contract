@@ -7,7 +7,7 @@ import { useFacet } from "../../../utils/useFacet";
 import { DEFAULT_ZERO_ADDR, FACET_NAMES } from "../../../utils/config";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import {
-  GovernanceFacet,
+  ProtocolParamsFacet,
   TokenFacet,
   ZkTrueUp,
 } from "../../../typechain-types";
@@ -27,10 +27,10 @@ const fixture = async () => {
   return res;
 };
 
-describe("Governance", () => {
+describe("ProtocolParams", () => {
   let [user1]: Signer[] = [];
   let zkTrueUp: ZkTrueUp;
-  let diamondGov: GovernanceFacet;
+  let diamondProtocolParams: ProtocolParamsFacet;
   let admin: Signer;
   let treasuryAddr: string;
   let insuranceAddr: string;
@@ -41,10 +41,10 @@ describe("Governance", () => {
     [user1] = await ethers.getSigners();
     zkTrueUp = res.zkTrueUp;
     admin = res.admin;
-    diamondGov = (await useFacet(
-      "GovernanceFacet",
+    diamondProtocolParams = (await useFacet(
+      "ProtocolParamsFacet",
       zkTrueUp
-    )) as GovernanceFacet;
+    )) as ProtocolParamsFacet;
     treasuryAddr = res.treasury.address;
     insuranceAddr = res.insurance.address;
     vaultAddr = res.vault.address;
@@ -56,12 +56,12 @@ describe("Governance", () => {
         insurance: 2500,
         vault: 2500,
       };
-      const setFundWeightTx = await diamondGov
+      const setFundWeightTx = await diamondProtocolParams
         .connect(admin)
         .setFundWeight(newFundWeight);
       await setFundWeightTx.wait();
 
-      const fundWeight = await diamondGov.getFundWeight();
+      const fundWeight = await diamondProtocolParams.getFundWeight();
       expect(fundWeight.treasury).to.be.equal(newFundWeight.treasury);
       expect(fundWeight.insurance).to.be.equal(newFundWeight.insurance);
       expect(fundWeight.vault).to.be.equal(newFundWeight.vault);
@@ -72,8 +72,9 @@ describe("Governance", () => {
         insurance: 2500,
         vault: 2500,
       };
-      await expect(diamondGov.connect(user1).setFundWeight(newFundWeight)).to.be
-        .reverted;
+      await expect(
+        diamondProtocolParams.connect(user1).setFundWeight(newFundWeight)
+      ).to.be.reverted;
     });
     it("Fail to set fund weight, sum of fund weight is not 10000", async () => {
       const invalidFundWeight = {
@@ -82,60 +83,76 @@ describe("Governance", () => {
         vault: 2500,
       };
       await expect(
-        diamondGov.connect(admin).setFundWeight(invalidFundWeight)
-      ).to.be.revertedWithCustomError(diamondGov, "InvalidFundWeight");
+        diamondProtocolParams.connect(admin).setFundWeight(invalidFundWeight)
+      ).to.be.revertedWithCustomError(
+        diamondProtocolParams,
+        "InvalidFundWeight"
+      );
     });
   });
 
   describe("Set & Get treasury address", () => {
     it("Success to set & get treasury address", async () => {
       const newTreasuryAddr = Wallet.createRandom().address;
-      await diamondGov.connect(admin).setTreasuryAddr(newTreasuryAddr);
-      expect(await diamondGov.getTreasuryAddr()).to.be.equal(newTreasuryAddr);
+      await diamondProtocolParams
+        .connect(admin)
+        .setTreasuryAddr(newTreasuryAddr);
+      expect(await diamondProtocolParams.getTreasuryAddr()).to.be.equal(
+        newTreasuryAddr
+      );
     });
     it("Fail to set treasury address, sender is not admin", async () => {
       const newTreasuryAddr = Wallet.createRandom().address;
-      await expect(diamondGov.connect(user1).setTreasuryAddr(newTreasuryAddr))
-        .to.be.reverted;
+      await expect(
+        diamondProtocolParams.connect(user1).setTreasuryAddr(newTreasuryAddr)
+      ).to.be.reverted;
     });
     it("Fail to set treasury address, treasury address is zero address", async () => {
       await expect(
-        diamondGov.connect(admin).setTreasuryAddr(DEFAULT_ZERO_ADDR)
-      ).to.be.revertedWithCustomError(diamondGov, "InvalidZeroAddr");
+        diamondProtocolParams.connect(admin).setTreasuryAddr(DEFAULT_ZERO_ADDR)
+      ).to.be.revertedWithCustomError(diamondProtocolParams, "InvalidZeroAddr");
     });
   });
   describe("Set & Get insurance address", () => {
     it("Success to set & get insurance address", async () => {
       const newInsuranceAddr = Wallet.createRandom().address;
-      await diamondGov.connect(admin).setInsuranceAddr(newInsuranceAddr);
-      expect(await diamondGov.getInsuranceAddr()).to.be.equal(newInsuranceAddr);
+      await diamondProtocolParams
+        .connect(admin)
+        .setInsuranceAddr(newInsuranceAddr);
+      expect(await diamondProtocolParams.getInsuranceAddr()).to.be.equal(
+        newInsuranceAddr
+      );
     });
     it("Fail to set insurance address, sender is not admin", async () => {
       const newInsuranceAddr = Wallet.createRandom().address;
-      await expect(diamondGov.connect(user1).setInsuranceAddr(newInsuranceAddr))
-        .to.be.reverted;
+      await expect(
+        diamondProtocolParams.connect(user1).setInsuranceAddr(newInsuranceAddr)
+      ).to.be.reverted;
     });
     it("Fail to set insurance address, insurance address is zero address", async () => {
       await expect(
-        diamondGov.connect(admin).setInsuranceAddr(DEFAULT_ZERO_ADDR)
-      ).to.be.revertedWithCustomError(diamondGov, "InvalidZeroAddr");
+        diamondProtocolParams.connect(admin).setInsuranceAddr(DEFAULT_ZERO_ADDR)
+      ).to.be.revertedWithCustomError(diamondProtocolParams, "InvalidZeroAddr");
     });
   });
   describe("Set & Get vault address", () => {
     it("Success to set & get vault address", async () => {
       const newVaultAddr = Wallet.createRandom().address;
-      await diamondGov.connect(admin).setVaultAddr(newVaultAddr);
-      expect(await diamondGov.getVaultAddr()).to.be.equal(newVaultAddr);
+      await diamondProtocolParams.connect(admin).setVaultAddr(newVaultAddr);
+      expect(await diamondProtocolParams.getVaultAddr()).to.be.equal(
+        newVaultAddr
+      );
     });
     it("Fail to set vault address, sender is not admin", async () => {
       const newVaultAddr = Wallet.createRandom().address;
-      await expect(diamondGov.connect(user1).setVaultAddr(newVaultAddr)).to.be
-        .reverted;
+      await expect(
+        diamondProtocolParams.connect(user1).setVaultAddr(newVaultAddr)
+      ).to.be.reverted;
     });
     it("Fail to set vault address, vault address is zero address", async () => {
       await expect(
-        diamondGov.connect(admin).setVaultAddr(DEFAULT_ZERO_ADDR)
-      ).to.be.revertedWithCustomError(diamondGov, "InvalidZeroAddr");
+        diamondProtocolParams.connect(admin).setVaultAddr(DEFAULT_ZERO_ADDR)
+      ).to.be.revertedWithCustomError(diamondProtocolParams, "InvalidZeroAddr");
     });
   });
 });

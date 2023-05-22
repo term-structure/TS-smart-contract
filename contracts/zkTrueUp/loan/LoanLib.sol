@@ -17,19 +17,6 @@ library LoanLib {
     /// @notice Error for get loan which is not exist
     error LoanIsNotExist();
 
-    /// @notice Internal function to check if the sender is the loan owner
-    /// @param sender The address of the sender
-    /// @param loanOwner The address of the loan owner
-    function senderIsLoanOwner(address sender, address loanOwner) internal pure {
-        if (sender != loanOwner) revert SenderIsNotLoanOwner(sender, loanOwner);
-    }
-
-    /// @notice Internal function to check if the health factor is safe
-    /// @param healthFactor The health factor to be checked
-    function safeHealthFactor(uint256 healthFactor) internal pure {
-        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert HealthFactorUnderThreshold(healthFactor);
-    }
-
     /// @notice Internal function to check if the loan is liquidable
     /// @param healthFactor The health factor of the loan
     /// @param maturityTime The maturity time of the loan
@@ -114,6 +101,19 @@ library LoanLib {
     /// @return liquidationFactor The stable coin pair liquidation factor
     function getStableCoinPairLiquidationFactor() internal view returns (LiquidationFactor memory) {
         return LoanStorage.layout().stableCoinPairLiquidationFactor;
+    }
+
+    /// @notice Internal function to check if the sender is the loan owner
+    /// @param sender The address of the sender
+    /// @param loanOwner The address of the loan owner
+    function senderIsLoanOwner(address sender, address loanOwner) internal pure {
+        if (sender != loanOwner) revert SenderIsNotLoanOwner(sender, loanOwner);
+    }
+
+    /// @notice Internal function to check if the health factor is safe
+    /// @param healthFactor The health factor to be checked
+    function safeHealthFactor(uint256 healthFactor) internal pure {
+        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert HealthFactorUnderThreshold(healthFactor);
     }
 
     /// @notice Internal function to get the loan id by the loan info

@@ -2,75 +2,75 @@
 pragma solidity ^0.8.17;
 
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
-import {GovernanceStorage, FundWeight} from "./GovernanceStorage.sol";
-import {IGovernanceFacet} from "./IGovernanceFacet.sol";
-import {GovernanceLib} from "./GovernanceLib.sol";
+import {ProtocolParamsStorage, FundWeight} from "./ProtocolParamsStorage.sol";
+import {IProtocolParamsFacet} from "./IProtocolParamsFacet.sol";
+import {ProtocolParamsLib} from "./ProtocolParamsLib.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
 
-contract GovernanceFacet is IGovernanceFacet, AccessControlInternal {
+contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
     /**
-     * @inheritdoc IGovernanceFacet
+     * @inheritdoc IProtocolParamsFacet
      */
     function setTreasuryAddr(address treasuryAddr) external onlyRole(Config.ADMIN_ROLE) {
         Utils.noneZeroAddr(treasuryAddr);
-        GovernanceStorage.layout().treasuryAddr = treasuryAddr;
+        ProtocolParamsStorage.layout().treasuryAddr = treasuryAddr;
         emit SetTreasuryAddr(treasuryAddr);
     }
 
     /**
-     * @inheritdoc IGovernanceFacet
+     * @inheritdoc IProtocolParamsFacet
      */
     function setInsuranceAddr(address insuranceAddr) external onlyRole(Config.ADMIN_ROLE) {
         Utils.noneZeroAddr(insuranceAddr);
-        GovernanceStorage.layout().insuranceAddr = insuranceAddr;
+        ProtocolParamsStorage.layout().insuranceAddr = insuranceAddr;
         emit SetInsuranceAddr(insuranceAddr);
     }
 
     /**
-     * @inheritdoc IGovernanceFacet
+     * @inheritdoc IProtocolParamsFacet
      */
     function setVaultAddr(address vaultAddr) external onlyRole(Config.ADMIN_ROLE) {
         Utils.noneZeroAddr(vaultAddr);
-        GovernanceStorage.layout().vaultAddr = vaultAddr;
+        ProtocolParamsStorage.layout().vaultAddr = vaultAddr;
         emit SetVaultAddr(vaultAddr);
     }
 
     /**
-     * @inheritdoc IGovernanceFacet
+     * @inheritdoc IProtocolParamsFacet
      */
     function setFundWeight(FundWeight memory fundWeight) external onlyRole(Config.ADMIN_ROLE) {
         if (fundWeight.treasury + fundWeight.insurance + fundWeight.vault != Config.FUND_WEIGHT_BASE)
             revert InvalidFundWeight();
-        GovernanceStorage.layout().fundWeight = fundWeight;
+        ProtocolParamsStorage.layout().fundWeight = fundWeight;
         emit SetFundWeight(fundWeight);
     }
 
     /**
-     * @inheritdoc IGovernanceFacet
+     * @inheritdoc IProtocolParamsFacet
      */
     function getTreasuryAddr() external view override returns (address) {
-        return GovernanceLib.getTreasuryAddr();
+        return ProtocolParamsLib.getTreasuryAddr();
     }
 
     /**
-     * @inheritdoc IGovernanceFacet
+     * @inheritdoc IProtocolParamsFacet
      */
     function getInsuranceAddr() external view override returns (address) {
-        return GovernanceLib.getInsuranceAddr();
+        return ProtocolParamsLib.getInsuranceAddr();
     }
 
     /**
-     * @inheritdoc IGovernanceFacet
+     * @inheritdoc IProtocolParamsFacet
      */
     function getVaultAddr() external view override returns (address) {
-        return GovernanceLib.getVaultAddr();
+        return ProtocolParamsLib.getVaultAddr();
     }
 
     /**
-     * @inheritdoc IGovernanceFacet
+     * @inheritdoc IProtocolParamsFacet
      */
     function getFundWeight() external view override returns (FundWeight memory) {
-        return GovernanceLib.getFundWeight();
+        return ProtocolParamsLib.getFundWeight();
     }
 }

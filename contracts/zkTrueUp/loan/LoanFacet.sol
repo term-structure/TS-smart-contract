@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
-import {GovernanceLib} from "../governance/GovernanceLib.sol";
+import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {LoanLib} from "./LoanLib.sol";
@@ -119,7 +119,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanStorage.layout().loans[loanId] = loan;
 
         Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), liquidatorRewardAmt);
-        Utils.transfer(collateralAsset.tokenAddr, payable(GovernanceLib.getTreasuryAddr()), protocolPenaltyAmt);
+        Utils.transfer(collateralAsset.tokenAddr, payable(ProtocolParamsLib.getTreasuryAddr()), protocolPenaltyAmt);
         emit Liquidate(loanId, msg.sender, liquidatorRewardAmt, protocolPenaltyAmt);
         return (repayAmt, liquidatorRewardAmt, protocolPenaltyAmt);
     }

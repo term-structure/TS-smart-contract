@@ -4,12 +4,12 @@ pragma solidity ^0.8.17;
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {RollupStorage, StoredBlock, CommitBlock, ExecuteBlock, Proof, L1Request} from "./RollupStorage.sol";
-import {FundWeight} from "../governance/GovernanceStorage.sol";
+import {FundWeight} from "../protocolParams/ProtocolParamsStorage.sol";
 import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {IRollupFacet} from "./IRollupFacet.sol";
 import {RollupLib} from "./RollupLib.sol";
-import {GovernanceLib} from "../governance/GovernanceLib.sol";
+import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {LoanLib} from "../loan/LoanLib.sol";
 import {AddressLib} from "../address/AddressLib.sol";
@@ -551,21 +551,21 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function _withdrawFee(Operations.WithdrawFee memory withdrawFee) internal {
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(withdrawFee.tokenId);
         uint128 l1Amt = Utils.toL1Amt(withdrawFee.amount, assetConfig.decimals);
-        FundWeight memory fundWeight = GovernanceLib.getFundWeight();
+        FundWeight memory fundWeight = ProtocolParamsLib.getFundWeight();
         // insurance
         uint128 amount = (l1Amt * fundWeight.insurance) / Config.FUND_WEIGHT_BASE;
-        address toAddr = GovernanceLib.getInsuranceAddr();
+        address toAddr = ProtocolParamsLib.getInsuranceAddr();
         Utils.noneZeroAddr(toAddr);
         Utils.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
         l1Amt -= amount;
         // vault
         amount = (l1Amt * fundWeight.vault) / Config.FUND_WEIGHT_BASE;
-        toAddr = GovernanceLib.getVaultAddr();
+        toAddr = ProtocolParamsLib.getVaultAddr();
         Utils.noneZeroAddr(toAddr);
         Utils.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
         l1Amt -= amount;
         // treasury
-        toAddr = GovernanceLib.getTreasuryAddr();
+        toAddr = ProtocolParamsLib.getTreasuryAddr();
         Utils.noneZeroAddr(toAddr);
         Utils.transfer(assetConfig.tokenAddr, payable(toAddr), l1Amt);
     }
