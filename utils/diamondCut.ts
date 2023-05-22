@@ -1,8 +1,7 @@
 import { ethers } from "hardhat";
 import { ZkTrueUp } from "../typechain-types";
 import { ContractFactory, Signer } from "ethers";
-
-type diamondCutAction = 0 | 1 | 2;
+import { diamondCutAction } from "./type";
 
 export const diamondCut = async (
   signer: Signer,

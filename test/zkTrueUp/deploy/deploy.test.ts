@@ -2,20 +2,20 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Contract, ContractFactory, utils, Wallet } from "ethers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { diamondCut } from "../../utils/diamondCut";
-import { diamondInit } from "../../utils/diamondInit";
-import { deployFacets } from "../../utils/deployFacets";
-import { AddressFacet__factory } from "../../typechain-types/factories/contracts/zkTrueUp/address";
-import { AddressFacet } from "../../typechain-types/contracts/zkTrueUp/address";
+import { diamondCut } from "../../../utils/diamondCut";
+import { diamondInit } from "../../../utils/diamondInit";
+import { deployFacets } from "../../../utils/deployFacets";
+import { AddressFacet__factory } from "../../../typechain-types/factories/contracts/zkTrueUp/address";
+import { AddressFacet } from "../../../typechain-types/contracts/zkTrueUp/address";
 import { keccak256 } from "ethers/lib/utils";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
-import { useFacet } from "../../utils/useFacet";
-import initStates from "../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+import { useFacet } from "../../../utils/useFacet";
+import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
 import {
   getMappingSlotNum,
   getSlotNum,
   getStorageAt,
-} from "../../utils/slotHelper";
+} from "../../../utils/slotHelper";
 import {
   AccountFacet,
   AccountFacet__factory,
@@ -41,12 +41,12 @@ import {
   ZkTrueUpInit__factory,
   ZkTrueUpMock,
   ZkTrueUpMock__factory,
-} from "../../typechain-types";
+} from "../../../typechain-types";
 import {
   ETH_ASSET_CONFIG,
   FACET_NAMES,
   DEFAULT_GENESIS_STATE_ROOT,
-} from "../../utils/config";
+} from "../../../utils/config";
 const genesisStateRoot = initStates.stateRoot;
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
@@ -548,6 +548,7 @@ describe("Deploy", () => {
     ).to.have.lengthOf(0);
 
     // check role init
+    expect(await diamondZkTrueUpMock.owner()).to.equal(admin.address);
     expect(
       await diamondZkTrueUpMock.hasRole(utils.id("ADMIN_ROLE"), admin.address)
     ).to.equal(true);

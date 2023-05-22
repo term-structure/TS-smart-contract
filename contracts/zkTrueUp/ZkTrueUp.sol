@@ -5,10 +5,10 @@ import {SolidStateDiamond} from "@solidstate/contracts/proxy/diamond/SolidStateD
 import {AccessControl} from "@solidstate/contracts/access/access_control/AccessControl.sol";
 
 /**
-  * @title Zk-TrueUp Contract
-  * @author Term Structure Labs
-  * @notice The core contract of Term Structure Protocol, including the on-chain overcollateral lending business logic
-            and the zk-rollup logic.
+ * @title Zk-TrueUp Contract
+ * @author Term Structure Labs
+ * @notice The core contract of Term Structure Protocol, which implemented by
+ *         diamond proxy standard.
  */
 contract ZkTrueUp is SolidStateDiamond, AccessControl {
 

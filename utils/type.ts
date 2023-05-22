@@ -7,6 +7,9 @@ export type BaseTokenAddresses = { [key: number]: string };
 // { TsTokenId: PriceFeed }
 export type PriceFeeds = { [key: number]: string };
 
+// 0 = add, 1 = replace, 2 = remove
+export type diamondCutAction = 0 | 1 | 2;
+
 export type TsbTokenData = {
   name: string;
   symbol: string;

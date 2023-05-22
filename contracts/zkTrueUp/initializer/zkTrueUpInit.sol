@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
-import {SafeOwnable} from "@solidstate/contracts/access/ownable/SafeOwnable.sol";
+import {Ownable} from "@solidstate/contracts/access/ownable/Ownable.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {FlashLoanStorage} from "../flashLoan/FlashLoanStorage.sol";
@@ -17,7 +17,7 @@ import {Config, InitConfig} from "../libraries/Config.sol";
  * @title Zk-TureUp Initializer Contract
  * @notice This contract is used to initialize the zkTrueUp protocol
  */
-contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
+contract ZkTrueUpInit is Ownable, AccessControlInternal {
     function init(bytes calldata data) external {
         (
             address wETHAddr,
@@ -38,12 +38,12 @@ contract ZkTrueUpInit is SafeOwnable, AccessControlInternal {
 
         // set roles
         AccessControlInternal._setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
-        _transferOwnership(adminAddr);
         AccessControlInternal._grantRole(Config.ADMIN_ROLE, adminAddr);
         AccessControlInternal._grantRole(Config.OPERATOR_ROLE, operatorAddr);
         AccessControlInternal._grantRole(Config.COMMITTER_ROLE, operatorAddr);
         AccessControlInternal._grantRole(Config.VERIFIER_ROLE, operatorAddr);
         AccessControlInternal._grantRole(Config.EXECUTER_ROLE, operatorAddr);
+        transferOwnership(adminAddr);
 
         // init account facet
         AccountStorage.Layout storage asl = AccountStorage.layout();
