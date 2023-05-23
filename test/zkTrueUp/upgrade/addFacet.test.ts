@@ -1,7 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BaseContract, Signer } from "ethers";
+import { Signer } from "ethers";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import { useFacet } from "../../../utils/useFacet";
@@ -34,8 +34,6 @@ describe("Upgrade diamond", function () {
   let admin: Signer;
   let deployer: Signer;
   let zkTrueUp: ZkTrueUp;
-  let facets: { [key: string]: BaseContract } = {};
-  let fnSelectors: { [key: string]: string[] } = {};
   let UpgradeMockFacet: UpgradeMockFacet__factory;
   let upgradeMockFacet: UpgradeMockFacet;
   let upgradeMockFacetSelectors: string[];
@@ -47,8 +45,6 @@ describe("Upgrade diamond", function () {
     admin = res.admin;
     deployer = res.deployer;
     zkTrueUp = res.zkTrueUp;
-    facets = res.facets;
-    fnSelectors = res.fnSelectors;
     UpgradeMockFacet = await ethers.getContractFactory(
       "UpgradeMockFacet",
       deployer

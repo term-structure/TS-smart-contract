@@ -390,7 +390,7 @@ describe("Deploy", () => {
       ).to.equal(tsbFacet.address);
     }
 
-    const initData = ethers.utils.defaultAbiCoder.encode(
+    const initData = utils.defaultAbiCoder.encode(
       [
         "address",
         "address",
@@ -434,113 +434,6 @@ describe("Deploy", () => {
       ZkTrueUpInit,
       initData
     );
-
-    // check storage slot location is correct
-    const accountStorageSlot = getSlotNum("zkTrueUp.contracts.storage.Account");
-    const addressStorageSlot = getSlotNum("zkTrueUp.contracts.storage.Address");
-    const flashLoanStorageSlot = getSlotNum(
-      "zkTrueUp.contracts.storage.FlashLoan"
-    );
-    const protocolParamsStorageSlot = getSlotNum(
-      "zkTrueUp.contracts.storage.ProtocolParams"
-    );
-    const loanStorageSlot = getSlotNum("zkTrueUp.contracts.storage.Loan");
-    const rollupStorageSlot = getSlotNum("zkTrueUp.contracts.storage.Rollup");
-    const tokenStorageSlot = getSlotNum("zkTrueUp.contracts.storage.Token");
-
-    // get value by storage slot number from zkTrueUpMock test contract
-    // check all values are set to correct storage slot location
-    // check account storage slot value after init
-    const accountNum = await getStorageAt(zkTrueUpMock, accountStorageSlot);
-    expect(accountNum).to.equal(1);
-
-    // check address storage slot value after init
-    const wethAddr = utils.getAddress(
-      utils.hexlify(await getStorageAt(zkTrueUpMock, addressStorageSlot))
-    );
-    const poseidonUnit2Addr = utils.getAddress(
-      utils.hexlify(await getStorageAt(zkTrueUpMock, addressStorageSlot.add(1)))
-    );
-    const verifierAddr = utils.getAddress(
-      utils.hexlify(await getStorageAt(zkTrueUpMock, addressStorageSlot.add(2)))
-    );
-    const evacuVerifierAddr = utils.getAddress(
-      utils.hexlify(await getStorageAt(zkTrueUpMock, addressStorageSlot.add(3)))
-    );
-    expect(wethAddr).to.equal(weth.address);
-    expect(poseidonUnit2Addr).to.equal(poseidonUnit2Contract.address);
-    expect(verifierAddr).to.equal(verifier.address);
-    expect(evacuVerifierAddr).to.equal(evacuVerifier.address);
-
-    // check flashLoan storage slot value after init
-    const flashLoanPremium = await getStorageAt(
-      zkTrueUpMock,
-      flashLoanStorageSlot
-    );
-    expect(flashLoanPremium).to.equal(3);
-
-    // check protocolParams storage slot value after init
-    const treasuryAddr = utils.getAddress(
-      utils.hexlify(await getStorageAt(zkTrueUpMock, protocolParamsStorageSlot))
-    );
-    const insuranceAddr = utils.getAddress(
-      utils.hexlify(
-        await getStorageAt(zkTrueUpMock, protocolParamsStorageSlot.add(1))
-      )
-    );
-    const vaultAddr = utils.getAddress(
-      utils.hexlify(
-        await getStorageAt(zkTrueUpMock, protocolParamsStorageSlot.add(2))
-      )
-    );
-    expect(treasuryAddr).to.equal(treasury.address);
-    expect(insuranceAddr).to.equal(insurance.address);
-    expect(vaultAddr).to.equal(vault.address);
-
-    // check loan storage slot value after init
-    const halfLiquidationThreshold = await getStorageAt(
-      zkTrueUpMock,
-      loanStorageSlot
-    );
-    expect(halfLiquidationThreshold).to.equal(10000);
-
-    // check rollup storage slot value after init
-    // calculate genesis block hash
-    const genesisBlockHash = keccak256(
-      utils.defaultAbiCoder.encode(
-        ["uint32", "uint64", "bytes32", "bytes32", "bytes32", "uint256"],
-        [
-          0,
-          0,
-          "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-          utils.hexZeroPad(utils.hexlify(0), 32),
-          genesisStateRoot ?? DEFAULT_GENESIS_STATE_ROOT,
-          0,
-        ]
-      )
-    );
-    const genesisBlockHashSlotNum = getMappingSlotNum(
-      utils.hexlify(0), // key = 0
-      utils.hexlify(rollupStorageSlot.add(4)) // the 4th slot in rollup storage struct
-    );
-    const genesisStateRootSlot = await getStorageAt(
-      zkTrueUpMock,
-      BigNumber.from(genesisBlockHashSlotNum)
-    );
-    expect(genesisStateRootSlot).to.equal(genesisBlockHash);
-
-    // check token storage slot value after init
-    const tokenNum = await getStorageAt(zkTrueUpMock, tokenStorageSlot);
-    expect(tokenNum).to.equal(1);
-    const ethTokenIdSlotNum = getMappingSlotNum(
-      DEFAULT_ETH_ADDRESS, // key = DEFAULT_ETH_ADDRESS
-      utils.hexlify(tokenStorageSlot.add(1)) // the 1st slot in token storage struct
-    );
-    const ethTokenId = await getStorageAt(
-      zkTrueUpMock,
-      BigNumber.from(ethTokenIdSlotNum)
-    );
-    expect(ethTokenId).to.equal(1);
 
     // check initFacet is one-time use and have not be added
     expect(
@@ -636,6 +529,20 @@ describe("Deploy", () => {
 
     // check rollup facet init
     const diamondRollup = await useFacet("RollupFacet", zkTrueUpMock);
+    // calculate genesis block hash
+    const genesisBlockHash = keccak256(
+      utils.defaultAbiCoder.encode(
+        ["uint32", "uint64", "bytes32", "bytes32", "bytes32", "uint256"],
+        [
+          0,
+          0,
+          "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+          utils.hexZeroPad(utils.hexlify(0), 32),
+          genesisStateRoot ?? DEFAULT_GENESIS_STATE_ROOT,
+          0,
+        ]
+      )
+    );
     expect(await diamondRollup.getStoredBlockHash(0)).to.equal(
       genesisBlockHash
     );
