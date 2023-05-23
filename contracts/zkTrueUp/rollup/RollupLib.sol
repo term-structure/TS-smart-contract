@@ -139,6 +139,58 @@ library RollupLib {
         return RollupStorage.layout().pendingBalances[key];
     }
 
+    /// @notice Internal function to check whether the register request is in the L1 request queue
+    /// @param register The register request
+    /// @param request The L1 request
+    /// @return bool if the register request is in the L1 request queue
+    function isRegisterInL1RequestQueue(
+        Operations.Register memory register,
+        L1Request memory request
+    ) internal pure returns (bool) {
+        requireMatchedOpType(request.opType, Operations.OpType.REGISTER);
+        if (Operations.isRegisterHashedPubDataMatched(register, request.hashedPubData)) return true;
+        return false;
+    }
+
+    /// @notice Internal function to check whether the deposit request is in the L1 request queue
+    /// @param deposit The deposit request
+    /// @param request The L1 request
+    /// @return bool if the deposit request is in the L1 request queue
+    function isDepositInL1RequestQueue(
+        Operations.Deposit memory deposit,
+        L1Request memory request
+    ) internal pure returns (bool) {
+        requireMatchedOpType(request.opType, Operations.OpType.DEPOSIT);
+        if (Operations.isDepositHashedPubDataMatched(deposit, request.hashedPubData)) return true;
+        return false;
+    }
+
+    /// @notice Internal function to check whether the force withdraw request is in the L1 request queue
+    /// @param forceWithdraw The force withdraw request
+    /// @param request The L1 request
+    /// @return bool if the force withdraw request is in the L1 request queue
+    function isForceWithdrawInL1RequestQueue(
+        Operations.ForceWithdraw memory forceWithdraw,
+        L1Request memory request
+    ) internal pure returns (bool) {
+        requireMatchedOpType(request.opType, Operations.OpType.FORCE_WITHDRAW);
+        if (Operations.isForceWithdrawHashedPubDataMatched(forceWithdraw, request.hashedPubData)) return true;
+        return false;
+    }
+
+    /// @notice Internal function to check whether the evacuation is in the L1 request queue
+    /// @param evacuation The evacuation request
+    /// @param request The L1 request
+    /// @return bool if the evacuation request is in the L1 request queue
+    function isEvacuationInL1RequestQueue(
+        Operations.Evacuation memory evacuation,
+        L1Request memory request
+    ) internal pure returns (bool) {
+        requireMatchedOpType(request.opType, Operations.OpType.EVACUATION);
+        if (Operations.isEvacuationHashedPubDataMatched(evacuation, request.hashedPubData)) return true;
+        return false;
+    }
+
     /// @notice Internal function check if the operation type is matched
     /// @param opType The operation type of the request
     /// @param expectedOpType The expected operation type

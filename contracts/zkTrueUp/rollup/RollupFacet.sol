@@ -182,8 +182,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) external view returns (bool isExisted) {
         if (_isRequestIdGtCurRequestNum(requestId)) return false;
-        _registerInL1RequestQueue(register, requestId);
-        return true;
+        L1Request memory request = RollupLib.getL1Request(requestId);
+        return RollupLib.isRegisterInL1RequestQueue(register, request);
     }
 
     /**
@@ -194,8 +194,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) external view returns (bool isExisted) {
         if (_isRequestIdGtCurRequestNum(requestId)) return false;
-        _depositInL1RequestQueue(deposit, requestId);
-        return true;
+        L1Request memory request = RollupLib.getL1Request(requestId);
+        return RollupLib.isDepositInL1RequestQueue(deposit, request);
     }
 
     /**
@@ -206,8 +206,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) external view returns (bool isExisted) {
         if (_isRequestIdGtCurRequestNum(requestId)) return false;
-        _forceWithdrawInL1RequestQueue(forceWithdraw, requestId);
-        return true;
+        L1Request memory request = RollupLib.getL1Request(requestId);
+        return RollupLib.isForceWithdrawInL1RequestQueue(forceWithdraw, request);
     }
 
     /**
@@ -348,40 +348,43 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (publicData.length % Config.CHUNK_BYTES != 0) revert InvalidPubDataLength(publicData.length);
         bytes memory commitmentOffset = new bytes(publicData.length / Config.CHUNK_BYTES);
         uint64 processedL1RequestNum;
+        uint256 offset;
+        uint256 chunkId;
+        L1Request memory request;
+        bytes memory rollupData;
         for (uint256 i; i < newBlock.publicDataOffsets.length; i++) {
-            uint256 offset = newBlock.publicDataOffsets[i];
+            offset = newBlock.publicDataOffsets[i];
             if (offset >= publicData.length) revert OffsetGtPubDataLength(offset);
             if (offset % Config.CHUNK_BYTES != 0) revert InvalidOffset(offset);
-            uint256 chunkId = offset / Config.CHUNK_BYTES;
+            chunkId = offset / Config.CHUNK_BYTES;
             if (commitmentOffset[chunkId] != bytes1(0x00)) revert OffsetIsSet(chunkId);
             commitmentOffset[chunkId] = bytes1(0x01);
             Operations.OpType opType = Operations.OpType(uint8(publicData[offset]));
-            bytes memory rollupData;
             if (opType == Operations.OpType.REGISTER) {
                 rollupData = Bytes.slice(publicData, offset, Config.REGISTER_BYTES);
                 Operations.Register memory register = Operations.readRegisterPubData(rollupData);
-                _registerInL1RequestQueue(register, nextCommittedL1RequestId + processedL1RequestNum);
+                request = RollupLib.getL1Request(nextCommittedL1RequestId + processedL1RequestNum);
+                if (!RollupLib.isRegisterInL1RequestQueue(register, request)) revert RequestIsNotExisted(request);
                 ++processedL1RequestNum;
             } else if (opType == Operations.OpType.DEPOSIT) {
                 rollupData = Bytes.slice(publicData, offset, Config.DEPOSIT_BYTES);
                 Operations.Deposit memory deposit = Operations.readDepositPubData(rollupData);
-                _depositInL1RequestQueue(deposit, nextCommittedL1RequestId + processedL1RequestNum);
+                request = RollupLib.getL1Request(nextCommittedL1RequestId + processedL1RequestNum);
+                if (!RollupLib.isDepositInL1RequestQueue(deposit, request)) revert RequestIsNotExisted(request);
                 ++processedL1RequestNum;
             } else if (opType == Operations.OpType.CREATE_TS_BOND_TOKEN) {
                 rollupData = Bytes.slice(publicData, offset, Config.CREATE_TS_BOND_TOKEN_BYTES);
                 Operations.CreateTsbToken memory CreateTsbTokenReq = Operations.readCreateTsbTokenPubData(rollupData);
                 AssetConfig memory tsbTokenConfig = TokenLib.getAssetConfig(CreateTsbTokenReq.tsbTokenId);
-
                 AssetConfig memory baseTokenConfig = TokenLib.getAssetConfig(CreateTsbTokenReq.baseTokenId);
-
                 (address underlyingAsset, uint32 maturityTime) = ITsbToken(tsbTokenConfig.tokenAddr).tokenInfo();
-
                 if (underlyingAsset != baseTokenConfig.tokenAddr) revert BaseTokenAddrIsNotMatched();
                 if (maturityTime != CreateTsbTokenReq.maturityTime) revert MaturityTimeIsNotMatched();
             } else if (opType == Operations.OpType.EVACUATION) {
                 rollupData = Bytes.slice(publicData, offset, Config.EVACUATION_BYTES);
                 Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(rollupData);
-                _evacuationInL1RequestQueue(evacuation, nextCommittedL1RequestId + processedL1RequestNum);
+                request = RollupLib.getL1Request(nextCommittedL1RequestId + processedL1RequestNum);
+                if (!RollupLib.isEvacuationInL1RequestQueue(evacuation, request)) revert RequestIsNotExisted(request);
                 ++processedL1RequestNum;
             } else {
                 bytes memory pubData;
@@ -390,7 +393,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                     pubData = Bytes.slice(publicData, offset, Config.FORCE_WITHDRAW_BYTES);
                     Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(pubData);
-                    _forceWithdrawInL1RequestQueue(forceWithdrawReq, nextCommittedL1RequestId + processedL1RequestNum);
+                    request = RollupLib.getL1Request(nextCommittedL1RequestId + processedL1RequestNum);
+                    if (!RollupLib.isForceWithdrawInL1RequestQueue(forceWithdrawReq, request))
+                        revert RequestIsNotExisted(request);
                     ++processedL1RequestNum;
                 } else if (opType == Operations.OpType.AUCTION_END) {
                     pubData = Bytes.slice(publicData, offset, Config.AUCTION_END_BYTES);
@@ -401,7 +406,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 } else {
                     revert InvalidOpType(opType);
                 }
-
                 processableRollupTxHash = keccak256(abi.encodePacked(processableRollupTxHash, pubData));
             }
         }
@@ -430,49 +434,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                     pubData
                 )
             );
-    }
-
-    /// @notice Internal function to check whether the register request is in the L1 request queue
-    /// @param register The register request
-    /// @param requestId The id of the request
-    function _registerInL1RequestQueue(Operations.Register memory register, uint64 requestId) internal view {
-        L1Request memory request = RollupLib.getL1Request(requestId);
-        RollupLib.requireMatchedOpType(request.opType, Operations.OpType.REGISTER);
-        if (!Operations.isRegisterHashedPubDataMatched(register, request.hashedPubData))
-            revert RequestIsNotExisted(request);
-    }
-
-    /// @notice Internal function to check whether the deposit request is in the L1 request queue
-    /// @param deposit The deposit request
-    /// @param requestId The id of the request
-    function _depositInL1RequestQueue(Operations.Deposit memory deposit, uint64 requestId) internal view {
-        L1Request memory request = RollupLib.getL1Request(requestId);
-        RollupLib.requireMatchedOpType(request.opType, Operations.OpType.DEPOSIT);
-        if (!Operations.isDepositHashedPubDataMatched(deposit, request.hashedPubData))
-            revert RequestIsNotExisted(request);
-    }
-
-    /// @notice Internal function to check whether the force withdraw request is in the L1 request queue
-    /// @param forceWithdraw The force withdraw request
-    /// @param requestId The id of the request
-    function _forceWithdrawInL1RequestQueue(
-        Operations.ForceWithdraw memory forceWithdraw,
-        uint64 requestId
-    ) internal view {
-        L1Request memory request = RollupLib.getL1Request(requestId);
-        RollupLib.requireMatchedOpType(request.opType, Operations.OpType.FORCE_WITHDRAW);
-        if (!Operations.isForceWithdrawHashedPubDataMatched(forceWithdraw, request.hashedPubData))
-            revert RequestIsNotExisted(request);
-    }
-
-    /// @notice Internal function to check whether the evacuation is in the L1 request queue
-    /// @param evacuation The evacuation request
-    /// @param requestId The id of the request
-    function _evacuationInL1RequestQueue(Operations.Evacuation memory evacuation, uint64 requestId) internal view {
-        L1Request memory request = RollupLib.getL1Request(requestId);
-        RollupLib.requireMatchedOpType(request.opType, Operations.OpType.EVACUATION);
-        if (!Operations.isEvacuationHashedPubDataMatched(evacuation, request.hashedPubData))
-            revert RequestIsNotExisted(request);
     }
 
     /// @notice Internal function to verify one block
