@@ -1,0 +1,13 @@
+image: node:18
+
+cache:
+  paths:
+    - node_modules/
+
+test:
+  variables:
+    NODE_ENV: "test"
+  script:
+    - npm install
+    - npx hardhat node &
+    - npx hardhat test --parallel
