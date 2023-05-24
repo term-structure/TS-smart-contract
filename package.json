@@ -1,4 +1,9 @@
 {
+  "name": "term-structure-protocol",
+  "version": "0.0.1",
+  "description": "Term Structure Protocol",
+  "license": "MIT",
+  "author": "Term Structure Labs",
   "scripts": {
     "start": "hardhat node",
     "clean": "hardhat clean && rm -rf cache",
