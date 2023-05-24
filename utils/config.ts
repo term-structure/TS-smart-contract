@@ -1,6 +1,14 @@
 import { utils } from "ethers";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 
+export const DIAMOND_CUT_ACTION = {
+  ADD: 0,
+  REPLACE: 1,
+  REMOVE: 2,
+};
+
+export const INIT_FUNCTION_NAME = "init";
+
 export const LIB_NAMES = [
   "AccountLib",
   "AddressLib",

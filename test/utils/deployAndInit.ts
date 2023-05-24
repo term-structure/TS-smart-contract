@@ -2,12 +2,13 @@ import { ethers } from "hardhat";
 import { deployFacets } from "../../utils/deployFacets";
 import { cutFacets } from "../../utils/cutFacets";
 import { BaseTokenAddresses, FacetInfo, PriceFeeds } from "../../utils/type";
-import { diamondInit } from "../../utils/diamondInit";
+import { facetInit } from "../../utils/facetInit";
 import {
   BASE_TOKEN_ASSET_CONFIG,
   ETH_ASSET_CONFIG,
   FACET_NAMES,
   DEFAULT_GENESIS_STATE_ROOT,
+  INIT_FUNCTION_NAME,
 } from "../../utils/config";
 import { ERC20Mock, OracleMock } from "../../typechain-types";
 import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
@@ -137,11 +138,12 @@ export const deployAndInit = async (facetNames?: string[]) => {
   );
 
   // init diamond cut
-  await diamondInit(
+  await facetInit(
     deployer,
     zkTrueUp,
     zkTrueUpInit.address,
     ZkTrueUpInit,
+    INIT_FUNCTION_NAME,
     initData
   );
 

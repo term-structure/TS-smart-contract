@@ -1,5 +1,5 @@
-import { ZkTrueUp } from "../typechain-types";
-import { ContractFactory, Signer } from "ethers";
+import { BaseContract, ContractFactory, Signer } from "ethers";
+import { FunctionFragment } from "ethers/lib/utils";
 
 /**
  * @notice diamondCut function
@@ -9,18 +9,19 @@ import { ContractFactory, Signer } from "ethers";
  * @param initContractAddr
  * @param initFactory
  * @param initData
- * @returns initFnSelector
  */
-export const diamondInit = async (
+export const facetInit = async (
   signer: Signer,
-  diamond: ZkTrueUp,
+  diamond: BaseContract,
   initContractAddr: string,
   initFactory: ContractFactory,
+  functionFragment: string | FunctionFragment,
   initData: string
 ) => {
-  const functionCall = initFactory.interface.encodeFunctionData("init", [
-    initData,
-  ]);
+  const functionCall = initFactory.interface.encodeFunctionData(
+    functionFragment,
+    [initData]
+  );
 
   // execute init function from init facet, only call once and not register functions
   const initTx = await diamond

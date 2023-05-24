@@ -4,13 +4,14 @@ import { deployBaseTokens } from "../../utils/deployBaseTokens";
 import { deployFacets } from "../../utils/deployFacets";
 import { FacetInfo, getString } from "../../utils/type";
 import { cutFacets } from "../../utils/cutFacets";
-import { diamondInit } from "../../utils/diamondInit";
+import { facetInit } from "../../utils/facetInit";
 import { TsTokenId } from "term-structure-sdk";
 import {
   BASE_TOKEN_ASSET_CONFIG,
   DEFAULT_GENESIS_STATE_ROOT,
   ETH_ASSET_CONFIG,
   FACET_NAMES,
+  INIT_FUNCTION_NAME,
 } from "../../utils/config";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
@@ -136,11 +137,12 @@ export const main = async () => {
 
   // init diamond cut
   console.log("Init diamond cut...");
-  await diamondInit(
+  await facetInit(
     deployer,
     zkTrueUp,
     zkTrueUpInit.address,
     ZkTrueUpInit,
+    INIT_FUNCTION_NAME,
     initData
   );
   console.log("Diamond initialized successfully 💎💎💎");
