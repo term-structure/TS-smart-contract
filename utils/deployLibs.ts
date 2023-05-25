@@ -1,10 +1,9 @@
-import { Contract } from "ethers";
+import { Contract, Signer } from "ethers";
 import { ethers } from "hardhat";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 export const deployLibs = async (
   libNames: string[],
-  deployer: SignerWithAddress
+  deployer: Signer
 ): Promise<{ [key: string]: Contract }> => {
   const libs: { [key: string]: Contract } = {};
   for (const libName of libNames) {
