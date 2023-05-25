@@ -13,8 +13,15 @@ export const facetAdd = async (
   targetAddr: string,
   targetFactory: ContractFactory
 ) => {
-  const existingFacets = await getExistingFacets(diamond.address);
+  const bytecode = await ethers.provider.getCode(targetAddr);
+  if (bytecode === "0x") {
+    throw new Error("Target address is not a contract");
+  }
   const targetSelectors = await getFnSelectors(targetFactory);
+  if (targetSelectors.length === 0) {
+    throw new Error("No selectors found for target contract");
+  }
+  const existingFacets = await getExistingFacets(diamond.address);
   for (const existingFacet of existingFacets) {
     safeFnSelectors(targetSelectors, existingFacet);
   }

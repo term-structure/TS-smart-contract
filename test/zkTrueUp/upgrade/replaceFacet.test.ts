@@ -12,6 +12,7 @@ import {
   TokenFacet,
   ZkTrueUp,
 } from "../../../typechain-types";
+import { facetReplace } from "../../../utils/facetReplace";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -128,14 +129,12 @@ describe("Upgrade diamond", function () {
       );
     });
     it("Success to replace facet", async function () {
-      const replacedFacet = {
-        target: newAccountFacet.address,
-        action: 1, // replace
-        selectors: newAccountFacetFnSelectors,
-      };
-      await zkTrueUp
-        .connect(admin)
-        .diamondCut([replacedFacet], ethers.constants.AddressZero, "0x");
+      await facetReplace(
+        admin,
+        zkTrueUp,
+        newAccountFacet.address,
+        NewAccountFacet
+      );
 
       // check that new facet function selectors are registered
       expect(

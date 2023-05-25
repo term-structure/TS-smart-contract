@@ -7,6 +7,7 @@ import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import { useFacet } from "../../../utils/useFacet";
 import { FACET_NAMES } from "../../../utils/config";
 import { TokenFacet, ZkTrueUp } from "../../../typechain-types";
+import { facetRemove } from "../../../utils/facetRemove";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -90,21 +91,15 @@ describe("Upgrade diamond", function () {
       );
     });
     it("Success to remove facet", async function () {
-      const accountFnSelectors = fnSelectors["AccountFacet"];
-      const removedFacet = {
-        target: ethers.constants.AddressZero,
-        action: 2, // remove
-        selectors: accountFnSelectors,
-      };
-      await zkTrueUp
-        .connect(admin)
-        .diamondCut([removedFacet], ethers.constants.AddressZero, "0x");
+      const AccountFactory = await ethers.getContractFactory("AccountFacet");
+      await facetRemove(admin, zkTrueUp, AccountFactory);
 
       // check that removed facet function selectors are removed
       expect(
         await zkTrueUp.facetFunctionSelectors(facets["AccountFacet"].address)
       ).to.be.empty;
       // check that removed function selectors are removed
+      const accountFnSelectors = fnSelectors["AccountFacet"];
       for (let i = 0; i < accountFnSelectors.length; i++) {
         expect(await zkTrueUp.facetAddress(accountFnSelectors[i])).to.equal(
           ethers.constants.AddressZero

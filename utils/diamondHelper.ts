@@ -1,7 +1,23 @@
 import { ethers } from "hardhat";
 import diamondReadableABI from "@solidstate/abi/DiamondReadable.json";
 import { DiamondReadable, IDiamondReadable } from "../typechain-types";
-import { ContractFactory } from "ethers";
+import { Contract, ContractFactory } from "ethers";
+
+export const getExistingFacetAddresses = async (diamondAddr: string) => {
+  const diamondReadable = (await ethers.getContractAt(
+    diamondReadableABI,
+    diamondAddr
+  )) as DiamondReadable;
+  let existingFacetAddresses;
+  try {
+    existingFacetAddresses = await diamondReadable.facetAddresses();
+  } catch (e: any) {
+    throw new Error(
+      `Error getting facet addresses from diamond contract: ${e.message}`
+    );
+  }
+  return existingFacetAddresses;
+};
 
 export const getExistingFacets = async (diamondAddr: string) => {
   const diamondReadable = (await ethers.getContractAt(
@@ -32,12 +48,18 @@ export const safeFnSelectors = (
   }
 };
 
-export const getFnSelectors = async (contractFactory: ContractFactory) => {
-  const fnSelectors = Object.keys(contractFactory.interface.functions).map(
-    (fn) => {
-      const sl = contractFactory.interface.getSighash(fn);
+export const getFnSelectors = async (
+  contractOrContractFactory: Contract | ContractFactory
+) => {
+  try {
+    const fnSelectors = Object.keys(
+      contractOrContractFactory.interface.functions
+    ).map((fn) => {
+      const sl = contractOrContractFactory.interface.getSighash(fn);
       return sl;
-    }
-  );
-  return fnSelectors;
+    });
+    return fnSelectors;
+  } catch (e: any) {
+    throw new Error(`Error getting function selectors: ${e.message}`);
+  }
 };
