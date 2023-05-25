@@ -10,10 +10,14 @@ import "hardhat-tracer";
 import "hardhat-gas-reporter";
 import { resolve } from "path";
 import { getString } from "./utils/type";
-
+import { existsSync, mkdirSync } from "fs";
 task("storage-layout", "Prints the storage layout", async (_, hre) => {
   await hre.storageLayout.export();
 });
+
+if (!existsSync(resolve(__dirname, "./reports"))) {
+  mkdirSync(resolve(__dirname, "./reports"));
+}
 
 const mnemonic =
   process.env.MNEMONIC ||

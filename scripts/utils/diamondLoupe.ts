@@ -23,7 +23,7 @@ export const main = async () => {
           if (json.bytecode !== "0x" && json.abi.length > 0) {
             contractNames.push(json.contractName);
           } else {
-            // Do nothing, this is an contract without bytecode
+            // Do nothing, this is an contract without bytecode or ABI
           }
         } else {
           console.warn(`File not found: ${target}`);

@@ -11,7 +11,7 @@ artifacts
 
 .history
 docgen
-reports
+reports/**/*
 .VSCodeCounter
 .vscode
 
