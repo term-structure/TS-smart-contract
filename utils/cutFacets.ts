@@ -1,6 +1,6 @@
 import { ZkTrueUp } from "../typechain-types";
 import { FacetInfo, FnSelectors } from "./type";
-import { facetAdd } from "./facetAdd";
+import { addFacet } from "./diamondActions/addFacet";
 import { Signer } from "ethers";
 
 export const cutFacets = async (
@@ -10,7 +10,7 @@ export const cutFacets = async (
 ): Promise<{ [key: string]: FnSelectors }> => {
   const selectors: { [key: string]: FnSelectors } = {};
   for (const { facetName, facetAddress, facetFactory } of facets) {
-    const facetSelectors = await facetAdd(
+    const facetSelectors = await addFacet(
       deployer,
       diamond,
       facetAddress,

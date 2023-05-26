@@ -1,9 +1,9 @@
 import { ethers } from "hardhat";
 import { BaseContract, ContractFactory, Signer } from "ethers";
-import { getExistingFacets, getFnSelectors } from "./diamondHelper";
-import { DIAMOND_CUT_ACTION } from "./config";
+import { getExistingFacets, getFnSelectors } from "../diamondHelper";
+import { DIAMOND_CUT_ACTION } from "../config";
 
-export const facetReplace = async (
+export const replaceFacet = async (
   signer: Signer,
   diamond: BaseContract,
   targetAddr: string,

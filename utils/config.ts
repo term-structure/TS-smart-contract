@@ -9,7 +9,7 @@ export const DIAMOND_CUT_ACTION = {
 
 export const INIT_FUNCTION_NAME = "init";
 
-export const LIB_NAMES = [
+export const LIBRARY_NAMES = [
   "AccountLib",
   "AddressLib",
   "FlashLoanLib",

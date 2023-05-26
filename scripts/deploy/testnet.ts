@@ -1,10 +1,10 @@
 import { Wallet, utils } from "ethers";
 import { ethers } from "hardhat";
-import { deployBaseTokens } from "../../utils/deployBaseTokens";
-import { deployFacets } from "../../utils/deployFacets";
+import { deployBaseTokens } from "../../utils/deploy/deployBaseTokens";
+import { deployFacets } from "../../utils/deploy/deployFacets";
 import { FacetInfo, getString } from "../../utils/type";
 import { cutFacets } from "../../utils/cutFacets";
-import { facetInit } from "../../utils/facetInit";
+import { initFacet } from "../../utils/diamondActions/initFacet";
 import { TsTokenId } from "term-structure-sdk";
 import {
   BASE_TOKEN_ASSET_CONFIG,
@@ -138,7 +138,7 @@ export const main = async () => {
   // init diamond cut
   console.log("Init diamond cut...");
   const onlyCall = true;
-  await facetInit(
+  await initFacet(
     deployer,
     zkTrueUp,
     zkTrueUpInit.address,

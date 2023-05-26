@@ -7,7 +7,7 @@ import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import { useFacet } from "../../../utils/useFacet";
 import { FACET_NAMES } from "../../../utils/config";
 import { TokenFacet, ZkTrueUp } from "../../../typechain-types";
-import { facetRemove } from "../../../utils/facetRemove";
+import { removeFacet } from "../../../utils/diamondActions/removeFacet";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -92,7 +92,7 @@ describe("Upgrade diamond", function () {
     });
     it("Success to remove facet", async function () {
       const AccountFactory = await ethers.getContractFactory("AccountFacet");
-      await facetRemove(admin, zkTrueUp, AccountFactory);
+      await removeFacet(admin, zkTrueUp, AccountFactory);
 
       // check that removed facet function selectors are removed
       expect(

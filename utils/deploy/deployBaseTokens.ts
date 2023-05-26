@@ -1,7 +1,7 @@
 import { Signer } from "ethers";
 import { ethers } from "hardhat";
-import { BaseTokenAddresses, PriceFeeds } from "./type";
-import { ERC20Mock, OracleMock } from "../typechain-types";
+import { BaseTokenAddresses, PriceFeeds } from "../type";
+import { ERC20Mock, OracleMock } from "../../typechain-types";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 
 export async function deployBaseTokens(deployer: Signer, tokenConfigs: any) {

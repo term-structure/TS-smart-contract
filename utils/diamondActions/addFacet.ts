@@ -4,10 +4,10 @@ import {
   getExistingFacets,
   getFnSelectors,
   safeFnSelectors,
-} from "./diamondHelper";
-import { DIAMOND_CUT_ACTION } from "./config";
+} from "../diamondHelper";
+import { DIAMOND_CUT_ACTION } from "../config";
 
-export const facetAdd = async (
+export const addFacet = async (
   signer: Signer,
   diamond: BaseContract,
   targetAddr: string,

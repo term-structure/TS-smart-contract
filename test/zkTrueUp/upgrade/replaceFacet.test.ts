@@ -12,7 +12,7 @@ import {
   TokenFacet,
   ZkTrueUp,
 } from "../../../typechain-types";
-import { facetReplace } from "../../../utils/facetReplace";
+import { replaceFacet } from "../../../utils/diamondActions/replaceFacet";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -129,7 +129,7 @@ describe("Upgrade diamond", function () {
       );
     });
     it("Success to replace facet", async function () {
-      await facetReplace(
+      await replaceFacet(
         admin,
         zkTrueUp,
         newAccountFacet.address,
