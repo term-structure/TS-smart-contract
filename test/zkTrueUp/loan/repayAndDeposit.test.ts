@@ -664,10 +664,7 @@ describe("Repay and deposit", () => {
           .repay(loanId, depositCollateralAmt, repayDebtAmt, true, {
             value: repayDebtAmt,
           })
-      ).to.be.revertedWithCustomError(
-        diamondLoan,
-        "HealthFactorUnderThreshold"
-      );
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsUnhealthy");
 
       // after health factor
       const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
@@ -1326,10 +1323,7 @@ describe("Repay and deposit", () => {
       // check revert
       await expect(
         diamondLoan.connect(user2).repay(loanId, collateralAmt, debtAmt, true)
-      ).to.be.revertedWithCustomError(
-        diamondLoan,
-        "HealthFactorUnderThreshold"
-      );
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsUnhealthy");
     });
   });
 });

@@ -49,7 +49,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             collateralAsset,
             debtAsset
         );
-        LoanLib.safeHealthFactor(healthFactor);
+        LoanLib.requireHealthy(healthFactor);
         LoanStorage.layout().loans[loanId] = loan;
         Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), amount);
         emit RemoveCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
@@ -76,7 +76,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             collateralAsset,
             debtAsset
         );
-        LoanLib.safeHealthFactor(healthFactor);
+        LoanLib.requireHealthy(healthFactor);
 
         LoanStorage.layout().loans[loanId] = loan;
         emit Repay(
@@ -204,6 +204,25 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return LoanLib.getLoan(loanId);
     }
 
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function isLiquidable(bytes12 loanId) external view returns (bool) {
+        Loan memory loan = LoanLib.getLoan(loanId);
+        (
+            LiquidationFactor memory liquidationFactor,
+            AssetConfig memory collateralAsset,
+            AssetConfig memory debtAsset
+        ) = LoanLib.getLoanInfo(loan);
+        (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
+            loan,
+            liquidationFactor.ltvThreshold,
+            collateralAsset,
+            debtAsset
+        );
+        return LoanLib.isLiquidable(healthFactor, loan.maturityTime);
+    }
+
     /// @notice Liquidation calculator to calculate the liquidator reward and protocol penalty
     /// @dev The three cases are:
     /// @dev 1. The collateral value is not enough to cover the full liquidator reward,
@@ -229,7 +248,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ) internal view returns (uint128, uint128, uint128) {
         (uint256 healthFactor, uint256 normalizedCollateralPrice, uint256 normalizedDebtPrice) = LoanLib
             .getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
-        LoanLib.loanIsLiquidable(healthFactor, loan.maturityTime);
+        if (!LoanLib.isLiquidable(healthFactor, loan.maturityTime)) revert LoanIsSafe(healthFactor, loan.maturityTime);
 
         // if the collateral value is less than half liquidation threshold or the loan is expired,
         // then the liquidator will repay the full debt

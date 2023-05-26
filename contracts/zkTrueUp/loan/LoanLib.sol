@@ -14,19 +14,9 @@ library LoanLib {
     /// @notice Error for sender is not the loan owner
     error SenderIsNotLoanOwner(address sender, address loanOwner);
     /// @notice Error for health factor is under thresholds
-    error HealthFactorUnderThreshold(uint256 healthFactor);
-    /// @notice Error for liquidate the loan which is healthy
-    error LoanIsHealthy(uint256 healthFactor);
+    error LoanIsUnhealthy(uint256 healthFactor);
     /// @notice Error for get loan which is not exist
     error LoanIsNotExist();
-
-    /// @notice Internal function to check if the loan is liquidable
-    /// @param healthFactor The health factor of the loan
-    /// @param maturityTime The maturity time of the loan
-    function loanIsLiquidable(uint256 healthFactor, uint32 maturityTime) internal view {
-        if (healthFactor >= Config.HEALTH_FACTOR_THRESHOLD && maturityTime >= block.timestamp)
-            revert LoanIsHealthy(healthFactor);
-    }
 
     /// @notice Internal function to get the health factor of the loan
     /// @dev The health factor formula: ltvThreshold * (collateralValue / collateralDecimals) / (debtValue / debtDecimals)
@@ -106,6 +96,28 @@ library LoanLib {
         return LoanStorage.layout().stableCoinPairLiquidationFactor;
     }
 
+    /// @notice Internal function to check if the loan is liquidable
+    /// @param healthFactor The health factor of the loan
+    /// @param maturityTime The maturity time of the loan
+    /// @return isLiquidable True if the loan is liquidable, otherwise false
+    function isLiquidable(uint256 healthFactor, uint32 maturityTime) internal view returns (bool) {
+        return !isHealthy(healthFactor) || isMatured(maturityTime);
+    }
+
+    /// @notice Internal function to check if the loan is matured
+    /// @param maturityTime The maturity time of the loan
+    /// @return isMatured True if the loan is matured, otherwise false
+    function isMatured(uint32 maturityTime) internal view returns (bool) {
+        return block.timestamp >= maturityTime;
+    }
+
+    /// @notice Internal function to check if the loan is healthy
+    /// @param healthFactor The health factor to be checked
+    /// @return isHealthy True if the loan is healthy, otherwise false
+    function isHealthy(uint256 healthFactor) internal pure returns (bool) {
+        return healthFactor >= Config.HEALTH_FACTOR_THRESHOLD;
+    }
+
     /// @notice Internal function to check if the sender is the loan owner
     /// @param sender The address of the sender
     /// @param loanOwner The address of the loan owner
@@ -115,8 +127,8 @@ library LoanLib {
 
     /// @notice Internal function to check if the health factor is safe
     /// @param healthFactor The health factor to be checked
-    function safeHealthFactor(uint256 healthFactor) internal pure {
-        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert HealthFactorUnderThreshold(healthFactor);
+    function requireHealthy(uint256 healthFactor) internal pure {
+        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert LoanIsUnhealthy(healthFactor);
     }
 
     /// @notice Internal function to get the loan id by the loan info

@@ -9,6 +9,8 @@ import {LiquidationFactor, Loan} from "./LoanStorage.sol";
 interface ILoanFacet {
     /// @notice Error for setting invalid liquidation factor
     error InvalidLiquidationFactor();
+    /// @notice Error for liquidate the loan which is safe
+    error LoanIsSafe(uint256 healthFactor, uint32 maturityTime);
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
@@ -145,4 +147,9 @@ interface ILoanFacet {
     /// @param loanId The id of the loan
     /// @return loan The loan
     function getLoan(bytes12 loanId) external view returns (Loan memory loan);
+
+    /// @notice Return the whether the loan is liquidable
+    /// @param loanId The id of the loan
+    /// @return isLiquidable Whether the loan is liquidable
+    function isLiquidable(bytes12 loanId) external view returns (bool isLiquidable);
 }

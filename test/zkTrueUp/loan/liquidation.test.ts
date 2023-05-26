@@ -214,9 +214,10 @@ describe("Liquidation", () => {
       ).answer;
 
       // liquidate
+      expect(await diamondLoan.isLiquidable(loanId)).to.be.false;
       await expect(
         diamondLoan.connect(liquidator).liquidate(loanId)
-      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsHealthy");
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsSafe");
     });
     it("Success to liquidate, health factor < 1 (general loan, collateral can cover liquidator reward and protocol penalty)", async () => {
       // set the price for liquidation
@@ -249,6 +250,7 @@ describe("Liquidation", () => {
       );
 
       // liquidate
+      expect(await diamondLoan.isLiquidable(loanId)).to.be.true;
       const liquidateTx = await diamondLoan
         .connect(liquidator)
         .liquidate(loanId);
