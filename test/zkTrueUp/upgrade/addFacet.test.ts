@@ -17,7 +17,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -148,7 +148,7 @@ describe("Upgrade diamond", function () {
       // call new facet function
       const diamondUpgradeMockFacet = (await useFacet(
         "UpgradeMockFacet",
-        zkTrueUp
+        zkTrueUp.address
       )) as UpgradeMockFacet;
 
       // check the new facet function is called successfully

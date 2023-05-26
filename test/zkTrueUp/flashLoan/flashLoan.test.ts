@@ -53,7 +53,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES_MOCK);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -91,15 +91,19 @@ describe("Flash loan", () => {
     operator = res.operator;
     weth = res.weth;
     zkTrueUp = res.zkTrueUp;
-    diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
+    const zkTrueUpAddr = zkTrueUp.address;
+    diamondAcc = (await useFacet("AccountFacet", zkTrueUpAddr)) as AccountFacet;
     diamondFlashLoan = (await useFacet(
       "FlashLoanFacet",
-      zkTrueUp
+      zkTrueUpAddr
     )) as FlashLoanFacet;
-    diamondLoan = (await useFacet("LoanFacet", zkTrueUp)) as LoanFacet;
-    diamondRollupMock = (await useFacet("RollupMock", zkTrueUp)) as RollupMock;
-    diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
-    diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
+    diamondLoan = (await useFacet("LoanFacet", zkTrueUpAddr)) as LoanFacet;
+    diamondRollupMock = (await useFacet(
+      "RollupMock",
+      zkTrueUpAddr
+    )) as RollupMock;
+    diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
+    diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     priceFeeds = res.priceFeeds;
   });

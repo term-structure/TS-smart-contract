@@ -44,8 +44,9 @@ describe("TsFaucet", () => {
     ]);
     operator = res.operator;
     zkTrueUp = res.zkTrueUp;
-    diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
-    diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
+    const zkTrueUpAddr = zkTrueUp.address;
+    diamondAcc = (await useFacet("AccountFacet", zkTrueUpAddr)) as AccountFacet;
+    diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
 
     const TsFaucet = await ethers.getContractFactory("TsFaucet");
     const TsFaucetConstructorParams = ethers.utils.defaultAbiCoder.encode(

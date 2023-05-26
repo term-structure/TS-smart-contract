@@ -37,7 +37,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES_MOCK);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -69,9 +69,13 @@ describe("Redeem TsbToken", () => {
     ]);
     operator = res.operator;
     zkTrueUp = res.zkTrueUp;
-    diamondAccMock = (await useFacet("AccountMock", zkTrueUp)) as AccountMock;
-    diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
-    diamondTsbMock = (await useFacet("TsbMock", zkTrueUp)) as TsbMock;
+    const zkTrueUpAddr = zkTrueUp.address;
+    diamondAccMock = (await useFacet(
+      "AccountMock",
+      zkTrueUpAddr
+    )) as AccountMock;
+    diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
+    diamondTsbMock = (await useFacet("TsbMock", zkTrueUpAddr)) as TsbMock;
     baseTokenAddresses = res.baseTokenAddresses;
     priceFeeds = res.priceFeeds;
     diamondWithTsbLib = await ethers.getContractAt("TsbLib", zkTrueUp.address);

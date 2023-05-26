@@ -25,7 +25,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -51,9 +51,13 @@ describe("Force withdraw", function () {
     [user1] = await ethers.getSigners();
     [user1Addr] = await Promise.all([user1.getAddress()]);
     zkTrueUp = res.zkTrueUp;
-    diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
-    diamondRollup = (await useFacet("RollupFacet", zkTrueUp)) as RollupFacet;
-    diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
+    const zkTrueUpAddr = zkTrueUp.address;
+    diamondAcc = (await useFacet("AccountFacet", zkTrueUpAddr)) as AccountFacet;
+    diamondRollup = (await useFacet(
+      "RollupFacet",
+      zkTrueUpAddr
+    )) as RollupFacet;
+    diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     usdt = await ethers.getContractAt(
       "ERC20Mock",

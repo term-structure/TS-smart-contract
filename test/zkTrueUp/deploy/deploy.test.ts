@@ -227,9 +227,10 @@ describe("Deploy", () => {
   });
 
   it("Success to deploy", async function () {
+    const zkTrueUpMockAddr = zkTrueUpMock.address;
     const diamondZkTrueUpMock = (await useFacet(
       "ZkTrueUpMock",
-      zkTrueUpMock
+      zkTrueUpMockAddr
     )) as ZkTrueUpMock;
 
     // account diamond cut
@@ -469,12 +470,12 @@ describe("Deploy", () => {
     ).to.equal(true);
 
     // check account facet init
-    const diamondAcc = await useFacet("AccountFacet", zkTrueUpMock);
+    const diamondAcc = await useFacet("AccountFacet", zkTrueUpMockAddr);
 
     expect(await diamondAcc.getAccountNum()).to.equal(1);
 
     // check address facet init
-    const diamondAddr = await useFacet("AddressFacet", zkTrueUpMock);
+    const diamondAddr = await useFacet("AddressFacet", zkTrueUpMockAddr);
 
     expect(await diamondAddr.getWETHAddr()).to.equal(weth.address);
     expect(await diamondAddr.getPoseidonUnit2Addr()).to.equal(
@@ -486,14 +487,14 @@ describe("Deploy", () => {
     );
 
     // check flashLoan facet init
-    const diamondFlashLoan = await useFacet("FlashLoanFacet", zkTrueUpMock);
+    const diamondFlashLoan = await useFacet("FlashLoanFacet", zkTrueUpMockAddr);
 
     expect(await diamondFlashLoan.getFlashLoanPremium()).to.equal(3);
 
     // check protocolParams facet init
     const diamondProtocolParams = await useFacet(
       "ProtocolParamsFacet",
-      zkTrueUpMock
+      zkTrueUpMockAddr
     );
 
     expect(await diamondProtocolParams.getTreasuryAddr()).to.equal(
@@ -512,7 +513,7 @@ describe("Deploy", () => {
     expect((await diamondProtocolParams.getFundWeight()).vault).to.equal(4000);
 
     // check loan facet init
-    const diamondLoan = await useFacet("LoanFacet", zkTrueUpMock);
+    const diamondLoan = await useFacet("LoanFacet", zkTrueUpMockAddr);
 
     expect(await diamondLoan.getHalfLiquidationThreshold()).to.equal(10000);
     const liquidationFactor = await diamondLoan.getLiquidationFactor(false);
@@ -526,7 +527,7 @@ describe("Deploy", () => {
     expect(stableCoinPairLiquidationFactor.protocolPenalty).to.equal(15);
 
     // check rollup facet init
-    const diamondRollup = await useFacet("RollupFacet", zkTrueUpMock);
+    const diamondRollup = await useFacet("RollupFacet", zkTrueUpMockAddr);
     // calculate genesis block hash
     const genesisBlockHash = keccak256(
       utils.defaultAbiCoder.encode(
@@ -546,7 +547,7 @@ describe("Deploy", () => {
     );
 
     // check token facet init
-    const diamondToken = await useFacet("TokenFacet", zkTrueUpMock);
+    const diamondToken = await useFacet("TokenFacet", zkTrueUpMockAddr);
 
     expect(await diamondToken.getTokenNum()).to.equal(1);
     expect(await diamondToken.getTokenId(DEFAULT_ETH_ADDRESS)).to.equal(1);

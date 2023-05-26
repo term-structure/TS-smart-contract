@@ -16,7 +16,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -39,11 +39,12 @@ describe("ProtocolParams", () => {
   beforeEach(async () => {
     const res = await loadFixture(fixture);
     [user1] = await ethers.getSigners();
-    zkTrueUp = res.zkTrueUp;
     admin = res.admin;
+    zkTrueUp = res.zkTrueUp;
+    const zkTrueUpAddr = zkTrueUp.address;
     diamondProtocolParams = (await useFacet(
       "ProtocolParamsFacet",
-      zkTrueUp
+      zkTrueUpAddr
     )) as ProtocolParamsFacet;
     treasuryAddr = res.treasury.address;
     insuranceAddr = res.insurance.address;

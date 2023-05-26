@@ -19,7 +19,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -44,8 +44,9 @@ describe("TsbFactory", () => {
     admin = res.admin;
     operator = res.operator;
     zkTrueUp = res.zkTrueUp;
-    diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
-    diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
+    const zkTrueUpAddr = zkTrueUp.address;
+    diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
+    diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
   });
   describe("Add token", async () => {
     it("Success to add token (base token)", async () => {

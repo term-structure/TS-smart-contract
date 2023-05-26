@@ -50,7 +50,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -94,15 +94,19 @@ describe("Rollup", function () {
     operator = res.operator;
     zkTrueUp = res.zkTrueUp;
     accounts = await ethers.getSigners();
-    diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
+    const zkTrueUpAddr = zkTrueUp.address;
+    diamondAcc = (await useFacet("AccountFacet", zkTrueUpAddr)) as AccountFacet;
     diamondProtocolParams = (await useFacet(
       "ProtocolParamsFacet",
-      zkTrueUp
+      zkTrueUpAddr
     )) as ProtocolParamsFacet;
-    diamondLoan = (await useFacet("LoanFacet", zkTrueUp)) as LoanFacet;
-    diamondRollup = (await useFacet("RollupFacet", zkTrueUp)) as RollupFacet;
-    diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
-    diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
+    diamondLoan = (await useFacet("LoanFacet", zkTrueUpAddr)) as LoanFacet;
+    diamondRollup = (await useFacet(
+      "RollupFacet",
+      zkTrueUpAddr
+    )) as RollupFacet;
+    diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
+    diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     committedBlockNum += 1;
     provedBlockNum += 1;

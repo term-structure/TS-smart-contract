@@ -44,7 +44,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES_MOCK);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -79,10 +79,17 @@ describe("Deposit", function () {
     weth = res.weth;
     zkTrueUp = res.zkTrueUp;
     operator = res.operator;
-    diamondAccMock = (await useFacet("AccountMock", zkTrueUp)) as AccountMock;
-    diamondRollup = (await useFacet("RollupFacet", zkTrueUp)) as RollupFacet;
-    diamondToken = (await useFacet("TokenFacet", zkTrueUp)) as TokenFacet;
-    diamondTsb = (await useFacet("TsbFacet", zkTrueUp)) as TsbFacet;
+    const zkTrueUpAddr = zkTrueUp.address;
+    diamondAccMock = (await useFacet(
+      "AccountMock",
+      zkTrueUpAddr
+    )) as AccountMock;
+    diamondRollup = (await useFacet(
+      "RollupFacet",
+      zkTrueUpAddr
+    )) as RollupFacet;
+    diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
+    diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     usdt = await ethers.getContractAt(
       "ERC20Mock",

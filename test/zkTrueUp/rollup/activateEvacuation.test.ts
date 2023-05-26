@@ -21,7 +21,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -47,8 +47,12 @@ describe("Activating evacuation", function () {
     [user1Addr] = await Promise.all([user1.getAddress()]);
     weth = res.weth;
     zkTrueUp = res.zkTrueUp;
-    diamondAcc = (await useFacet("AccountFacet", zkTrueUp)) as AccountFacet;
-    diamondRollup = (await useFacet("RollupFacet", zkTrueUp)) as RollupFacet;
+    const zkTrueUpAddr = zkTrueUp.address;
+    diamondAcc = (await useFacet("AccountFacet", zkTrueUpAddr)) as AccountFacet;
+    diamondRollup = (await useFacet(
+      "RollupFacet",
+      zkTrueUpAddr
+    )) as RollupFacet;
     baseTokenAddresses = res.baseTokenAddresses;
   });
 

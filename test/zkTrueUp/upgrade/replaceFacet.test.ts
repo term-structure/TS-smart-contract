@@ -18,7 +18,7 @@ const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
   const diamondToken = (await useFacet(
     "TokenFacet",
-    res.zkTrueUp
+    res.zkTrueUp.address
   )) as TokenFacet;
   await whiteListBaseTokens(
     res.baseTokenAddresses,
@@ -150,7 +150,7 @@ describe("Upgrade diamond", function () {
       // check the new facet function works and the storage is not changed
       const diamondAcc = (await useFacet(
         "AccountFacet",
-        zkTrueUp
+        zkTrueUp.address
       )) as AccountFacet;
       const accountNum = await diamondAcc.getAccountNum();
       expect(accountNum).to.equal(1);
