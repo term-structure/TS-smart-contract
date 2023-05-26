@@ -214,6 +214,7 @@ describe("Deploy", () => {
     );
 
     // invalid diamond init signer, only deployer can call diamond init
+    const onlyCall = true;
     await expect(
       facetInit(
         invalidSigner,
@@ -221,7 +222,8 @@ describe("Deploy", () => {
         zkTrueUpInit.address,
         ZkTrueUpInit,
         INIT_FUNCTION_NAME,
-        initData
+        initData,
+        onlyCall
       )
     ).to.be.revertedWithCustomError(ZkTrueUpMock, "Ownable__NotOwner");
   });
@@ -425,13 +427,15 @@ describe("Deploy", () => {
     );
 
     // init diamond cut to initialize the diamond
+    const onlyCall = true;
     await facetInit(
       deployer,
       zkTrueUpMock,
       zkTrueUpInit.address,
       ZkTrueUpInit,
       INIT_FUNCTION_NAME,
-      initData
+      initData,
+      onlyCall
     );
 
     // check initFacet is one-time use and have not be added

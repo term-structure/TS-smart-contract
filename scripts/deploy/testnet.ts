@@ -137,13 +137,15 @@ export const main = async () => {
 
   // init diamond cut
   console.log("Init diamond cut...");
+  const onlyCall = true;
   await facetInit(
     deployer,
     zkTrueUp,
     zkTrueUpInit.address,
     ZkTrueUpInit,
     INIT_FUNCTION_NAME,
-    initData
+    initData,
+    onlyCall
   );
   console.log("Diamond initialized successfully 💎💎💎");
 

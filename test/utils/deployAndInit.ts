@@ -138,13 +138,15 @@ export const deployAndInit = async (facetNames?: string[]) => {
   );
 
   // init diamond cut
+  const onlyCall = true;
   await facetInit(
     deployer,
     zkTrueUp,
     zkTrueUpInit.address,
     ZkTrueUpInit,
     INIT_FUNCTION_NAME,
-    initData
+    initData,
+    onlyCall
   );
 
   return {
