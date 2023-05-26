@@ -311,12 +311,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 Operations.Withdraw memory withdrawReq = Operations.readWithdrawPubData(pubData);
                 decimals = TokenLib.getAssetConfig(withdrawReq.tokenId).decimals;
                 amount = Utils.toL1Amt(withdrawReq.amount, decimals);
-                _increasePendingBalance(withdrawReq.accountId, withdrawReq.tokenId, amount);
+                _addPendingBalance(withdrawReq.accountId, withdrawReq.tokenId, amount);
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                 Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(pubData);
                 decimals = TokenLib.getAssetConfig(forceWithdrawReq.tokenId).decimals;
                 amount = Utils.toL1Amt(forceWithdrawReq.amount, decimals);
-                _increasePendingBalance(forceWithdrawReq.accountId, forceWithdrawReq.tokenId, amount);
+                _addPendingBalance(forceWithdrawReq.accountId, forceWithdrawReq.tokenId, amount);
             } else if (opType == Operations.OpType.AUCTION_END) {
                 Operations.AuctionEnd memory auctionEnd = Operations.readAuctionEndPubData(pubData);
                 _updateLoan(auctionEnd);
@@ -446,11 +446,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
 
-    /// @notice Internal function to increase the pending balance of an account
+    /// @notice Internal function to add the pending balance of an account
     /// @param accountId The id of the account
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
-    function _increasePendingBalance(uint32 accountId, uint16 tokenId, uint128 amount) internal {
+    function _addPendingBalance(uint32 accountId, uint16 tokenId, uint128 amount) internal {
         address accountAddr = AccountLib.getAccountAddr(accountId);
         Utils.noneZeroAddr(accountAddr);
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(tokenId);
@@ -489,14 +489,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         loan.collateralTokenId = auctionEnd.collateralTokenId;
         loan.maturityTime = maturityTime;
 
-        // calculate increase amount
+        // calculate added amount
         uint8 decimals = underlyingAssetConfig.decimals;
-        uint128 increaseDebtAmt = Utils.toL1Amt(auctionEnd.debtAmt, decimals);
+        uint128 addedDebtAmt = Utils.toL1Amt(auctionEnd.debtAmt, decimals);
         decimals = assetConfig.decimals;
-        uint128 increaseCollateralAmt = Utils.toL1Amt(auctionEnd.collateralAmt, decimals);
+        uint128 addedCollateralAmt = Utils.toL1Amt(auctionEnd.collateralAmt, decimals);
 
-        loan.debtAmt += increaseDebtAmt;
-        loan.collateralAmt += increaseCollateralAmt;
+        loan.debtAmt += addedDebtAmt;
+        loan.collateralAmt += addedCollateralAmt;
         LoanStorage.layout().loans[loanId] = loan;
 
         emit UpdateLoan(
@@ -505,8 +505,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             loan.maturityTime,
             loan.debtTokenId,
             loan.collateralTokenId,
-            increaseDebtAmt,
-            increaseCollateralAmt
+            addedDebtAmt,
+            addedCollateralAmt
         );
     }
 

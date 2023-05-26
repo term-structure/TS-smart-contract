@@ -91,16 +91,16 @@ interface IRollupFacet {
     /// @param maturityTime The maturity time of the loan
     /// @param debtTokenId The id of the debt token
     /// @param collateralTokenId The id of the collateral token
-    /// @param debtAmt The amount of the debt
-    /// @param collateralAmt The amount of the collateral
+    /// @param addedDebtAmt The added debt amount of the loan
+    /// @param addedCollateralAmt  The added collateral amount of the loan
     event UpdateLoan(
         bytes12 indexed loanId,
         uint32 indexed accountId,
         uint32 maturityTime,
         uint16 debtTokenId,
         uint16 collateralTokenId,
-        uint128 debtAmt,
-        uint128 collateralAmt
+        uint128 addedDebtAmt,
+        uint128 addedCollateralAmt
     );
 
     /// @notice Commit blocks

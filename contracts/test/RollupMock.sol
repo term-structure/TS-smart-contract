@@ -41,13 +41,13 @@ contract RollupMock is RollupFacet {
         loan.collateralTokenId = auctionEnd.collateralTokenId;
         loan.maturityTime = maturityTime;
 
-        // calculate increase amount
+        // calculate added amount
         uint8 decimals = underlyingAssetConfig.decimals;
-        uint128 increaseDebtAmt = Utils.toL1Amt(auctionEnd.debtAmt, decimals);
+        uint128 addedDebtAmt = Utils.toL1Amt(auctionEnd.debtAmt, decimals);
         decimals = assetConfig.decimals;
-        uint128 increaseCollateralAmt = Utils.toL1Amt(auctionEnd.collateralAmt, decimals);
-        loan.debtAmt += increaseDebtAmt;
-        loan.collateralAmt += increaseCollateralAmt;
+        uint128 addedCollateralAmt = Utils.toL1Amt(auctionEnd.collateralAmt, decimals);
+        loan.debtAmt += addedDebtAmt;
+        loan.collateralAmt += addedCollateralAmt;
 
         LoanStorage.layout().loans[loanId] = loan;
 
@@ -57,8 +57,8 @@ contract RollupMock is RollupFacet {
             loan.maturityTime,
             loan.debtTokenId,
             loan.collateralTokenId,
-            increaseDebtAmt,
-            increaseCollateralAmt
+            addedDebtAmt,
+            addedCollateralAmt
         );
     }
 }

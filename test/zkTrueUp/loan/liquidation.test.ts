@@ -293,11 +293,12 @@ describe("Liquidation", () => {
         liquidationFactor,
         ethAnswer
       );
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
-      expect(
-        beforeZkTrueUpWethBalance.sub(liquidatorReward).sub(protocolPenalty)
-      ).to.eq(afterZkTrueUpWethBalance);
+      expect(beforeZkTrueUpWethBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpWethBalance
+      );
       expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
         repayAmt
       );
@@ -313,7 +314,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data
@@ -428,11 +440,12 @@ describe("Liquidation", () => {
         BigNumber.from(loanData.collateralAmt),
         TS_BASE_TOKEN.ETH
       ).sub(liquidatorReward);
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
-      expect(
-        beforeZkTrueUpWethBalance.sub(liquidatorReward).sub(protocolPenalty)
-      ).to.eq(afterZkTrueUpWethBalance);
+      expect(beforeZkTrueUpWethBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpWethBalance
+      );
       expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
         repayAmt
       );
@@ -448,7 +461,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data
@@ -557,9 +581,10 @@ describe("Liquidation", () => {
       );
 
       const protocolPenalty = BigNumber.from(0);
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
-      expect(beforeZkTrueUpWethBalance.sub(liquidatorReward)).to.eq(
+      expect(beforeZkTrueUpWethBalance.sub(removedCollateralAmt)).to.eq(
         afterZkTrueUpWethBalance
       );
       expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
@@ -575,7 +600,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data
@@ -756,11 +792,12 @@ describe("Liquidation", () => {
         liquidationFactor,
         usdtAnswer
       );
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
-      expect(
-        beforeZkTrueUpUsdtBalance.sub(liquidatorReward).sub(protocolPenalty)
-      ).to.eq(afterZkTrueUpUsdtBalance);
+      expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpUsdtBalance
+      );
       expect(afterZkTrueUpDaiBalance.sub(beforeZkTrueUpDaiBalance)).to.eq(
         repayAmt
       );
@@ -776,7 +813,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data
@@ -881,11 +929,12 @@ describe("Liquidation", () => {
         BigNumber.from(loanData.collateralAmt),
         TS_BASE_TOKEN.USDT
       ).sub(liquidatorReward);
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
-      expect(
-        beforeZkTrueUpUsdtBalance.sub(liquidatorReward).sub(protocolPenalty)
-      ).to.eq(afterZkTrueUpUsdtBalance);
+      expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpUsdtBalance
+      );
       expect(afterZkTrueUpDaiBalance.sub(beforeZkTrueUpDaiBalance)).to.eq(
         repayAmt
       );
@@ -901,7 +950,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data
@@ -1002,8 +1062,10 @@ describe("Liquidation", () => {
       // protocol penalty with collateral token decimals
       const protocolPenalty = BigNumber.from(0);
 
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
+
       // check balance
-      expect(beforeZkTrueUpUsdtBalance.sub(liquidatorReward)).to.eq(
+      expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
         afterZkTrueUpUsdtBalance
       );
       expect(afterZkTrueUpDaiBalance.sub(beforeZkTrueUpDaiBalance)).to.eq(
@@ -1019,7 +1081,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data
@@ -1188,11 +1261,12 @@ describe("Liquidation", () => {
         liquidationFactor,
         wbtcAnswer
       );
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
-      expect(
-        beforeZkTrueUpWbtcBalance.sub(liquidatorReward).sub(protocolPenalty)
-      ).to.eq(afterZkTrueUpWbtcBalance);
+      expect(beforeZkTrueUpWbtcBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpWbtcBalance
+      );
       expect(afterZkTrueUpWethBalance.sub(beforeZkTrueUpWethBalance)).to.eq(
         repayAmt
       );
@@ -1208,7 +1282,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data
@@ -1396,11 +1481,12 @@ describe("Liquidation", () => {
         liquidationFactor,
         usdtAnswer
       );
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
-      expect(
-        beforeZkTrueUpUsdtBalance.sub(liquidatorReward).sub(protocolPenalty)
-      ).to.eq(afterZkTrueUpUsdtBalance);
+      expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpUsdtBalance
+      );
       expect(afterZkTrueUpDaiBalance.sub(beforeZkTrueUpDaiBalance)).to.eq(
         repayAmt
       );
@@ -1416,7 +1502,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data
@@ -1608,10 +1705,12 @@ describe("Liquidation", () => {
         ethAnswer
       );
 
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
+
       // check balance
-      expect(
-        beforeZkTrueUpWethBalance.sub(liquidatorReward).sub(protocolPenalty)
-      ).to.eq(afterZkTrueUpWethBalance);
+      expect(beforeZkTrueUpWethBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpWethBalance
+      );
       expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
         repayAmt
       );
@@ -1627,7 +1726,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data
@@ -1816,11 +1926,12 @@ describe("Liquidation", () => {
         liquidationFactor,
         usdtAnswer
       );
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
-      expect(
-        beforeZkTrueUpUsdtBalance.sub(liquidatorReward).sub(protocolPenalty)
-      ).to.eq(afterZkTrueUpUsdtBalance);
+      expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpUsdtBalance
+      );
       expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
         repayAmt
       );
@@ -1836,7 +1947,18 @@ describe("Liquidation", () => {
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidate")
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          loan.collateralTokenId,
+          removedCollateralAmt,
+          loanData.debtTokenId,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
         .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
 
       // convert amount to 8 decimals for loan data

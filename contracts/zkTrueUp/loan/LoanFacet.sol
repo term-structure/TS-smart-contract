@@ -117,13 +117,15 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
         Utils.transferFrom(debtAsset.tokenAddr, msg.sender, repayAmt, msg.value);
 
+        uint128 removedCollteralAmt = liquidatorRewardAmt + protocolPenaltyAmt;
         loan.debtAmt -= repayAmt;
-        loan.collateralAmt -= (liquidatorRewardAmt + protocolPenaltyAmt);
+        loan.collateralAmt -= removedCollteralAmt;
         LoanStorage.layout().loans[loanId] = loan;
+        emit Repay(loanId, msg.sender, loan.collateralTokenId, removedCollteralAmt, loan.debtTokenId, repayAmt, false);
 
         Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), liquidatorRewardAmt);
         Utils.transfer(collateralAsset.tokenAddr, payable(ProtocolParamsLib.getTreasuryAddr()), protocolPenaltyAmt);
-        emit Liquidate(loanId, msg.sender, liquidatorRewardAmt, protocolPenaltyAmt);
+        emit Liquidation(loanId, msg.sender, liquidatorRewardAmt, protocolPenaltyAmt);
         return (repayAmt, liquidatorRewardAmt, protocolPenaltyAmt);
     }
 
