@@ -20,16 +20,12 @@ interface ITsbToken is IERC20 {
     function burn(address account, uint256 amount) external;
 
     /// @notice The address of the ZkTrueUp contract
-    function zkTrueUp() external view returns (address);
-
-    /// @notice The underlying asset of the TSB token
-    function underlyingAsset() external view returns (address);
-
-    /// @notice The maturity time of the TSB token
-    function maturityTime() external view returns (uint32);
+    /// @return zkTrueUpAddr address of the ZkTrueUp contract
+    function zkTrueUp() external view returns (address zkTrueUpAddr);
 
     /// @notice Check if the TSB token is matured
-    function isMatured() external view returns (bool);
+    /// @return isMatured if the TSB token is matured
+    function isMatured() external view returns (bool isMatured);
 
     /// @notice Get the underlying asset and maturity time of the TSB token
     /// @return underlyingAsset The underlying asset of the TSB token

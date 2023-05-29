@@ -43,7 +43,6 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev Only registered accounts can withdraw
      * @dev The token cannot be TSB token
      */
-    //! virtual for test
     function withdraw(address tokenAddr, uint128 amount) external virtual nonReentrant {
         uint32 accountId = AccountLib.getValidAccount(msg.sender);
         (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(tokenAddr);
@@ -65,21 +64,21 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /**
      * @inheritdoc IAccountFacet
      */
-    function getAccountAddr(uint32 accountId) external view returns (address accountAddr) {
+    function getAccountAddr(uint32 accountId) external view returns (address) {
         return AccountLib.getAccountAddr(accountId);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
-    function getAccountId(address accountAddr) external view returns (uint32 accountId) {
+    function getAccountId(address accountAddr) external view returns (uint32) {
         return AccountLib.getAccountId(accountAddr);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
-    function getAccountNum() external view returns (uint32 accountNum) {
+    function getAccountNum() external view returns (uint32) {
         return AccountLib.getAccountNum();
     }
 

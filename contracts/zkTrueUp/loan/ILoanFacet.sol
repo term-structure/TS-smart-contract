@@ -153,10 +153,10 @@ interface ILoanFacet {
 
     /// @notice Return the whether the loan is liquidable
     /// @param loanId The id of the loan
-    /// @return isLiquidable Whether the loan is liquidable
+    /// @return _isLiquidable Whether the loan is liquidable
     /// @return debtTokenAddr The address of the debt token
     /// @return maxRepayAmt The maximum amount of the debt to be repaid
     function isLiquidable(
         bytes12 loanId
-    ) external view returns (bool isLiquidable, address debtTokenAddr, uint128 maxRepayAmt);
+    ) external view returns (bool _isLiquidable, address debtTokenAddr, uint128 maxRepayAmt);
 }

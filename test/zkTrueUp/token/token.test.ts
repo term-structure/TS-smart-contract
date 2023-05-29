@@ -158,7 +158,7 @@ describe("TsbFactory", () => {
       expect(tokenConfig.tokenAddr).to.be.equal(assetConfig.tokenAddr);
       expect(tokenConfig.priceFeed).to.be.equal(assetConfig.priceFeed);
 
-      const maturityTime = (await tsbToken.tokenInfo()).maturityTime;
+      const [, maturityTime] = await tsbToken.tokenInfo();
 
       // check event
       await expect(addTokenTx)

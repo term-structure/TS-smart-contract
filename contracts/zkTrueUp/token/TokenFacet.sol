@@ -76,14 +76,14 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
     /**
      * @inheritdoc ITokenFacet
      */
-    function getTokenNum() external view returns (uint16 tokenNum) {
+    function getTokenNum() external view returns (uint16) {
         return TokenLib.getTokenNum();
     }
 
     /**
      * @inheritdoc ITokenFacet
      */
-    function getTokenId(address tokenAddr) external view returns (uint16 tokenId) {
+    function getTokenId(address tokenAddr) external view returns (uint16) {
         return TokenLib.getTokenId(tokenAddr);
     }
 

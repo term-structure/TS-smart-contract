@@ -112,8 +112,8 @@ describe("Deposit", function () {
       // before deposit
       const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
       const beforeAccountNum = await diamondAccMock.getAccountNum();
-      const beforeTotalPendingRequests = (await diamondRollup.getL1RequestNum())
-        .totalL1RequestNum;
+      const [, , beforeTotalPendingRequests] =
+        await diamondRollup.getL1RequestNum();
 
       // call deposit
       const amount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
@@ -125,8 +125,8 @@ describe("Deposit", function () {
 
       const afterZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
       const afterAccountNum = await diamondAccMock.getAccountNum();
-      const afterTotalPendingRequests = (await diamondRollup.getL1RequestNum())
-        .totalL1RequestNum;
+      const [, , afterTotalPendingRequests] =
+        await diamondRollup.getL1RequestNum();
 
       // check
       expect(afterZkTrueUpUsdtBalance.sub(beforeZkTrueUpUsdtBalance)).to.be.eq(
@@ -147,9 +147,8 @@ describe("Deposit", function () {
         tokenId: l2TokenAddr,
         amount: l2Amt,
       };
-      const requestId = (
-        await diamondRollup.getL1RequestNum()
-      ).totalL1RequestNum.sub(1);
+      const [, , totalL1RequestNum] = await diamondRollup.getL1RequestNum();
+      const requestId = totalL1RequestNum.sub(1);
       const success = await diamondRollup.isDepositInL1RequestQueue(
         deposit,
         requestId
@@ -230,8 +229,8 @@ describe("Deposit", function () {
       // before deposit
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const beforeAccountNum = await diamondAccMock.getAccountNum();
-      const beforeTotalPendingRequests = (await diamondRollup.getL1RequestNum())
-        .totalL1RequestNum;
+      const [, , beforeTotalPendingRequests] =
+        await diamondRollup.getL1RequestNum();
 
       // call deposit
       const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
@@ -245,8 +244,8 @@ describe("Deposit", function () {
       // after deposit
       const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const afterAccountNum = await diamondAccMock.getAccountNum();
-      const afterTotalPendingRequests = (await diamondRollup.getL1RequestNum())
-        .totalL1RequestNum;
+      const [, , afterTotalPendingRequests] =
+        await diamondRollup.getL1RequestNum();
 
       // check
       expect(afterZkTrueUpWethBalance.sub(beforeZkTrueUpWethBalance)).to.be.eq(
@@ -266,9 +265,8 @@ describe("Deposit", function () {
         tokenId: l2TokenAddr,
         amount: l2Amt,
       };
-      const requestId = (
-        await diamondRollup.getL1RequestNum()
-      ).totalL1RequestNum.sub(1);
+      const [, , totalL1RequestNum] = await diamondRollup.getL1RequestNum();
+      const requestId = totalL1RequestNum.sub(1);
       const success = await diamondRollup.isDepositInL1RequestQueue(
         deposit,
         requestId

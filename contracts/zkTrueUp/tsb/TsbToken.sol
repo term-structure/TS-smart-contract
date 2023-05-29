@@ -3,6 +3,7 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../interfaces/ITsbToken.sol";
 
 /**
   * @title Term Structure Bond Token Contract
@@ -10,10 +11,12 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
   * @notice The Term Structure Bond Token (tsbToken) is an ERC20 token 
             that represents a bond with a fixed maturity time.
  */
-contract TsbToken is ERC20 {
+contract TsbToken is ERC20, ITsbToken {
     /// @notice Error for only ZkTrueUp contract can call
     error OnlyZkTrueUp();
-    /// @notice The address of the ZkTrueUp contract
+    /**
+     * @inheritdoc ITsbToken
+     */
     address public immutable zkTrueUp;
     /// @notice The underlying asset of the TSB token
     address private immutable _underlyingAsset;
@@ -42,32 +45,31 @@ contract TsbToken is ERC20 {
         _;
     }
 
-    /// @notice Mint TSB token
-    /// @dev Only TsbFactory can mint
-    /// @param account The address of the account
-    /// @param amount The amount of the TSB token
+    /**
+     * @inheritdoc ITsbToken
+     */
     function mint(address account, uint256 amount) external onlyZkTrueUp {
         _mint(account, amount);
     }
 
-    /// @notice Burn TSB token
-    /// @dev Only TsbFactory can burn
-    /// @param account The address of the account
-    /// @param amount The amount of the TSB token
+    /**
+     * @inheritdoc ITsbToken
+     */
     function burn(address account, uint256 amount) external onlyZkTrueUp {
         _burn(account, amount);
     }
 
-    /// @notice Check if the TSB token is matured
-    /// @return isMatured True if the TSB token is matured
+    /**
+     * @inheritdoc ITsbToken
+     */
     function isMatured() external view returns (bool) {
         return block.timestamp >= uint256(_maturityTime);
     }
 
-    /// @notice Get the underlying asset and maturity time of the TSB token
-    /// @return underlyingAsset The underlying asset of the TSB token
-    /// @return maturityTime The maturity time of the TSB token
-    function tokenInfo() external view returns (address underlyingAsset, uint32 maturityTime) {
+    /**
+     * @inheritdoc ITsbToken
+     */
+    function tokenInfo() external view returns (address, uint32) {
         return (_underlyingAsset, _maturityTime);
     }
 

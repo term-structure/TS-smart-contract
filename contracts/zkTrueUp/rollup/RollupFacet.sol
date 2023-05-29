@@ -170,7 +170,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /**
      * @inheritdoc IRollupFacet
      */
-    function isEvacuMode() external view returns (bool evacuMode) {
+    function isEvacuMode() external view returns (bool) {
         return RollupLib.isEvacuMode();
     }
 
@@ -180,7 +180,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function isRegisterInL1RequestQueue(
         Operations.Register memory register,
         uint64 requestId
-    ) external view returns (bool isExisted) {
+    ) external view returns (bool) {
         if (_isRequestIdGtCurRequestNum(requestId)) return false;
         L1Request memory request = RollupLib.getL1Request(requestId);
         return RollupLib.isRegisterInL1RequestQueue(register, request);
@@ -192,7 +192,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function isDepositInL1RequestQueue(
         Operations.Deposit memory deposit,
         uint64 requestId
-    ) external view returns (bool isExisted) {
+    ) external view returns (bool) {
         if (_isRequestIdGtCurRequestNum(requestId)) return false;
         L1Request memory request = RollupLib.getL1Request(requestId);
         return RollupLib.isDepositInL1RequestQueue(deposit, request);
@@ -204,7 +204,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function isForceWithdrawInL1RequestQueue(
         Operations.ForceWithdraw memory forceWithdraw,
         uint64 requestId
-    ) external view returns (bool isExisted) {
+    ) external view returns (bool) {
         if (_isRequestIdGtCurRequestNum(requestId)) return false;
         L1Request memory request = RollupLib.getL1Request(requestId);
         return RollupLib.isForceWithdrawInL1RequestQueue(forceWithdraw, request);
@@ -213,18 +213,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /**
      * @inheritdoc IRollupFacet
      */
-    function getL1Request(uint64 requestId) external view returns (L1Request memory request) {
+    function getL1Request(uint64 requestId) external view returns (L1Request memory) {
         return RollupLib.getL1Request(requestId);
     }
 
     /**
      * @inheritdoc IRollupFacet
      */
-    function getL1RequestNum()
-        external
-        view
-        returns (uint64 committedL1RequestNum, uint64 executedL1RequestNum, uint64 totalL1RequestNum)
-    {
+    function getL1RequestNum() external view returns (uint64, uint64, uint64) {
         return (
             RollupLib.getCommittedL1RequestNum(),
             RollupLib.getExecutedL1RequestNum(),
@@ -235,25 +231,21 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /**
      * @inheritdoc IRollupFacet
      */
-    function getBlockNum()
-        external
-        view
-        returns (uint32 committedBlockNum, uint32 verifiedBlockNum, uint32 executedBlockNum)
-    {
+    function getBlockNum() external view returns (uint32, uint32, uint32) {
         return (RollupLib.getCommittedBlockNum(), RollupLib.getVerifiedBlockNum(), RollupLib.getExecutedBlockNum());
     }
 
     /**
      * @inheritdoc IRollupFacet
      */
-    function getStoredBlockHash(uint32 blockNum) external view returns (bytes32 storedBlockHash) {
+    function getStoredBlockHash(uint32 blockNum) external view returns (bytes32) {
         return RollupLib.getStoredBlockHash(blockNum);
     }
 
     /**
      * @inheritdoc IRollupFacet
      */
-    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128 pendingBalance) {
+    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128) {
         uint16 tokenId = TokenLib.getTokenId(tokenAddr);
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
         return RollupLib.getPendingBalances(key);

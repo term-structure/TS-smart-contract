@@ -159,30 +159,33 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function getHealthFactor(bytes12 loanId) external view returns (uint256 healthFactor) {
+    function getHealthFactor(bytes12 loanId) external view returns (uint256) {
         Loan memory loan = LoanLib.getLoan(loanId);
         (
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
         ) = LoanLib.getLoanInfo(loan);
-        (healthFactor, , ) = LoanLib.getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
+        (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
+            loan,
+            liquidationFactor.ltvThreshold,
+            collateralAsset,
+            debtAsset
+        );
         return healthFactor;
     }
 
     /**
      * @inheritdoc ILoanFacet
      */
-    function getHalfLiquidationThreshold() external view returns (uint16 halfLiquidationThreshold) {
+    function getHalfLiquidationThreshold() external view returns (uint16) {
         return LoanLib.getHalfLiquidationThreshold();
     }
 
     /**
      * @inheritdoc ILoanFacet
      */
-    function getLiquidationFactor(
-        bool isStableCoinPair
-    ) external view returns (LiquidationFactor memory liquidationFactor) {
+    function getLiquidationFactor(bool isStableCoinPair) external view returns (LiquidationFactor memory) {
         return isStableCoinPair ? LoanLib.getStableCoinPairLiquidationFactor() : LoanLib.getLiquidationFactor();
     }
 
@@ -194,14 +197,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint32 maturityTime,
         uint16 debtTokenId,
         uint16 collateralTokenId
-    ) external pure returns (bytes12 loanId) {
+    ) external pure returns (bytes12) {
         return LoanLib.getLoanId(accountId, maturityTime, debtTokenId, collateralTokenId);
     }
 
     /**
      * @inheritdoc ILoanFacet
      */
-    function getLoan(bytes12 loanId) external view returns (Loan memory loan) {
+    function getLoan(bytes12 loanId) external view returns (Loan memory) {
         return LoanLib.getLoan(loanId);
     }
 
@@ -325,14 +328,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
     /// @notice Get the maximum amount of the debt to be repaid
     /// @dev    If the collateral value is less than half liquidation threshold or the loan is expired,
-    ///         then the liquidator will repay the full debt
-    ///         otherwise, the liquidator will repay half of the debt
+    ///         then the liquidator can repay the all debt
+    ///         otherwise, the liquidator can repay max to half of the debt
     /// @param loan The loan to be liquidated
     /// @param collateralValue The collateral value
     /// @return maxRepayAmt The maximum amount of the debt to be repaid
     function _getMaxRepayAmt(Loan memory loan, uint256 collateralValue) internal view returns (uint128) {
         uint16 halfLiquidationThreshold = LoanLib.getHalfLiquidationThreshold();
-        uint128 maxRepayAmt = collateralValue < uint256(halfLiquidationThreshold) || loan.maturityTime < block.timestamp
+        uint128 maxRepayAmt = collateralValue < halfLiquidationThreshold || LoanLib.isMatured(loan.maturityTime)
             ? loan.debtAmt
             : loan.debtAmt / 2;
         return maxRepayAmt;

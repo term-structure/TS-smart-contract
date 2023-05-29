@@ -31,28 +31,28 @@ contract AddressFacet is IAddressFacet, AccessControlInternal {
     /**
      * @inheritdoc IAddressFacet
      */
-    function getWETHAddr() external view returns (address wethAddr) {
+    function getWETHAddr() external view returns (address) {
         return AddressLib.getWETHAddr();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
-    function getPoseidonUnit2Addr() external view returns (address poseidonUnit2Addr) {
+    function getPoseidonUnit2Addr() external view returns (address) {
         return AddressLib.getPoseidonUnit2Addr();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
-    function getVerifierAddr() external view returns (address verifierAddr) {
+    function getVerifierAddr() external view returns (address) {
         return AddressLib.getVerifierAddr();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
-    function getEvacuVerifierAddr() external view returns (address evacuVerifierAddr) {
+    function getEvacuVerifierAddr() external view returns (address) {
         return AddressLib.getEvacuVerifierAddr();
     }
 }
