@@ -262,6 +262,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             .getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
         if (!LoanLib.isLiquidable(healthFactor, loan.maturityTime)) revert LoanIsSafe(healthFactor, loan.maturityTime);
 
+        // Calculate the collateral value without decimals
         uint256 collateralValue = _calcCollateralValue(
             normalizedCollateralPrice,
             loan.collateralAmt,
@@ -331,7 +332,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ///         then the liquidator can repay the all debt
     ///         otherwise, the liquidator can repay max to half of the debt
     /// @param loan The loan to be liquidated
-    /// @param collateralValue The collateral value
+    /// @param collateralValue The collateral value without decimals
     /// @return maxRepayAmt The maximum amount of the debt to be repaid
     function _getMaxRepayAmt(Loan memory loan, uint256 collateralValue) internal view returns (uint128) {
         uint16 halfLiquidationThreshold = LoanLib.getHalfLiquidationThreshold();
@@ -346,7 +347,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @param normalizedCollateralPrice The normalized collateral price
     /// @param collateralAmt The collateral amount
     /// @param collateralDecimals The collateral decimals
-    /// @return collateralValue The collateral value
+    /// @return collateralValue The collateral value without decimals
     function _calcCollateralValue(
         uint256 normalizedCollateralPrice,
         uint128 collateralAmt,
