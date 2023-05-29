@@ -11,6 +11,8 @@ interface ILoanFacet {
     error InvalidLiquidationFactor();
     /// @notice Error for liquidate the loan which is safe
     error LoanIsSafe(uint256 healthFactor, uint32 maturityTime);
+    /// @notice Error for liquidate the loan with invalid repay amount
+    error RepayAmtExceedsMaxRepayAmt(uint128 repayAmt, uint128 maxRepayAmt);
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
@@ -98,12 +100,13 @@ interface ILoanFacet {
 
     /// @notice Liquidate the loan
     /// @param loanId The id of the loan to be liquidated
-    /// @return repayAmt The amount of debt has been repaid
+    /// @param repayAmt The amount of debt to be repaid
     /// @return liquidatorRewardAmt The amount of collateral to be returned to the liquidator
     /// @return protocolPenaltyAmt The amount of collateral to be returned to the protocol
     function liquidate(
-        bytes12 loanId
-    ) external payable returns (uint128 repayAmt, uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt);
+        bytes12 loanId,
+        uint128 repayAmt
+    ) external payable returns (uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt);
 
     /// @notice Set the half liquidation threshold
     /// @param halfLiquidationThreshold The half liquidation threshold
@@ -151,5 +154,9 @@ interface ILoanFacet {
     /// @notice Return the whether the loan is liquidable
     /// @param loanId The id of the loan
     /// @return isLiquidable Whether the loan is liquidable
-    function isLiquidable(bytes12 loanId) external view returns (bool isLiquidable);
+    /// @return debtTokenAddr The address of the debt token
+    /// @return maxRepayAmt The maximum amount of the debt to be repaid
+    function isLiquidable(
+        bytes12 loanId
+    ) external view returns (bool isLiquidable, address debtTokenAddr, uint128 maxRepayAmt);
 }

@@ -37,7 +37,8 @@ contract FlashLoanToLiquidation is IFlashLoanReceiver {
     ) external override returns (bool) {
         Loan memory loan = loanFacet.getLoan(_loanId);
         address collateralToken = tokenFacet.getAssetConfig(loan.collateralTokenId).tokenAddr;
-        (, uint128 liquidatorRewardAmt, ) = loanFacet.liquidate(_loanId);
+        (, , uint128 maxRepayAmt) = loanFacet.isLiquidable(_loanId);
+        (uint128 liquidatorRewardAmt, ) = loanFacet.liquidate(_loanId, maxRepayAmt);
         if (collateralToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             (bool success, ) = _liquidator.call{value: liquidatorRewardAmt}("");
             return success;

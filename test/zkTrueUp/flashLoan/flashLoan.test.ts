@@ -10,8 +10,8 @@ import { tsbTokensJSON } from "../../data/tsbTokens";
 import { loanDataJSON } from "../../data/loanData";
 import { updateRoundData } from "../../utils/updateRoundData";
 import {
-  getLiquidatorRewardAmt,
-  getProtocolPenaltyAmt,
+  calcLiquidatorRewardAmt,
+  calcProtocolPenaltyAmt,
   toL1Amt,
 } from "../../utils/amountConvertor";
 import {
@@ -555,7 +555,7 @@ describe("Flash loan", () => {
       const debtValue = repayAmt.mul(usdcAnswer);
 
       // liquidator reward with collateral token L1 decimals
-      const liquidatorReward = getLiquidatorRewardAmt(
+      const liquidatorReward = calcLiquidatorRewardAmt(
         debtValue,
         TS_BASE_TOKEN.ETH,
         TS_BASE_TOKEN.USDC,
@@ -564,7 +564,7 @@ describe("Flash loan", () => {
       );
 
       // protocol penalty with collateral token L1 decimals
-      const protocolPenalty = getProtocolPenaltyAmt(
+      const protocolPenalty = calcProtocolPenaltyAmt(
         debtValue,
         TS_BASE_TOKEN.ETH,
         TS_BASE_TOKEN.USDC,
