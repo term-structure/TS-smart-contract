@@ -4,7 +4,6 @@ import { deployBaseTokens } from "../../utils/deploy/deployBaseTokens";
 import { deployFacets } from "../../utils/deploy/deployFacets";
 import { FacetInfo, getString } from "../../utils/type";
 import { cutFacets } from "../../utils/cutFacets";
-import { initFacet } from "../../utils/diamondActions/initFacet";
 import { TsTokenId } from "term-structure-sdk";
 import {
   BASE_TOKEN_ASSET_CONFIG,
@@ -13,6 +12,7 @@ import {
   FACET_NAMES,
   INIT_FUNCTION_NAME,
 } from "../../utils/config";
+import { safeInitFacet } from "diamond-engraver";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
@@ -96,7 +96,7 @@ export const main = async () => {
     };
   });
 
-  const fnSelectors = await cutFacets(deployer, zkTrueUp, facetInfos);
+  const fnSelectors = await cutFacets(deployer, provider, zkTrueUp, facetInfos);
   console.log("Completed cutting facets.");
 
   const initData = utils.defaultAbiCoder.encode(
@@ -138,8 +138,9 @@ export const main = async () => {
   // init diamond cut
   console.log("Init diamond cut...");
   const onlyCall = true;
-  await initFacet(
+  await safeInitFacet(
     deployer,
+    provider,
     zkTrueUp,
     zkTrueUpInit.address,
     ZkTrueUpInit,

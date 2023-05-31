@@ -12,7 +12,7 @@ import {
   TokenFacet,
   ZkTrueUp,
 } from "../../../typechain-types";
-import { replaceFacet } from "../../../utils/diamondActions/replaceFacet";
+import { safeReplaceFacet } from "diamond-engraver";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -129,8 +129,10 @@ describe("Upgrade diamond", function () {
       );
     });
     it("Success to replace facet", async function () {
-      await replaceFacet(
+      const provider = ethers.provider;
+      await safeReplaceFacet(
         admin,
+        provider,
         zkTrueUp,
         newAccountFacet.address,
         NewAccountFacet

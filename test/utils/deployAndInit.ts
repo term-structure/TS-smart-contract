@@ -2,7 +2,6 @@ import { ethers } from "hardhat";
 import { deployFacets } from "../../utils/deploy/deployFacets";
 import { cutFacets } from "../../utils/cutFacets";
 import { BaseTokenAddresses, FacetInfo, PriceFeeds } from "../../utils/type";
-import { initFacet } from "../../utils/diamondActions/initFacet";
 import {
   BASE_TOKEN_ASSET_CONFIG,
   ETH_ASSET_CONFIG,
@@ -14,12 +13,14 @@ import { ERC20Mock, OracleMock } from "../../typechain-types";
 import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
 import initStates from "../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
 import { utils } from "ethers";
+import { safeInitFacet } from "diamond-engraver";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 const genesisStateRoot = initStates.stateRoot;
 
 export const deployAndInit = async (facetNames?: string[]) => {
   const [deployer, admin, operator] = await ethers.getSigners();
+  const provider = ethers.provider;
   const treasury = ethers.Wallet.createRandom();
   const insurance = ethers.Wallet.createRandom();
   const vault = ethers.Wallet.createRandom();
@@ -98,7 +99,7 @@ export const deployAndInit = async (facetNames?: string[]) => {
     };
   });
 
-  const fnSelectors = await cutFacets(deployer, zkTrueUp, facetInfos);
+  const fnSelectors = await cutFacets(deployer, provider, zkTrueUp, facetInfos);
   // console.log("fnSelectors: ", fnSelectors);
 
   const initData = utils.defaultAbiCoder.encode(
@@ -139,8 +140,9 @@ export const deployAndInit = async (facetNames?: string[]) => {
 
   // init diamond cut
   const onlyCall = true;
-  await initFacet(
+  await safeInitFacet(
     deployer,
+    provider,
     zkTrueUp,
     zkTrueUpInit.address,
     ZkTrueUpInit,
