@@ -30,4 +30,10 @@ library AddressLib {
     function getEvacuVerifierAddr() internal view returns (address) {
         return AddressStorage.layout().evacuVerifierAddr;
     }
+
+    /// @notice Internal function to return the address of Aave V3 pool contract
+    /// @return aaveV3PoolAddr Address of Aave V3 pool contract
+    function getAaveV3PoolAddr() internal view returns (address) {
+        return AddressStorage.layout().aaveV3PoolAddr;
+    }
 }
