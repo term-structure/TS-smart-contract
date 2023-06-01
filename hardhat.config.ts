@@ -75,6 +75,9 @@ const config: HardhatUserConfig = {
       },
       allowUnlimitedContractSize: true,
     },
+    forking: {
+      url: getString(process.env.MAINNET_RPC_URL),
+    },
     // goerli: {
     //   url: getString(process.env.GOERLI_RPC_URL),
     //   accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY)],
