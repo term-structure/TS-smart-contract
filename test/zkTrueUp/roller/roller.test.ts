@@ -1,7 +1,8 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import helpers from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Signer, utils } from "ethers";
+import { BigNumber, Signer, Wallet, utils } from "ethers";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
 import { register } from "../../utils/register";
@@ -48,7 +49,12 @@ export const FACET_NAMES_MOCK = [
 ];
 
 const fixture = async () => {
-  const res = await deployAndInit(FACET_NAMES_MOCK);
+  const res = await deployAndInit(FACET_NAMES_MOCK, true);
+  const res2 = await deployAndInit(FACET_NAMES_MOCK, false);
+  console.log(res.baseTokenAddresses);
+  console.log(res2.baseTokenAddresses);
+  console.log(res.priceFeeds);
+  console.log(res2.priceFeeds);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp.address
@@ -104,7 +110,7 @@ describe("Roller", () => {
     priceFeeds = res.priceFeeds;
   });
 
-  describe("Repay (ETH case)", () => {
+  describe("Roll to Aave", () => {
     const ltvThreshold = LIQUIDATION_FACTOR.ltvThreshold;
     const tsbTokenData = tsbTokensJSON.filter(
       (token) => token.underlyingAsset === "USDC"
@@ -130,6 +136,7 @@ describe("Roller", () => {
         operator,
         tsbTokenData
       );
+      console.log("test1");
 
       // ETH decimals = 18
       const decimals = 18;
@@ -143,13 +150,16 @@ describe("Roller", () => {
         baseTokenAddresses,
         diamondAcc
       );
+      console.log("test2");
 
       // update test loan data
       const updateLoanTx = await diamondRollupMock
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
+      console.log("test3");
 
+      //TODO mainnet to get price feed, not update round data
       // get eth price with 8 decimals from test oracle
       const ethPriceFeed = priceFeeds[TsTokenId.ETH];
       const ethRoundDataJSON = roundDataJSON[TsTokenId.ETH][0];
@@ -163,6 +173,7 @@ describe("Roller", () => {
       usdcAnswer = await (
         await updateRoundData(operator, usdcPriceFeed, usdcRoundDataJSON)
       ).answer;
+      console.log("test4");
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -171,19 +182,6 @@ describe("Roller", () => {
         tsbTokenData.underlyingTokenId,
         loan.collateralTokenId
       );
-
-      // give user1 10000 USDC for repay test
-      usdc = await ethers.getContractAt(
-        "ERC20Mock",
-        baseTokenAddresses[TsTokenId.USDC]
-      );
-      const amount = utils.parseUnits("10000", TS_BASE_TOKEN.USDC.decimals);
-      await usdc.connect(user1).mint(user1Addr, amount);
-
-      // user1 approve to ZkTrueUp
-      await usdc
-        .connect(user1)
-        .approve(zkTrueUp.address, ethers.constants.MaxUint256);
     });
     it("Success to repay, fully repay and take all collateral (ETH case)", async () => {
       // before balance
@@ -201,6 +199,10 @@ describe("Roller", () => {
         BigNumber.from(loanData.collateralAmt),
         TS_BASE_TOKEN.ETH
       );
+      console.log({
+        collateralAmt,
+        debtAmt,
+      });
 
       const rollToAaveTx = await diamondRoller
         .connect(user1)
