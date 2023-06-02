@@ -211,7 +211,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function isLiquidable(bytes12 loanId) external view returns (bool, address, uint128) {
+    function getLiquidationInfo(bytes12 loanId) external view returns (bool, address, uint128) {
         Loan memory loan = LoanLib.getLoan(loanId);
         (
             LiquidationFactor memory liquidationFactor,

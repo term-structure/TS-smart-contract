@@ -151,12 +151,12 @@ interface ILoanFacet {
     /// @return loan The loan
     function getLoan(bytes12 loanId) external view returns (Loan memory loan);
 
-    /// @notice Return the whether the loan is liquidable
+    /// @notice Return the liquidation info of the loan
     /// @param loanId The id of the loan
     /// @return _isLiquidable Whether the loan is liquidable
     /// @return debtTokenAddr The address of the debt token
     /// @return maxRepayAmt The maximum amount of the debt to be repaid
-    function isLiquidable(
+    function getLiquidationInfo(
         bytes12 loanId
     ) external view returns (bool _isLiquidable, address debtTokenAddr, uint128 maxRepayAmt);
 }

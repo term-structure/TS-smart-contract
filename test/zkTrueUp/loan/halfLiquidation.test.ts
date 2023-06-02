@@ -210,7 +210,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const beforeTreasuryWbtcBalance = await wbtc.balanceOf(treasuryAddr);
 
       // half liquidation,  repayAmt = debtAmt / 2
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // repay 25% debt value
       const repayAmt = maxRepayAmt.div(2);
       // liquidate
@@ -325,7 +325,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       expect(newHealthFactor).to.lt(1000);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
 
-      const [, , maxRepayAmt2] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt2] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate again
       const repayAmt2 = maxRepayAmt2;
       const liquidateTx2 = await diamondLoan
@@ -464,7 +464,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const beforeTreasuryWbtcBalance = await wbtc.balanceOf(treasuryAddr);
 
       // half liquidation,  repayAmt = debtAmt / 2
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
@@ -687,7 +687,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const beforeLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       const repayAmt = maxRepayAmt.div(10); // 5% of debt value
       // liquidate
       const liquidateTx = await diamondLoan
@@ -822,7 +822,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const beforeLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
-      const [, , repayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , repayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)

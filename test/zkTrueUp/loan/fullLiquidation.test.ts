@@ -217,7 +217,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       ).answer;
 
       const repayAmt = utils.parseUnits("100", TS_BASE_TOKEN.USDC.decimals);
-      const [isLiquidable, ,] = await diamondLoan.isLiquidable(loanId);
+      const [isLiquidable, ,] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       expect(isLiquidable).to.be.false;
       await expect(
@@ -253,9 +253,8 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const [isLiquidable, , maxRepayAmt] = await diamondLoan.isLiquidable(
-        loanId
-      );
+      const [isLiquidable, , maxRepayAmt] =
+        await diamondLoan.getLiquidationInfo(loanId);
       // repay 10% debt value
       const repayAmt = maxRepayAmt.div(10);
       // liquidate
@@ -401,9 +400,8 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const [isLiquidable, , maxRepayAmt] = await diamondLoan.isLiquidable(
-        loanId
-      );
+      const [isLiquidable, , maxRepayAmt] =
+        await diamondLoan.getLiquidationInfo(loanId);
       // repay 80% debt value
       const repayAmt = maxRepayAmt.mul(8).div(10);
       // liquidate
@@ -548,9 +546,8 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const [isLiquidable, , maxRepayAmt] = await diamondLoan.isLiquidable(
-        loanId
-      );
+      const [isLiquidable, , maxRepayAmt] =
+        await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       expect(isLiquidable).to.be.true;
       const liquidateTx = await diamondLoan
@@ -694,7 +691,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
@@ -836,7 +833,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
@@ -1043,7 +1040,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // repay 50% debt value
       const repayAmt = maxRepayAmt.div(2);
       // liquidate
@@ -1178,7 +1175,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
@@ -1312,7 +1309,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
@@ -1443,7 +1440,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const beforeLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
@@ -1639,7 +1636,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // repay 50% debt value
       const repayAmt = maxRepayAmt.div(2);
       // liquidate
@@ -1784,7 +1781,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const [, , repayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , repayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
@@ -2009,7 +2006,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
-      const [, , maxRepayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // repay 75% of debt value
       const repayAmt = maxRepayAmt.div(4).mul(3);
       // liquidate
@@ -2144,7 +2141,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
-      const [, , repayAmt] = await diamondLoan.isLiquidable(loanId);
+      const [, , repayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
