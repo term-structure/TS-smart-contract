@@ -39,6 +39,7 @@
     "test:token": "hardhat test test/zkTrueUp/token/token.test.ts",
     "test:rollup": "hardhat test test/zkTrueUp/rollup/rollup.test.ts",
     "test:evacuate": "hardhat test test/zkTrueUp/rollup/evacuate.test.ts",
+    "test:roller": "hardhat test test/zkTrueUp/roller/roller.test.ts",
     "test:oracleMock": "hardhat test test/testnet/oracleMock/oracleMock.test.ts",
     "test:tsFaucet": "hardhat test test/testnet/tsFaucet/tsFaucet.test.ts",
     "coverage": "hardhat coverage",
