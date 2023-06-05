@@ -224,7 +224,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         diamondLoan.connect(liquidator).liquidate(loanId, repayAmt)
       ).to.be.revertedWithCustomError(diamondLoan, "LoanIsSafe");
     });
-    it("Success to liquidate (repay 10% debt value), health factor < 1 (general loan, collateral can cover liquidator reward and protocol penalty)", async () => {
+    it("Success to liquidate (repay 5% debt value), health factor < 1 (general loan, collateral can cover liquidator reward and protocol penalty)", async () => {
       // set the price for liquidation
       // eth = 620 usd, usdc = 1 usd
       // healthFactor = 0.992 < 1
@@ -255,8 +255,8 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       const [isLiquidable, , maxRepayAmt] =
         await diamondLoan.getLiquidationInfo(loanId);
-      // repay 10% debt value
-      const repayAmt = maxRepayAmt.div(10);
+      // repay 5% debt value
+      const repayAmt = maxRepayAmt.div(20);
       // liquidate
       expect(isLiquidable).to.be.true;
       const liquidateTx = await diamondLoan
@@ -368,8 +368,9 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
 
       // check health factor equal to expected health factor
-      console.log("newHealthFactor", newHealthFactor.toString());
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+      // check liquidation success even health factor < 1 after liquidation
+      expect(newHealthFactor).to.lt(1000);
     });
     it("Success to liquidate (repay 80% debt value), health factor < 1 (general loan, collateral can cover liquidator reward and protocol penalty)", async () => {
       // set the price for liquidation
@@ -662,7 +663,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       expect(newHealthFactor).gt(1000);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
-    it("Success to liquidate (repay all debt value), health factor < 1 (general loan, collateral can cover liquidator reward but cannot cover protocol penalty)", async () => {
+    it("Success to liquidate (repay all debt value), health factor < 1 (general loan, collateral can cover liquidator reward but cannot cover full protocol penalty)", async () => {
       // set the price for liquidation
       // eth = 545 usd, usdc = 1 usd
       // healthFactor = 0.872 < 1
@@ -1333,12 +1334,25 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         usdtAnswer
       );
 
-      // protocol penalty with collateral token L1 decimals
-      const protocolPenalty = toL1Amt(
+      // full protocol penalty if collateral can cover
+      const fullProtocolPenalty = calcProtocolPenaltyAmt(
+        debtValue,
+        TS_BASE_TOKEN.USDT,
+        TS_BASE_TOKEN.DAI,
+        liquidationFactor,
+        usdtAnswer
+      );
+
+      // leftover protocol penalty with collateral token L1 decimals
+      const leftoverProtocolPenalty = toL1Amt(
         BigNumber.from(loanData.collateralAmt),
         TS_BASE_TOKEN.USDT
       ).sub(liquidatorReward);
-      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
+      const removedCollateralAmt = liquidatorReward.add(
+        leftoverProtocolPenalty
+      );
+
+      expect(fullProtocolPenalty).to.gt(leftoverProtocolPenalty);
 
       // check balance
       expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
@@ -1353,7 +1367,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       expect(beforeLiquidatorDaiBalance.sub(afterLiquidatorDaiBalance)).to.eq(
         maxRepayAmt
       );
-      expect(beforeTreasuryUsdtBalance.add(protocolPenalty)).to.eq(
+      expect(beforeTreasuryUsdtBalance.add(leftoverProtocolPenalty)).to.eq(
         afterTreasuryUsdtBalance
       );
 
@@ -1371,7 +1385,12 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          liquidatorReward,
+          leftoverProtocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -1380,7 +1399,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       );
 
       const protocolPenaltyAmtConverted = toL2Amt(
-        protocolPenalty,
+        leftoverProtocolPenalty,
         TS_BASE_TOKEN.USDT
       );
 
