@@ -181,6 +181,40 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         baseTokenAddresses[TsTokenId.WBTC]
       )) as ERC20Mock;
     });
+    it("Fail to liquidate (exceed max 50% debt value)", async () => {
+      // set the price for liquidation
+      // wbtc = 12000 usd, eth = 1000 usd
+      // healthFactor = 0.96 < 1
+      // collateral value > 10000 usd -> partial liquidation
+      // set wbtc price
+      const wbtcPriceFeed = priceFeeds[TsTokenId.WBTC];
+      const wbtcRoundDataJSON =
+        liquidationRoundDataJSON[Case.case7][TokenType.collateral];
+      wbtcAnswer = await (
+        await updateRoundData(operator, wbtcPriceFeed, wbtcRoundDataJSON)
+      ).answer;
+
+      // get usdc price with 8 decimals from test oracle
+      const ethPriceFeed = priceFeeds[TsTokenId.ETH];
+      const ethRoundDataJSON =
+        liquidationRoundDataJSON[Case.case7][TokenType.debt];
+      ethAnswer = await (
+        await updateRoundData(operator, ethPriceFeed, ethRoundDataJSON)
+      ).answer;
+
+      // half liquidation,  repayAmt = debtAmt / 2
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
+      const repayAmt = maxRepayAmt.add(1);
+      // liquidate
+      await expect(
+        diamondLoan
+          .connect(liquidator)
+          .liquidate(loanId, repayAmt, { value: repayAmt })
+      ).to.be.revertedWithCustomError(
+        diamondLoan,
+        "RepayAmtExceedsMaxRepayAmt"
+      );
+    });
     it("Success to liquidate (repay 25% debt value), repay twice, health factor < 1 (general loan, half liquidation, collateral can cover liquidator reward and protocol penalty)", async () => {
       // set the price for liquidation
       // wbtc = 12000 usd, eth = 1000 usd
