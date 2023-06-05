@@ -52,7 +52,7 @@ contract RollerFacet {
         }
 
         try aaveV3Pool.supply(supplyTokenAddr, collateralAmt, msg.sender, 0) {
-            // should be `approveDelegation` first
+            // should be `approveDelegation` before `borrow`
             try aaveV3Pool.borrow(debtAsset.tokenAddr, debtAmt, 2, 0, msg.sender) {
                 LoanStorage.layout().loans[loanId] = loan;
             } catch {
