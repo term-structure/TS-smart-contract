@@ -10,7 +10,7 @@ import {
   INIT_FUNCTION_NAME,
   MAINNET_ADDRESS,
 } from "../../utils/config";
-import { ERC20Mock, OracleMock } from "../../typechain-types";
+import { ERC20Mock, OracleMock, WETH9 } from "../../typechain-types";
 import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
 import initStates from "../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
 import { utils } from "ethers";
@@ -73,10 +73,15 @@ export const deployAndInit = async (
     }
   }
 
-  // deploy weth
-  const WETH = await ethers.getContractFactory("WETH9");
-  const weth = await WETH.connect(deployer).deploy();
-  await weth.deployed();
+  let weth: WETH9;
+  if (isMainnetForkTesting) {
+    weth = await ethers.getContractAt("WETH9", MAINNET_ADDRESS.WETH);
+  } else {
+    // deploy weth
+    const WETH = await ethers.getContractFactory("WETH9");
+    weth = await WETH.connect(deployer).deploy();
+    await weth.deployed();
+  }
 
   // deploy poseidonUnit2
   const PoseidonFactory = new ethers.ContractFactory(
