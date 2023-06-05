@@ -32,6 +32,7 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import {
+  DEFAULT_ETH_ADDRESS,
   LIQUIDATION_FACTOR,
   STABLECOIN_PAIR_LIQUIDATION_FACTOR,
   TS_BASE_TOKEN,
@@ -325,15 +326,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -474,15 +481,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -618,15 +631,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -759,15 +778,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -892,15 +917,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -1104,15 +1135,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -1237,15 +1274,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -1381,9 +1424,9 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           maxRepayAmt,
           false
         );
@@ -1392,6 +1435,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          usdt.address,
           liquidatorReward,
           leftoverProtocolPenalty
         );
@@ -1509,15 +1553,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -1726,15 +1776,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -1869,15 +1925,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -2003,7 +2065,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
     });
     it("Success to liquidate (repay 75% debt value), loan is healthy, but loan is matured", async () => {
       // set the price for liquidation
-      // usdt = 1 usd, dai = 1 usd
+      // usdt = 1 usd, usdc = 1 usd
       // healthFactor = 1.028 > 1
       // loan is healthy, but loan is matured
       // set usdt price
@@ -2088,15 +2150,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -2138,7 +2206,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
     });
     it("Success to liquidate (repay all debt value), loan is healthy, but loan is matured", async () => {
       // set the price for liquidation
-      // usdt = 1 usd, dai = 1 usd
+      // usdt = 1 usd, usdc = 1 usd
       // healthFactor = 1.028 > 1
       // loan is healthy, but loan is matured
       // set usdt price
@@ -2221,15 +2289,21 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(

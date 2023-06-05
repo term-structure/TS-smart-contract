@@ -27,6 +27,7 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import {
+  DEFAULT_ETH_ADDRESS,
   LIQUIDATION_FACTOR,
   STABLECOIN_PAIR_LIQUIDATION_FACTOR,
   TS_BASE_TOKEN,
@@ -194,7 +195,7 @@ describe("Collateral", () => {
       // check event
       await expect(addCollateralTx)
         .to.emit(diamondLoan, "AddCollateral")
-        .withArgs(loanId, user1Addr, loan.collateralTokenId, amount);
+        .withArgs(loanId, user1Addr, DEFAULT_ETH_ADDRESS, amount);
 
       // convert amount to 8 decimals for loan data
       const addedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.ETH);
@@ -258,7 +259,7 @@ describe("Collateral", () => {
       // check event
       await expect(addCollateralTx)
         .to.emit(diamondLoan, "AddCollateral")
-        .withArgs(loanId, user2Addr, loan.collateralTokenId, amount);
+        .withArgs(loanId, user2Addr, DEFAULT_ETH_ADDRESS, amount);
 
       // convert amount to 8 decimals for loan data
       const addedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.ETH);
@@ -319,7 +320,7 @@ describe("Collateral", () => {
       // check event
       await expect(removeCollateralTx)
         .to.emit(diamondLoan, "RemoveCollateral")
-        .withArgs(loanId, user1Addr, loan.collateralTokenId, amount);
+        .withArgs(loanId, user1Addr, DEFAULT_ETH_ADDRESS, amount);
 
       // convert amount to 8 decimals for loan data
       const removedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.ETH);
@@ -503,7 +504,7 @@ describe("Collateral", () => {
       // check event
       await expect(addCollateralTx)
         .to.emit(diamondLoan, "AddCollateral")
-        .withArgs(loanId, user2Addr, loan.collateralTokenId, amount);
+        .withArgs(loanId, user2Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data
       const addedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.USDT);
@@ -565,7 +566,7 @@ describe("Collateral", () => {
       // check event
       await expect(addCollateralTx)
         .to.emit(diamondLoan, "AddCollateral")
-        .withArgs(loanId, user1Addr, loan.collateralTokenId, amount);
+        .withArgs(loanId, user1Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data
       const addedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.USDT);
@@ -622,7 +623,7 @@ describe("Collateral", () => {
       // check event
       await expect(removeCollateralTx)
         .to.emit(diamondLoan, "RemoveCollateral")
-        .withArgs(loanId, user2Addr, loan.collateralTokenId, amount);
+        .withArgs(loanId, user2Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data
       const removedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.USDT);

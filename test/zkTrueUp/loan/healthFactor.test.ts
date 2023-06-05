@@ -283,15 +283,15 @@ describe("Health factor", () => {
         );
 
         // collateral l1 decimals
-        const collateralDecimal = await (
-          await diamondToken.getAssetConfig(loan.collateralTokenId)
-        ).decimals;
+        const collateralToken = await diamondToken.getAssetConfig(
+          loan.collateralTokenId
+        );
+        const collateralDecimal = collateralToken.decimals;
 
         // debt l1 decimals
         const debtTokenId = tsbTokenData.underlyingTokenId;
-        const debtDecimal = await (
-          await diamondToken.getAssetConfig(debtTokenId)
-        ).decimals;
+        const debtToken = await diamondToken.getAssetConfig(debtTokenId);
+        const debtDecimal = debtToken.decimals;
 
         // collateral amount with l1 decimals
         const collateralAmt = BigNumber.from(loan.collateralAmt)
@@ -310,10 +310,10 @@ describe("Health factor", () => {
             loanId,
             loan.accountId,
             BigNumber.from(tsbTokenData.maturity),
-            loanData.debtTokenId,
-            loan.collateralTokenId,
-            BigNumber.from(debtAmt),
-            BigNumber.from(collateralAmt)
+            collateralToken.tokenAddr,
+            debtToken.tokenAddr,
+            BigNumber.from(collateralAmt),
+            BigNumber.from(debtAmt)
           );
 
         // get expected health factor
@@ -393,17 +393,17 @@ describe("Health factor", () => {
         ).answer;
 
         // collateral l1 decimals
-        const collateralDecimal = await (
-          await diamondToken.getAssetConfig(loan.collateralTokenId)
-        ).decimals;
+        const collateralToken = await diamondToken.getAssetConfig(
+          loan.collateralTokenId
+        );
+        const collateralDecimal = collateralToken.decimals;
 
         // debt token id
         const debtTokenId = tsbTokenData.underlyingTokenId;
 
         // debt l1 decimals
-        const debtDecimal = await (
-          await diamondToken.getAssetConfig(debtTokenId)
-        ).decimals;
+        const debtToken = await diamondToken.getAssetConfig(debtTokenId);
+        const debtDecimal = debtToken.decimals;
 
         // collateral amount with l1 decimals
         const collateralAmt = BigNumber.from(loan.collateralAmt)
@@ -430,10 +430,10 @@ describe("Health factor", () => {
             loanId,
             loan.accountId,
             BigNumber.from(tsbTokenData.maturity),
-            tsbTokenData.underlyingTokenId,
-            loan.collateralTokenId,
-            BigNumber.from(debtAmt),
-            BigNumber.from(collateralAmt)
+            collateralToken.tokenAddr,
+            debtToken.tokenAddr,
+            BigNumber.from(collateralAmt),
+            BigNumber.from(debtAmt)
           );
 
         // get expected health factor

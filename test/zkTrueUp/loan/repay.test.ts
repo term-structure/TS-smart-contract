@@ -27,6 +27,7 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import {
+  DEFAULT_ETH_ADDRESS,
   LIQUIDATION_FACTOR,
   STABLECOIN_PAIR_LIQUIDATION_FACTOR,
   TS_BASE_TOKEN,
@@ -229,9 +230,9 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user1Addr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           collateralAmt,
-          loanData.debtTokenId,
           debtAmt,
           false
         );
@@ -325,9 +326,9 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user1Addr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           debtAmt,
           false
         );
@@ -526,9 +527,9 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user1Addr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayDebtAmt,
           false
         );
@@ -822,9 +823,9 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user2Addr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           collateralAmt,
-          loanData.debtTokenId,
           debtAmt,
           false
         );
@@ -910,9 +911,9 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user2Addr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           debtAmt,
           false
         );
@@ -1003,9 +1004,9 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user2Addr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayDebtAmt,
           false
         );

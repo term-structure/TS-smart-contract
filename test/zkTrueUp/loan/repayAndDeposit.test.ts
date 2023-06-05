@@ -28,6 +28,7 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import {
+  DEFAULT_ETH_ADDRESS,
   LIQUIDATION_FACTOR,
   STABLECOIN_PAIR_LIQUIDATION_FACTOR,
   TS_BASE_TOKEN,
@@ -224,9 +225,9 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user1Addr,
-          loan.collateralTokenId,
+          dai.address,
+          DEFAULT_ETH_ADDRESS,
           collateralAmt,
-          loanData.debtTokenId,
           debtAmt,
           true
         );
@@ -325,9 +326,9 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user1Addr,
-          loan.collateralTokenId,
+          dai.address,
+          DEFAULT_ETH_ADDRESS,
           removedCollateralAmt,
-          loanData.debtTokenId,
           debtAmt,
           true
         );
@@ -536,9 +537,9 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user1Addr,
-          loan.collateralTokenId,
+          dai.address,
+          DEFAULT_ETH_ADDRESS,
           depositCollateralAmt,
-          loanData.debtTokenId,
           repayDebtAmt,
           true
         );
@@ -828,9 +829,9 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
-          loan.collateralTokenId,
+          dai.address,
+          usdt.address,
           collateralAmt,
-          loanData.debtTokenId,
           debtAmt,
           true
         );
@@ -923,9 +924,9 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
-          loan.collateralTokenId,
+          dai.address,
+          usdt.address,
           depositCollateralAmt,
-          loanData.debtTokenId,
           debtAmt,
           true
         );
@@ -1013,9 +1014,9 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
-          loan.collateralTokenId,
+          dai.address,
+          usdt.address,
           secondCollateralAmt,
-          loanData.debtTokenId,
           secondDebtAmt,
           true
         );
@@ -1125,9 +1126,9 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
-          loan.collateralTokenId,
+          dai.address,
+          usdt.address,
           depositCollateralAmt,
-          loanData.debtTokenId,
           repayDebtAmt,
           true
         );
@@ -1218,9 +1219,9 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
-          loan.collateralTokenId,
+          dai.address,
+          usdt.address,
           secondCollateralAmt,
-          loanData.debtTokenId,
           secondDebtAmt,
           true
         );

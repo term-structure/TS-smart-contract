@@ -27,7 +27,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         Utils.transferFrom(collateralAsset.tokenAddr, msg.sender, amount, msg.value);
         loan.collateralAmt += amount;
         LoanStorage.layout().loans[loanId] = loan;
-        emit AddCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
+        emit AddCollateral(loanId, msg.sender, collateralAsset.tokenAddr, amount);
     }
 
     /**
@@ -52,7 +52,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanLib.requireHealthy(healthFactor);
         LoanStorage.layout().loans[loanId] = loan;
         Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), amount);
-        emit RemoveCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
+        emit RemoveCollateral(loanId, msg.sender, collateralAsset.tokenAddr, amount);
     }
 
     /**
@@ -82,9 +82,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit Repay(
             loanId,
             msg.sender,
-            loan.collateralTokenId,
+            collateralAsset.tokenAddr,
+            debtAsset.tokenAddr,
             collateralAmt,
-            loan.debtTokenId,
             debtAmt,
             repayAndDeposit
         );
@@ -122,11 +122,19 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         loan.debtAmt -= repayAmt;
         loan.collateralAmt -= removedCollteralAmt;
         LoanStorage.layout().loans[loanId] = loan;
-        emit Repay(loanId, msg.sender, loan.collateralTokenId, removedCollteralAmt, loan.debtTokenId, repayAmt, false);
+        emit Repay(
+            loanId,
+            msg.sender,
+            collateralAsset.tokenAddr,
+            debtAsset.tokenAddr,
+            removedCollteralAmt,
+            repayAmt,
+            false
+        );
 
         Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), liquidatorRewardAmt);
         Utils.transfer(collateralAsset.tokenAddr, payable(ProtocolParamsLib.getTreasuryAddr()), protocolPenaltyAmt);
-        emit Liquidation(loanId, msg.sender, liquidatorRewardAmt, protocolPenaltyAmt);
+        emit Liquidation(loanId, msg.sender, collateralAsset.tokenAddr, liquidatorRewardAmt, protocolPenaltyAmt);
         return (liquidatorRewardAmt, protocolPenaltyAmt);
     }
 

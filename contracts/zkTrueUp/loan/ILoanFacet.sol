@@ -17,41 +17,41 @@ interface ILoanFacet {
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenId The id of the collateral token
+    /// @param collateralTokenAddr The address of the collateral token
     /// @param addedCollateralAmt The amount of the added collateral
     event AddCollateral(
         bytes12 indexed loanId,
         address indexed sender,
-        uint16 collateralTokenId,
+        address collateralTokenAddr,
         uint128 addedCollateralAmt
     );
 
     /// @notice Emitted when borrower remove collateral
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenId The id of the collateral token
+    /// @param collateralTokenAddr The address of the collateral token
     /// @param removedCollateralAmt The amount of the removed collateral
     event RemoveCollateral(
         bytes12 indexed loanId,
         address indexed sender,
-        uint16 collateralTokenId,
+        address collateralTokenAddr,
         uint128 removedCollateralAmt
     );
 
     /// @notice Emitted when the borrower repay the loan
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenId The id of the collateral token
+    /// @param collateralTokenAddr The address of the collateral token
+    /// @param debtTokenAddr The address of the debt token
     /// @param removedCollateralAmt The amount of the removed collateral
-    /// @param debtTokenId The id of the debt token
     /// @param removedDebtAmt The amount of the removed debt
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
     event Repay(
         bytes12 indexed loanId,
         address indexed sender,
-        uint16 collateralTokenId,
+        address collateralTokenAddr,
+        address debtTokenAddr,
         uint128 removedCollateralAmt,
-        uint16 debtTokenId,
         uint128 removedDebtAmt,
         bool repayAndDeposit
     );
@@ -59,11 +59,13 @@ interface ILoanFacet {
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
     /// @param liquidator The address of the liquidator
+    /// @param collateralTokenAddr The address of the collateral token
     /// @param liquidatorReward The reward of the liquidator
     /// @param protocolPenalty The penalty of the protocol
     event Liquidation(
         bytes12 indexed loanId,
         address indexed liquidator,
+        address collateralTokenAddr,
         uint128 liquidatorReward,
         uint128 protocolPenalty
     );

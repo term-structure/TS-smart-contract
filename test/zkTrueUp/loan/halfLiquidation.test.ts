@@ -31,6 +31,7 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import {
+  DEFAULT_ETH_ADDRESS,
   LIQUIDATION_FACTOR,
   STABLECOIN_PAIR_LIQUIDATION_FACTOR,
   TS_BASE_TOKEN,
@@ -313,15 +314,21 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          wbtc.address,
+          DEFAULT_ETH_ADDRESS,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          wbtc.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -425,15 +432,21 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          wbtc.address,
+          DEFAULT_ETH_ADDRESS,
           removedCollateralAmt2,
-          loanData.debtTokenId,
           repayAmt2,
           false
         );
       await expect(liquidateTx2)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward2, protocolPenalty2);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          wbtc.address,
+          liquidatorReward2,
+          protocolPenalty2
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted2 = toL2Amt(
@@ -566,15 +579,21 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          wbtc.address,
+          DEFAULT_ETH_ADDRESS,
           removedCollateralAmt,
-          loanData.debtTokenId,
           maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          wbtc.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -786,15 +805,21 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -924,15 +949,21 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(

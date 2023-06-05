@@ -55,10 +55,10 @@ contract RollupMock is RollupFacet {
             loanId,
             loan.accountId,
             loan.maturityTime,
-            loan.debtTokenId,
-            loan.collateralTokenId,
-            addedDebtAmt,
-            addedCollateralAmt
+            assetConfig.tokenAddr,
+            underlyingAssetConfig.tokenAddr,
+            addedCollateralAmt,
+            addedDebtAmt
         );
     }
 }
