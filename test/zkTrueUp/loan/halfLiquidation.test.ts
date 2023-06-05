@@ -236,6 +236,9 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         await updateRoundData(operator, ethPriceFeed, ethRoundDataJSON)
       ).answer;
 
+      // old health factor
+      const oldHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
       // before balance
       const beforeZkTrueUpWbtcBalance = await wbtc.balanceOf(zkTrueUp.address);
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
@@ -357,6 +360,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check health factor equal to expected health factor and still less than 1
       expect(newHealthFactor).to.lt(1000);
+      expect(newHealthFactor).to.gt(oldHealthFactor);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
 
       const [, , maxRepayAmt2] = await diamondLoan.getLiquidationInfo(loanId);
@@ -693,7 +697,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .connect(liquidator)
         .approve(zkTrueUp.address, ethers.constants.MaxUint256);
     });
-    it("Success to liquidate (repay 5% debt value), health factor < 1 (stable coin pairs loan, half liquidation, collateral can cover liquidator reward and protocol penalty)", async () => {
+    it("Success to liquidate (repay 25% debt value), health factor < 1 (stable coin pairs loan, half liquidation, collateral can cover liquidator reward and protocol penalty)", async () => {
       // set the price for liquidation
       // usdt = 0.97 usd, dai = 1 usd
       // healthFactor = 0.971 < 1
@@ -714,6 +718,9 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         await updateRoundData(operator, daiPriceFeed, daiRoundDataJSON)
       ).answer;
 
+      // old health factor
+      const oldHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
       // before balance
       const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
       const beforeZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
@@ -722,7 +729,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
       const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
-      const repayAmt = maxRepayAmt.div(10); // 5% of debt value
+      const repayAmt = maxRepayAmt.div(2); // 25% of debt value
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
@@ -802,7 +809,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.DAI);
 
-      // new loan data after add collateral
+      // new loan data after liquidation
       const newLoan = {
         ...loan,
         collateralAmt: BigNumber.from(loan.collateralAmt)
@@ -826,6 +833,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check health factor < 1, and equal to expected health factor
       expect(newHealthFactor).to.lt(1000);
+      expect(newHealthFactor).to.gt(oldHealthFactor);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
     it("Success to liquidate (repay max 50% debt value), health factor < 1 (stable coin pairs loan, half liquidation, collateral can cover liquidator reward and protocol penalty)", async () => {
@@ -848,6 +856,9 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       daiAnswer = await (
         await updateRoundData(operator, daiPriceFeed, daiRoundDataJSON)
       ).answer;
+
+      // old health factor
+      const oldHealthFactor = await diamondLoan.getHealthFactor(loanId);
 
       // before balance
       const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
@@ -960,6 +971,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check health factor < 1, and equal to expected health factor
       expect(newHealthFactor).to.lt(1000);
+      expect(newHealthFactor).to.gt(oldHealthFactor);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
   });

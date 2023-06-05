@@ -244,6 +244,9 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         await updateRoundData(operator, usdcPriceFeed, usdcRoundDataJSON)
       ).answer;
 
+      // old health factor
+      const oldHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
       // before balance
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
@@ -369,6 +372,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check health factor equal to expected health factor
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+      expect(newHealthFactor).to.gt(oldHealthFactor);
       // check liquidation success even health factor < 1 after liquidation
       expect(newHealthFactor).to.lt(1000);
     });
