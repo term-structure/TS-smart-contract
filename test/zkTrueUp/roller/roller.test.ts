@@ -20,6 +20,7 @@ import {
 import {
   AccountFacet,
   ERC20Mock,
+  IPoolDataProvider,
   LoanFacet,
   RollerFacet,
   RollupMock,
@@ -50,11 +51,8 @@ export const FACET_NAMES_MOCK = [
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES_MOCK, true);
-  const res2 = await deployAndInit(FACET_NAMES_MOCK, false);
   console.log(res.baseTokenAddresses);
-  console.log(res2.baseTokenAddresses);
   console.log(res.priceFeeds);
-  console.log(res2.priceFeeds);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp.address
@@ -136,7 +134,6 @@ describe("Roller", () => {
         operator,
         tsbTokenData
       );
-      console.log("test1");
 
       // ETH decimals = 18
       const decimals = 18;
@@ -150,30 +147,31 @@ describe("Roller", () => {
         baseTokenAddresses,
         diamondAcc
       );
-      console.log("test2");
 
       // update test loan data
       const updateLoanTx = await diamondRollupMock
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
-      console.log("test3");
 
       //TODO mainnet to get price feed, not update round data
-      // get eth price with 8 decimals from test oracle
-      const ethPriceFeed = priceFeeds[TsTokenId.ETH];
-      const ethRoundDataJSON = roundDataJSON[TsTokenId.ETH][0];
-      ethAnswer = await (
-        await updateRoundData(operator, ethPriceFeed, ethRoundDataJSON)
-      ).answer;
+      // // get eth price with 8 decimals from test oracle
+      // const ethPriceFeed = priceFeeds[TsTokenId.ETH];
+      // const ethRoundDataJSON = roundDataJSON[TsTokenId.ETH][0];
+      // ethAnswer = await (
+      //   await updateRoundData(operator, ethPriceFeed, ethRoundDataJSON)
+      // ).answer;
 
-      // get usdc price with 8 decimals from test oracle
-      const usdcPriceFeed = priceFeeds[TsTokenId.USDC];
-      const usdcRoundDataJSON = roundDataJSON[TsTokenId.USDC][0];
-      usdcAnswer = await (
-        await updateRoundData(operator, usdcPriceFeed, usdcRoundDataJSON)
-      ).answer;
-      console.log("test4");
+      // // get usdc price with 8 decimals from test oracle
+      // const usdcPriceFeed = priceFeeds[TsTokenId.USDC];
+      // const usdcRoundDataJSON = roundDataJSON[TsTokenId.USDC][0];
+      // usdcAnswer = await (
+      //   await updateRoundData(operator, usdcPriceFeed, usdcRoundDataJSON)
+      // ).answer;
+      usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDC]
+      )) as ERC20Mock;
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -188,6 +186,7 @@ describe("Roller", () => {
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
       const beforeUser1EthBalance = await user1.getBalance();
+      const beforeUser1WethBalance = await weth.balanceOf(user1Addr);
       const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
 
       // repay 500 USDC (all debt) and take 1 ETH (all collateral)
@@ -204,25 +203,61 @@ describe("Roller", () => {
         debtAmt,
       });
 
+      const aaveV3PoolDataProvider = await ethers.getContractAt(
+        "IPoolDataProvider",
+        "0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3"
+      );
+
+      const [, , variableDebtTokenAddress] =
+        await aaveV3PoolDataProvider.getReserveTokensAddresses(usdc.address);
+
+      const debtToken = await ethers.getContractAt(
+        "ICreditDelegationToken",
+        variableDebtTokenAddress
+      );
+      const approveDelegationTx = await debtToken
+        .connect(user1)
+        .approveDelegation(zkTrueUp.address, debtAmt);
+      const approveDelegationReceipt = await approveDelegationTx.wait();
+
+      const approveDelegationGas = BigNumber.from(
+        approveDelegationReceipt.gasUsed
+      ).mul(approveDelegationReceipt.effectiveGasPrice);
+
       const rollToAaveTx = await diamondRoller
         .connect(user1)
         .rollToAave(loanId, collateralAmt, debtAmt);
       const rollToAaveReceipt = await rollToAaveTx.wait();
 
+      const rollToAaveGas = BigNumber.from(rollToAaveReceipt.gasUsed).mul(
+        rollToAaveReceipt.effectiveGasPrice
+      );
+
+      const user1ReserveData = await aaveV3PoolDataProvider.getUserReserveData(
+        weth.address,
+        user1Addr
+      );
+      console.log("user1ReserveData", user1ReserveData);
+
       // after balance
       const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
       const afterUser1EthBalance = await user1.getBalance();
+      const afterUser1WethBalance = await weth.balanceOf(user1Addr);
       const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
 
       // check balance
-      // expect(beforeZkTrueUpWethBalance.sub(afterZkTrueUpWethBalance)).to.eq(
-      //   collateralAmt
-      // );
-      // expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
-      //   debtAmt
-      // );
-      // expect(beforeUser1UsdcBalance.sub(afterUser1UsdcBalance)).to.eq(debtAmt);
+      expect(beforeZkTrueUpWethBalance.sub(afterZkTrueUpWethBalance)).to.eq(
+        collateralAmt
+      );
+      expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
+        debtAmt
+      );
+      expect(beforeUser1UsdcBalance).to.eq(afterUser1UsdcBalance);
+      expect(
+        beforeUser1EthBalance.sub(approveDelegationGas).sub(rollToAaveGas)
+      ).to.eq(afterUser1EthBalance);
+      expect(beforeUser1WethBalance).to.eq(afterUser1WethBalance);
 
       // /// check loan data after repay
       // const newLoanInfo = await diamondLoan.getLoan(loanId);

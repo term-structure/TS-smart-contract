@@ -7,7 +7,9 @@ import {IWETH} from "../interfaces/IWETH.sol";
 import {LoanLib} from "../loan/LoanLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {AddressLib} from "../address/AddressLib.sol";
-import {IPool} from "../interfaces/IAaveV3Pool.sol";
+import {IPool} from "../interfaces/aaveV3/IPool.sol";
+import {IPoolDataProvider} from "../interfaces/aaveV3/IPoolDataProvider.sol";
+import {ICreditDelegationToken} from "../interfaces/aaveV3/ICreditDelegationToken.sol";
 import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {LiquidationFactor} from "../loan/LoanStorage.sol";
@@ -49,11 +51,12 @@ contract RollerFacet {
             supplyTokenAddr = collateralAsset.tokenAddr;
         }
 
-        try aaveV3Pool.supply(supplyTokenAddr, collateralAmt, address(this), 0) {
-            try aaveV3Pool.borrow(debtAsset.tokenAddr, debtAmt, 2, 0, address(this)) {
+        try aaveV3Pool.supply(supplyTokenAddr, collateralAmt, msg.sender, 0) {
+            // should be `approveDelegation` first
+            try aaveV3Pool.borrow(debtAsset.tokenAddr, debtAmt, 2, 0, msg.sender) {
                 LoanStorage.layout().loans[loanId] = loan;
             } catch {
-                revert("RollerFacet: borrow from Aave failed");
+                revert("AaveV3Pool: borrow failed");
             }
         } catch {
             revert("AaveV3Pool: supply failed");
