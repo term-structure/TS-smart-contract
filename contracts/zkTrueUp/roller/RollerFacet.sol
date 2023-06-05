@@ -39,7 +39,6 @@ contract RollerFacet {
         LoanLib.requireHealthy(healthFactor);
 
         address aaveV3PoolAddr = AddressLib.getAaveV3PoolAddr();
-        IPool aaveV3Pool = IPool(aaveV3PoolAddr);
         address supplyTokenAddr;
         // using ISolidStateERC20 instead of customized transferFrom because of the AAVE receive WETH instead of ETH
         if (collateralAsset.tokenAddr == Config.ETH_ADDRESS) {
@@ -51,6 +50,7 @@ contract RollerFacet {
             supplyTokenAddr = collateralAsset.tokenAddr;
         }
 
+        IPool aaveV3Pool = IPool(aaveV3PoolAddr);
         try aaveV3Pool.supply(supplyTokenAddr, collateralAmt, msg.sender, 0) {
             // should be `approveDelegation` before `borrow`
             try aaveV3Pool.borrow(debtAsset.tokenAddr, debtAmt, 2, 0, msg.sender) {
