@@ -61,7 +61,14 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
             uint32 accountId = AccountLib.getValidAccount(msg.sender);
             (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = TokenLib.getValidToken(underlyingAsset);
             TokenLib.validDepositAmt(amount, underlyingAssetConfig);
-            AccountLib.addDepositReq(msg.sender, accountId, tokenId, underlyingAssetConfig.decimals, amount);
+            AccountLib.addDepositReq(
+                msg.sender,
+                accountId,
+                underlyingAssetConfig.tokenAddr,
+                tokenId,
+                underlyingAssetConfig.decimals,
+                amount
+            );
         } else {
             Utils.transfer(underlyingAsset, payable(msg.sender), amount);
         }

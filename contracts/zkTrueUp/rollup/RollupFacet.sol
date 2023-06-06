@@ -551,7 +551,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupLib.addL1Request(receiver, Operations.OpType.EVACUATION, pubData);
         Utils.transfer(assetConfig.tokenAddr, payable(receiver), l1Amt);
 
-        emit Evacuation(receiver, evacuation.accountId, evacuation.tokenId, l1Amt);
+        emit Evacuation(receiver, evacuation.accountId, assetConfig.tokenAddr, evacuation.tokenId, l1Amt);
     }
 
     /// @notice Internal function to check whether the request id is greater than the current request number

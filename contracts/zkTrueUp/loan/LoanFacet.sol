@@ -92,7 +92,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (repayAndDeposit) {
             (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(collateralAsset.tokenAddr);
             TokenLib.validDepositAmt(collateralAmt, assetConfig);
-            AccountLib.addDepositReq(msg.sender, loan.accountId, tokenId, assetConfig.decimals, collateralAmt);
+            AccountLib.addDepositReq(
+                msg.sender,
+                loan.accountId,
+                assetConfig.tokenAddr,
+                tokenId,
+                assetConfig.decimals,
+                collateralAmt
+            );
         } else {
             Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), collateralAmt);
         }

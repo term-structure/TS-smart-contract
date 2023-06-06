@@ -77,9 +77,10 @@ interface IRollupFacet {
     /// @notice Emit when there is an evacuation
     /// @param accountAddr The address of the account
     /// @param accountId The id of the account
+    /// @param tokenAddr The address of the token
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
-    event Evacuation(address indexed accountAddr, uint32 accountId, uint16 tokenId, uint128 amount);
+    event Evacuation(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId, uint128 amount);
 
     /// @notice Emitted when evacuation is activated
     /// @param evacuationBlock The block number when evacuation is activated

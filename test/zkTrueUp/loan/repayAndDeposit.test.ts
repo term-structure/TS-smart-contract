@@ -236,6 +236,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           user1Addr,
           loan.accountId,
+          dai.address,
           loan.collateralTokenId,
           collateralAmt
         );
@@ -338,6 +339,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           user1Addr,
           loan.accountId,
+          dai.address,
           loan.collateralTokenId,
           removedCollateralAmt
         );
@@ -548,6 +550,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           user1Addr,
           loan.accountId,
+          dai.address,
           loan.collateralTokenId,
           depositCollateralAmt
         );
@@ -840,6 +843,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           user2Addr,
           loan.accountId,
+          dai.address,
           loan.collateralTokenId,
           collateralAmt
         );
@@ -935,6 +939,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           user2Addr,
           loan.accountId,
+          dai.address,
           loan.collateralTokenId,
           depositCollateralAmt
         );
@@ -1025,6 +1030,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           user2Addr,
           loan.accountId,
+          dai.address,
           loan.collateralTokenId,
           secondCollateralAmt
         );
@@ -1137,6 +1143,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           user2Addr,
           loan.accountId,
+          dai.address,
           loan.collateralTokenId,
           depositCollateralAmt
         );
@@ -1230,6 +1237,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           user2Addr,
           loan.accountId,
+          dai.address,
           loan.collateralTokenId,
           secondCollateralAmt
         );
