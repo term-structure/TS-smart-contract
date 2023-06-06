@@ -14,6 +14,7 @@ import { getExpectedHealthFactor } from "../../utils/getHealthFactor";
 import {
   calcLiquidatorRewardAmt,
   calcProtocolPenaltyAmt,
+  toL1Amt,
   toL2Amt,
 } from "../../utils/amountConvertor";
 import {
@@ -204,7 +205,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       ).answer;
 
       // half liquidation,  repayAmt = debtAmt / 2
-      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
+      const maxRepayAmt = toL1Amt(loan.debtAmt, TS_BASE_TOKEN.ETH).div(2);
       const repayAmt = maxRepayAmt.add(1);
       // liquidate
       await expect(
