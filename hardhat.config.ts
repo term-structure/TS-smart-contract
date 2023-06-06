@@ -74,9 +74,9 @@ const config: HardhatUserConfig = {
         mnemonic,
       },
       allowUnlimitedContractSize: true,
-      forking: {
-        url: getString(process.env.MAINNET_RPC_URL),
-      },
+      // forking: {
+      //   url: getString(process.env.MAINNET_RPC_URL),
+      // },
     },
     // goerli: {
     //   url: getString(process.env.GOERLI_RPC_URL),

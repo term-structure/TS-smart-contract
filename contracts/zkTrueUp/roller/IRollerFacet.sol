@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 interface IRollerFacet {
     event RollToAave(
         bytes12 indexed loanId,
-        address sender,
+        address indexed sender,
         address collateralTokenAddr,
         address debtTokenAddr,
         uint128 collateralAmt,

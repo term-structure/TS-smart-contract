@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
+import {IRollerFacet} from "./IRollerFacet.sol";
 import {LoanLib} from "../loan/LoanLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {AddressLib} from "../address/AddressLib.sol";
@@ -17,7 +18,7 @@ import {Config} from "../libraries/Config.sol";
 
 import {console} from "hardhat/console.sol";
 
-contract RollerFacet {
+contract RollerFacet is IRollerFacet {
     using SafeERC20 for ISolidStateERC20;
 
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
@@ -55,6 +56,14 @@ contract RollerFacet {
             // should be `approveDelegation` before `borrow`
             try aaveV3Pool.borrow(debtAsset.tokenAddr, debtAmt, 2, 0, msg.sender) {
                 LoanStorage.layout().loans[loanId] = loan;
+                emit RollToAave(
+                    loanId,
+                    msg.sender,
+                    collateralAsset.tokenAddr,
+                    debtAsset.tokenAddr,
+                    collateralAmt,
+                    debtAmt
+                );
             } catch {
                 revert("AaveV3Pool: borrow failed");
             }
