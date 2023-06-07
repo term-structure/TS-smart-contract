@@ -80,7 +80,7 @@ const config: HardhatUserConfig = {
       },
       allowUnlimitedContractSize: true,
       forking: getBoolean(process.env.IS_FORK_MAINNET, false)
-        ? { url: getString(process.env.MAINNET_RPC_URL) }
+        ? { url: getString(process.env.MAINNET_RPC_URL), blockNumber: 17426510 }
         : undefined,
     },
     // goerli: {

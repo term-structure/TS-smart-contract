@@ -43,7 +43,7 @@
     "test:evacuate": "hardhat test test/zkTrueUp/rollup/evacuate.test.ts",
     "test:oracleMock": "hardhat test test/zkTrueUp/testnet/oracleMock/oracleMock.test.ts",
     "test:tsFaucet": "hardhat test test/zkTrueUp/testnet/tsFaucet/tsFaucet.test.ts",
-    "test:roll": "hardhat test test/mainnetFork/zkTrueUp/roll.test.ts",
+    "test:roll": "cross-env IS_FORK_MAINNET=true hardhat test test/mainnetFork/zkTrueUp/roll.test.ts",
     "coverage": "hardhat coverage",
     "generate:docs": "hardhat docgen",
     "format": "prettier --write 'contracts/**/*.sol' '**/*.{js,ts}' && eslint --fix '**/*.{js,ts}'",
