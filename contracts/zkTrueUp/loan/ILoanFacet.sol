@@ -13,6 +13,10 @@ interface ILoanFacet {
     error LoanIsSafe(uint256 healthFactor, uint32 maturityTime);
     /// @notice Error for liquidate the loan with invalid repay amount
     error RepayAmtExceedsMaxRepayAmt(uint128 repayAmt, uint128 maxRepayAmt);
+    /// @notice Error for supply to Aave
+    error SupplyToAaveFailed(address tokenAddr, uint128 amount);
+    /// @notice Error for borrow from Aave
+    error BorrowFromAaveFailed(address tokenAddr, uint128 amount);
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
@@ -54,6 +58,22 @@ interface ILoanFacet {
         uint128 removedCollateralAmt,
         uint128 removedDebtAmt,
         bool repayAndDeposit
+    );
+
+    /// @notice Emitted when the loan is rolled to Aave
+    /// @param loanId The id of the loan
+    /// @param sender The address of the sender
+    /// @param collateralTokenAddr The address of the collateral token
+    /// @param debtTokenAddr The address of the debt token
+    /// @param collateralAmt The amount of the collateral
+    /// @param debtAmt The amount of the debt
+    event RollToAave(
+        bytes12 indexed loanId,
+        address indexed sender,
+        address collateralTokenAddr,
+        address debtTokenAddr,
+        uint128 collateralAmt,
+        uint128 debtAmt
     );
 
     /// @notice Emitted when the loan is liquidated
@@ -99,6 +119,12 @@ interface ILoanFacet {
     /// @param debtAmt The amount of debt to be repaid
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable;
+
+    /// @notice Roll the loan to Aave
+    /// @param loanId The id of the loan
+    /// @param collateralAmt The amount of collateral to be returned
+    /// @param debtAmt The amount of debt to be repaid
+    function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external;
 
     /// @notice Liquidate the loan
     /// @param loanId The id of the loan to be liquidated
