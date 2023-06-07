@@ -17,6 +17,8 @@ interface ILoanFacet {
     error SupplyToAaveFailed(address tokenAddr, uint128 amount);
     /// @notice Error for borrow from Aave
     error BorrowFromAaveFailed(address tokenAddr, uint128 amount);
+    /// @notice Error for use roll when it is not activated
+    error RollIsNotActivated();
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
@@ -103,6 +105,10 @@ interface ILoanFacet {
     /// @param isStableCoinPair Whether the liquidation factor is for stablecoin pair
     event SetLiquidationFactor(LiquidationFactor indexed liquidationFactor, bool indexed isStableCoinPair);
 
+    /// @notice Emitted when the roll activation is set
+    /// @param isActivatedRoll Whether the roll activation is set
+    event SetIsActivatedRoll(bool isActivatedRoll);
+
     /// @notice Add collateral to the loan
     /// @param loanId The id of the loan
     /// @param amount The amount of the collateral
@@ -144,6 +150,10 @@ interface ILoanFacet {
     /// @param liquidationFactor The liquidation factor
     /// @param isStableCoinPair Whether the liquidation factor is for stablecoin pair
     function setLiquidationFactor(LiquidationFactor memory liquidationFactor, bool isStableCoinPair) external;
+
+    /// @notice Set the roll function activation
+    /// @param isActivatedRoll The roll function activation
+    function setIsActivatedRoll(bool isActivatedRoll) external;
 
     /// @notice Return the health factor of the loan
     /// @param loanId The id of the loan
@@ -187,4 +197,8 @@ interface ILoanFacet {
     function getLiquidationInfo(
         bytes12 loanId
     ) external view returns (bool _isLiquidable, address debtTokenAddr, uint128 maxRepayAmt);
+
+    /// @notice Check if the roll function is activated
+    /// @return True if the roll function is activated
+    function isActivatedRoll() external view returns (bool);
 }

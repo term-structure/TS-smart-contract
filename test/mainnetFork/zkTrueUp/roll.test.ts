@@ -68,6 +68,7 @@ describe("Roll to Aave", () => {
   let [user1, user2]: Signer[] = [];
   let [user1Addr, user2Addr]: string[] = [];
   let operator: Signer;
+  let admin: Signer;
   let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
   let diamondAcc: AccountFacet;
@@ -87,6 +88,7 @@ describe("Roll to Aave", () => {
       user2.getAddress(),
     ]);
     operator = res.operator;
+    admin = res.admin;
     weth = res.weth;
     zkTrueUp = res.zkTrueUp;
     const zkTrueUpAddr = zkTrueUp.address;
@@ -103,6 +105,7 @@ describe("Roll to Aave", () => {
       "contracts/test/aaveV3/IPoolDataProvider.sol:IPoolDataProvider",
       MAINNET_ADDRESS.AAVE_V3_POOL_DATA_PROVIDER
     );
+    await diamondLoan.connect(admin).setIsActivatedRoll(true);
   });
 
   describe("Roll to Aave (general case)", () => {
@@ -176,6 +179,22 @@ describe("Roll to Aave", () => {
       await expect(
         diamondLoan.connect(user2).rollToAave(loanId, collateralAmt, debtAmt)
       ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+    });
+    it("Fail roll to Aave, roll function is not activated", async () => {
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      );
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      );
+
+      await diamondLoan.connect(admin).setIsActivatedRoll(false);
+
+      await expect(
+        diamondLoan.connect(user2).rollToAave(loanId, collateralAmt, debtAmt)
+      ).to.be.revertedWithCustomError(diamondLoan, "RollIsNotActivated");
     });
     it("Fail roll to Aave, partial roll make the origin loan unhealthy", async () => {
       // only roll 20% debt (100 USDC) to Aave
@@ -685,13 +704,12 @@ describe("Roll to Aave", () => {
       );
 
       const registerAmt2 = utils.parseUnits("1000", TS_BASE_TOKEN.DAI.decimals);
-
       await (
         await dai
           .connect(impersonatedSigner)
           .approve(diamondAcc.address, registerAmt2)
       ).wait();
-      // register user2 for loan owner
+      // register impersonatedSigner for loan owner
       const pubKey = { X: getRandomUint256(), Y: getRandomUint256() };
       await (
         await diamondAcc

@@ -96,6 +96,12 @@ library LoanLib {
         return LoanStorage.layout().stableCoinPairLiquidationFactor;
     }
 
+    /// @notice Internal function to check if the roll function is activated
+    /// @return isActivatedRoll True if the roll function is activated, otherwise false
+    function isActivatedRoll() internal view returns (bool) {
+        return LoanStorage.layout().isActivatedRoll;
+    }
+
     /// @notice Internal function to check if the loan is liquidable
     /// @param healthFactor The health factor of the loan
     /// @param maturityTime The maturity time of the loan

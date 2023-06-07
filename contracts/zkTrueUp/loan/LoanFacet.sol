@@ -121,6 +121,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      *      to the floating rate and perpetual position on Aave without repaying the debt
      */
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
+        if (!LoanLib.isActivatedRoll()) revert RollIsNotActivated();
         Loan memory loan = LoanLib.getLoan(loanId);
         LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountAddr(loan.accountId));
         (
@@ -247,6 +248,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
+    function setIsActivatedRoll(bool _isActivatedRoll) external onlyRole(Config.ADMIN_ROLE) {
+        LoanStorage.layout().isActivatedRoll = _isActivatedRoll;
+        emit SetIsActivatedRoll(_isActivatedRoll);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function getHealthFactor(bytes12 loanId) external view returns (uint256) {
         Loan memory loan = LoanLib.getLoan(loanId);
         (
@@ -320,6 +329,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
         uint128 maxRepayAmt = _getMaxRepayAmt(loan, collateralValue);
         return (_isLiquidable, debtAsset.tokenAddr, maxRepayAmt);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function isActivatedRoll() external view returns (bool) {
+        return LoanLib.isActivatedRoll();
     }
 
     /// @notice Liquidation calculator to calculate the liquidator reward and protocol penalty
