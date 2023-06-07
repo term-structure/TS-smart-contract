@@ -3,10 +3,10 @@ import { expect } from "chai";
 import { Signer, utils } from "ethers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { MIN_DEPOSIT_AMOUNT, TS_BASE_TOKEN } from "term-structure-sdk";
-import { FACET_NAMES } from "../../../utils/config";
-import { deployAndInit } from "../../utils/deployAndInit";
-import { useFacet } from "../../../utils/useFacet";
-import { getRandomUint256 } from "../../utils/helper";
+import { FACET_NAMES } from "../../../../utils/config";
+import { deployAndInit } from "../../../utils/deployAndInit";
+import { useFacet } from "../../../../utils/useFacet";
+import { getRandomUint256 } from "../../../utils/helper";
 import {
   AccountFacet,
   ERC20Mock,
@@ -14,7 +14,7 @@ import {
   TsERC20,
   TsFaucet,
   ZkTrueUp,
-} from "../../../typechain-types";
+} from "../../../../typechain-types";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
