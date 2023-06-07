@@ -27,7 +27,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         Utils.transferFrom(collateralAsset.tokenAddr, msg.sender, amount, msg.value);
         loan.collateralAmt += amount;
         LoanStorage.layout().loans[loanId] = loan;
-        emit AddCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
+        emit AddCollateral(loanId, msg.sender, collateralAsset.tokenAddr, amount);
     }
 
     /**
@@ -52,7 +52,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanLib.requireHealthy(healthFactor);
         LoanStorage.layout().loans[loanId] = loan;
         Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), amount);
-        emit RemoveCollateral(loanId, msg.sender, loan.collateralTokenId, amount);
+        emit RemoveCollateral(loanId, msg.sender, collateralAsset.tokenAddr, amount);
     }
 
     /**
@@ -82,9 +82,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit Repay(
             loanId,
             msg.sender,
-            loan.collateralTokenId,
+            collateralAsset.tokenAddr,
+            debtAsset.tokenAddr,
             collateralAmt,
-            loan.debtTokenId,
             debtAmt,
             repayAndDeposit
         );
@@ -92,7 +92,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (repayAndDeposit) {
             (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(collateralAsset.tokenAddr);
             TokenLib.validDepositAmt(collateralAmt, assetConfig);
-            AccountLib.addDepositReq(msg.sender, loan.accountId, tokenId, assetConfig.decimals, collateralAmt);
+            AccountLib.addDepositReq(
+                msg.sender,
+                loan.accountId,
+                assetConfig.tokenAddr,
+                tokenId,
+                assetConfig.decimals,
+                collateralAmt
+            );
         } else {
             Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), collateralAmt);
         }
@@ -101,7 +108,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function liquidate(bytes12 loanId) external payable returns (uint128, uint128, uint128) {
+    function liquidate(bytes12 loanId, uint128 repayAmt) external payable returns (uint128, uint128) {
         Loan memory loan = LoanLib.getLoan(loanId);
         (
             LiquidationFactor memory liquidationFactor,
@@ -109,7 +116,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             AssetConfig memory debtAsset
         ) = LoanLib.getLoanInfo(loan);
 
-        (uint128 repayAmt, uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt) = _liquidationCalculator(
+        (uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt) = _liquidationCalculator(
+            repayAmt,
             loan,
             collateralAsset,
             debtAsset,
@@ -121,12 +129,20 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         loan.debtAmt -= repayAmt;
         loan.collateralAmt -= removedCollteralAmt;
         LoanStorage.layout().loans[loanId] = loan;
-        emit Repay(loanId, msg.sender, loan.collateralTokenId, removedCollteralAmt, loan.debtTokenId, repayAmt, false);
+        emit Repay(
+            loanId,
+            msg.sender,
+            collateralAsset.tokenAddr,
+            debtAsset.tokenAddr,
+            removedCollteralAmt,
+            repayAmt,
+            false
+        );
 
         Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), liquidatorRewardAmt);
         Utils.transfer(collateralAsset.tokenAddr, payable(ProtocolParamsLib.getTreasuryAddr()), protocolPenaltyAmt);
-        emit Liquidation(loanId, msg.sender, liquidatorRewardAmt, protocolPenaltyAmt);
-        return (repayAmt, liquidatorRewardAmt, protocolPenaltyAmt);
+        emit Liquidation(loanId, msg.sender, collateralAsset.tokenAddr, liquidatorRewardAmt, protocolPenaltyAmt);
+        return (liquidatorRewardAmt, protocolPenaltyAmt);
     }
 
     /**
@@ -158,56 +174,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function getHealthFactor(bytes12 loanId) external view returns (uint256 healthFactor) {
-        Loan memory loan = LoanLib.getLoan(loanId);
-        (
-            LiquidationFactor memory liquidationFactor,
-            AssetConfig memory collateralAsset,
-            AssetConfig memory debtAsset
-        ) = LoanLib.getLoanInfo(loan);
-        (healthFactor, , ) = LoanLib.getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
-        return healthFactor;
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     */
-    function getHalfLiquidationThreshold() external view returns (uint16 halfLiquidationThreshold) {
-        return LoanLib.getHalfLiquidationThreshold();
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     */
-    function getLiquidationFactor(
-        bool isStableCoinPair
-    ) external view returns (LiquidationFactor memory liquidationFactor) {
-        return isStableCoinPair ? LoanLib.getStableCoinPairLiquidationFactor() : LoanLib.getLiquidationFactor();
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     */
-    function getLoanId(
-        uint32 accountId,
-        uint32 maturityTime,
-        uint16 debtTokenId,
-        uint16 collateralTokenId
-    ) external pure returns (bytes12 loanId) {
-        return LoanLib.getLoanId(accountId, maturityTime, debtTokenId, collateralTokenId);
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     */
-    function getLoan(bytes12 loanId) external view returns (Loan memory loan) {
-        return LoanLib.getLoan(loanId);
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     */
-    function isLiquidable(bytes12 loanId) external view returns (bool) {
+    function getHealthFactor(bytes12 loanId) external view returns (uint256) {
         Loan memory loan = LoanLib.getLoan(loanId);
         (
             LiquidationFactor memory liquidationFactor,
@@ -220,7 +187,66 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             collateralAsset,
             debtAsset
         );
-        return LoanLib.isLiquidable(healthFactor, loan.maturityTime);
+        return healthFactor;
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getHalfLiquidationThreshold() external view returns (uint16) {
+        return LoanLib.getHalfLiquidationThreshold();
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getLiquidationFactor(bool isStableCoinPair) external view returns (LiquidationFactor memory) {
+        return isStableCoinPair ? LoanLib.getStableCoinPairLiquidationFactor() : LoanLib.getLiquidationFactor();
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getLoanId(
+        uint32 accountId,
+        uint32 maturityTime,
+        uint16 debtTokenId,
+        uint16 collateralTokenId
+    ) external pure returns (bytes12) {
+        return LoanLib.getLoanId(accountId, maturityTime, debtTokenId, collateralTokenId);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getLoan(bytes12 loanId) external view returns (Loan memory) {
+        return LoanLib.getLoan(loanId);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getLiquidationInfo(bytes12 loanId) external view returns (bool, address, uint128) {
+        Loan memory loan = LoanLib.getLoan(loanId);
+        (
+            LiquidationFactor memory liquidationFactor,
+            AssetConfig memory collateralAsset,
+            AssetConfig memory debtAsset
+        ) = LoanLib.getLoanInfo(loan);
+        (uint256 healthFactor, uint256 normalizedCollateralPrice, ) = LoanLib.getHealthFactor(
+            loan,
+            liquidationFactor.ltvThreshold,
+            collateralAsset,
+            debtAsset
+        );
+        bool _isLiquidable = LoanLib.isLiquidable(healthFactor, loan.maturityTime);
+        uint256 collateralValue = _calcCollateralValue(
+            normalizedCollateralPrice,
+            loan.collateralAmt,
+            collateralAsset.decimals
+        );
+        uint128 maxRepayAmt = _getMaxRepayAmt(loan, collateralValue);
+        return (_isLiquidable, debtAsset.tokenAddr, maxRepayAmt);
     }
 
     /// @notice Liquidation calculator to calculate the liquidator reward and protocol penalty
@@ -233,31 +259,32 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @dev 3. The collateral value is enough to cover the liquidator reward and protocol penalty,
     /// @dev    then the liquidator reward and protocol penalty are calculated by the liquidation factor,
     /// @dev    and the remaining collateral value will be returned to the borrower
+    /// @param repayAmt The amount of the debt to be repaid
     /// @param loan The loan to be liquidated
     /// @param collateralAsset The collateral asset config
     /// @param debtAsset The debt asset config
     /// @param liquidationFactor The liquidation factor
-    /// @return repayAmt The amount of the debt to be repaid
     /// @return liquidatorRewardAmt The amount of the collateral to be rewarded to the liquidator
     /// @return protocolPenaltyAmt The amount of the collateral to be paid to the protocol
     function _liquidationCalculator(
+        uint128 repayAmt,
         Loan memory loan,
         AssetConfig memory collateralAsset,
         AssetConfig memory debtAsset,
         LiquidationFactor memory liquidationFactor
-    ) internal view returns (uint128, uint128, uint128) {
+    ) internal view returns (uint128, uint128) {
         (uint256 healthFactor, uint256 normalizedCollateralPrice, uint256 normalizedDebtPrice) = LoanLib
             .getHealthFactor(loan, liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
         if (!LoanLib.isLiquidable(healthFactor, loan.maturityTime)) revert LoanIsSafe(healthFactor, loan.maturityTime);
 
-        // if the collateral value is less than half liquidation threshold or the loan is expired,
-        // then the liquidator will repay the full debt
-        // otherwise, the liquidator will repay half of the debt
-        uint128 repayAmt = (normalizedCollateralPrice * loan.collateralAmt) / 10 ** collateralAsset.decimals <
-            uint256(LoanLib.getHalfLiquidationThreshold()) * 10 ** 18 ||
-            loan.maturityTime < block.timestamp
-            ? loan.debtAmt
-            : loan.debtAmt / 2;
+        // Calculate the collateral value without decimals
+        uint256 collateralValue = _calcCollateralValue(
+            normalizedCollateralPrice,
+            loan.collateralAmt,
+            collateralAsset.decimals
+        );
+        uint128 maxRepayAmt = _getMaxRepayAmt(loan, collateralValue);
+        if (repayAmt > maxRepayAmt) revert RepayAmtExceedsMaxRepayAmt(repayAmt, maxRepayAmt);
 
         uint256 normalizedRepayValue = (normalizedDebtPrice * repayAmt) / 10 ** debtAsset.decimals;
 
@@ -265,7 +292,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         // LTV_BASE = 1000
         // The repayValue and collateralValue are calculated by formula:
         // value = (normalizedPrice / 10**18) * (amount / 10**decimals)
-        // ==> repayToCollateralRatio = (LTV_BASE * normalizedRepayValue / 10*18) / (normalizedCollateralPrice * collateralAmt / 10**18 / 10**collateralDecimals)
+        // ==> repayToCollateralRatio = (LTV_BASE * normalizedRepayValue / 10**18) / (normalizedCollateralPrice * collateralAmt / 10**18 / 10**collateralDecimals)
         // ==> repayToCollateralRatio = (LTV_BASE * normalizedRepayValue) * 10**collateralDecimals / normalizedCollateralPrice / collateralAmt
         uint256 repayToCollateralRatio = (Config.LTV_BASE * normalizedRepayValue * 10 ** collateralAsset.decimals) /
             normalizedCollateralPrice /
@@ -275,14 +302,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         // in this case, liquidator reward = all collateral, and protocol penalty = 0
         // liquidatorRewardAmt = totalCollateralAmt, and protocolPenaltyAmt = 0
         if (repayToCollateralRatio + liquidationFactor.liquidatorIncentive > Config.MAX_LTV_RATIO)
-            return (repayAmt, loan.collateralAmt, 0);
+            return (loan.collateralAmt, 0);
 
         // To compute liquidator reward for case2 and case3: collateral value can cover full liquidator reward
         // The maxLtvRatio is a constant value = 1, and the decimals is 3
         // liquidatorReward = repayValue * (liquidatorIncentiveRatio + maxLtvRatio) / LTV_BASE
         // liquidatorRewardAmt = liquidatorReward equivalent in collateral asset
         // ==> liquidatorRewardAmt = ((liquidatorIncentiveRatio + maxLtvRatio) / LTV_BASE) *
-        // (normalizedRepayValue / 1e18) * 10**collateralDecimals / (normalizedCollateralPrice / 1e18)
+        // (normalizedRepayValue / 1**18) * 10**collateralDecimals / (normalizedCollateralPrice / 1**18)
         // ==> liquidatorRewardAmt = (maxLtvRatio + liquidatorIncentiveRatio) * normalizedRepayValue *
         // 10**collateralDecimals / LTV_BASE / normalizedCollateralPrice
         uint128 liquidatorRewardAmt = uint128(
@@ -299,8 +326,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         // To compute protocol penalty for case3: collateral value can cover full protocol penalty
         // protocolPenalty = repayValue * protocolPenaltyRatio / LTV_BASE
         // protocolPenaltyAmt = protocolPenalty equivalent in collateral amount
-        // ==> protocolPenaltyAmt = (protocolPenaltyRatio / LTV_BASE) * (normalizedRepayValue / 1e18) *
-        // 10**collateralDecimals / (normalizedCollateralPrice / 1e18)
+        // ==> protocolPenaltyAmt = (protocolPenaltyRatio / LTV_BASE) * (normalizedRepayValue / 1**18) *
+        // 10**collateralDecimals / (normalizedCollateralPrice / 1**18)
         // ==> protocolPenaltyAmt = protocolPenaltyRatio * normalizedRepayValue *
         // 10**collateralDecimals / LTV_BASE / normalizedCollateralPrice
         uint128 protocolPenaltyAmt;
@@ -312,6 +339,35 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                 Config.LTV_BASE /
                 normalizedCollateralPrice
         );
-        return (repayAmt, liquidatorRewardAmt, protocolPenaltyAmt);
+        return (liquidatorRewardAmt, protocolPenaltyAmt);
+    }
+
+    /// @notice Get the maximum amount of the debt to be repaid
+    /// @dev    If the collateral value is less than half liquidation threshold or the loan is expired,
+    ///         then the liquidator can repay the all debt
+    ///         otherwise, the liquidator can repay max to half of the debt
+    /// @param loan The loan to be liquidated
+    /// @param collateralValue The collateral value without decimals
+    /// @return maxRepayAmt The maximum amount of the debt to be repaid
+    function _getMaxRepayAmt(Loan memory loan, uint256 collateralValue) internal view returns (uint128) {
+        uint16 halfLiquidationThreshold = LoanLib.getHalfLiquidationThreshold();
+        uint128 maxRepayAmt = collateralValue < halfLiquidationThreshold || LoanLib.isMatured(loan.maturityTime)
+            ? loan.debtAmt
+            : loan.debtAmt / 2;
+        return maxRepayAmt;
+    }
+
+    /// @notice Calculate the collateral value
+    /// @dev    collateralValue = (normalizedCollateralPrice / 10**18) * (collateralAmt / 10**collateralDecimals)
+    /// @param normalizedCollateralPrice The normalized collateral price
+    /// @param collateralAmt The collateral amount
+    /// @param collateralDecimals The collateral decimals
+    /// @return collateralValue The collateral value without decimals
+    function _calcCollateralValue(
+        uint256 normalizedCollateralPrice,
+        uint128 collateralAmt,
+        uint16 collateralDecimals
+    ) internal pure returns (uint256) {
+        return (normalizedCollateralPrice * collateralAmt) / (10 ** collateralDecimals) / 10 ** 18;
     }
 }

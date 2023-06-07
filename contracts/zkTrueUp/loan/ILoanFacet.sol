@@ -11,45 +11,47 @@ interface ILoanFacet {
     error InvalidLiquidationFactor();
     /// @notice Error for liquidate the loan which is safe
     error LoanIsSafe(uint256 healthFactor, uint32 maturityTime);
+    /// @notice Error for liquidate the loan with invalid repay amount
+    error RepayAmtExceedsMaxRepayAmt(uint128 repayAmt, uint128 maxRepayAmt);
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenId The id of the collateral token
+    /// @param collateralTokenAddr The address of the collateral token
     /// @param addedCollateralAmt The amount of the added collateral
     event AddCollateral(
         bytes12 indexed loanId,
         address indexed sender,
-        uint16 collateralTokenId,
+        address collateralTokenAddr,
         uint128 addedCollateralAmt
     );
 
     /// @notice Emitted when borrower remove collateral
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenId The id of the collateral token
+    /// @param collateralTokenAddr The address of the collateral token
     /// @param removedCollateralAmt The amount of the removed collateral
     event RemoveCollateral(
         bytes12 indexed loanId,
         address indexed sender,
-        uint16 collateralTokenId,
+        address collateralTokenAddr,
         uint128 removedCollateralAmt
     );
 
     /// @notice Emitted when the borrower repay the loan
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenId The id of the collateral token
+    /// @param collateralTokenAddr The address of the collateral token
+    /// @param debtTokenAddr The address of the debt token
     /// @param removedCollateralAmt The amount of the removed collateral
-    /// @param debtTokenId The id of the debt token
     /// @param removedDebtAmt The amount of the removed debt
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
     event Repay(
         bytes12 indexed loanId,
         address indexed sender,
-        uint16 collateralTokenId,
+        address collateralTokenAddr,
+        address debtTokenAddr,
         uint128 removedCollateralAmt,
-        uint16 debtTokenId,
         uint128 removedDebtAmt,
         bool repayAndDeposit
     );
@@ -57,11 +59,13 @@ interface ILoanFacet {
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
     /// @param liquidator The address of the liquidator
+    /// @param collateralTokenAddr The address of the collateral token
     /// @param liquidatorReward The reward of the liquidator
     /// @param protocolPenalty The penalty of the protocol
     event Liquidation(
         bytes12 indexed loanId,
         address indexed liquidator,
+        address collateralTokenAddr,
         uint128 liquidatorReward,
         uint128 protocolPenalty
     );
@@ -98,12 +102,13 @@ interface ILoanFacet {
 
     /// @notice Liquidate the loan
     /// @param loanId The id of the loan to be liquidated
-    /// @return repayAmt The amount of debt has been repaid
+    /// @param repayAmt The amount of debt to be repaid
     /// @return liquidatorRewardAmt The amount of collateral to be returned to the liquidator
     /// @return protocolPenaltyAmt The amount of collateral to be returned to the protocol
     function liquidate(
-        bytes12 loanId
-    ) external payable returns (uint128 repayAmt, uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt);
+        bytes12 loanId,
+        uint128 repayAmt
+    ) external payable returns (uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt);
 
     /// @notice Set the half liquidation threshold
     /// @param halfLiquidationThreshold The half liquidation threshold
@@ -148,8 +153,12 @@ interface ILoanFacet {
     /// @return loan The loan
     function getLoan(bytes12 loanId) external view returns (Loan memory loan);
 
-    /// @notice Return the whether the loan is liquidable
+    /// @notice Return the liquidation info of the loan
     /// @param loanId The id of the loan
-    /// @return isLiquidable Whether the loan is liquidable
-    function isLiquidable(bytes12 loanId) external view returns (bool isLiquidable);
+    /// @return _isLiquidable Whether the loan is liquidable
+    /// @return debtTokenAddr The address of the debt token
+    /// @return maxRepayAmt The maximum amount of the debt to be repaid
+    function getLiquidationInfo(
+        bytes12 loanId
+    ) external view returns (bool _isLiquidable, address debtTokenAddr, uint128 maxRepayAmt);
 }

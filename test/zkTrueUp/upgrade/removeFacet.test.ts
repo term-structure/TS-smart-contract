@@ -2,12 +2,12 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BaseContract, Signer } from "ethers";
+import { safeRemoveFacet } from "diamond-engraver";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import { useFacet } from "../../../utils/useFacet";
 import { FACET_NAMES } from "../../../utils/config";
 import { TokenFacet, ZkTrueUp } from "../../../typechain-types";
-import { removeFacet } from "../../../utils/diamondActions/removeFacet";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -92,7 +92,8 @@ describe("Upgrade diamond", function () {
     });
     it("Success to remove facet", async function () {
       const AccountFactory = await ethers.getContractFactory("AccountFacet");
-      await removeFacet(admin, zkTrueUp, AccountFactory);
+      const provider = ethers.provider;
+      await safeRemoveFacet(admin, provider, zkTrueUp, AccountFactory);
 
       // check that removed facet function selectors are removed
       expect(

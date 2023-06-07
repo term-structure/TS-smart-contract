@@ -111,10 +111,9 @@ describe("Ts Bond", () => {
         expect(await tsbToken.name()).to.equal(name);
         expect(await tsbToken.symbol()).to.equal(symbol);
         expect(await tsbToken.decimals()).to.equal(8);
-        expect((await tsbToken.tokenInfo()).underlyingAsset).to.equal(
-          underlyingContractAddress
-        );
-        expect((await tsbToken.tokenInfo()).maturityTime).to.equal(maturity);
+        const [underlyingAsset, maturityTime] = await tsbToken.tokenInfo();
+        expect(underlyingAsset).to.equal(underlyingContractAddress);
+        expect(maturityTime).to.equal(maturity);
       }
     });
 

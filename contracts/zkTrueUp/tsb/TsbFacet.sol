@@ -24,13 +24,12 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ITsbFacet
      * @dev This function is only called by the operator
      */
-    //! virtual for test
     function createTsbToken(
         uint16 underlyingTokenId,
         uint32 maturityTime,
         string memory name,
         string memory symbol
-    ) external virtual onlyRole(Config.OPERATOR_ROLE) returns (address tsbTokenAddr) {
+    ) external virtual onlyRole(Config.OPERATOR_ROLE) returns (address) {
         if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime);
         address underlyingAssetAddr = TokenLib.getAssetConfig(underlyingTokenId).tokenAddr;
         if (underlyingAssetAddr == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
@@ -39,7 +38,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         address tokenAddr = TsbLib.getTsbTokenAddr(tsbTokenKey);
         if (tokenAddr != address(0)) revert TsbTokenIsExist(tokenAddr);
 
-        tsbTokenAddr = address(new TsbToken(name, symbol, underlyingAssetAddr, maturityTime));
+        address tsbTokenAddr = address(new TsbToken(name, symbol, underlyingAssetAddr, maturityTime));
         TsbStorage.layout().tsbTokens[tsbTokenKey] = tsbTokenAddr;
         emit TsbTokenCreated(tsbTokenAddr, underlyingTokenId, maturityTime);
         return tsbTokenAddr;
@@ -62,7 +61,14 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
             uint32 accountId = AccountLib.getValidAccount(msg.sender);
             (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = TokenLib.getValidToken(underlyingAsset);
             TokenLib.validDepositAmt(amount, underlyingAssetConfig);
-            AccountLib.addDepositReq(msg.sender, accountId, tokenId, underlyingAssetConfig.decimals, amount);
+            AccountLib.addDepositReq(
+                msg.sender,
+                accountId,
+                underlyingAssetConfig.tokenAddr,
+                tokenId,
+                underlyingAssetConfig.decimals,
+                amount
+            );
         } else {
             Utils.transfer(underlyingAsset, payable(msg.sender), amount);
         }
@@ -71,7 +77,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ITsbFacet
      */
-    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address tsbTokenAddr) {
+    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address) {
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturity);
         return TsbLib.getTsbTokenAddr(tsbTokenKey);
     }
@@ -79,41 +85,37 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ITsbFacet
      */
-    function balanceOf(address account, address tsbTokenAddr) external view returns (uint256 balance) {
+    function balanceOf(address account, address tsbTokenAddr) external view returns (uint256) {
         return ITsbToken(tsbTokenAddr).balanceOf(account);
     }
 
     /**
      * @inheritdoc ITsbFacet
      */
-    function allowance(
-        address owner,
-        address spender,
-        address tsbTokenAddr
-    ) external view returns (uint256 allowance_) {
+    function allowance(address owner, address spender, address tsbTokenAddr) external view returns (uint256) {
         return ITsbToken(tsbTokenAddr).allowance(owner, spender);
     }
 
     /**
      * @inheritdoc ITsbFacet
      */
-    function activeSupply(address tsbTokenAddr) external view returns (uint256 totalSupply) {
+    function activeSupply(address tsbTokenAddr) external view returns (uint256) {
         return ITsbToken(tsbTokenAddr).totalSupply();
     }
 
     /**
      * @inheritdoc ITsbFacet
      */
-    function getUnderlyingAsset(address tsbTokenAddr) external view returns (address underlyingAsset) {
-        (underlyingAsset, ) = ITsbToken(tsbTokenAddr).tokenInfo();
+    function getUnderlyingAsset(address tsbTokenAddr) external view returns (address) {
+        (address underlyingAsset, ) = ITsbToken(tsbTokenAddr).tokenInfo();
         return underlyingAsset;
     }
 
     /**
      * @inheritdoc ITsbFacet
      */
-    function getMaturityTime(address tsbTokenAddr) external view returns (uint32 maturityTime) {
-        (, maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+    function getMaturityTime(address tsbTokenAddr) external view returns (uint32) {
+        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
         return maturityTime;
     }
 }

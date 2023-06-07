@@ -20,14 +20,14 @@ export const toL1Amt = (
     .div(BigNumber.from(10).pow(TS_DECIMALS.AMOUNT));
 };
 
-export const getLiquidatorRewardAmt = (
-  debtValue: BigNumber,
+export const calcLiquidatorRewardAmt = (
+  repayValue: BigNumber,
   collateralToken: TsTokenType,
   debtToken: TsTokenType,
   liquidationFactor: any,
   collateralPrice: BigNumber
 ): BigNumber => {
-  return BigNumber.from(debtValue)
+  return BigNumber.from(repayValue)
     .mul(BigNumber.from(10).pow(collateralToken.decimals))
     .mul(MAX_LTV_RATIO + liquidationFactor.liquidatorIncentive)
     .div(MAX_LTV_RATIO)
@@ -35,14 +35,14 @@ export const getLiquidatorRewardAmt = (
     .div(collateralPrice);
 };
 
-export const getProtocolPenaltyAmt = (
-  debtValue: BigNumber,
+export const calcProtocolPenaltyAmt = (
+  repayValue: BigNumber,
   collateralToken: TsTokenType,
   debtToken: TsTokenType,
   liquidationFactor: any,
   collateralPrice: BigNumber
 ): BigNumber => {
-  return BigNumber.from(debtValue)
+  return BigNumber.from(repayValue)
     .mul(BigNumber.from(10).pow(collateralToken.decimals))
     .mul(liquidationFactor.protocolPenalty)
     .div(MAX_LTV_RATIO)

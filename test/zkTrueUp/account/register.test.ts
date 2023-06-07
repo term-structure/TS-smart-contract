@@ -86,8 +86,8 @@ describe("Register", function () {
       // before register
       const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
       const beforeAccountNum = await diamondAcc.getAccountNum();
-      const beforeTotalPendingRequests = (await diamondRollup.getL1RequestNum())
-        .totalL1RequestNum;
+      const [, , beforeTotalPendingRequests] =
+        await diamondRollup.getL1RequestNum();
 
       // call register
       const amount = utils.parseUnits(
@@ -109,8 +109,8 @@ describe("Register", function () {
       expect(afterAccountNum - beforeAccountNum).to.be.eq(1);
 
       // check totalPendingRequest increased
-      const afterTotalPendingRequests = (await diamondRollup.getL1RequestNum())
-        .totalL1RequestNum;
+      const [, , afterTotalPendingRequests] =
+        await diamondRollup.getL1RequestNum();
       expect(
         afterTotalPendingRequests.sub(beforeTotalPendingRequests)
       ).to.be.eq(2);
@@ -122,8 +122,7 @@ describe("Register", function () {
         accountId: accountId,
         tsAddr: genTsAddr(tsPubKey.X, tsPubKey.Y),
       };
-      const totalL1RequestNum = (await diamondRollup.getL1RequestNum())
-        .totalL1RequestNum;
+      const [, , totalL1RequestNum] = await diamondRollup.getL1RequestNum();
       let requestId = totalL1RequestNum.sub(2);
       let success = await diamondRollup.isRegisterInL1RequestQueue(
         register,
@@ -182,8 +181,8 @@ describe("Register", function () {
       // before register
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const beforeAccountNum = await diamondAcc.getAccountNum();
-      const beforeTotalPendingRequests = (await diamondRollup.getL1RequestNum())
-        .totalL1RequestNum;
+      const [, , beforeTotalPendingRequests] =
+        await diamondRollup.getL1RequestNum();
 
       // call register
       const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
@@ -198,8 +197,8 @@ describe("Register", function () {
       // after register
       const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const afterAccountNum = await diamondAcc.getAccountNum();
-      const afterTotalPendingRequests = (await diamondRollup.getL1RequestNum())
-        .totalL1RequestNum;
+      const [, , afterTotalPendingRequests] =
+        await diamondRollup.getL1RequestNum();
 
       expect(afterZkTrueUpWethBalance.sub(beforeZkTrueUpWethBalance)).to.be.eq(
         amount
@@ -216,9 +215,8 @@ describe("Register", function () {
         accountId: accountId,
         tsAddr: genTsAddr(tsPubKey.X, tsPubKey.Y),
       };
-      let requestId = (
-        await diamondRollup.getL1RequestNum()
-      ).totalL1RequestNum.sub(2);
+      const [, , totalL1RequestNum] = await diamondRollup.getL1RequestNum();
+      let requestId = totalL1RequestNum.sub(2);
       let success = await diamondRollup.isRegisterInL1RequestQueue(
         register,
         requestId
@@ -231,9 +229,8 @@ describe("Register", function () {
         tokenId: l2TokenAddr,
         amount: l2Amt,
       };
-      requestId = (await diamondRollup.getL1RequestNum()).totalL1RequestNum.sub(
-        1
-      );
+      const [, , totalL1RequestNum2] = await diamondRollup.getL1RequestNum();
+      requestId = totalL1RequestNum2.sub(1);
       success = await diamondRollup.isDepositInL1RequestQueue(
         deposit,
         requestId

@@ -12,8 +12,8 @@ import { updateRoundData } from "../../utils/updateRoundData";
 import { liquidationRoundDataJSON } from "../../data/roundData";
 import { getExpectedHealthFactor } from "../../utils/getHealthFactor";
 import {
-  getLiquidatorRewardAmt,
-  getProtocolPenaltyAmt,
+  calcLiquidatorRewardAmt,
+  calcProtocolPenaltyAmt,
   toL1Amt,
   toL2Amt,
 } from "../../utils/amountConvertor";
@@ -32,6 +32,7 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import {
+  DEFAULT_ETH_ADDRESS,
   LIQUIDATION_FACTOR,
   STABLECOIN_PAIR_LIQUIDATION_FACTOR,
   TS_BASE_TOKEN,
@@ -83,7 +84,10 @@ const fixture = async () => {
   return res;
 };
 
-describe("Liquidation", () => {
+// In full liquidation, the liquidator can liquidate max to 100% of the debt in two cases:
+// 1. collateral < half liquidation threshold and health factor < 1
+// 2. loan is matured
+describe("Full liquidation, the liquidator can liquidate max to 100% of the debt", () => {
   let [user1, liquidator]: Signer[] = [];
   let [liquidatorAddr]: string[] = [];
   let admin: Signer;
@@ -121,7 +125,7 @@ describe("Liquidation", () => {
     priceFeeds = res.priceFeeds;
   });
 
-  describe("Full liquidation, (general case)", () => {
+  describe("Full liquidation, collateral < half liquidation threshold (general case)", () => {
     const ltvThreshold = LIQUIDATION_FACTOR.ltvThreshold;
     const liquidationFactor = LIQUIDATION_FACTOR;
     const tsbTokenData = tsbTokensJSON[3]; // tsb USDC
@@ -213,13 +217,173 @@ describe("Liquidation", () => {
         await updateRoundData(operator, usdcPriceFeed, usdcRoundDataJSON)
       ).answer;
 
+      const repayAmt = utils.parseUnits("100", TS_BASE_TOKEN.USDC.decimals);
+      const [isLiquidable, ,] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
-      expect(await diamondLoan.isLiquidable(loanId)).to.be.false;
+      expect(isLiquidable).to.be.false;
       await expect(
-        diamondLoan.connect(liquidator).liquidate(loanId)
+        diamondLoan.connect(liquidator).liquidate(loanId, repayAmt)
       ).to.be.revertedWithCustomError(diamondLoan, "LoanIsSafe");
     });
-    it("Success to liquidate, health factor < 1 (general loan, collateral can cover liquidator reward and protocol penalty)", async () => {
+    it("Success to liquidate (repay 5% debt value), health factor < 1 (general loan, collateral can cover liquidator reward and protocol penalty)", async () => {
+      // set the price for liquidation
+      // eth = 620 usd, usdc = 1 usd
+      // healthFactor = 0.992 < 1
+      // set eth price
+      const ethPriceFeed = priceFeeds[TsTokenId.ETH];
+      const ethRoundDataJSON =
+        liquidationRoundDataJSON[Case.case1][TokenType.collateral];
+      ethAnswer = await (
+        await updateRoundData(operator, ethPriceFeed, ethRoundDataJSON)
+      ).answer;
+
+      // get usdc price with 8 decimals from test oracle
+      const usdcPriceFeed = priceFeeds[TsTokenId.USDC];
+      const usdcRoundDataJSON =
+        liquidationRoundDataJSON[Case.case1][TokenType.debt];
+      usdcAnswer = await (
+        await updateRoundData(operator, usdcPriceFeed, usdcRoundDataJSON)
+      ).answer;
+
+      // old health factor
+      const oldHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
+      // before balance
+      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const beforeLiquidatorEthBalance = await liquidator.getBalance();
+      const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
+      const beforeTreasuryEthBalance = await ethers.provider.getBalance(
+        treasuryAddr
+      );
+
+      const [isLiquidable, , maxRepayAmt] =
+        await diamondLoan.getLiquidationInfo(loanId);
+      // repay 5% debt value
+      const repayAmt = maxRepayAmt.div(20);
+      // liquidate
+      expect(isLiquidable).to.be.true;
+      const liquidateTx = await diamondLoan
+        .connect(liquidator)
+        .liquidate(loanId, repayAmt);
+      const liquidateReceipt = await liquidateTx.wait();
+
+      // gas fee
+      const liquidateGas = BigNumber.from(liquidateReceipt.gasUsed).mul(
+        liquidateReceipt.effectiveGasPrice
+      );
+
+      // after balance
+      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const afterLiquidatorEthBalance = await liquidator.getBalance();
+      const afterLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
+      const afterTreasuryEthBalance = await ethers.provider.getBalance(
+        treasuryAddr
+      );
+
+      const repayValue = repayAmt.mul(usdcAnswer);
+
+      // liquidator reward with collateral token L1 decimals
+      const liquidatorReward = calcLiquidatorRewardAmt(
+        repayValue,
+        TS_BASE_TOKEN.ETH,
+        TS_BASE_TOKEN.USDC,
+        liquidationFactor,
+        ethAnswer
+      );
+
+      // protocol penalty with collateral token L1 decimals
+      const protocolPenalty = calcProtocolPenaltyAmt(
+        repayValue,
+        TS_BASE_TOKEN.ETH,
+        TS_BASE_TOKEN.USDC,
+        liquidationFactor,
+        ethAnswer
+      );
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
+
+      // check balance
+      expect(beforeZkTrueUpWethBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpWethBalance
+      );
+      expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
+        repayAmt
+      );
+      expect(
+        beforeLiquidatorEthBalance.add(liquidatorReward).sub(liquidateGas)
+      ).to.eq(afterLiquidatorEthBalance);
+      expect(beforeLiquidatorUsdcBalance.sub(afterLiquidatorUsdcBalance)).to.eq(
+        repayAmt
+      );
+      expect(beforeTreasuryEthBalance.add(protocolPenalty)).to.eq(
+        afterTreasuryEthBalance
+      );
+
+      // check event
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
+          removedCollateralAmt,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
+
+      // convert amount to 8 decimals for loan data
+      const liquidatorRewardAmtConverted = toL2Amt(
+        liquidatorReward,
+        TS_BASE_TOKEN.ETH
+      );
+
+      const protocolPenaltyAmtConverted = toL2Amt(
+        protocolPenalty,
+        TS_BASE_TOKEN.ETH
+      );
+
+      const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.USDC);
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt)
+          .sub(liquidatorRewardAmtConverted)
+          .sub(protocolPenaltyAmtConverted),
+        debtAmt: BigNumber.from(loan.debtAmt).sub(repayAmtConverted),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        ethAnswer,
+        usdcAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
+      // check health factor equal to expected health factor
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+      expect(newHealthFactor).to.gt(oldHealthFactor);
+      // check liquidation success even health factor < 1 after liquidation
+      expect(newHealthFactor).to.lt(1000);
+    });
+    it("Success to liquidate (repay 80% debt value), health factor < 1 (general loan, collateral can cover liquidator reward and protocol penalty)", async () => {
       // set the price for liquidation
       // eth = 620 usd, usdc = 1 usd
       // healthFactor = 0.992 < 1
@@ -244,16 +408,19 @@ describe("Liquidation", () => {
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
       const beforeLiquidatorEthBalance = await liquidator.getBalance();
       const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
-
       const beforeTreasuryEthBalance = await ethers.provider.getBalance(
         treasuryAddr
       );
 
+      const [isLiquidable, , maxRepayAmt] =
+        await diamondLoan.getLiquidationInfo(loanId);
+      // repay 80% debt value
+      const repayAmt = maxRepayAmt.mul(8).div(10);
       // liquidate
-      expect(await diamondLoan.isLiquidable(loanId)).to.be.true;
+      expect(isLiquidable).to.be.true;
       const liquidateTx = await diamondLoan
         .connect(liquidator)
-        .liquidate(loanId);
+        .liquidate(loanId, repayAmt);
       const liquidateReceipt = await liquidateTx.wait();
 
       // gas fee
@@ -270,17 +437,11 @@ describe("Liquidation", () => {
         treasuryAddr
       );
 
-      // calculate expected amount
-      // liquidator repay amount with debt token decimals
-      const repayAmt = toL1Amt(
-        BigNumber.from(loanData.debtAmt),
-        TS_BASE_TOKEN.USDC
-      );
-      const debtValue = repayAmt.mul(usdcAnswer);
+      const repayValue = repayAmt.mul(usdcAnswer);
 
       // liquidator reward with collateral token L1 decimals
-      const liquidatorReward = getLiquidatorRewardAmt(
-        debtValue,
+      const liquidatorReward = calcLiquidatorRewardAmt(
+        repayValue,
         TS_BASE_TOKEN.ETH,
         TS_BASE_TOKEN.USDC,
         liquidationFactor,
@@ -288,8 +449,8 @@ describe("Liquidation", () => {
       );
 
       // protocol penalty with collateral token L1 decimals
-      const protocolPenalty = getProtocolPenaltyAmt(
-        debtValue,
+      const protocolPenalty = calcProtocolPenaltyAmt(
+        repayValue,
         TS_BASE_TOKEN.ETH,
         TS_BASE_TOKEN.USDC,
         liquidationFactor,
@@ -320,15 +481,21 @@ describe("Liquidation", () => {
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -365,11 +532,161 @@ describe("Liquidation", () => {
       // get new health factor
       const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
 
+      // check health factor equal to expected health factor
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+    it("Success to liquidate (repay all debt value), health factor < 1 (general loan, collateral can cover liquidator reward and protocol penalty)", async () => {
+      // set the price for liquidation
+      // eth = 620 usd, usdc = 1 usd
+      // healthFactor = 0.992 < 1
+      // set eth price
+      const ethPriceFeed = priceFeeds[TsTokenId.ETH];
+      const ethRoundDataJSON =
+        liquidationRoundDataJSON[Case.case1][TokenType.collateral];
+      ethAnswer = await (
+        await updateRoundData(operator, ethPriceFeed, ethRoundDataJSON)
+      ).answer;
+
+      // get usdc price with 8 decimals from test oracle
+      const usdcPriceFeed = priceFeeds[TsTokenId.USDC];
+      const usdcRoundDataJSON =
+        liquidationRoundDataJSON[Case.case1][TokenType.debt];
+      usdcAnswer = await (
+        await updateRoundData(operator, usdcPriceFeed, usdcRoundDataJSON)
+      ).answer;
+
+      // before balance
+      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const beforeLiquidatorEthBalance = await liquidator.getBalance();
+      const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
+      const beforeTreasuryEthBalance = await ethers.provider.getBalance(
+        treasuryAddr
+      );
+
+      const [isLiquidable, , maxRepayAmt] =
+        await diamondLoan.getLiquidationInfo(loanId);
+      // liquidate
+      expect(isLiquidable).to.be.true;
+      const liquidateTx = await diamondLoan
+        .connect(liquidator)
+        .liquidate(loanId, maxRepayAmt);
+      const liquidateReceipt = await liquidateTx.wait();
+
+      // gas fee
+      const liquidateGas = BigNumber.from(liquidateReceipt.gasUsed).mul(
+        liquidateReceipt.effectiveGasPrice
+      );
+
+      // after balance
+      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const afterLiquidatorEthBalance = await liquidator.getBalance();
+      const afterLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
+      const afterTreasuryEthBalance = await ethers.provider.getBalance(
+        treasuryAddr
+      );
+
+      const repayValue = maxRepayAmt.mul(usdcAnswer);
+
+      // liquidator reward with collateral token L1 decimals
+      const liquidatorReward = calcLiquidatorRewardAmt(
+        repayValue,
+        TS_BASE_TOKEN.ETH,
+        TS_BASE_TOKEN.USDC,
+        liquidationFactor,
+        ethAnswer
+      );
+
+      // protocol penalty with collateral token L1 decimals
+      const protocolPenalty = calcProtocolPenaltyAmt(
+        repayValue,
+        TS_BASE_TOKEN.ETH,
+        TS_BASE_TOKEN.USDC,
+        liquidationFactor,
+        ethAnswer
+      );
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
+
+      // check balance
+      expect(beforeZkTrueUpWethBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpWethBalance
+      );
+      expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
+        maxRepayAmt
+      );
+      expect(
+        beforeLiquidatorEthBalance.add(liquidatorReward).sub(liquidateGas)
+      ).to.eq(afterLiquidatorEthBalance);
+      expect(beforeLiquidatorUsdcBalance.sub(afterLiquidatorUsdcBalance)).to.eq(
+        maxRepayAmt
+      );
+      expect(beforeTreasuryEthBalance.add(protocolPenalty)).to.eq(
+        afterTreasuryEthBalance
+      );
+
+      // check event
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
+          removedCollateralAmt,
+          maxRepayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
+
+      // convert amount to 8 decimals for loan data
+      const liquidatorRewardAmtConverted = toL2Amt(
+        liquidatorReward,
+        TS_BASE_TOKEN.ETH
+      );
+
+      const protocolPenaltyAmtConverted = toL2Amt(
+        protocolPenalty,
+        TS_BASE_TOKEN.ETH
+      );
+
+      const repayAmtConverted = toL2Amt(maxRepayAmt, TS_BASE_TOKEN.USDC);
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt)
+          .sub(liquidatorRewardAmtConverted)
+          .sub(protocolPenaltyAmtConverted),
+        debtAmt: BigNumber.from(loan.debtAmt).sub(repayAmtConverted),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        ethAnswer,
+        usdcAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
       // check health factor > 1, and equal to expected health factor
       expect(newHealthFactor).gt(1000);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
-    it("Success to liquidate, health factor < 1 (general loan, collateral can cover liquidator reward but cannot cover protocol penalty)", async () => {
+    it("Success to liquidate (repay all debt value), health factor < 1 (general loan, collateral can cover liquidator reward but cannot cover full protocol penalty)", async () => {
       // set the price for liquidation
       // eth = 545 usd, usdc = 1 usd
       // healthFactor = 0.872 < 1
@@ -394,15 +711,15 @@ describe("Liquidation", () => {
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
       const beforeLiquidatorEthBalance = await liquidator.getBalance();
       const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
-
       const beforeTreasuryEthBalance = await ethers.provider.getBalance(
         treasuryAddr
       );
 
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
-        .liquidate(loanId);
+        .liquidate(loanId, maxRepayAmt);
       const liquidateReceipt = await liquidateTx.wait();
 
       // gas fee
@@ -419,16 +736,10 @@ describe("Liquidation", () => {
         treasuryAddr
       );
 
-      // calculate expected amount
-      // liquidator repay amount with debt token decimals
-      const repayAmt = toL1Amt(
-        BigNumber.from(loanData.debtAmt),
-        TS_BASE_TOKEN.USDC
-      );
-      const debtValue = repayAmt.mul(usdcAnswer);
+      const debtValue = maxRepayAmt.mul(usdcAnswer);
 
       // liquidator reward with collateral token L1 decimals
-      const liquidatorReward = getLiquidatorRewardAmt(
+      const liquidatorReward = calcLiquidatorRewardAmt(
         debtValue,
         TS_BASE_TOKEN.ETH,
         TS_BASE_TOKEN.USDC,
@@ -449,13 +760,13 @@ describe("Liquidation", () => {
         afterZkTrueUpWethBalance
       );
       expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
-        repayAmt
+        maxRepayAmt
       );
       expect(
         beforeLiquidatorEthBalance.add(liquidatorReward).sub(liquidateGas)
       ).to.eq(afterLiquidatorEthBalance);
       expect(beforeLiquidatorUsdcBalance.sub(afterLiquidatorUsdcBalance)).to.eq(
-        repayAmt
+        maxRepayAmt
       );
       expect(beforeTreasuryEthBalance.add(protocolPenalty)).to.eq(
         afterTreasuryEthBalance
@@ -467,15 +778,21 @@ describe("Liquidation", () => {
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
-          repayAmt,
+          maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -488,7 +805,7 @@ describe("Liquidation", () => {
         TS_BASE_TOKEN.ETH
       );
 
-      const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.USDC);
+      const repayAmtConverted = toL2Amt(maxRepayAmt, TS_BASE_TOKEN.USDC);
 
       // new loan data after add collateral
       const newLoan = {
@@ -516,7 +833,7 @@ describe("Liquidation", () => {
       expect(newHealthFactor).gt(1000);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
-    it("Success to liquidate, health factor < 1 (general loan, collateral cannot cover liquidator reward and protocol penalty)", async () => {
+    it("Success to liquidate (repay all debt value), health factor < 1 (general loan, collateral cannot cover liquidator reward and protocol penalty)", async () => {
       // set the price for liquidation
       // eth = 510 usd, usdc = 1 usd
       // healthFactor = 0.816 < 1
@@ -546,10 +863,11 @@ describe("Liquidation", () => {
         treasuryAddr
       );
 
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
-        .liquidate(loanId);
+        .liquidate(loanId, maxRepayAmt);
       const liquidateReceipt = await liquidateTx.wait();
 
       // gas fee
@@ -564,13 +882,6 @@ describe("Liquidation", () => {
       const afterLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
       const afterTreasuryEthBalance = await ethers.provider.getBalance(
         treasuryAddr
-      );
-
-      // calculate expected amount
-      // liquidator repay amount with debt token decimals
-      const repayAmt = toL1Amt(
-        BigNumber.from(loan.debtAmt),
-        TS_BASE_TOKEN.USDC
       );
 
       // liquidator reward with collateral token decimals
@@ -590,13 +901,13 @@ describe("Liquidation", () => {
         afterZkTrueUpWethBalance
       );
       expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
-        repayAmt
+        maxRepayAmt
       );
       expect(
         beforeLiquidatorEthBalance.add(liquidatorReward).sub(liquidateGas)
       ).to.eq(afterLiquidatorEthBalance);
       expect(beforeLiquidatorUsdcBalance.sub(afterLiquidatorUsdcBalance)).to.eq(
-        repayAmt
+        maxRepayAmt
       );
       expect(beforeTreasuryEthBalance).to.eq(afterTreasuryEthBalance);
 
@@ -606,15 +917,21 @@ describe("Liquidation", () => {
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
-          repayAmt,
+          maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -622,7 +939,7 @@ describe("Liquidation", () => {
         TS_BASE_TOKEN.ETH
       );
 
-      const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.USDC);
+      const repayAmtConverted = toL2Amt(maxRepayAmt, TS_BASE_TOKEN.USDC);
 
       // new loan data after add collateral
       const newLoan = {
@@ -651,7 +968,7 @@ describe("Liquidation", () => {
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
   });
-  describe("Full liquidation (stable coin pair case)", () => {
+  describe("Full liquidation, collateral < half liquidation threshold (stable coin pair case)", () => {
     const ltvThreshold = STABLECOIN_PAIR_LIQUIDATION_FACTOR.ltvThreshold;
     const liquidationFactor = STABLECOIN_PAIR_LIQUIDATION_FACTOR;
     const tsbTokenData = tsbTokensJSON[4]; // tsb DAI
@@ -731,7 +1048,7 @@ describe("Liquidation", () => {
         .connect(liquidator)
         .approve(zkTrueUp.address, ethers.constants.MaxUint256);
     });
-    it("Success to liquidate, health factor < 1 (stable coin pairs loan, collateral can cover liquidator reward and protocol penalty)", async () => {
+    it("Success to liquidate (repay 50% debt value), health factor < 1 (stable coin pairs loan, collateral can cover liquidator reward and protocol penalty)", async () => {
       // set the price for liquidation
       // usdt = 0.97 usd, dai = 1 usd
       // healthFactor = 0.9969 < 1
@@ -759,10 +1076,13 @@ describe("Liquidation", () => {
 
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
+      // repay 50% debt value
+      const repayAmt = maxRepayAmt.div(2);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
-        .liquidate(loanId);
+        .liquidate(loanId, repayAmt);
       const liquidateReceipt = await liquidateTx.wait();
 
       // after balance
@@ -771,14 +1091,10 @@ describe("Liquidation", () => {
       const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const afterLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-
-      // calculate expected amount
-      // liquidator repay amount with debt token decimals
-      const repayAmt = toL1Amt(loan.debtAmt, TS_BASE_TOKEN.DAI);
       const debtValue = repayAmt.mul(daiAnswer);
 
       // liquidator reward with collateral token L1 decimals
-      const liquidatorReward = getLiquidatorRewardAmt(
+      const liquidatorReward = calcLiquidatorRewardAmt(
         debtValue,
         TS_BASE_TOKEN.USDT,
         TS_BASE_TOKEN.DAI,
@@ -787,7 +1103,7 @@ describe("Liquidation", () => {
       );
 
       // protocol penalty with collateral token L1 decimals
-      const protocolPenalty = getProtocolPenaltyAmt(
+      const protocolPenalty = calcProtocolPenaltyAmt(
         debtValue,
         TS_BASE_TOKEN.USDT,
         TS_BASE_TOKEN.DAI,
@@ -819,15 +1135,21 @@ describe("Liquidation", () => {
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -864,11 +1186,150 @@ describe("Liquidation", () => {
       // get new health factor
       const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
 
+      // check health factor equal to expected health factor
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+    it("Success to liquidate (repay all debt value), health factor < 1 (stable coin pairs loan, collateral can cover liquidator reward and protocol penalty)", async () => {
+      // set the price for liquidation
+      // usdt = 0.97 usd, dai = 1 usd
+      // healthFactor = 0.9969 < 1
+      // set usdt price
+      const usdtPriceFeed = priceFeeds[TsTokenId.USDT];
+      const usdtRoundDataJSON =
+        liquidationRoundDataJSON[Case.case4][TokenType.collateral];
+      usdtAnswer = await (
+        await updateRoundData(operator, usdtPriceFeed, usdtRoundDataJSON)
+      ).answer;
+
+      // get dai price with 8 decimals from test oracle
+      const daiPriceFeed = priceFeeds[TsTokenId.DAI];
+      const daiRoundDataJSON =
+        liquidationRoundDataJSON[Case.case4][TokenType.debt];
+      daiAnswer = await (
+        await updateRoundData(operator, daiPriceFeed, daiRoundDataJSON)
+      ).answer;
+
+      // before balance
+      const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+      const beforeZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
+      const beforeLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
+      const beforeLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
+
+      const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
+
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
+      // liquidate
+      const liquidateTx = await diamondLoan
+        .connect(liquidator)
+        .liquidate(loanId, maxRepayAmt);
+      const liquidateReceipt = await liquidateTx.wait();
+
+      // after balance
+      const afterZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+      const afterZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
+      const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
+      const afterLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
+      const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
+      const debtValue = maxRepayAmt.mul(daiAnswer);
+
+      // liquidator reward with collateral token L1 decimals
+      const liquidatorReward = calcLiquidatorRewardAmt(
+        debtValue,
+        TS_BASE_TOKEN.USDT,
+        TS_BASE_TOKEN.DAI,
+        liquidationFactor,
+        usdtAnswer
+      );
+
+      // protocol penalty with collateral token L1 decimals
+      const protocolPenalty = calcProtocolPenaltyAmt(
+        debtValue,
+        TS_BASE_TOKEN.USDT,
+        TS_BASE_TOKEN.DAI,
+        liquidationFactor,
+        usdtAnswer
+      );
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
+
+      // check balance
+      expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpUsdtBalance
+      );
+      expect(afterZkTrueUpDaiBalance.sub(beforeZkTrueUpDaiBalance)).to.eq(
+        maxRepayAmt
+      );
+      expect(beforeLiquidatorUsdtBalance.add(liquidatorReward)).to.eq(
+        afterLiquidatorUsdtBalance
+      );
+      expect(beforeLiquidatorDaiBalance.sub(afterLiquidatorDaiBalance)).to.eq(
+        maxRepayAmt
+      );
+      expect(beforeTreasuryUsdtBalance.add(protocolPenalty)).to.eq(
+        afterTreasuryUsdtBalance
+      );
+
+      // check event
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          dai.address,
+          removedCollateralAmt,
+          maxRepayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
+
+      // convert amount to 8 decimals for loan data
+      const liquidatorRewardAmtConverted = toL2Amt(
+        liquidatorReward,
+        TS_BASE_TOKEN.USDT
+      );
+
+      const protocolPenaltyAmtConverted = toL2Amt(
+        protocolPenalty,
+        TS_BASE_TOKEN.USDT
+      );
+
+      const repayAmtConverted = toL2Amt(maxRepayAmt, TS_BASE_TOKEN.DAI);
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt)
+          .sub(liquidatorRewardAmtConverted)
+          .sub(protocolPenaltyAmtConverted),
+        debtAmt: BigNumber.from(loan.debtAmt).sub(repayAmtConverted),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        usdtAnswer,
+        daiAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
       // check health factor > 1, and equal to expected health factor
       expect(newHealthFactor).to.gt(1000);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
-    it("Success to liquidate, health factor < 1 (stable coin pairs loan, collateral can cover liquidator reward but cannot cover protocol penalty)", async () => {
+    it("Success to liquidate (repay all debt value), health factor < 1 (stable coin pairs loan, collateral can cover liquidator reward but cannot cover protocol penalty)", async () => {
       // set the price for liquidation
       // usdt = 0.935 usd, dai = 1 usd
       // healthFactor = 0.96 < 1
@@ -896,10 +1357,11 @@ describe("Liquidation", () => {
 
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
-        .liquidate(loanId);
+        .liquidate(loanId, maxRepayAmt);
       const liquidateReceipt = await liquidateTx.wait();
 
       // after balance
@@ -908,17 +1370,10 @@ describe("Liquidation", () => {
       const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const afterLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-
-      // calculate expected amount
-      // liquidator repay amount with debt token decimals
-      const repayAmt = toL1Amt(
-        BigNumber.from(loanData.debtAmt),
-        TS_BASE_TOKEN.DAI
-      );
-      const debtValue = repayAmt.mul(daiAnswer);
+      const debtValue = maxRepayAmt.mul(daiAnswer);
 
       // liquidator reward with collateral token L1 decimals
-      const liquidatorReward = getLiquidatorRewardAmt(
+      const liquidatorReward = calcLiquidatorRewardAmt(
         debtValue,
         TS_BASE_TOKEN.USDT,
         TS_BASE_TOKEN.DAI,
@@ -926,27 +1381,40 @@ describe("Liquidation", () => {
         usdtAnswer
       );
 
-      // protocol penalty with collateral token L1 decimals
-      const protocolPenalty = toL1Amt(
+      // full protocol penalty if collateral can cover
+      const fullProtocolPenalty = calcProtocolPenaltyAmt(
+        debtValue,
+        TS_BASE_TOKEN.USDT,
+        TS_BASE_TOKEN.DAI,
+        liquidationFactor,
+        usdtAnswer
+      );
+
+      // leftover protocol penalty with collateral token L1 decimals
+      const leftoverProtocolPenalty = toL1Amt(
         BigNumber.from(loanData.collateralAmt),
         TS_BASE_TOKEN.USDT
       ).sub(liquidatorReward);
-      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
+      const removedCollateralAmt = liquidatorReward.add(
+        leftoverProtocolPenalty
+      );
+
+      expect(fullProtocolPenalty).to.gt(leftoverProtocolPenalty);
 
       // check balance
       expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
         afterZkTrueUpUsdtBalance
       );
       expect(afterZkTrueUpDaiBalance.sub(beforeZkTrueUpDaiBalance)).to.eq(
-        repayAmt
+        maxRepayAmt
       );
       expect(beforeLiquidatorUsdtBalance.add(liquidatorReward)).to.eq(
         afterLiquidatorUsdtBalance
       );
       expect(beforeLiquidatorDaiBalance.sub(afterLiquidatorDaiBalance)).to.eq(
-        repayAmt
+        maxRepayAmt
       );
-      expect(beforeTreasuryUsdtBalance.add(protocolPenalty)).to.eq(
+      expect(beforeTreasuryUsdtBalance.add(leftoverProtocolPenalty)).to.eq(
         afterTreasuryUsdtBalance
       );
 
@@ -956,15 +1424,21 @@ describe("Liquidation", () => {
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
-          repayAmt,
+          maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          leftoverProtocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -973,11 +1447,11 @@ describe("Liquidation", () => {
       );
 
       const protocolPenaltyAmtConverted = toL2Amt(
-        protocolPenalty,
+        leftoverProtocolPenalty,
         TS_BASE_TOKEN.USDT
       );
 
-      const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.DAI);
+      const repayAmtConverted = toL2Amt(maxRepayAmt, TS_BASE_TOKEN.DAI);
 
       // new loan data after add collateral
       const newLoan = {
@@ -1005,7 +1479,7 @@ describe("Liquidation", () => {
       expect(newHealthFactor).to.gt(1000);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
-    it("Success to liquidate, health factor < 1 (stable coin pairs loan, collateral cannot cover liquidator reward and protocol penalty)", async () => {
+    it("Success to liquidate (repay all debt value), health factor < 1 (stable coin pairs loan, collateral cannot cover liquidator reward and protocol penalty)", async () => {
       // set the price for liquidation
       // usdt = 0.5 usd, dai = 1 usd
       // healthFactor = 0.514 < 1
@@ -1031,13 +1505,13 @@ describe("Liquidation", () => {
       const beforeZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
       const beforeLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const beforeLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
-
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
-        .liquidate(loanId);
+        .liquidate(loanId, maxRepayAmt);
       const liquidateReceipt = await liquidateTx.wait();
 
       // after balance
@@ -1046,14 +1520,6 @@ describe("Liquidation", () => {
       const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const afterLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-
-      // calculate expected amount
-      // liquidator repay amount with debt token decimals
-      const repayAmt = toL1Amt(
-        BigNumber.from(loanData.debtAmt),
-        TS_BASE_TOKEN.DAI
-      );
-      const debtValue = repayAmt.mul(daiAnswer);
 
       // liquidator reward with collateral token decimals
       const liquidatorReward = toL1Amt(
@@ -1071,13 +1537,13 @@ describe("Liquidation", () => {
         afterZkTrueUpUsdtBalance
       );
       expect(afterZkTrueUpDaiBalance.sub(beforeZkTrueUpDaiBalance)).to.eq(
-        repayAmt
+        maxRepayAmt
       );
       expect(beforeLiquidatorUsdtBalance.add(liquidatorReward)).to.eq(
         afterLiquidatorUsdtBalance
       );
       expect(beforeLiquidatorDaiBalance.sub(afterLiquidatorDaiBalance)).to.eq(
-        repayAmt
+        maxRepayAmt
       );
       expect(beforeTreasuryUsdtBalance).to.eq(afterTreasuryUsdtBalance);
 
@@ -1087,15 +1553,21 @@ describe("Liquidation", () => {
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          dai.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
-          repayAmt,
+          maxRepayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -1103,7 +1575,7 @@ describe("Liquidation", () => {
         TS_BASE_TOKEN.USDT
       );
 
-      const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.DAI);
+      const repayAmtConverted = toL2Amt(maxRepayAmt, TS_BASE_TOKEN.DAI);
 
       // new loan data after add collateral
       const newLoan = {
@@ -1129,432 +1601,6 @@ describe("Liquidation", () => {
 
       // check health factor > 1, and equal to expected health factor
       expect(newHealthFactor).to.gt(1000);
-      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
-    });
-  });
-  describe("Half liquidation (general case)", () => {
-    const ltvThreshold = LIQUIDATION_FACTOR.ltvThreshold;
-    const liquidationFactor = LIQUIDATION_FACTOR;
-    const tsbTokenData = tsbTokensJSON[0]; // tsb ETH
-    const loanData = loanDataJSON[4]; // WBTC -> ETH
-
-    // collateral = 10 wbtc, debt = 100 eth
-    // collateral > 10000 usd
-    const loan: LoanData = {
-      accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
-      collateralTokenId: loanData.collateralTokenId,
-      collateralAmt: BigNumber.from(loanData.collateralAmt),
-      debtAmt: BigNumber.from(loanData.debtAmt),
-    };
-    let loanId: string;
-    let wbtcAnswer: BigNumber;
-    let ethAnswer: BigNumber;
-    let wbtc: ERC20Mock;
-
-    beforeEach(async () => {
-      // tsb USDC
-      await createAndWhiteListTsbToken(
-        diamondToken,
-        diamondTsbMock,
-        operator,
-        tsbTokenData
-      );
-
-      // register by wbtc
-      const registerAmt = utils.parseUnits("100", TS_BASE_TOKEN.WBTC.decimals);
-      // register user1
-      await register(
-        user1,
-        Number(TsTokenId.WBTC),
-        registerAmt,
-        baseTokenAddresses,
-        diamondAcc
-      );
-
-      // update test loan data
-      const updateLoanTx = await diamondRollupMock
-        .connect(operator)
-        .updateLoanMock(loan);
-      await updateLoanTx.wait();
-
-      // get loan id
-      loanId = await diamondLoan.getLoanId(
-        loan.accountId,
-        BigNumber.from(tsbTokenData.maturity),
-        tsbTokenData.underlyingTokenId,
-        loan.collateralTokenId
-      );
-
-      // get wbtc token
-      wbtc = (await ethers.getContractAt(
-        "ERC20Mock",
-        baseTokenAddresses[TsTokenId.WBTC]
-      )) as ERC20Mock;
-    });
-    it("Success to liquidate, health factor < 1 (general loan, half liquidation, collateral can cover liquidator reward and protocol penalty)", async () => {
-      // set the price for liquidation
-      // wbtc = 12000 usd, eth = 1000 usd
-      // healthFactor = 0.96 < 1
-      // collateral value > 10000 usd -> half liquidation
-      // set wbtc price
-      const wbtcPriceFeed = priceFeeds[TsTokenId.WBTC];
-      const wbtcRoundDataJSON =
-        liquidationRoundDataJSON[Case.case7][TokenType.collateral];
-      wbtcAnswer = await (
-        await updateRoundData(operator, wbtcPriceFeed, wbtcRoundDataJSON)
-      ).answer;
-
-      // get usdc price with 8 decimals from test oracle
-      const ethPriceFeed = priceFeeds[TsTokenId.ETH];
-      const ethRoundDataJSON =
-        liquidationRoundDataJSON[Case.case7][TokenType.debt];
-      ethAnswer = await (
-        await updateRoundData(operator, ethPriceFeed, ethRoundDataJSON)
-      ).answer;
-
-      // before balance
-      const beforeZkTrueUpWbtcBalance = await wbtc.balanceOf(zkTrueUp.address);
-      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
-      const beforeLiquidatorWbtcBalance = await wbtc.balanceOf(liquidatorAddr);
-      const beforeLiquidatorEthBalance = await liquidator.getBalance();
-
-      const beforeTreasuryWbtcBalance = await wbtc.balanceOf(treasuryAddr);
-
-      // liquidator repay amount with debt token decimals
-      // half liquidation,  repayAmt = debtAmt / 2
-      const repayAmt = toL1Amt(loan.debtAmt, TS_BASE_TOKEN.ETH).div(2);
-
-      // liquidate
-      const liquidateTx = await diamondLoan
-        .connect(liquidator)
-        .liquidate(loanId, { value: repayAmt });
-      const liquidateReceipt = await liquidateTx.wait();
-
-      // gas fee
-      const liquidateGas = BigNumber.from(liquidateReceipt.gasUsed).mul(
-        liquidateReceipt.effectiveGasPrice
-      );
-
-      // after balance
-      const afterZkTrueUpWbtcBalance = await wbtc.balanceOf(zkTrueUp.address);
-      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
-      const afterLiquidatorWbtcBalance = await wbtc.balanceOf(liquidatorAddr);
-      const afterLiquidatorEthBalance = await liquidator.getBalance();
-      const afterTreasuryWbtcBalance = await wbtc.balanceOf(treasuryAddr);
-
-      // calculate expected amount
-      const debtValue = repayAmt.mul(ethAnswer);
-
-      // liquidator reward with collateral token L1 decimals
-      const liquidatorReward = getLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.WBTC,
-        TS_BASE_TOKEN.ETH,
-        liquidationFactor,
-        wbtcAnswer
-      );
-
-      // protocol penalty with collateral token L1 decimals
-      const protocolPenalty = getProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.WBTC,
-        TS_BASE_TOKEN.ETH,
-        liquidationFactor,
-        wbtcAnswer
-      );
-      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
-
-      // check balance
-      expect(beforeZkTrueUpWbtcBalance.sub(removedCollateralAmt)).to.eq(
-        afterZkTrueUpWbtcBalance
-      );
-      expect(afterZkTrueUpWethBalance.sub(beforeZkTrueUpWethBalance)).to.eq(
-        repayAmt
-      );
-      expect(beforeLiquidatorWbtcBalance.add(liquidatorReward)).to.eq(
-        afterLiquidatorWbtcBalance
-      );
-      expect(beforeLiquidatorEthBalance.sub(repayAmt).sub(liquidateGas)).to.eq(
-        afterLiquidatorEthBalance
-      );
-      expect(beforeTreasuryWbtcBalance.add(protocolPenalty)).to.eq(
-        afterTreasuryWbtcBalance
-      );
-
-      // check event
-      await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
-        .withArgs(
-          loanId,
-          liquidatorAddr,
-          loan.collateralTokenId,
-          removedCollateralAmt,
-          loanData.debtTokenId,
-          repayAmt,
-          false
-        );
-      await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
-
-      // convert amount to 8 decimals for loan data
-      const liquidatorRewardAmtConverted = toL2Amt(
-        liquidatorReward,
-        TS_BASE_TOKEN.WBTC
-      );
-
-      const protocolPenaltyAmtConverted = toL2Amt(
-        protocolPenalty,
-        TS_BASE_TOKEN.WBTC
-      );
-
-      const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.ETH);
-
-      // new loan data after add collateral
-      const newLoan = {
-        ...loan,
-        collateralAmt: BigNumber.from(loan.collateralAmt)
-          .sub(liquidatorRewardAmtConverted)
-          .sub(protocolPenaltyAmtConverted),
-        debtAmt: BigNumber.from(loan.debtAmt).sub(repayAmtConverted),
-      };
-
-      // get new expected health factor
-      const newExpectedHealthFactor = await getExpectedHealthFactor(
-        diamondToken,
-        tsbTokenData,
-        newLoan,
-        wbtcAnswer,
-        ethAnswer,
-        ltvThreshold
-      );
-
-      // get new health factor
-      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
-
-      // check health factor > 1, and equal to expected health factor
-      expect(newHealthFactor).to.gt(1000);
-      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
-    });
-  });
-  describe("Half liquidation (stable coin pair case)", () => {
-    const ltvThreshold = STABLECOIN_PAIR_LIQUIDATION_FACTOR.ltvThreshold;
-    const liquidationFactor = STABLECOIN_PAIR_LIQUIDATION_FACTOR;
-    const tsbTokenData = tsbTokensJSON[4]; // tsb DAI
-    const loanData = stableCoinPairLoanDataJSON[3]; // USDT -> DAI
-
-    // collateral = 500000 usdt, debt = 462000 dai
-    // collateral > 10000 usd
-    const loan: LoanData = {
-      accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
-      collateralTokenId: loanData.collateralTokenId,
-      collateralAmt: BigNumber.from(loanData.collateralAmt),
-      debtAmt: BigNumber.from(loanData.debtAmt),
-    };
-    let loanId: string;
-    let usdtAnswer: BigNumber;
-    let daiAnswer: BigNumber;
-    let usdt: ERC20Mock;
-    let dai: ERC20Mock;
-
-    beforeEach(async () => {
-      // tsb dai
-      await createAndWhiteListTsbToken(
-        diamondToken,
-        diamondTsbMock,
-        operator,
-        tsbTokenData
-      );
-
-      // register by usdt
-      const registerAmt = utils.parseUnits(
-        "1000000",
-        TS_BASE_TOKEN.USDT.decimals
-      );
-      // register user1
-      await register(
-        user1,
-        Number(TsTokenId.USDT),
-        registerAmt,
-        baseTokenAddresses,
-        diamondAcc
-      );
-
-      // update test loan data
-      const updateLoanTx = await diamondRollupMock
-        .connect(operator)
-        .updateLoanMock(loan);
-      await updateLoanTx.wait();
-
-      // get loan id
-      loanId = await diamondLoan.getLoanId(
-        loan.accountId,
-        BigNumber.from(tsbTokenData.maturity),
-        tsbTokenData.underlyingTokenId,
-        loan.collateralTokenId
-      );
-
-      // set usdt contract
-      usdt = (await ethers.getContractAt(
-        "ERC20Mock",
-        baseTokenAddresses[TsTokenId.USDT]
-      )) as ERC20Mock;
-
-      // mint default usdc to liquidator
-      dai = (await ethers.getContractAt(
-        "ERC20Mock",
-        baseTokenAddresses[TsTokenId.DAI]
-      )) as ERC20Mock;
-      await dai
-        .connect(liquidator)
-        .mint(
-          liquidatorAddr,
-          utils.parseUnits("1000000", TS_BASE_TOKEN.DAI.decimals)
-        );
-
-      // approve usdc to zkTrueUp
-      await dai
-        .connect(liquidator)
-        .approve(zkTrueUp.address, ethers.constants.MaxUint256);
-    });
-    it("Success to liquidate, health factor < 1 (stable coin pairs loan, half liquidation, collateral can cover liquidator reward and protocol penalty)", async () => {
-      // set the price for liquidation
-      // usdt = 0.97 usd, dai = 1 usd
-      // healthFactor = 0.971 < 1
-      // collateral value > 10000 usd -> half liquidation
-      // set usdt price
-      const usdtPriceFeed = priceFeeds[TsTokenId.USDT];
-      const usdtRoundDataJSON =
-        liquidationRoundDataJSON[Case.case4][TokenType.collateral];
-      usdtAnswer = await (
-        await updateRoundData(operator, usdtPriceFeed, usdtRoundDataJSON)
-      ).answer;
-
-      // get dai price with 8 decimals from test oracle
-      const daiPriceFeed = priceFeeds[TsTokenId.DAI];
-      const daiRoundDataJSON =
-        liquidationRoundDataJSON[Case.case4][TokenType.debt];
-      daiAnswer = await (
-        await updateRoundData(operator, daiPriceFeed, daiRoundDataJSON)
-      ).answer;
-
-      // before balance
-      const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
-      const beforeZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
-      const beforeLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
-      const beforeLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
-
-      const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-
-      // liquidate
-      const liquidateTx = await diamondLoan
-        .connect(liquidator)
-        .liquidate(loanId);
-      const liquidateReceipt = await liquidateTx.wait();
-
-      // after balance
-      const afterZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
-      const afterZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
-      const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
-      const afterLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
-      const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-
-      // calculate expected amount
-      // liquidator repay amount with debt token decimals
-      const repayAmt = toL1Amt(loan.debtAmt, TS_BASE_TOKEN.DAI).div(2);
-      const debtValue = repayAmt.mul(daiAnswer);
-
-      // liquidator reward with collateral token L1 decimals
-      const liquidatorReward = getLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
-      );
-
-      // protocol penalty with collateral token L1 decimals
-      const protocolPenalty = getProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
-      );
-      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
-
-      // check balance
-      expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
-        afterZkTrueUpUsdtBalance
-      );
-      expect(afterZkTrueUpDaiBalance.sub(beforeZkTrueUpDaiBalance)).to.eq(
-        repayAmt
-      );
-      expect(beforeLiquidatorUsdtBalance.add(liquidatorReward)).to.eq(
-        afterLiquidatorUsdtBalance
-      );
-      expect(beforeLiquidatorDaiBalance.sub(afterLiquidatorDaiBalance)).to.eq(
-        repayAmt
-      );
-      expect(beforeTreasuryUsdtBalance.add(protocolPenalty)).to.eq(
-        afterTreasuryUsdtBalance
-      );
-
-      // check event
-      await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
-        .withArgs(
-          loanId,
-          liquidatorAddr,
-          loan.collateralTokenId,
-          removedCollateralAmt,
-          loanData.debtTokenId,
-          repayAmt,
-          false
-        );
-      await expect(liquidateTx)
-        .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
-
-      // convert amount to 8 decimals for loan data
-      const liquidatorRewardAmtConverted = toL2Amt(
-        liquidatorReward,
-        TS_BASE_TOKEN.USDT
-      );
-
-      const protocolPenaltyAmtConverted = toL2Amt(
-        protocolPenalty,
-        TS_BASE_TOKEN.USDT
-      );
-
-      const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.DAI);
-
-      // new loan data after add collateral
-      const newLoan = {
-        ...loan,
-        collateralAmt: BigNumber.from(loan.collateralAmt)
-          .sub(liquidatorRewardAmtConverted)
-          .sub(protocolPenaltyAmtConverted),
-        debtAmt: BigNumber.from(loan.debtAmt).sub(repayAmtConverted),
-      };
-
-      // get new expected health factor
-      const newExpectedHealthFactor = await getExpectedHealthFactor(
-        diamondToken,
-        tsbTokenData,
-        newLoan,
-        usdtAnswer,
-        daiAnswer,
-        ltvThreshold
-      );
-
-      // get new health factor
-      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
-
-      // check health factor < 1, and equal to expected health factor
-      expect(newHealthFactor).to.lt(1000);
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
   });
@@ -1633,7 +1679,7 @@ describe("Liquidation", () => {
         .connect(liquidator)
         .approve(zkTrueUp.address, ethers.constants.MaxUint256);
     });
-    it("Success to liquidate, health factor > 1 but loan is matured", async () => {
+    it("Success to liquidate (repay 50% debt value), health factor > 1 but loan is matured", async () => {
       // set the price for liquidation
       // eth = 1200 usd, usdc = 1 usd
       // healthFactor = 1.92 > 1
@@ -1659,15 +1705,17 @@ describe("Liquidation", () => {
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
       const beforeLiquidatorEthBalance = await liquidator.getBalance();
       const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
-
       const beforeTreasuryEthBalance = await ethers.provider.getBalance(
         treasuryAddr
       );
 
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
+      // repay 50% debt value
+      const repayAmt = maxRepayAmt.div(2);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
-        .liquidate(loanId);
+        .liquidate(loanId, repayAmt);
       const liquidateReceipt = await liquidateTx.wait();
 
       // gas fee
@@ -1683,14 +1731,10 @@ describe("Liquidation", () => {
       const afterTreasuryEthBalance = await ethers.provider.getBalance(
         treasuryAddr
       );
-
-      // calculate expected amount
-      // liquidator repay amount with debt token decimals
-      const repayAmt = toL1Amt(loan.debtAmt, TS_BASE_TOKEN.USDC);
       const debtValue = repayAmt.mul(usdcAnswer);
 
       // liquidator reward with collateral token L1 decimals
-      const liquidatorReward = getLiquidatorRewardAmt(
+      const liquidatorReward = calcLiquidatorRewardAmt(
         debtValue,
         TS_BASE_TOKEN.ETH,
         TS_BASE_TOKEN.USDC,
@@ -1699,7 +1743,7 @@ describe("Liquidation", () => {
       );
 
       // protocol penalty with collateral token L1 decimals
-      const protocolPenalty = getProtocolPenaltyAmt(
+      const protocolPenalty = calcProtocolPenaltyAmt(
         debtValue,
         TS_BASE_TOKEN.ETH,
         TS_BASE_TOKEN.USDC,
@@ -1732,15 +1776,170 @@ describe("Liquidation", () => {
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
+
+      // convert amount to 8 decimals for loan data
+      const liquidatorRewardAmtConverted = toL2Amt(
+        liquidatorReward,
+        TS_BASE_TOKEN.ETH
+      );
+
+      const protocolPenaltyAmtConverted = toL2Amt(
+        protocolPenalty,
+        TS_BASE_TOKEN.ETH
+      );
+
+      const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.USDC);
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt)
+          .sub(liquidatorRewardAmtConverted)
+          .sub(protocolPenaltyAmtConverted),
+        debtAmt: BigNumber.from(loan.debtAmt).sub(repayAmtConverted),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        ethAnswer,
+        usdcAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
+      // check health factor
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+    it("Success to liquidate (repay all debt value), health factor > 1 but loan is matured", async () => {
+      // set the price for liquidation
+      // eth = 1200 usd, usdc = 1 usd
+      // healthFactor = 1.92 > 1
+      // loan is healthy, but is matured
+      // set eth price
+      const ethPriceFeed = priceFeeds[TsTokenId.ETH];
+      const ethRoundDataJSON =
+        liquidationRoundDataJSON[Case.case8][TokenType.collateral];
+      ethAnswer = await (
+        await updateRoundData(operator, ethPriceFeed, ethRoundDataJSON)
+      ).answer;
+
+      // get usdc price with 8 decimals from test oracle
+      const usdcPriceFeed = priceFeeds[TsTokenId.USDC];
+      const usdcRoundDataJSON =
+        liquidationRoundDataJSON[Case.case8][TokenType.debt];
+      usdcAnswer = await (
+        await updateRoundData(operator, usdcPriceFeed, usdcRoundDataJSON)
+      ).answer;
+
+      // before balance
+      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const beforeLiquidatorEthBalance = await liquidator.getBalance();
+      const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
+      const beforeTreasuryEthBalance = await ethers.provider.getBalance(
+        treasuryAddr
+      );
+
+      const [, , repayAmt] = await diamondLoan.getLiquidationInfo(loanId);
+      // liquidate
+      const liquidateTx = await diamondLoan
+        .connect(liquidator)
+        .liquidate(loanId, repayAmt);
+      const liquidateReceipt = await liquidateTx.wait();
+
+      // gas fee
+      const liquidateGas = BigNumber.from(liquidateReceipt.gasUsed).mul(
+        liquidateReceipt.effectiveGasPrice
+      );
+
+      // after balance
+      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const afterLiquidatorEthBalance = await liquidator.getBalance();
+      const afterLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
+      const afterTreasuryEthBalance = await ethers.provider.getBalance(
+        treasuryAddr
+      );
+      const debtValue = repayAmt.mul(usdcAnswer);
+
+      // liquidator reward with collateral token L1 decimals
+      const liquidatorReward = calcLiquidatorRewardAmt(
+        debtValue,
+        TS_BASE_TOKEN.ETH,
+        TS_BASE_TOKEN.USDC,
+        liquidationFactor,
+        ethAnswer
+      );
+
+      // protocol penalty with collateral token L1 decimals
+      const protocolPenalty = calcProtocolPenaltyAmt(
+        debtValue,
+        TS_BASE_TOKEN.ETH,
+        TS_BASE_TOKEN.USDC,
+        liquidationFactor,
+        ethAnswer
+      );
+
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
+
+      // check balance
+      expect(beforeZkTrueUpWethBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpWethBalance
+      );
+      expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
+        repayAmt
+      );
+      expect(
+        beforeLiquidatorEthBalance.add(liquidatorReward).sub(liquidateGas)
+      ).to.eq(afterLiquidatorEthBalance);
+      expect(beforeLiquidatorUsdcBalance.sub(afterLiquidatorUsdcBalance)).to.eq(
+        repayAmt
+      );
+      expect(beforeTreasuryEthBalance.add(protocolPenalty)).to.eq(
+        afterTreasuryEthBalance
+      );
+
+      // check event
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
+          removedCollateralAmt,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          DEFAULT_ETH_ADDRESS,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -1864,9 +2063,9 @@ describe("Liquidation", () => {
         .connect(liquidator)
         .approve(zkTrueUp.address, ethers.constants.MaxUint256);
     });
-    it("Success to liquidate, loan is healthy, but loan is matured", async () => {
+    it("Success to liquidate (repay 75% debt value), loan is healthy, but loan is matured", async () => {
       // set the price for liquidation
-      // usdt = 1 usd, dai = 1 usd
+      // usdt = 1 usd, usdc = 1 usd
       // healthFactor = 1.028 > 1
       // loan is healthy, but loan is matured
       // set usdt price
@@ -1890,13 +2089,15 @@ describe("Liquidation", () => {
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
       const beforeLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
-
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
+      const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
+      // repay 75% of debt value
+      const repayAmt = maxRepayAmt.div(4).mul(3);
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
-        .liquidate(loanId);
+        .liquidate(loanId, repayAmt);
       const liquidateReceipt = await liquidateTx.wait();
 
       // after balance
@@ -1905,14 +2106,10 @@ describe("Liquidation", () => {
       const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const afterLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-
-      // calculate expected amount
-      // liquidator repay amount with debt token decimals
-      const repayAmt = toL1Amt(loan.debtAmt, TS_BASE_TOKEN.USDC);
       const debtValue = repayAmt.mul(usdcAnswer);
 
       // liquidator reward with collateral token L1 decimals
-      const liquidatorReward = getLiquidatorRewardAmt(
+      const liquidatorReward = calcLiquidatorRewardAmt(
         debtValue,
         TS_BASE_TOKEN.USDT,
         TS_BASE_TOKEN.USDC,
@@ -1921,7 +2118,7 @@ describe("Liquidation", () => {
       );
 
       // protocol penalty with collateral token L1 decimals
-      const protocolPenalty = getProtocolPenaltyAmt(
+      const protocolPenalty = calcProtocolPenaltyAmt(
         debtValue,
         TS_BASE_TOKEN.USDT,
         TS_BASE_TOKEN.USDC,
@@ -1953,15 +2150,21 @@ describe("Liquidation", () => {
         .withArgs(
           loanId,
           liquidatorAddr,
-          loan.collateralTokenId,
+          usdt.address,
+          usdc.address,
           removedCollateralAmt,
-          loanData.debtTokenId,
           repayAmt,
           false
         );
       await expect(liquidateTx)
         .to.emit(diamondLoan, "Liquidation")
-        .withArgs(loanId, liquidatorAddr, liquidatorReward, protocolPenalty);
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
+        );
 
       // convert amount to 8 decimals for loan data
       const liquidatorRewardAmtConverted = toL2Amt(
@@ -2001,104 +2204,144 @@ describe("Liquidation", () => {
       // check health factor
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
-  });
-  describe("Set & Get half liquidation threshold", () => {
-    it("Success to set & get half liquidation threshold", async () => {
-      const newHalfLiquidationThreshold = 5000;
-      const setHalfLiquidationThresholdTx = await diamondLoan
-        .connect(admin)
-        .setHalfLiquidationThreshold(newHalfLiquidationThreshold);
-      await setHalfLiquidationThresholdTx.wait();
+    it("Success to liquidate (repay all debt value), loan is healthy, but loan is matured", async () => {
+      // set the price for liquidation
+      // usdt = 1 usd, usdc = 1 usd
+      // healthFactor = 1.028 > 1
+      // loan is healthy, but loan is matured
+      // set usdt price
+      const usdtPriceFeed = priceFeeds[TsTokenId.USDT];
+      const usdtRoundDataJSON =
+        liquidationRoundDataJSON[Case.case9][TokenType.collateral];
+      usdtAnswer = await (
+        await updateRoundData(operator, usdtPriceFeed, usdtRoundDataJSON)
+      ).answer;
 
-      const halfLiquidationThreshold =
-        await diamondLoan.getHalfLiquidationThreshold();
-      expect(halfLiquidationThreshold).to.be.equal(newHalfLiquidationThreshold);
-    });
-    it("Fail to set half liquidation, sender is not admin", async () => {
-      const newHalfLiquidationThreshold = 5000;
-      await expect(
-        diamondLoan
-          .connect(user1)
-          .setHalfLiquidationThreshold(newHalfLiquidationThreshold)
-      ).to.be.reverted;
-    });
-  });
-  describe("Set & Get liquidation factor", () => {
-    it("Success to set & get liquidation factor", async () => {
-      // new liquidation factor
-      const newLiquidationFactor = {
-        ltvThreshold: 700,
-        liquidatorIncentive: 60,
-        protocolPenalty: 40,
-      };
-      const isStableCoinPair = false;
+      // get usdc price with 8 decimals from test oracle
+      const usdcPriceFeed = priceFeeds[TsTokenId.USDC];
+      const usdcRoundDataJSON =
+        liquidationRoundDataJSON[Case.case9][TokenType.debt];
+      usdcAnswer = await (
+        await updateRoundData(operator, usdcPriceFeed, usdcRoundDataJSON)
+      ).answer;
 
-      // set new liquidation factor
-      const setLiquidationFactorTx = await diamondLoan
-        .connect(admin)
-        .setLiquidationFactor(newLiquidationFactor, isStableCoinPair);
-      const setLiquidationFactorReceipt = await setLiquidationFactorTx.wait();
+      // before balance
+      const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const beforeLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
+      const beforeLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
+      const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
-      // check
-      const liquidationFactor = await diamondLoan.getLiquidationFactor(false);
-      expect(liquidationFactor.ltvThreshold).to.be.equal(700);
-      expect(liquidationFactor.liquidatorIncentive).to.be.equal(60);
-      expect(liquidationFactor.protocolPenalty).to.be.equal(40);
-    });
-    it("Success to set & get stable coin pair liquidation factor", async () => {
-      // new stable coin pair liquidation factor
-      const newStableCoinPairLiquidationFactor = {
-        ltvThreshold: 500,
-        liquidatorIncentive: 60,
-        protocolPenalty: 40,
-      };
-      const isStableCoinPair = true;
+      const [, , repayAmt] = await diamondLoan.getLiquidationInfo(loanId);
+      // liquidate
+      const liquidateTx = await diamondLoan
+        .connect(liquidator)
+        .liquidate(loanId, repayAmt);
+      const liquidateReceipt = await liquidateTx.wait();
 
-      // set new stable coin pair liquidation factor
-      const setStableCoinPairLiquidationFactorTx = await diamondLoan
-        .connect(admin)
-        .setLiquidationFactor(
-          newStableCoinPairLiquidationFactor,
-          isStableCoinPair
+      // after balance
+      const afterZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
+      const afterLiquidatorUsdcBalance = await usdc.balanceOf(liquidatorAddr);
+      const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
+      const debtValue = repayAmt.mul(usdcAnswer);
+
+      // liquidator reward with collateral token L1 decimals
+      const liquidatorReward = calcLiquidatorRewardAmt(
+        debtValue,
+        TS_BASE_TOKEN.USDT,
+        TS_BASE_TOKEN.USDC,
+        liquidationFactor,
+        usdtAnswer
+      );
+
+      // protocol penalty with collateral token L1 decimals
+      const protocolPenalty = calcProtocolPenaltyAmt(
+        debtValue,
+        TS_BASE_TOKEN.USDT,
+        TS_BASE_TOKEN.USDC,
+        liquidationFactor,
+        usdtAnswer
+      );
+      const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
+
+      // check balance
+      expect(beforeZkTrueUpUsdtBalance.sub(removedCollateralAmt)).to.eq(
+        afterZkTrueUpUsdtBalance
+      );
+      expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
+        repayAmt
+      );
+      expect(beforeLiquidatorUsdtBalance.add(liquidatorReward)).to.eq(
+        afterLiquidatorUsdtBalance
+      );
+      expect(beforeLiquidatorUsdcBalance.sub(afterLiquidatorUsdcBalance)).to.eq(
+        repayAmt
+      );
+      expect(beforeTreasuryUsdtBalance.add(protocolPenalty)).to.eq(
+        afterTreasuryUsdtBalance
+      );
+
+      // check event
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Repay")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          usdc.address,
+          removedCollateralAmt,
+          repayAmt,
+          false
+        );
+      await expect(liquidateTx)
+        .to.emit(diamondLoan, "Liquidation")
+        .withArgs(
+          loanId,
+          liquidatorAddr,
+          usdt.address,
+          liquidatorReward,
+          protocolPenalty
         );
 
-      // check
-      const liquidationFactor = await diamondLoan.getLiquidationFactor(true);
-      expect(liquidationFactor.ltvThreshold).to.be.equal(500);
-      expect(liquidationFactor.liquidatorIncentive).to.be.equal(60);
-      expect(liquidationFactor.protocolPenalty).to.be.equal(40);
-    });
-    it("Fail to set liquidation factor, sender is not admin", async () => {
-      // new liquidation factor
-      const newLiquidationFactor = {
-        ltvThreshold: 700,
-        liquidatorIncentive: 60,
-        protocolPenalty: 40,
+      // convert amount to 8 decimals for loan data
+      const liquidatorRewardAmtConverted = toL2Amt(
+        liquidatorReward,
+        TS_BASE_TOKEN.USDT
+      );
+
+      const protocolPenaltyAmtConverted = toL2Amt(
+        protocolPenalty,
+        TS_BASE_TOKEN.USDT
+      );
+
+      const repayAmtConverted = toL2Amt(repayAmt, TS_BASE_TOKEN.USDC);
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt)
+          .sub(liquidatorRewardAmtConverted)
+          .sub(protocolPenaltyAmtConverted),
+        debtAmt: BigNumber.from(loan.debtAmt).sub(repayAmtConverted),
       };
 
-      // set new liquidation factor with invalid sender
-      const isStableCoinPair = false;
-      await expect(
-        diamondLoan
-          .connect(user1)
-          .setLiquidationFactor(newLiquidationFactor, isStableCoinPair)
-      ).to.be.reverted;
-    });
-    it("Fail to set liquidation factor, invalid liquidation factor", async () => {
-      // new liquidation factor
-      const invalidLiquidationFactor = {
-        ltvThreshold: 950,
-        liquidatorIncentive: 60,
-        protocolPenalty: 40,
-      };
-      const isStableCoinPair = false;
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        usdtAnswer,
+        usdcAnswer,
+        ltvThreshold
+      );
 
-      // set invalid liquidation factor
-      await expect(
-        diamondLoan
-          .connect(admin)
-          .setLiquidationFactor(invalidLiquidationFactor, isStableCoinPair)
-      ).to.be.revertedWithCustomError(diamondLoan, "InvalidLiquidationFactor");
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
+      // check health factor
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
   });
 });

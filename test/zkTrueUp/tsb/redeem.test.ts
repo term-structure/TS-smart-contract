@@ -396,8 +396,8 @@ describe("Redeem TsbToken", () => {
 
     it("Fail to redeem tsb token for deposit, tsb token is not matured", async () => {
       // get params
-      const underlyingTokenId = maturedTsbTokensJSON[2].underlyingTokenId;
-      const maturity = BigNumber.from(maturedTsbTokensJSON[2].maturity);
+      const underlyingTokenId = maturedTsbTokensJSON[1].underlyingTokenId;
+      const maturity = BigNumber.from(maturedTsbTokensJSON[1].maturity);
       const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
         underlyingTokenId,
         maturity

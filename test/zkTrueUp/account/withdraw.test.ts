@@ -337,7 +337,7 @@ describe("Withdraw", () => {
       // check event
       await expect(withdrawTsbTokenTx)
         .to.emit(diamondAccMock, "Withdraw")
-        .withArgs(user1Addr, accId, tokenId, amount);
+        .withArgs(user1Addr, accId, tsbTokenAddr, tokenId, amount);
 
       await expect(withdrawTsbTokenTx)
         .to.emit(diamondWithTsbLib, "TsbTokenMinted")

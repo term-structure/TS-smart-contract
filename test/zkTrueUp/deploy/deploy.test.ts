@@ -2,8 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Contract, ContractFactory, utils, Wallet } from "ethers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { addFacet } from "../../../utils/diamondActions/addFacet";
-import { initFacet } from "../../../utils/diamondActions/initFacet";
+import { safeAddFacet, safeInitFacet } from "diamond-engraver";
 import { deployFacets } from "../../../utils/deploy/deployFacets";
 import { AddressFacet__factory } from "../../../typechain-types/factories/contracts/zkTrueUp/address";
 import { AddressFacet } from "../../../typechain-types/contracts/zkTrueUp/address";
@@ -83,6 +82,7 @@ describe("Deploy", () => {
   let treasury: Wallet;
   let insurance: Wallet;
   let vault: Wallet;
+  const provider = ethers.provider;
 
   beforeEach(async function () {
     [deployer, admin, operator, invalidSigner] = await ethers.getSigners();
@@ -153,8 +153,9 @@ describe("Deploy", () => {
   it("Failed to deploy, invalid diamond cut signer", async function () {
     // fail to diamond cut with invalid owner, only deployer can call diamond cut
     await expect(
-      addFacet(
+      safeAddFacet(
         invalidSigner,
+        provider,
         zkTrueUpMock,
         protocolParamsFacet.address,
         ProtocolParamsFacet
@@ -164,8 +165,9 @@ describe("Deploy", () => {
 
   it("Failed to deploy, invalid diamond init signer", async function () {
     // protocolParams diamond cut
-    await addFacet(
+    await safeAddFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       protocolParamsFacet.address,
       ProtocolParamsFacet
@@ -216,8 +218,9 @@ describe("Deploy", () => {
     // invalid diamond init signer, only deployer can call diamond init
     const onlyCall = true;
     await expect(
-      initFacet(
+      safeInitFacet(
         invalidSigner,
+        provider,
         zkTrueUpMock,
         zkTrueUpInit.address,
         ZkTrueUpInit,
@@ -236,8 +239,9 @@ describe("Deploy", () => {
     )) as ZkTrueUpMock;
 
     // account diamond cut
-    const registeredAccFnSelectors = await addFacet(
+    const registeredAccFnSelectors = await safeAddFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       accountFacet.address,
       AccountFacet
@@ -254,8 +258,9 @@ describe("Deploy", () => {
     }
 
     // address diamond cut
-    const registeredAddrFnSelectors = await addFacet(
+    const registeredAddrFnSelectors = await safeAddFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       addressFacet.address,
       AddressFacet
@@ -273,8 +278,9 @@ describe("Deploy", () => {
     }
 
     // flashLoan facet diamond cut
-    const registeredFlashLoanFnSelectors = await addFacet(
+    const registeredFlashLoanFnSelectors = await safeAddFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       flashLoanFacet.address,
       FlashLoanFacet
@@ -294,8 +300,9 @@ describe("Deploy", () => {
     }
 
     // protocolParams diamond cut
-    const registeredGovFnSelectors = await addFacet(
+    const registeredGovFnSelectors = await safeAddFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       protocolParamsFacet.address,
       ProtocolParamsFacet
@@ -315,8 +322,9 @@ describe("Deploy", () => {
     }
 
     // loan diamond cut
-    const registeredLoanFnSelectors = await addFacet(
+    const registeredLoanFnSelectors = await safeAddFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       loanFacet.address,
       LoanFacet
@@ -334,8 +342,9 @@ describe("Deploy", () => {
     }
 
     // rollup diamond cut
-    const registeredRollupFnSelectors = await addFacet(
+    const registeredRollupFnSelectors = await safeAddFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       rollupFacet.address,
       RollupFacet
@@ -353,8 +362,9 @@ describe("Deploy", () => {
     }
 
     // token diamond cut
-    const registeredTokenFnSelectors = await addFacet(
+    const registeredTokenFnSelectors = await safeAddFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       tokenFacet.address,
       TokenFacet
@@ -372,8 +382,9 @@ describe("Deploy", () => {
     }
 
     // tsb diamond cut
-    const registeredTsbFnSelectors = await addFacet(
+    const registeredTsbFnSelectors = await safeAddFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       tsbFacet.address,
       TsbFacet
@@ -428,8 +439,9 @@ describe("Deploy", () => {
 
     // init diamond cut to initialize the diamond
     const onlyCall = true;
-    await initFacet(
+    await safeInitFacet(
       deployer,
+      provider,
       zkTrueUpMock,
       zkTrueUpInit.address,
       ZkTrueUpInit,

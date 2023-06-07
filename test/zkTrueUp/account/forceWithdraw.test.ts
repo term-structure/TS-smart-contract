@@ -87,9 +87,8 @@ describe("Force withdraw", function () {
         tokenId: tokenId,
         amount: BigNumber.from(0),
       };
-      const requestId = (
-        await diamondRollup.getL1RequestNum()
-      ).totalL1RequestNum.sub(1);
+      const [, , totalL1RequestNum] = await diamondRollup.getL1RequestNum();
+      const requestId = totalL1RequestNum.sub(1);
       const success = await diamondRollup.isForceWithdrawInL1RequestQueue(
         forceWithdraw,
         requestId
@@ -127,9 +126,8 @@ describe("Force withdraw", function () {
         tokenId: tokenId,
         amount: BigNumber.from(0),
       };
-      const requestId = (
-        await diamondRollup.getL1RequestNum()
-      ).totalL1RequestNum.sub(1);
+      const [, , totalL1RequestNum] = await diamondRollup.getL1RequestNum();
+      const requestId = totalL1RequestNum.sub(1);
       const success = await diamondRollup.isForceWithdrawInL1RequestQueue(
         forceWithdraw,
         requestId

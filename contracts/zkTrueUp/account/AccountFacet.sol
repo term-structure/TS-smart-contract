@@ -43,11 +43,10 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev Only registered accounts can withdraw
      * @dev The token cannot be TSB token
      */
-    //! virtual for test
     function withdraw(address tokenAddr, uint128 amount) external virtual nonReentrant {
         uint32 accountId = AccountLib.getValidAccount(msg.sender);
         (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(tokenAddr);
-        AccountLib.updateWithdrawRecord(msg.sender, accountId, tokenId, amount);
+        AccountLib.updateWithdrawRecord(msg.sender, accountId, tokenAddr, tokenId, amount);
         assetConfig.isTsbToken
             ? TsbLib.mintTsbToken(tokenAddr, msg.sender, amount)
             : Utils.transfer(tokenAddr, payable(msg.sender), amount);
@@ -59,27 +58,27 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     function forceWithdraw(address tokenAddr) external {
         uint32 accountId = AccountLib.getValidAccount(msg.sender);
         (uint16 tokenId, ) = TokenLib.getValidToken(tokenAddr);
-        AccountLib.addForceWithdrawReq(msg.sender, accountId, tokenId);
+        AccountLib.addForceWithdrawReq(msg.sender, accountId, tokenAddr, tokenId);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
-    function getAccountAddr(uint32 accountId) external view returns (address accountAddr) {
+    function getAccountAddr(uint32 accountId) external view returns (address) {
         return AccountLib.getAccountAddr(accountId);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
-    function getAccountId(address accountAddr) external view returns (uint32 accountId) {
+    function getAccountId(address accountAddr) external view returns (uint32) {
         return AccountLib.getAccountId(accountAddr);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
-    function getAccountNum() external view returns (uint32 accountNum) {
+    function getAccountNum() external view returns (uint32) {
         return AccountLib.getAccountNum();
     }
 
@@ -112,6 +111,6 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
             ? TsbLib.burnTsbToken(tokenAddr, to, amount)
             : Utils.transferFrom(tokenAddr, depositor, amount, msg.value);
 
-        AccountLib.addDepositReq(to, accountId, tokenId, assetConfig.decimals, amount);
+        AccountLib.addDepositReq(to, accountId, tokenAddr, tokenId, assetConfig.decimals, amount);
     }
 }
