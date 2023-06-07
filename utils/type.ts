@@ -63,12 +63,15 @@ export class AccountState {
   }
 }
 
-export function getBoolean(str: string | undefined) {
+export function getBoolean(str: string | undefined, defaultVal?: boolean) {
   try {
     if (str === "" || typeof str === "undefined")
       throw new Error(`'${str}' is not a boolean`);
     return !!JSON.parse(str.toLowerCase());
   } catch (error) {
+    if (typeof defaultVal !== "undefined") {
+      return defaultVal;
+    }
     throw new Error(`'${str}' is not a boolean`);
   }
 }
