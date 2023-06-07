@@ -146,7 +146,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             IWETH(wethAddr).approve(aaveV3PoolAddr, collateralAmt);
             supplyTokenAddr = wethAddr;
         } else {
-            ISolidStateERC20(collateralAsset.tokenAddr).approve(aaveV3PoolAddr, collateralAmt);
+            ISolidStateERC20(collateralAsset.tokenAddr).safeApprove(aaveV3PoolAddr, collateralAmt);
             supplyTokenAddr = collateralAsset.tokenAddr;
         }
 
