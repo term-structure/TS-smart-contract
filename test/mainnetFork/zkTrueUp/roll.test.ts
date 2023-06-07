@@ -5,7 +5,7 @@ import { BigNumber, Contract, Signer, utils } from "ethers";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
 import { register } from "../../utils/register";
-import { BaseTokenAddresses, LoanData, PriceFeeds } from "../../../utils/type";
+import { BaseTokenAddresses, LoanData } from "../../../utils/type";
 import { tsbTokensJSON } from "../../data/tsbTokens";
 import { loanDataJSON } from "../../data/loanData";
 import { toL1Amt, toL2Amt } from "../../utils/amountConvertor";
@@ -18,7 +18,6 @@ import {
   AccountFacet,
   AggregatorV3Interface,
   ERC20Mock,
-  IPoolDataProvider,
   LoanFacet,
   RollupMock,
   TokenFacet,
