@@ -263,24 +263,30 @@ describe("Roll to Aave", () => {
       const [, , variableDebtTokenAddress] =
         await aaveV3PoolDataProvider.getReserveTokensAddresses(usdc.address);
 
+      // Aave debt token
       const debtToken = await ethers.getContractAt(
         "ICreditDelegationToken",
         variableDebtTokenAddress
       );
+
+      // approve delegation to zkTrueUp for borrow for user1
       const approveDelegationTx = await debtToken
         .connect(user1)
         .approveDelegation(zkTrueUp.address, debtAmt);
       const approveDelegationReceipt = await approveDelegationTx.wait();
 
+      // approve delegation gas fee
       const approveDelegationGas = BigNumber.from(
         approveDelegationReceipt.gasUsed
       ).mul(approveDelegationReceipt.effectiveGasPrice);
 
+      // roll to Aave
       const rollToAaveTx = await diamondLoan
         .connect(user1)
         .rollToAave(loanId, collateralAmt, debtAmt);
       const rollToAaveReceipt = await rollToAaveTx.wait();
 
+      // roll to Aave gas fee
       const rollToAaveGas = BigNumber.from(rollToAaveReceipt.gasUsed).mul(
         rollToAaveReceipt.effectiveGasPrice
       );
@@ -368,13 +374,14 @@ describe("Roll to Aave", () => {
         debtAmt: BigNumber.from(loan.debtAmt).sub(repaidDebtAmtConverted),
       };
 
-      // get new expected health factor
+      // get latest price
       chainlinkAggregator = await useChainlink(MAINNET_ADDRESS.ETH_PRICE_FEED);
       ethAnswer = (await chainlinkAggregator.latestRoundData()).answer;
 
       chainlinkAggregator = await useChainlink(MAINNET_ADDRESS.USDC_PRICE_FEED);
       usdcAnswer = (await chainlinkAggregator.latestRoundData()).answer;
 
+      // get expected health factor
       const newExpectedHealthFactor = await getExpectedHealthFactor(
         diamondToken,
         tsbTokenData,
@@ -422,24 +429,30 @@ describe("Roll to Aave", () => {
       const [, , variableDebtTokenAddress] =
         await aaveV3PoolDataProvider.getReserveTokensAddresses(usdc.address);
 
+      // Aave debt token
       const debtToken = await ethers.getContractAt(
         "ICreditDelegationToken",
         variableDebtTokenAddress
       );
+
+      // approve delegation to zkTrueUp for borrow for user1
       const approveDelegationTx = await debtToken
         .connect(user1)
         .approveDelegation(zkTrueUp.address, debtAmt);
       const approveDelegationReceipt = await approveDelegationTx.wait();
 
+      // approve delegation gas fee
       const approveDelegationGas = BigNumber.from(
         approveDelegationReceipt.gasUsed
       ).mul(approveDelegationReceipt.effectiveGasPrice);
 
+      // roll to Aave
       const rollToAaveTx = await diamondLoan
         .connect(user1)
         .rollToAave(loanId, collateralAmt, debtAmt);
       const rollToAaveReceipt = await rollToAaveTx.wait();
 
+      // roll to Aave gas fee
       const rollToAaveGas = BigNumber.from(rollToAaveReceipt.gasUsed).mul(
         rollToAaveReceipt.effectiveGasPrice
       );
@@ -526,13 +539,14 @@ describe("Roll to Aave", () => {
         debtAmt: BigNumber.from(loan.debtAmt).sub(repaidDebtAmtConverted),
       };
 
-      // get new expected health factor
+      // get latest price
       chainlinkAggregator = await useChainlink(MAINNET_ADDRESS.ETH_PRICE_FEED);
       ethAnswer = (await chainlinkAggregator.latestRoundData()).answer;
 
       chainlinkAggregator = await useChainlink(MAINNET_ADDRESS.USDC_PRICE_FEED);
       usdcAnswer = (await chainlinkAggregator.latestRoundData()).answer;
 
+      // get new expected health factor
       const newExpectedHealthFactor = await getExpectedHealthFactor(
         diamondToken,
         tsbTokenData,
@@ -565,6 +579,7 @@ describe("Roll to Aave", () => {
     };
     let loanId: string;
     let usdt: ERC20Mock;
+    let usdc: ERC20Mock;
     let impersonatedSigner: Signer;
 
     beforeEach(async () => {
@@ -584,6 +599,11 @@ describe("Roll to Aave", () => {
       usdt = (await ethers.getContractAt(
         "ERC20Mock",
         baseTokenAddresses[TsTokenId.USDT]
+      )) as ERC20Mock;
+
+      usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDC]
       )) as ERC20Mock;
 
       // register by ETH
@@ -639,6 +659,22 @@ describe("Roll to Aave", () => {
         TS_BASE_TOKEN.USDT
       );
 
+      const [, , variableDebtTokenAddress] =
+        await aaveV3PoolDataProvider.getReserveTokensAddresses(usdc.address);
+
+      // Aave debt token
+      const debtToken = await ethers.getContractAt(
+        "ICreditDelegationToken",
+        variableDebtTokenAddress
+      );
+
+      // approve delegation to zkTrueUp for borrow for user1
+      const approveDelegationTx = await debtToken
+        .connect(user1)
+        .approveDelegation(zkTrueUp.address, debtAmt);
+      const approveDelegationReceipt = await approveDelegationTx.wait();
+
+      // check event
       await expect(
         diamondLoan
           .connect(impersonatedSigner)
@@ -747,6 +783,7 @@ describe("Roll to Aave", () => {
       const [, , variableDebtTokenAddress] =
         await aaveV3PoolDataProvider.getReserveTokensAddresses(usdt.address);
 
+      // Aave debt token
       const debtToken = await ethers.getContractAt(
         "ICreditDelegationToken",
         variableDebtTokenAddress
@@ -796,15 +833,19 @@ describe("Roll to Aave", () => {
       const [, , variableDebtTokenAddress] =
         await aaveV3PoolDataProvider.getReserveTokensAddresses(usdt.address);
 
+      // Aave debt token
       const debtToken = await ethers.getContractAt(
         "ICreditDelegationToken",
         variableDebtTokenAddress
       );
+
+      // approve delegation to zkTrueUp for borrow for impersonatedSigner
       const approveDelegationTx = await debtToken
         .connect(impersonatedSigner)
         .approveDelegation(zkTrueUp.address, debtAmt);
       const approveDelegationReceipt = await approveDelegationTx.wait();
 
+      // roll to Aave
       const rollToAaveTx = await diamondLoan
         .connect(impersonatedSigner)
         .rollToAave(loanId, collateralAmt, debtAmt);
@@ -889,13 +930,14 @@ describe("Roll to Aave", () => {
         debtAmt: BigNumber.from(loan.debtAmt).sub(repaidDebtAmtConverted),
       };
 
-      // get new expected health factor
+      // get latest price
       chainlinkAggregator = await useChainlink(MAINNET_ADDRESS.DAI_PRICE_FEED);
       daiAnswer = (await chainlinkAggregator.latestRoundData()).answer;
 
       chainlinkAggregator = await useChainlink(MAINNET_ADDRESS.USDT_PRICE_FEED);
       usdtAnswer = (await chainlinkAggregator.latestRoundData()).answer;
 
+      // get new expected health factor
       const newExpectedHealthFactor = await getExpectedHealthFactor(
         diamondToken,
         tsbTokenData,
@@ -945,15 +987,19 @@ describe("Roll to Aave", () => {
       const [, , variableDebtTokenAddress] =
         await aaveV3PoolDataProvider.getReserveTokensAddresses(usdt.address);
 
+      // Aave debt token
       const debtToken = await ethers.getContractAt(
         "ICreditDelegationToken",
         variableDebtTokenAddress
       );
+
+      // approve delegation to zkTrueUp for borrow for impersonatedSigner
       const approveDelegationTx = await debtToken
         .connect(impersonatedSigner)
         .approveDelegation(zkTrueUp.address, debtAmt);
       const approveDelegationReceipt = await approveDelegationTx.wait();
 
+      // roll to Aave
       const rollToAaveTx = await diamondLoan
         .connect(impersonatedSigner)
         .rollToAave(loanId, collateralAmt, debtAmt);
@@ -984,7 +1030,6 @@ describe("Roll to Aave", () => {
       );
       expect(beforeUserDaiBalance).to.eq(afterUserDaiBalance);
       expect(beforeUserUsdtBalance).to.eq(afterUserUsdtBalance);
-      // check Aave status
       expect(beforeUserADaiBalance.add(collateralAmt)).to.eq(
         afterUserADaiBalance
       );
@@ -1042,13 +1087,14 @@ describe("Roll to Aave", () => {
         debtAmt: BigNumber.from(loan.debtAmt).sub(repaidDebtAmtConverted),
       };
 
-      // get new expected health factor
+      // get latest price
       chainlinkAggregator = await useChainlink(MAINNET_ADDRESS.DAI_PRICE_FEED);
       daiAnswer = (await chainlinkAggregator.latestRoundData()).answer;
 
       chainlinkAggregator = await useChainlink(MAINNET_ADDRESS.USDT_PRICE_FEED);
       usdtAnswer = (await chainlinkAggregator.latestRoundData()).answer;
 
+      // get new expected health factor
       const newExpectedHealthFactor = await getExpectedHealthFactor(
         diamondToken,
         tsbTokenData,
