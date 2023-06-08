@@ -63,14 +63,18 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     runOnCompile: true,
     strict: true,
-    outputFile: resolve(__dirname, "./reports/contract-sizes.txt"),
+    outputFile: getBoolean(process.env.IS_FORK_MAINNET, false)
+      ? resolve(__dirname, "./reports/contract-sizes-mainnetFork.txt")
+      : resolve(__dirname, "./reports/contract-sizes-zkTrueUp.txt"),
   },
   gasReporter: {
     enabled: true,
     currency: "USD",
     gasPrice: 20,
     noColors: true,
-    outputFile: resolve(__dirname, "./reports/gas-report.txt"),
+    outputFile: getBoolean(process.env.IS_FORK_MAINNET, false)
+      ? resolve(__dirname, "./reports/gas-report-mainnetFork.txt")
+      : resolve(__dirname, "./reports/gas-report-zkTrueUp.txt"),
   },
   networks: {
     hardhat: {
