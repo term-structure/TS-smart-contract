@@ -213,6 +213,17 @@ describe("Roll to Aave", () => {
         diamondLoan.connect(user1).rollToAave(loanId, collateralAmt, debtAmt)
       ).to.be.revertedWithCustomError(diamondLoan, "LoanIsUnhealthy");
     });
+    it("Fail roll to Aave, supply amount is zero", async () => {
+      // 0 USDC
+      const debtAmt = BigNumber.from(0);
+
+      // supply 0 ETH will fail in Aave
+      const collateralAmt = BigNumber.from(0);
+
+      await expect(
+        diamondLoan.connect(user1).rollToAave(loanId, collateralAmt, debtAmt)
+      ).to.be.revertedWithCustomError(diamondLoan, "SupplyToAaveFailed");
+    });
     it("Fail roll to Aave, partial roll make LTV in Aave too high and borrow from Aave fail", async () => {
       // 500 USDC
       const debtAmt = toL1Amt(
