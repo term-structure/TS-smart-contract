@@ -396,6 +396,7 @@ describe("Roll to Aave", () => {
 
       // check health factor
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+      expect(newHealthFactor).to.equal(ethers.constants.MaxUint256);
     });
     it("Success roll to Aave, roll partial loan to Aave", async () => {
       // before balance

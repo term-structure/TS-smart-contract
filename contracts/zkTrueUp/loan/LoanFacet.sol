@@ -119,6 +119,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @dev Roll the loan to AAVE V3 pool,
      *      the user can transfer the loan of fixed rate and date from term structure
      *      to the floating rate and perpetual position on Aave without repaying the debt
+     * @dev should be `approveDelegation` before `borrow from AAVE V3 pool`
      */
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
         if (!LoanLib.isActivatedRoll()) revert RollIsNotActivated();
@@ -138,41 +139,36 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             debtAsset
         );
         LoanLib.requireHealthy(healthFactor);
+        LoanStorage.layout().loans[loanId] = loan;
 
         address aaveV3PoolAddr = AddressLib.getAaveV3PoolAddr();
-        address supplyTokenAddr;
         // AAVE receive WETH as collateral
-        if (collateralAsset.tokenAddr == Config.ETH_ADDRESS) {
-            address wethAddr = AddressLib.getWETHAddr();
-            IWETH(wethAddr).approve(aaveV3PoolAddr, collateralAmt);
-            supplyTokenAddr = wethAddr;
-        } else {
-            ISolidStateERC20(collateralAsset.tokenAddr).safeApprove(aaveV3PoolAddr, collateralAmt);
-            supplyTokenAddr = collateralAsset.tokenAddr;
-        }
+        address supplyTokenAddr = collateralAsset.tokenAddr == Config.ETH_ADDRESS
+            ? AddressLib.getWETHAddr()
+            : collateralAsset.tokenAddr;
 
+        ISolidStateERC20(supplyTokenAddr).safeApprove(aaveV3PoolAddr, collateralAmt);
         IPool aaveV3Pool = IPool(aaveV3PoolAddr);
-        // 0 - referralCode
+        // referralCode: 0
         // (see https://docs.aave.com/developers/core-contracts/pool#supply)
-        try aaveV3Pool.supply(supplyTokenAddr, collateralAmt, msg.sender, 0) {
-            // should be `approveDelegation` before `borrow`
-            // 2 - variable rate mode
-            // 0 - referralCode
+        try aaveV3Pool.supply(supplyTokenAddr, collateralAmt, msg.sender, Config.AAVE_V3_REFERRAL_CODE) {
+            address debtTokenAddr = debtAsset.tokenAddr;
+            // variable rate mode: 2
+            // referralCode: 0
             // (see https://docs.aave.com/developers/core-contracts/pool#borrow)
-            try aaveV3Pool.borrow(debtAsset.tokenAddr, debtAmt, 2, 0, msg.sender) {
-                LoanStorage.layout().loans[loanId] = loan;
-                emit Repay(
-                    loanId,
-                    msg.sender,
-                    collateralAsset.tokenAddr,
-                    debtAsset.tokenAddr,
-                    collateralAmt,
+            try
+                aaveV3Pool.borrow(
+                    debtTokenAddr,
                     debtAmt,
-                    false
-                );
-                emit RollToAave(loanId, msg.sender, supplyTokenAddr, debtAsset.tokenAddr, collateralAmt, debtAmt);
+                    Config.AAVE_V3_INTEREST_RATE_MODE,
+                    Config.AAVE_V3_REFERRAL_CODE,
+                    msg.sender
+                )
+            {
+                emit Repay(loanId, msg.sender, collateralAsset.tokenAddr, debtTokenAddr, collateralAmt, debtAmt, false);
+                emit RollToAave(loanId, msg.sender, supplyTokenAddr, debtTokenAddr, collateralAmt, debtAmt);
             } catch {
-                revert BorrowFromAaveFailed(debtAsset.tokenAddr, debtAmt);
+                revert BorrowFromAaveFailed(debtTokenAddr, debtAmt);
             }
         } catch {
             revert SupplyToAaveFailed(supplyTokenAddr, collateralAmt);
