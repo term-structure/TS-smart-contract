@@ -14,9 +14,14 @@ interface ILoanFacet {
     /// @notice Error for liquidate the loan with invalid repay amount
     error RepayAmtExceedsMaxRepayAmt(uint128 repayAmt, uint128 maxRepayAmt);
     /// @notice Error for supply to Aave
-    error SupplyToAaveFailed(address tokenAddr, uint128 amount);
+    error SupplyToAaveFailed(address collateralTokenAddr, uint128 collateralAmt);
     /// @notice Error for borrow from Aave
-    error BorrowFromAaveFailed(address tokenAddr, uint128 amount);
+    error BorrowFromAaveFailed(
+        address collateralTokenAddr,
+        uint128 collateralAmt,
+        address debtTokenAddr,
+        uint128 debtAmt
+    );
     /// @notice Error for use roll when it is not activated
     error RollIsNotActivated();
 

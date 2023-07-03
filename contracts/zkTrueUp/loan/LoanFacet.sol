@@ -168,7 +168,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                 emit Repay(loanId, msg.sender, collateralAsset.tokenAddr, debtTokenAddr, collateralAmt, debtAmt, false);
                 emit RollToAave(loanId, msg.sender, supplyTokenAddr, debtTokenAddr, collateralAmt, debtAmt);
             } catch {
-                revert BorrowFromAaveFailed(debtTokenAddr, debtAmt);
+                revert BorrowFromAaveFailed(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt);
             }
         } catch {
             revert SupplyToAaveFailed(supplyTokenAddr, collateralAmt);
