@@ -17,6 +17,7 @@ import {Config} from "../libraries/Config.sol";
  */
 contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
     using SafeERC20 for ISolidStateERC20;
+    using FlashLoanLib for FlashLoanStorage.Layout;
 
     /**
      * @inheritdoc IFlashLoanFacet
@@ -31,7 +32,7 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
         bytes memory data
     ) external {
         if (assets.length != amounts.length) revert InputLengthMismatch(assets.length, amounts.length);
-        uint16 flashLoanPremium = FlashLoanLib.getFlashLoanPremium();
+        uint16 flashLoanPremium = FlashLoanLib.getFlashLoanStorage().getFlashLoanPremium();
         uint128[] memory premiums = new uint128[](assets.length);
         for (uint256 i; i < assets.length; i++) {
             TokenLib.getValidToken(assets[i]);
@@ -62,6 +63,6 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
      * @inheritdoc IFlashLoanFacet
      */
     function getFlashLoanPremium() external view returns (uint16) {
-        return FlashLoanLib.getFlashLoanPremium();
+        return FlashLoanLib.getFlashLoanStorage().getFlashLoanPremium();
     }
 }
