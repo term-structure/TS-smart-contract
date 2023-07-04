@@ -6,6 +6,7 @@ import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/R
 import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
+import {AddressStorage} from "../address/AddressStorage.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
@@ -27,6 +28,7 @@ import "hardhat/console.sol";
 contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using SafeERC20 for ISolidStateERC20;
     using AccountLib for AccountStorage.Layout;
+    using AddressLib for AddressStorage.Layout;
 
     /**
      * @inheritdoc ILoanFacet
@@ -134,19 +136,22 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         ) = LoanLib.getLoanInfo(loan);
         loan.debtAmt -= debtAmt;
         loan.collateralAmt -= collateralAmt;
-        (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
-            loan,
-            liquidationFactor.ltvThreshold,
-            collateralAsset,
-            debtAsset
-        );
-        LoanLib.requireHealthy(healthFactor);
+        {
+            (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
+                loan,
+                liquidationFactor.ltvThreshold,
+                collateralAsset,
+                debtAsset
+            );
+            LoanLib.requireHealthy(healthFactor);
+        }
         LoanStorage.layout().loans[loanId] = loan;
 
-        address aaveV3PoolAddr = AddressLib.getAaveV3PoolAddr();
+        AddressStorage.Layout storage asl = AddressLib.getAddressStorage();
+        address aaveV3PoolAddr = asl.getAaveV3PoolAddr();
         // AAVE receive WETH as collateral
         address supplyTokenAddr = collateralAsset.tokenAddr == Config.ETH_ADDRESS
-            ? AddressLib.getWETHAddr()
+            ? asl.getWETHAddr()
             : collateralAsset.tokenAddr;
 
         ISolidStateERC20(supplyTokenAddr).safeApprove(aaveV3PoolAddr, collateralAmt);

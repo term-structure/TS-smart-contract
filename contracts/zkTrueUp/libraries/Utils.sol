@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
+import {AddressStorage} from "../address/AddressStorage.sol";
 import {AddressLib} from "../address/AddressLib.sol";
 import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
@@ -14,6 +15,7 @@ import {Config} from "../libraries/Config.sol";
  */
 library Utils {
     using SafeERC20 for ISolidStateERC20;
+    using AddressLib for AddressStorage.Layout;
 
     /// @notice Error for get zero address
     error InvalidZeroAddr();
@@ -33,7 +35,7 @@ library Utils {
     /// @param amount The amount of the token
     function transfer(address tokenAddr, address payable receiver, uint128 amount) internal {
         if (tokenAddr == Config.ETH_ADDRESS) {
-            IWETH(AddressLib.getWETHAddr()).withdraw(amount);
+            IWETH(AddressLib.getAddressStorage().getWETHAddr()).withdraw(amount);
             (bool success, ) = receiver.call{value: amount}("");
             if (!success) revert TransferFailed();
         } else {
@@ -50,7 +52,7 @@ library Utils {
     function transferFrom(address tokenAddr, address sender, uint128 amount, uint256 msgValue) internal {
         if (tokenAddr == Config.ETH_ADDRESS) {
             if (msgValue != amount) revert InvalidMsgValue(msgValue);
-            IWETH(AddressLib.getWETHAddr()).deposit{value: amount}();
+            IWETH(AddressLib.getAddressStorage().getWETHAddr()).deposit{value: amount}();
         } else {
             if (msgValue != 0) revert InvalidMsgValue(msgValue);
             ISolidStateERC20 token = ISolidStateERC20(tokenAddr);

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {TokenStorage, AssetConfig} from "./TokenStorage.sol";
+import {AddressStorage} from "../address/AddressStorage.sol";
 import {AddressLib} from "../address/AddressLib.sol";
 import {Config} from "../libraries/Config.sol";
 
@@ -9,6 +10,8 @@ import {Config} from "../libraries/Config.sol";
  * @title Term Structure Token Library
  */
 library TokenLib {
+    using AddressLib for AddressStorage.Layout;
+
     /// @notice Error for get invalid token which is paused
     error TokenIsPaused(address pausedTokenAddr);
     /// @notice Error for get token which is not whitelisted
@@ -37,7 +40,7 @@ library TokenLib {
     /// @return tokenId The token id on Layer2
     /// @return assetConfig The configuration of the token
     function getValidToken(address tokenAddr) internal view returns (uint16, AssetConfig memory) {
-        tokenAddr = tokenAddr == AddressLib.getWETHAddr() ? Config.ETH_ADDRESS : tokenAddr;
+        tokenAddr = tokenAddr == AddressLib.getAddressStorage().getWETHAddr() ? Config.ETH_ADDRESS : tokenAddr;
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         bool isTokenPaused = tsl.isPaused[tokenAddr];
         if (isTokenPaused) revert TokenIsPaused(tokenAddr);

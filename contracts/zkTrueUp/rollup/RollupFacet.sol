@@ -5,6 +5,7 @@ import {AccessControlInternal} from "@solidstate/contracts/access/access_control
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {RollupStorage, StoredBlock, CommitBlock, ExecuteBlock, Proof, L1Request} from "./RollupStorage.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
+import {AddressStorage} from "../address/AddressStorage.sol";
 import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
 import {FundWeight} from "../protocolParams/ProtocolParamsStorage.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
@@ -27,6 +28,7 @@ import {Utils} from "../libraries/Utils.sol";
  */
 contract RollupFacet is IRollupFacet, AccessControlInternal {
     using AccountLib for AccountStorage.Layout;
+    using AddressLib for AddressStorage.Layout;
 
     /**
      * @inheritdoc IRollupFacet
@@ -437,7 +439,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function _verifyOneBlock(StoredBlock memory committedBlock, Proof memory proof) internal view {
         if (proof.commitment[0] & Config.INPUT_MASK != uint256(committedBlock.commitment) & Config.INPUT_MASK)
             revert CommitmentInconsistant(proof.commitment[0], uint256(committedBlock.commitment));
-        IVerifier verifier = IVerifier(AddressLib.getVerifierAddr());
+        IVerifier verifier = IVerifier(AddressLib.getAddressStorage().getVerifierAddr());
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
 
@@ -535,7 +537,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function _verifyEvacuationBlock(bytes32 commitment, Proof memory proof) internal view {
         if (proof.commitment[0] & Config.INPUT_MASK != uint256(commitment) & Config.INPUT_MASK)
             revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
-        IVerifier verifier = IVerifier(AddressLib.getEvacuVerifierAddr());
+        IVerifier verifier = IVerifier(AddressLib.getAddressStorage().getEvacuVerifierAddr());
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
 

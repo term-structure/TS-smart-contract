@@ -7,33 +7,46 @@ import {AddressStorage} from "./AddressStorage.sol";
  * @title Term Structure Address Library
  */
 library AddressLib {
+    using AddressLib for AddressStorage.Layout;
+
     /// @notice Internal function to return the address of wETH contract
+    /// @param s The address storage layout
     /// @return wETHAddr Address of wETH
-    function getWETHAddr() internal view returns (address) {
-        return AddressStorage.layout().wETHAddr;
+    function getWETHAddr(AddressStorage.Layout storage s) internal view returns (address) {
+        return s.wETHAddr;
     }
 
     /// @notice Internal function to return the address of PoseidonUnit2 contract
+    /// @param s The address storage layout
     /// @return poseidonUnit2Addr Address of PoseidonUnit2 contract
-    function getPoseidonUnit2Addr() internal view returns (address) {
-        return AddressStorage.layout().poseidonUnit2Addr;
+    function getPoseidonUnit2Addr(AddressStorage.Layout storage s) internal view returns (address) {
+        return s.poseidonUnit2Addr;
     }
 
     /// @notice Internal function to return the address of Verifier contract
+    /// @param s The address storage layout
     /// @return verifierAddr Address of Verifier contract
-    function getVerifierAddr() internal view returns (address) {
-        return AddressStorage.layout().verifierAddr;
+    function getVerifierAddr(AddressStorage.Layout storage s) internal view returns (address) {
+        return s.verifierAddr;
     }
 
     /// @notice Internal function to return the address of Evacuation Verifier contract
+    /// @param s The address storage layout
     /// @return evacuVerifierAddr Address of Evacuation Verifier contract
-    function getEvacuVerifierAddr() internal view returns (address) {
-        return AddressStorage.layout().evacuVerifierAddr;
+    function getEvacuVerifierAddr(AddressStorage.Layout storage s) internal view returns (address) {
+        return s.evacuVerifierAddr;
     }
 
     /// @notice Internal function to return the address of Aave V3 pool contract
+    /// @param s The address storage layout
     /// @return aaveV3PoolAddr Address of Aave V3 pool contract
-    function getAaveV3PoolAddr() internal view returns (address) {
-        return AddressStorage.layout().aaveV3PoolAddr;
+    function getAaveV3PoolAddr(AddressStorage.Layout storage s) internal view returns (address) {
+        return s.aaveV3PoolAddr;
+    }
+
+    /// @notice Internal function to get the address storage layout
+    /// @return AddressStorage The address storage layout
+    function getAddressStorage() internal pure returns (AddressStorage.Layout storage) {
+        return AddressStorage.layout();
     }
 }

@@ -5,6 +5,7 @@ import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
 import {AddressLib} from "../address/AddressLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountStorage} from "./AccountStorage.sol";
+import {AddressStorage} from "../address/AddressStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Utils} from "../libraries/Utils.sol";
 
@@ -13,6 +14,7 @@ import {Utils} from "../libraries/Utils.sol";
  */
 library AccountLib {
     using AccountLib for AccountStorage.Layout;
+    using AddressLib for AddressStorage.Layout;
 
     /// @notice Error for get account which is not registered
     error AccountIsNotRegistered(address accountAddr);
@@ -55,7 +57,9 @@ library AccountLib {
     /// @param tsPubKeyY The y coordinate of the public key of the account
     function addRegisterReq(address sender, uint32 accountId, uint256 tsPubKeyX, uint256 tsPubKeyY) internal {
         bytes20 tsAddr = bytes20(
-            uint160(IPoseidonUnit2(AddressLib.getPoseidonUnit2Addr()).poseidon([tsPubKeyX, tsPubKeyY]))
+            uint160(
+                IPoseidonUnit2(AddressLib.getAddressStorage().getPoseidonUnit2Addr()).poseidon([tsPubKeyX, tsPubKeyY])
+            )
         );
         Operations.Register memory op = Operations.Register({accountId: accountId, tsAddr: tsAddr});
         bytes memory pubData = Operations.encodeRegisterPubData(op);
@@ -122,7 +126,7 @@ library AccountLib {
 
     /// @notice Internal function to get the valid account id
     /// @dev Valid account is the account that is registered on Layer2
-    /// @param s The account storage
+    /// @param s The account storage layout
     /// @param l1AccountAddr The address of the account on Layer1
     /// @return accountId The user account id in Layer2
     function getValidAccount(AccountStorage.Layout storage s, address l1AccountAddr) internal view returns (uint32) {
@@ -132,7 +136,7 @@ library AccountLib {
     }
 
     /// @notice Internal function to get the address by account id
-    /// @param s The account storage
+    /// @param s The account storage layout
     /// @param accountId user account id in layer2
     /// @return accountAddr user account address in layer1
     function getAccountAddr(AccountStorage.Layout storage s, uint32 accountId) internal view returns (address) {
@@ -140,7 +144,7 @@ library AccountLib {
     }
 
     /// @notice Internal function to get the account id by address
-    /// @param s The account storage
+    /// @param s The account storage layout
     /// @param accountAddr user account address in layer1
     /// @return accountId user account id in layer2
     function getAccountId(AccountStorage.Layout storage s, address accountAddr) internal view returns (uint32) {
@@ -148,14 +152,14 @@ library AccountLib {
     }
 
     /// @notice Internal function to get the total number of accounts
-    /// @param s The account storage
+    /// @param s The account storage layout
     /// @return accountNum The total number of accounts
     function getAccountNum(AccountStorage.Layout storage s) internal view returns (uint32) {
         return s.accountNum;
     }
 
-    /// @notice Internal function to get the account storage
-    /// @return accountStorage The account storage
+    /// @notice Internal function to get the account storage layout
+    /// @return accountStorage The account storage layout
     function getAccountStorage() internal pure returns (AccountStorage.Layout storage) {
         return AccountStorage.layout();
     }

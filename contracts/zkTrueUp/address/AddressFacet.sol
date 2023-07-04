@@ -12,6 +12,8 @@ import {Config} from "../libraries/Config.sol";
  * @title Term Structure Address Facet Contract
  */
 contract AddressFacet is IAddressFacet, AccessControlInternal {
+    using AddressLib for AddressStorage.Layout;
+
     /**
      * @inheritdoc IAddressFacet
      */
@@ -32,27 +34,27 @@ contract AddressFacet is IAddressFacet, AccessControlInternal {
      * @inheritdoc IAddressFacet
      */
     function getWETHAddr() external view returns (address) {
-        return AddressLib.getWETHAddr();
+        return AddressLib.getAddressStorage().getWETHAddr();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
     function getPoseidonUnit2Addr() external view returns (address) {
-        return AddressLib.getPoseidonUnit2Addr();
+        return AddressLib.getAddressStorage().getPoseidonUnit2Addr();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
     function getVerifierAddr() external view returns (address) {
-        return AddressLib.getVerifierAddr();
+        return AddressLib.getAddressStorage().getVerifierAddr();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
     function getEvacuVerifierAddr() external view returns (address) {
-        return AddressLib.getEvacuVerifierAddr();
+        return AddressLib.getAddressStorage().getEvacuVerifierAddr();
     }
 }
