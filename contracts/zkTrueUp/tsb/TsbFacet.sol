@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {TsbStorage} from "./TsbStorage.sol";
+import {AccountStorage} from "../account/AccountStorage.sol";
 import {TsbLib} from "./TsbLib.sol";
 import {ITsbFacet} from "./ITsbFacet.sol";
 import {TsbToken} from "../tsb/TsbToken.sol";
@@ -20,6 +21,8 @@ import {Utils} from "../libraries/Utils.sol";
  * @notice The Term Structure Bond Facet (TsbFacet) is a contract to manages TsbTokens
  */
 contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
+    using AccountLib for AccountStorage.Layout;
+
     /**
      * @inheritdoc ITsbFacet
      * @dev This function is only called by the operator
@@ -58,7 +61,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         emit Redeem(msg.sender, tsbTokenAddr, underlyingAsset, amount, redeemAndDeposit);
 
         if (redeemAndDeposit) {
-            uint32 accountId = AccountLib.getValidAccount(msg.sender);
+            uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
             (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = TokenLib.getValidToken(underlyingAsset);
             TokenLib.validDepositAmt(amount, underlyingAssetConfig);
             AccountLib.addDepositReq(

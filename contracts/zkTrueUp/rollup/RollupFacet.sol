@@ -4,8 +4,9 @@ pragma solidity ^0.8.17;
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {RollupStorage, StoredBlock, CommitBlock, ExecuteBlock, Proof, L1Request} from "./RollupStorage.sol";
-import {FundWeight} from "../protocolParams/ProtocolParamsStorage.sol";
+import {AccountStorage} from "../account/AccountStorage.sol";
 import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
+import {FundWeight} from "../protocolParams/ProtocolParamsStorage.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {IRollupFacet} from "./IRollupFacet.sol";
 import {RollupLib} from "./RollupLib.sol";
@@ -25,6 +26,8 @@ import {Utils} from "../libraries/Utils.sol";
  * @title Term Structure Rollup Facet Contract
  */
 contract RollupFacet is IRollupFacet, AccessControlInternal {
+    using AccountLib for AccountStorage.Layout;
+
     /**
      * @inheritdoc IRollupFacet
      */
@@ -366,12 +369,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 ++processedL1RequestNum;
             } else if (opType == Operations.OpType.CREATE_TS_BOND_TOKEN) {
                 rollupData = Bytes.slice(publicData, offset, Config.CREATE_TS_BOND_TOKEN_BYTES);
-                Operations.CreateTsbToken memory CreateTsbTokenReq = Operations.readCreateTsbTokenPubData(rollupData);
-                AssetConfig memory tsbTokenConfig = TokenLib.getAssetConfig(CreateTsbTokenReq.tsbTokenId);
-                AssetConfig memory baseTokenConfig = TokenLib.getAssetConfig(CreateTsbTokenReq.baseTokenId);
+                Operations.CreateTsbToken memory createTsbTokenReq = Operations.readCreateTsbTokenPubData(rollupData);
+                AssetConfig memory tsbTokenConfig = TokenLib.getAssetConfig(createTsbTokenReq.tsbTokenId);
+                AssetConfig memory baseTokenConfig = TokenLib.getAssetConfig(createTsbTokenReq.baseTokenId);
                 (address underlyingAsset, uint32 maturityTime) = ITsbToken(tsbTokenConfig.tokenAddr).tokenInfo();
                 if (underlyingAsset != baseTokenConfig.tokenAddr) revert BaseTokenAddrIsNotMatched();
-                if (maturityTime != CreateTsbTokenReq.maturityTime) revert MaturityTimeIsNotMatched();
+                if (maturityTime != createTsbTokenReq.maturityTime) revert MaturityTimeIsNotMatched();
             } else if (opType == Operations.OpType.EVACUATION) {
                 rollupData = Bytes.slice(publicData, offset, Config.EVACUATION_BYTES);
                 Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(rollupData);
@@ -443,7 +446,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
     function _addPendingBalance(uint32 accountId, uint16 tokenId, uint128 amount) internal {
-        address accountAddr = AccountLib.getAccountAddr(accountId);
+        address accountAddr = AccountLib.getAccountStorage().getAccountAddr(accountId);
         Utils.noneZeroAddr(accountAddr);
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(tokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
@@ -454,7 +457,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Internal function to update the onchain loan info
     /// @param auctionEnd The auction end request
     function _updateLoan(Operations.AuctionEnd memory auctionEnd) internal {
-        Utils.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
+        Utils.noneZeroAddr(AccountLib.getAccountStorage().getAccountAddr(auctionEnd.accountId));
         // tsbToken config
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(auctionEnd.tsbTokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
@@ -541,7 +544,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function _evacuate(Operations.Evacuation memory evacuation) internal {
         if (RollupLib.isEvacuated(evacuation.accountId, evacuation.tokenId))
             revert Evacuated(evacuation.accountId, evacuation.tokenId);
-        address receiver = AccountLib.getAccountAddr(evacuation.accountId);
+
+        address receiver = AccountLib.getAccountStorage().getAccountAddr(evacuation.accountId);
         Utils.noneZeroAddr(receiver);
         AssetConfig memory assetConfig = TokenLib.getAssetConfig(evacuation.tokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);

@@ -12,6 +12,8 @@ import {Utils} from "../libraries/Utils.sol";
  * @title Term Structure Account Library
  */
 library AccountLib {
+    using AccountLib for AccountStorage.Layout;
+
     /// @notice Error for get account which is not registered
     error AccountIsNotRegistered(address accountAddr);
 
@@ -33,8 +35,8 @@ library AccountLib {
 
     /// @notice Emit when there is a new force withdraw
     /// @param accountAddr The user account address in layer1
-    /// @param tokenAddr The address of the force withdraw token
     /// @param accountId The user account id in the L2 system
+    /// @param tokenAddr The address of the force withdraw token
     /// @param tokenId Layer2 id of force withdraw token
     event ForceWithdraw(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId);
 
@@ -120,31 +122,41 @@ library AccountLib {
 
     /// @notice Internal function to get the valid account id
     /// @dev Valid account is the account that is registered on Layer2
+    /// @param s The account storage
     /// @param l1AccountAddr The address of the account on Layer1
     /// @return accountId The user account id in Layer2
-    function getValidAccount(address l1AccountAddr) internal view returns (uint32) {
-        uint32 accountId = getAccountId(l1AccountAddr);
+    function getValidAccount(AccountStorage.Layout storage s, address l1AccountAddr) internal view returns (uint32) {
+        uint32 accountId = s.getAccountId(l1AccountAddr);
         if (accountId == 0) revert AccountIsNotRegistered(l1AccountAddr);
         return accountId;
     }
 
     /// @notice Internal function to get the address by account id
+    /// @param s The account storage
     /// @param accountId user account id in layer2
     /// @return accountAddr user account address in layer1
-    function getAccountAddr(uint32 accountId) internal view returns (address) {
-        return AccountStorage.layout().accountAddresses[accountId];
+    function getAccountAddr(AccountStorage.Layout storage s, uint32 accountId) internal view returns (address) {
+        return s.accountAddresses[accountId];
     }
 
     /// @notice Internal function to get the account id by address
+    /// @param s The account storage
     /// @param accountAddr user account address in layer1
     /// @return accountId user account id in layer2
-    function getAccountId(address accountAddr) internal view returns (uint32) {
-        return AccountStorage.layout().accountIds[accountAddr];
+    function getAccountId(AccountStorage.Layout storage s, address accountAddr) internal view returns (uint32) {
+        return s.accountIds[accountAddr];
     }
 
     /// @notice Internal function to get the total number of accounts
+    /// @param s The account storage
     /// @return accountNum The total number of accounts
-    function getAccountNum() internal view returns (uint32) {
-        return AccountStorage.layout().accountNum;
+    function getAccountNum(AccountStorage.Layout storage s) internal view returns (uint32) {
+        return s.accountNum;
+    }
+
+    /// @notice Internal function to get the account storage
+    /// @return accountStorage The account storage
+    function getAccountStorage() internal pure returns (AccountStorage.Layout storage) {
+        return AccountStorage.layout();
     }
 }

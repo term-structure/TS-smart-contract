@@ -16,15 +16,18 @@ import {Utils} from "../libraries/Utils.sol";
  * @title Term Structure Account Facet Contract
  */
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
+    using AccountLib for AccountStorage.Layout;
+
     /**
      * @inheritdoc IAccountFacet
      * @dev The account is registered by depositing Ether or ERC20 to ZkTrueUp
      */
     function register(uint256 tsPubKeyX, uint256 tsPubKeyY, address tokenAddr, uint128 amount) external payable {
         RollupLib.requireActive();
-        if (AccountLib.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);
+        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
+        if (asl.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);
         TokenLib.requireBaseToken(tokenAddr);
-        uint32 accountId = _register(msg.sender, tsPubKeyX, tsPubKeyY);
+        uint32 accountId = _register(asl, msg.sender, tsPubKeyX, tsPubKeyY);
         _deposit(msg.sender, msg.sender, accountId, tokenAddr, amount);
     }
 
@@ -34,7 +37,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      */
     function deposit(address to, address tokenAddr, uint128 amount) external payable {
         RollupLib.requireActive();
-        uint32 accountId = AccountLib.getValidAccount(to);
+        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
+        uint32 accountId = asl.getValidAccount(to);
         _deposit(msg.sender, to, accountId, tokenAddr, amount);
     }
 
@@ -44,7 +48,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev The token cannot be TSB token
      */
     function withdraw(address tokenAddr, uint128 amount) external virtual nonReentrant {
-        uint32 accountId = AccountLib.getValidAccount(msg.sender);
+        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
+        uint32 accountId = asl.getValidAccount(msg.sender);
         (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(tokenAddr);
         AccountLib.updateWithdrawRecord(msg.sender, accountId, tokenAddr, tokenId, amount);
         assetConfig.isTsbToken
@@ -56,7 +61,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      */
     function forceWithdraw(address tokenAddr) external {
-        uint32 accountId = AccountLib.getValidAccount(msg.sender);
+        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
+        uint32 accountId = asl.getValidAccount(msg.sender);
         (uint16 tokenId, ) = TokenLib.getValidToken(tokenAddr);
         AccountLib.addForceWithdrawReq(msg.sender, accountId, tokenAddr, tokenId);
     }
@@ -65,32 +71,38 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      */
     function getAccountAddr(uint32 accountId) external view returns (address) {
-        return AccountLib.getAccountAddr(accountId);
+        return AccountLib.getAccountStorage().getAccountAddr(accountId);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
     function getAccountId(address accountAddr) external view returns (uint32) {
-        return AccountLib.getAccountId(accountAddr);
+        return AccountLib.getAccountStorage().getAccountId(accountAddr);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
     function getAccountNum() external view returns (uint32) {
-        return AccountLib.getAccountNum();
+        return AccountLib.getAccountStorage().getAccountNum();
     }
 
     /// @notice Internal register function
+    /// @param asl The account storage layout
     /// @param sender The address of sender
     /// @param tsPubKeyX The x coordinate of the public key of the token sender
     /// @param tsPubKeyY The y coordinate of the public key of the token sender
     /// @return accountId The registered L2 account Id
-    function _register(address sender, uint256 tsPubKeyX, uint256 tsPubKeyY) internal returns (uint32) {
-        uint32 accountId = AccountLib.getAccountNum();
+    function _register(
+        AccountStorage.Layout storage asl,
+        address sender,
+        uint256 tsPubKeyX,
+        uint256 tsPubKeyY
+    ) internal returns (uint32) {
+        uint32 accountId = asl.getAccountNum();
         if (accountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT) revert AccountNumExceedLimit(accountId);
-        AccountStorage.Layout storage asl = AccountStorage.layout();
+
         asl.accountIds[sender] = accountId;
         asl.accountAddresses[accountId] = sender;
         asl.accountNum++;

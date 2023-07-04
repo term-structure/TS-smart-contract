@@ -5,6 +5,7 @@ import {AccessControlInternal} from "@solidstate/contracts/access/access_control
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
+import {AccountStorage} from "../account/AccountStorage.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
@@ -25,6 +26,7 @@ import "hardhat/console.sol";
  */
 contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using SafeERC20 for ISolidStateERC20;
+    using AccountLib for AccountStorage.Layout;
 
     /**
      * @inheritdoc ILoanFacet
@@ -44,7 +46,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      */
     function removeCollateral(bytes12 loanId, uint128 amount) external nonReentrant {
         Loan memory loan = LoanLib.getLoan(loanId);
-        LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountAddr(loan.accountId));
+        LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountStorage().getAccountAddr(loan.accountId));
         (
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
@@ -69,7 +71,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      */
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable {
         Loan memory loan = LoanLib.getLoan(loanId);
-        LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountAddr(loan.accountId));
+        LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountStorage().getAccountAddr(loan.accountId));
         (
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
@@ -124,7 +126,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
         if (!LoanLib.isActivatedRoll()) revert RollIsNotActivated();
         Loan memory loan = LoanLib.getLoan(loanId);
-        LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountAddr(loan.accountId));
+        LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountStorage().getAccountAddr(loan.accountId));
         (
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,

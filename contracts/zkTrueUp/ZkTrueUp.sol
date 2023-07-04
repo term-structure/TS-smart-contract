@@ -11,5 +11,5 @@ import {AccessControl} from "@solidstate/contracts/access/access_control/AccessC
  *         diamond proxy standard.
  */
 contract ZkTrueUp is SolidStateDiamond, AccessControl {
-
+    // inherit from SolidStateDiamond and AccessControl, no additional logic
 }
