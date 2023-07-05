@@ -29,6 +29,7 @@ import {Utils} from "../libraries/Utils.sol";
 contract RollupFacet is IRollupFacet, AccessControlInternal {
     using AccountLib for AccountStorage.Layout;
     using AddressLib for AddressStorage.Layout;
+    using LoanLib for LoanStorage.Layout;
 
     /**
      * @inheritdoc IRollupFacet
@@ -480,7 +481,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             debtTokenId,
             auctionEnd.collateralTokenId
         );
-        Loan memory loan = LoanLib.getLoan(loanId);
+        Loan memory loan = LoanLib.getLoanStorage().getLoan(loanId);
         loan.accountId = auctionEnd.accountId;
         loan.debtTokenId = debtTokenId;
         loan.collateralTokenId = auctionEnd.collateralTokenId;

@@ -106,7 +106,7 @@ describe("Roll to Aave", () => {
       "contracts/test/aaveV3/IPoolDataProvider.sol:IPoolDataProvider",
       MAINNET_ADDRESS.AAVE_V3_POOL_DATA_PROVIDER
     );
-    await diamondLoan.connect(admin).setIsActivatedRoll(true);
+    await diamondLoan.connect(admin).setIsActivatedRoller(true);
   });
 
   describe("Roll to Aave (general case)", () => {
@@ -191,7 +191,7 @@ describe("Roll to Aave", () => {
         TS_BASE_TOKEN.ETH
       );
 
-      await diamondLoan.connect(admin).setIsActivatedRoll(false);
+      await diamondLoan.connect(admin).setIsActivatedRoller(false);
 
       await expect(
         diamondLoan.connect(user2).rollToAave(loanId, collateralAmt, debtAmt)

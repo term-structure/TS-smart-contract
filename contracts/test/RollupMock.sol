@@ -13,6 +13,8 @@ import {Utils} from "../zkTrueUp/libraries/Utils.sol";
 import {Config} from "../zkTrueUp/libraries/Config.sol";
 
 contract RollupMock is RollupFacet {
+    using LoanLib for LoanStorage.Layout;
+
     function updateLoanMock(Operations.AuctionEnd memory auctionEnd) external {
         // Utils.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
         // // tsbToken config
@@ -35,7 +37,7 @@ contract RollupMock is RollupFacet {
             debtTokenId,
             auctionEnd.collateralTokenId
         );
-        Loan memory loan = LoanLib.getLoan(loanId);
+        Loan memory loan = LoanLib.getLoanStorage().getLoan(loanId);
         loan.accountId = auctionEnd.accountId;
         loan.debtTokenId = debtTokenId;
         loan.collateralTokenId = auctionEnd.collateralTokenId;

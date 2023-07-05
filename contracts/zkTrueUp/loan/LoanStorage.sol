@@ -18,6 +18,22 @@ struct Loan {
     uint128 debtAmt;
 }
 
+/// @notice The amount of the liquidation
+struct LiquidationAmt {
+    uint128 liquidatorRewardAmt;
+    uint128 protocolPenaltyAmt;
+}
+
+// /// @notice The information of the loan
+// struct LoanInfo {
+//     Loan loan;
+//     uint32 maturityTime;
+//     uint32 accountId;
+//     LiquidationFactor liquidationFactor;
+//     AssetConfig collateralAsset;
+//     AssetConfig debtAsset;
+// }
+
 /**
  * @title Term Structure Loan Storage
  */
@@ -25,7 +41,8 @@ library LoanStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Loan")) - 1);
 
     struct Layout {
-        bool isActivatedRoll;
+        /// @notice The flag to indicate the roll function is activated or not
+        bool isActivatedRoller;
         /// @notice The half liquidation threshold
         uint16 halfLiquidationThreshold;
         /// @notice LTV threshold for loans

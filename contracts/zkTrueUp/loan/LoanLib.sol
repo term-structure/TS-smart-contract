@@ -11,6 +11,8 @@ import {Config} from "../libraries/Config.sol";
  * @title Term Structure Loan Library
  */
 library LoanLib {
+    using LoanLib for LoanStorage.Layout;
+
     /// @notice Error for sender is not the loan owner
     error SenderIsNotLoanOwner(address sender, address loanOwner);
     /// @notice Error for health factor is under thresholds
@@ -65,41 +67,49 @@ library LoanLib {
         if (loan.accountId == 0) revert LoanIsNotExist();
         AssetConfig memory collateralAsset = TokenLib.getAssetConfig(loan.collateralTokenId);
         AssetConfig memory debtAsset = TokenLib.getAssetConfig(loan.debtTokenId);
+        LoanStorage.Layout storage lsl = getLoanStorage();
         LiquidationFactor memory liquidationFactor = debtAsset.isStableCoin && collateralAsset.isStableCoin
-            ? LoanLib.getStableCoinPairLiquidationFactor()
-            : LoanLib.getLiquidationFactor();
+            ? lsl.getStableCoinPairLiquidationFactor()
+            : lsl.getLiquidationFactor();
         return (liquidationFactor, collateralAsset, debtAsset);
     }
 
     /// @notice Internal function to get the loan
+    /// @param s The loan storage
     /// @param loanId The id of the loan
     /// @return loan The loan info
-    function getLoan(bytes12 loanId) internal view returns (Loan memory) {
-        return LoanStorage.layout().loans[loanId];
+    function getLoan(LoanStorage.Layout storage s, bytes12 loanId) internal view returns (Loan memory) {
+        return s.loans[loanId];
     }
 
     /// @notice Internal function to get the half liquidation threshold
+    /// @param s The loan storage
     /// @return halfLiquidationThreshold The half liquidation threshold
-    function getHalfLiquidationThreshold() internal view returns (uint16) {
-        return LoanStorage.layout().halfLiquidationThreshold;
+    function getHalfLiquidationThreshold(LoanStorage.Layout storage s) internal view returns (uint16) {
+        return s.halfLiquidationThreshold;
     }
 
     /// @notice Internal function to get the liquidation factor
+    /// @param s The loan storage
     /// @return liquidationFactor The liquidation factor
-    function getLiquidationFactor() internal view returns (LiquidationFactor memory) {
-        return LoanStorage.layout().liquidationFactor;
+    function getLiquidationFactor(LoanStorage.Layout storage s) internal view returns (LiquidationFactor memory) {
+        return s.liquidationFactor;
     }
 
     /// @notice Internal function to get the stable coin pair liquidation factor
+    /// @param s The loan storage
     /// @return liquidationFactor The stable coin pair liquidation factor
-    function getStableCoinPairLiquidationFactor() internal view returns (LiquidationFactor memory) {
-        return LoanStorage.layout().stableCoinPairLiquidationFactor;
+    function getStableCoinPairLiquidationFactor(
+        LoanStorage.Layout storage s
+    ) internal view returns (LiquidationFactor memory) {
+        return s.stableCoinPairLiquidationFactor;
     }
 
     /// @notice Internal function to check if the roll function is activated
-    /// @return isActivatedRoll True if the roll function is activated, otherwise false
-    function isActivatedRoll() internal view returns (bool) {
-        return LoanStorage.layout().isActivatedRoll;
+    /// @param s The loan storage
+    /// @return isRollActivated True if the roll function is activated, otherwise false
+    function getRollerState(LoanStorage.Layout storage s) internal view returns (bool) {
+        return s.isActivatedRoller;
     }
 
     /// @notice Internal function to check if the loan is liquidable
@@ -156,5 +166,11 @@ library LoanLib {
                     (uint96(maturityTime) << 32) |
                     (uint96(accountId) << 64)
             );
+    }
+
+    /// @notice Internal function to get the loan storage layout
+    /// @return loanStorage The loan storage layout
+    function getLoanStorage() internal pure returns (LoanStorage.Layout storage) {
+        return LoanStorage.layout();
     }
 }
