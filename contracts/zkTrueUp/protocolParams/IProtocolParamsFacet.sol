@@ -28,15 +28,15 @@ interface IProtocolParamsFacet {
 
     /// @notice Set the treasury address
     /// @param treasuryAddr The address of the treasury
-    function setTreasuryAddr(address treasuryAddr) external;
+    function setTreasuryAddr(address payable treasuryAddr) external;
 
     /// @notice Set the insurance address
     /// @param insuranceAddr The address of the insurance
-    function setInsuranceAddr(address insuranceAddr) external;
+    function setInsuranceAddr(address payable insuranceAddr) external;
 
     /// @notice Set the vault address
     /// @param vaultAddr The address of the vault
-    function setVaultAddr(address vaultAddr) external;
+    function setVaultAddr(address payable vaultAddr) external;
 
     /// @notice Set the fund weight
     /// @param fundWeight The fund weight

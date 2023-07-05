@@ -5,6 +5,7 @@ import {AccessControlInternal} from "@solidstate/contracts/access/access_control
 import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {FlashLoanStorage} from "./FlashLoanStorage.sol";
+import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol";
 import {FlashLoanLib} from "./FlashLoanLib.sol";
 import {IFlashLoanFacet} from "./IFlashLoanFacet.sol";
 import {IFlashLoanReceiver} from "../interfaces/IFlashLoanReceiver.sol";
@@ -18,6 +19,7 @@ import {Config} from "../libraries/Config.sol";
 contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
     using SafeERC20 for ISolidStateERC20;
     using FlashLoanLib for FlashLoanStorage.Layout;
+    using ProtocolParamsLib for ProtocolParamsStorage.Layout;
 
     /**
      * @inheritdoc IFlashLoanFacet
@@ -43,7 +45,7 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
         if (!IFlashLoanReceiver(receiver).executeOperation(msg.sender, assets, amounts, premiums, data))
             revert FlashLoanExecuteFailed();
 
-        address treasuryAddr = ProtocolParamsLib.getTreasuryAddr();
+        address payable treasuryAddr = ProtocolParamsLib.getProtocolParamsStorage().getTreasuryAddr();
         for (uint256 i; i < assets.length; i++) {
             ISolidStateERC20(assets[i]).safeTransferFrom(receiver, address(this), amounts[i] + premiums[i]);
             ISolidStateERC20(assets[i]).safeTransfer(treasuryAddr, premiums[i]);

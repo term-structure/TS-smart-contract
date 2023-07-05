@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {AccountStorage} from "./AccountStorage.sol";
+import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {IAccountFacet} from "./IAccountFacet.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
@@ -17,13 +18,14 @@ import {Utils} from "../libraries/Utils.sol";
  */
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
     using AccountLib for AccountStorage.Layout;
+    using RollupLib for RollupStorage.Layout;
 
     /**
      * @inheritdoc IAccountFacet
      * @dev The account is registered by depositing Ether or ERC20 to ZkTrueUp
      */
     function register(uint256 tsPubKeyX, uint256 tsPubKeyY, address tokenAddr, uint128 amount) external payable {
-        RollupLib.requireActive();
+        RollupLib.getRollupStorage().requireActive();
         AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
         if (asl.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);
         TokenLib.requireBaseToken(tokenAddr);
@@ -36,7 +38,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev Only registered accounts can deposit
      */
     function deposit(address to, address tokenAddr, uint128 amount) external payable {
-        RollupLib.requireActive();
+        RollupLib.getRollupStorage().requireActive();
         AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
         uint32 accountId = asl.getValidAccount(to);
         _deposit(msg.sender, to, accountId, tokenAddr, amount);

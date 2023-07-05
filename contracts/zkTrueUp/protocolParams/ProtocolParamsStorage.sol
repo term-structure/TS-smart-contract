@@ -17,11 +17,11 @@ library ProtocolParamsStorage {
 
     struct Layout {
         /// @notice Address of the treasury
-        address treasuryAddr;
+        address payable treasuryAddr;
         /// @notice Address of the insurance
-        address insuranceAddr;
+        address payable insuranceAddr;
         /// @notice Address of the vault
-        address vaultAddr;
+        address payable vaultAddr;
         /// @notice Fund weight for treasury, insurance and vault
         FundWeight fundWeight;
     }

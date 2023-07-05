@@ -49,7 +49,7 @@ library Config {
     uint256 internal constant AUCTION_END_BYTES = 4 * CHUNK_BYTES;
 
     /// @notice The bytes lengths of CreateTsbToken request
-    uint256 internal constant CREATE_TS_BOND_TOKEN_BYTES = 1 * CHUNK_BYTES;
+    uint256 internal constant CREATE_TSB_TOKEN_BYTES = 1 * CHUNK_BYTES;
 
     /// @notice The bytes lengths of WithdrawFee request
     uint256 internal constant WITHDRAW_FEE_BYTES = 2 * CHUNK_BYTES;

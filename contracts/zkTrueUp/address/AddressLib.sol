@@ -7,8 +7,6 @@ import {AddressStorage} from "./AddressStorage.sol";
  * @title Term Structure Address Library
  */
 library AddressLib {
-    using AddressLib for AddressStorage.Layout;
-
     /// @notice Internal function to return the address of wETH contract
     /// @param s The address storage layout
     /// @return wETHAddr Address of wETH

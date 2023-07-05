@@ -6,6 +6,7 @@ import {AddressLib} from "../address/AddressLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountStorage} from "./AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
+import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Utils} from "../libraries/Utils.sol";
 
@@ -15,6 +16,7 @@ import {Utils} from "../libraries/Utils.sol";
 library AccountLib {
     using AccountLib for AccountStorage.Layout;
     using AddressLib for AddressStorage.Layout;
+    using RollupLib for RollupStorage.Layout;
 
     /// @notice Error for get account which is not registered
     error AccountIsNotRegistered(address accountAddr);
@@ -63,7 +65,7 @@ library AccountLib {
         );
         Operations.Register memory op = Operations.Register({accountId: accountId, tsAddr: tsAddr});
         bytes memory pubData = Operations.encodeRegisterPubData(op);
-        RollupLib.addL1Request(sender, Operations.OpType.REGISTER, pubData);
+        RollupLib.getRollupStorage().addL1Request(sender, Operations.OpType.REGISTER, pubData);
         emit Register(sender, accountId, tsPubKeyX, tsPubKeyY, tsAddr);
     }
 
@@ -85,7 +87,7 @@ library AccountLib {
         uint128 l2Amt = Utils.toL2Amt(amount, decimals);
         Operations.Deposit memory op = Operations.Deposit({accountId: accountId, tokenId: tokenId, amount: l2Amt});
         bytes memory pubData = Operations.encodeDepositPubData(op);
-        RollupLib.addL1Request(to, Operations.OpType.DEPOSIT, pubData);
+        RollupLib.getRollupStorage().addL1Request(to, Operations.OpType.DEPOSIT, pubData);
         emit Deposit(to, accountId, tokenAddr, tokenId, amount);
     }
 
@@ -103,7 +105,7 @@ library AccountLib {
             amount: uint128(0)
         });
         bytes memory pubData = Operations.encodeForceWithdrawPubData(op);
-        RollupLib.addL1Request(sender, Operations.OpType.FORCE_WITHDRAW, pubData);
+        RollupLib.getRollupStorage().addL1Request(sender, Operations.OpType.FORCE_WITHDRAW, pubData);
         emit ForceWithdraw(sender, accountId, tokenAddr, tokenId);
     }
 
@@ -120,7 +122,7 @@ library AccountLib {
         uint16 tokenId,
         uint128 amount
     ) internal {
-        RollupLib.updateWithdrawalRecord(sender, tokenId, amount);
+        RollupLib.getRollupStorage().updateWithdrawalRecord(sender, tokenId, amount);
         emit Withdraw(sender, accountId, tokenAddr, tokenId, amount);
     }
 

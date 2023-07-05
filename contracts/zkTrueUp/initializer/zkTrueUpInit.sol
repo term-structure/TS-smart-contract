@@ -26,9 +26,9 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
             address evacuVerifierAddr,
             address adminAddr,
             address operatorAddr,
-            address treasuryAddr,
-            address insuranceAddr,
-            address vaultAddr,
+            address payable treasuryAddr,
+            address payable insuranceAddr,
+            address payable vaultAddr,
             bytes32 genesisStateRoot,
             AssetConfig memory ethConfig
         ) = abi.decode(

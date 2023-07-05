@@ -7,6 +7,7 @@ import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
+import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
@@ -30,6 +31,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using AccountLib for AccountStorage.Layout;
     using AddressLib for AddressStorage.Layout;
     using LoanLib for LoanStorage.Layout;
+    using ProtocolParamsLib for ProtocolParamsStorage.Layout;
 
     /**
      * @inheritdoc ILoanFacet
@@ -245,7 +247,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint128 liquidatorRewardAmt = liquidationAmt.liquidatorRewardAmt;
         uint128 protocolPenaltyAmt = liquidationAmt.protocolPenaltyAmt;
         Utils.transfer(collateralToken, payable(msg.sender), liquidatorRewardAmt);
-        Utils.transfer(collateralToken, payable(ProtocolParamsLib.getTreasuryAddr()), protocolPenaltyAmt);
+        address payable treasuryAddr = ProtocolParamsLib.getProtocolParamsStorage().getTreasuryAddr();
+        Utils.transfer(collateralToken, treasuryAddr, protocolPenaltyAmt);
         emit Liquidation(loanId, msg.sender, collateralToken, liquidatorRewardAmt, protocolPenaltyAmt);
         return (liquidatorRewardAmt, protocolPenaltyAmt);
     }

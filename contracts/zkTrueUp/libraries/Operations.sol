@@ -33,7 +33,7 @@ library Operations {
         ADMIN_CANCEL_ORDER,
         USER_CANCEL_ORDER,
         INCREASE_EPOCH,
-        CREATE_TS_BOND_TOKEN,
+        CREATE_TSB_TOKEN,
         REDEEM,
         WITHDRAW_FEE,
         EVACUATION,
