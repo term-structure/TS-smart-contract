@@ -144,12 +144,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      */
     function liquidate(bytes12 loanId, uint128 repayAmt) external payable returns (uint128, uint128) {
         (LiquidationAmt memory liquidationAmt, address collateralToken) = _liquidate(loanId, repayAmt);
-
         uint128 liquidatorRewardAmt = liquidationAmt.liquidatorRewardAmt;
         uint128 protocolPenaltyAmt = liquidationAmt.protocolPenaltyAmt;
         Utils.transfer(collateralToken, payable(msg.sender), liquidatorRewardAmt);
+
         address payable treasuryAddr = ProtocolParamsLib.getProtocolParamsStorage().getTreasuryAddr();
         Utils.transfer(collateralToken, treasuryAddr, protocolPenaltyAmt);
+
         emit Liquidation(loanId, msg.sender, collateralToken, liquidatorRewardAmt, protocolPenaltyAmt);
         return (liquidatorRewardAmt, protocolPenaltyAmt);
     }
@@ -349,8 +350,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint128 totalRemovedCollateralAmt = liquidationAmt.liquidatorRewardAmt + liquidationAmt.protocolPenaltyAmt;
         Utils.transferFrom(debtAsset.tokenAddr, msg.sender, repayAmt, msg.value);
 
-        // loan.debtAmt -= repayAmt;
-        // loan.collateralAmt -= totalRemovedCollateralAmt;
         loan.repay(totalRemovedCollateralAmt, repayAmt);
 
         lsl.loans[loanId] = loan;

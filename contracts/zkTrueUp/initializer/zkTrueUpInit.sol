@@ -10,7 +10,8 @@ import {ProtocolParamsStorage, FundWeight} from "../protocolParams/ProtocolParam
 import {LoanStorage, LiquidationFactor} from "../loan/LoanStorage.sol";
 import {RollupStorage, StoredBlock} from "../rollup/RollupStorage.sol";
 import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
-import {Config, InitConfig} from "../libraries/Config.sol";
+import {Config} from "../libraries/Config.sol";
+import {InitialConfig} from "../libraries/InitialConfig.sol";
 
 /**
  * @title Zk-TureUp Initializer Contract
@@ -58,7 +59,7 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
 
         // init flashLoan facet
         FlashLoanStorage.Layout storage flsl = FlashLoanStorage.layout();
-        flsl.flashLoanPremium = InitConfig.INIT_FLASH_LOAN_PREMIUM;
+        flsl.flashLoanPremium = InitialConfig.INIT_FLASH_LOAN_PREMIUM;
 
         // init protocolParams facet
         ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
@@ -66,27 +67,27 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
         ppsl.insuranceAddr = insuranceAddr;
         ppsl.vaultAddr = vaultAddr;
         FundWeight memory fundWeight = FundWeight({
-            treasury: InitConfig.INIT_TREASURY_WEIGHT,
-            insurance: InitConfig.INIT_INSURANCE_WEIGHT,
-            vault: InitConfig.INIT_VAULT_WEIGHT
+            treasury: InitialConfig.INIT_TREASURY_WEIGHT,
+            insurance: InitialConfig.INIT_INSURANCE_WEIGHT,
+            vault: InitialConfig.INIT_VAULT_WEIGHT
         });
         ppsl.fundWeight = fundWeight;
 
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();
-        lsl.halfLiquidationThreshold = InitConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
+        lsl.halfLiquidationThreshold = InitialConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
 
         LiquidationFactor memory initLiquidationFactor = LiquidationFactor({
-            ltvThreshold: InitConfig.INIT_LTV_THRESHOLD,
-            liquidatorIncentive: InitConfig.INIT_LIQUIDATOR_INCENTIVE,
-            protocolPenalty: InitConfig.INIT_PROTOCOL_PENALTY
+            ltvThreshold: InitialConfig.INIT_LTV_THRESHOLD,
+            liquidatorIncentive: InitialConfig.INIT_LIQUIDATOR_INCENTIVE,
+            protocolPenalty: InitialConfig.INIT_PROTOCOL_PENALTY
         });
         lsl.liquidationFactor = initLiquidationFactor;
 
         LiquidationFactor memory initStableCoinPairLiquidationFactor = LiquidationFactor({
-            ltvThreshold: InitConfig.INIT_STABLECOIN_PAIR_LTV_THRESHOLD,
-            liquidatorIncentive: InitConfig.INIT_STABLECOIN_PAIR_LIQUIDATOR_INCENTIVE,
-            protocolPenalty: InitConfig.INIT_STABLECOIN_PAIR_PROTOCOL_PENALTY
+            ltvThreshold: InitialConfig.INIT_STABLECOIN_PAIR_LTV_THRESHOLD,
+            liquidatorIncentive: InitialConfig.INIT_STABLECOIN_PAIR_LIQUIDATOR_INCENTIVE,
+            protocolPenalty: InitialConfig.INIT_STABLECOIN_PAIR_PROTOCOL_PENALTY
         });
         lsl.stableCoinPairLiquidationFactor = initStableCoinPairLiquidationFactor;
 
