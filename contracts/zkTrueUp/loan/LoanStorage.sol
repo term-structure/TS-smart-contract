@@ -25,6 +25,7 @@ library LoanStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Loan")) - 1);
 
     struct Layout {
+        bool isActivatedRoll;
         /// @notice The half liquidation threshold
         uint16 halfLiquidationThreshold;
         /// @notice LTV threshold for loans

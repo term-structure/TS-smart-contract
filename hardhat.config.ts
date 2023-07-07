@@ -9,7 +9,7 @@ import "hardhat-storage-layout";
 import "hardhat-tracer";
 import "hardhat-gas-reporter";
 import { resolve } from "path";
-import { getString } from "./utils/type";
+import { getBoolean, getString } from "./utils/type";
 import { existsSync, mkdirSync } from "fs";
 task("storage-layout", "Prints the storage layout", async (_, hre) => {
   await hre.storageLayout.export();
@@ -24,6 +24,11 @@ const mnemonic =
   "test test test test test test test test test test test junk";
 
 const config: HardhatUserConfig = {
+  paths: {
+    tests: getBoolean(process.env.IS_FORK_MAINNET, false)
+      ? "./test/mainnetFork"
+      : "./test/zkTrueUp",
+  },
   solidity: {
     compilers: [
       {
@@ -58,14 +63,18 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     runOnCompile: true,
     strict: true,
-    outputFile: resolve(__dirname, "./reports/contract-sizes.txt"),
+    outputFile: getBoolean(process.env.IS_FORK_MAINNET, false)
+      ? resolve(__dirname, "./reports/contract-sizes-mainnetFork.txt")
+      : resolve(__dirname, "./reports/contract-sizes-zkTrueUp.txt"),
   },
   gasReporter: {
     enabled: true,
     currency: "USD",
     gasPrice: 20,
     noColors: true,
-    outputFile: resolve(__dirname, "./reports/gas-report.txt"),
+    outputFile: getBoolean(process.env.IS_FORK_MAINNET, false)
+      ? resolve(__dirname, "./reports/gas-report-mainnetFork.txt")
+      : resolve(__dirname, "./reports/gas-report-zkTrueUp.txt"),
   },
   networks: {
     hardhat: {
@@ -74,6 +83,9 @@ const config: HardhatUserConfig = {
         mnemonic,
       },
       allowUnlimitedContractSize: true,
+      forking: getBoolean(process.env.IS_FORK_MAINNET, false)
+        ? { url: getString(process.env.MAINNET_RPC_URL), blockNumber: 17426510 }
+        : undefined,
     },
     // goerli: {
     //   url: getString(process.env.GOERLI_RPC_URL),

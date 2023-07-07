@@ -1,12 +1,12 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { OracleMock, TokenFacet } from "../../../typechain-types";
-import { FACET_NAMES } from "../../../utils/config";
-import { useFacet } from "../../../utils/useFacet";
-import { deployAndInit } from "../../utils/deployAndInit";
-import { whiteListBaseTokens } from "../../utils/whitelistToken";
+import { OracleMock, TokenFacet } from "../../../../typechain-types";
+import { FACET_NAMES } from "../../../../utils/config";
+import { useFacet } from "../../../../utils/useFacet";
+import { deployAndInit } from "../../../utils/deployAndInit";
+import { whiteListBaseTokens } from "../../../utils/whitelistToken";
 import { BigNumber, Signer } from "ethers";
-import { BaseTokenAddresses, PriceFeeds } from "../../../utils/type";
+import { BaseTokenAddresses, PriceFeeds } from "../../../../utils/type";
 import { TsTokenId } from "term-structure-sdk";
 import { ethers } from "hardhat";
 

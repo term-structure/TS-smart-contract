@@ -94,6 +94,15 @@ library Config {
 
     /// @notice Role for executor
     bytes32 internal constant EXECUTER_ROLE = keccak256("EXECUTER_ROLE");
+
+    /// @notice Aave V3 pool address
+    address internal constant AAVE_V3_POOL_ADDRESS = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+
+    /// @notice Aave V3 referral code
+    uint16 internal constant AAVE_V3_REFERRAL_CODE = 0;
+
+    /// @notice Aave V3 interest rate mode
+    uint256 internal constant AAVE_V3_INTEREST_RATE_MODE = 2;
 }
 
 /**

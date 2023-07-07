@@ -2,6 +2,7 @@
   "plugins": ["prettier"],
   "extends": "solhint:recommended",
   "rules": {
+    "no-console": "warn",
     "prettier/prettier": "error",
     "no-unused-vars": "error",
     "contract-name-camelcase": "error",

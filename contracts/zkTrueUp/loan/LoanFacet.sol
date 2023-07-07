@@ -3,9 +3,14 @@ pragma solidity ^0.8.17;
 
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
+import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
+import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
+import {IPool} from "../interfaces/aaveV3/IPool.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
 import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
+import {AddressLib} from "../address/AddressLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {LoanLib} from "./LoanLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
@@ -13,10 +18,14 @@ import {LoanStorage, LiquidationFactor, Loan} from "./LoanStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Term Structure Loan Facet Contract
  */
 contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
+    using SafeERC20 for ISolidStateERC20;
+
     /**
      * @inheritdoc ILoanFacet
      * @dev Anyone can add collateral to the loan
@@ -107,6 +116,71 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
     /**
      * @inheritdoc ILoanFacet
+     * @notice Should be `approveDelegation` before `borrow from AAVE V3 pool`
+     * @dev Roll the loan to AAVE V3 pool,
+     *      the user can transfer the loan of fixed rate and date from term structure
+     *      to the floating rate and perpetual position on Aave without repaying the debt
+     */
+    function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
+        if (!LoanLib.isActivatedRoll()) revert RollIsNotActivated();
+        Loan memory loan = LoanLib.getLoan(loanId);
+        LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountAddr(loan.accountId));
+        (
+            LiquidationFactor memory liquidationFactor,
+            AssetConfig memory collateralAsset,
+            AssetConfig memory debtAsset
+        ) = LoanLib.getLoanInfo(loan);
+        loan.debtAmt -= debtAmt;
+        loan.collateralAmt -= collateralAmt;
+        (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
+            loan,
+            liquidationFactor.ltvThreshold,
+            collateralAsset,
+            debtAsset
+        );
+        LoanLib.requireHealthy(healthFactor);
+        LoanStorage.layout().loans[loanId] = loan;
+
+        address aaveV3PoolAddr = AddressLib.getAaveV3PoolAddr();
+        // AAVE receive WETH as collateral
+        address supplyTokenAddr = collateralAsset.tokenAddr == Config.ETH_ADDRESS
+            ? AddressLib.getWETHAddr()
+            : collateralAsset.tokenAddr;
+
+        ISolidStateERC20(supplyTokenAddr).safeApprove(aaveV3PoolAddr, collateralAmt);
+        IPool aaveV3Pool = IPool(aaveV3PoolAddr);
+        // referralCode: 0
+        // (see https://docs.aave.com/developers/core-contracts/pool#supply)
+        try aaveV3Pool.supply(supplyTokenAddr, collateralAmt, msg.sender, Config.AAVE_V3_REFERRAL_CODE) {
+            address debtTokenAddr = debtAsset.tokenAddr;
+            // variable rate mode: 2
+            // referralCode: 0
+            // (see https://docs.aave.com/developers/core-contracts/pool#borrow)
+            try
+                aaveV3Pool.borrow(
+                    debtTokenAddr,
+                    debtAmt,
+                    Config.AAVE_V3_INTEREST_RATE_MODE,
+                    Config.AAVE_V3_REFERRAL_CODE,
+                    msg.sender
+                )
+            {
+                emit Repay(loanId, msg.sender, collateralAsset.tokenAddr, debtTokenAddr, collateralAmt, debtAmt, false);
+                emit RollToAave(loanId, msg.sender, supplyTokenAddr, debtTokenAddr, collateralAmt, debtAmt);
+            } catch Error(string memory err) {
+                revert BorrowFromAaveFailedLogString(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, err);
+            } catch (bytes memory err) {
+                revert BorrowFromAaveFailedLogBytes(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, err);
+            }
+        } catch Error(string memory err) {
+            revert SupplyToAaveFailedLogString(supplyTokenAddr, collateralAmt, err);
+        } catch (bytes memory err) {
+            revert SupplyToAaveFailedLogBytes(supplyTokenAddr, collateralAmt, err);
+        }
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
      */
     function liquidate(bytes12 loanId, uint128 repayAmt) external payable returns (uint128, uint128) {
         Loan memory loan = LoanLib.getLoan(loanId);
@@ -169,6 +243,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             ? LoanStorage.layout().stableCoinPairLiquidationFactor = liquidationFactor
             : LoanStorage.layout().liquidationFactor = liquidationFactor;
         emit SetLiquidationFactor(liquidationFactor, isStableCoinPair);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function setIsActivatedRoll(bool _isActivatedRoll) external onlyRole(Config.ADMIN_ROLE) {
+        LoanStorage.layout().isActivatedRoll = _isActivatedRoll;
+        emit SetIsActivatedRoll(_isActivatedRoll);
     }
 
     /**
@@ -247,6 +329,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
         uint128 maxRepayAmt = _getMaxRepayAmt(loan, collateralValue);
         return (_isLiquidable, debtAsset.tokenAddr, maxRepayAmt);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function isActivatedRoll() external view returns (bool) {
+        return LoanLib.isActivatedRoll();
     }
 
     /// @notice Liquidation calculator to calculate the liquidator reward and protocol penalty

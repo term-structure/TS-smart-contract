@@ -8,8 +8,9 @@ import {
   FACET_NAMES,
   DEFAULT_GENESIS_STATE_ROOT,
   INIT_FUNCTION_NAME,
+  MAINNET_ADDRESS,
 } from "../../utils/config";
-import { ERC20Mock, OracleMock } from "../../typechain-types";
+import { ERC20Mock, OracleMock, WETH9 } from "../../typechain-types";
 import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
 import initStates from "../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
 import { utils } from "ethers";
@@ -18,7 +19,10 @@ const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 const genesisStateRoot = initStates.stateRoot;
 
-export const deployAndInit = async (facetNames?: string[]) => {
+export const deployAndInit = async (
+  facetNames?: string[],
+  isMainnetForkTesting?: boolean
+) => {
   const [deployer, admin, operator] = await ethers.getSigners();
   const provider = ethers.provider;
   const treasury = ethers.Wallet.createRandom();
@@ -31,35 +35,53 @@ export const deployAndInit = async (facetNames?: string[]) => {
     deployer
   );
 
-  // set test oracle price feed
-  const OracleMock = await ethers.getContractFactory("OracleMock");
-  const ERC20Mock = await ethers.getContractFactory("ERC20Mock");
+  if (isMainnetForkTesting) {
+    baseTokenAddresses[1] = DEFAULT_ETH_ADDRESS;
+    baseTokenAddresses[2] = MAINNET_ADDRESS.WBTC;
+    baseTokenAddresses[3] = MAINNET_ADDRESS.USDT;
+    baseTokenAddresses[4] = MAINNET_ADDRESS.USDC;
+    baseTokenAddresses[5] = MAINNET_ADDRESS.DAI;
+    priceFeeds[1] = MAINNET_ADDRESS.ETH_PRICE_FEED;
+    priceFeeds[2] = MAINNET_ADDRESS.WBTC_PRICE_FEED;
+    priceFeeds[3] = MAINNET_ADDRESS.USDT_PRICE_FEED;
+    priceFeeds[4] = MAINNET_ADDRESS.USDC_PRICE_FEED;
+    priceFeeds[5] = MAINNET_ADDRESS.DAI_PRICE_FEED;
+  } else {
+    // set test oracle price feed
+    const OracleMock = await ethers.getContractFactory("OracleMock");
+    const ERC20Mock = await ethers.getContractFactory("ERC20Mock");
 
-  for (let i = 0; i < BASE_TOKEN_ASSET_CONFIG.length; i++) {
-    const token = BASE_TOKEN_ASSET_CONFIG[i];
-    const oracleMock = (await OracleMock.connect(
-      operator
-    ).deploy()) as OracleMock;
-    await oracleMock.deployed();
-    priceFeeds[token.tokenId] = oracleMock.address;
+    for (let i = 0; i < BASE_TOKEN_ASSET_CONFIG.length; i++) {
+      const token = BASE_TOKEN_ASSET_CONFIG[i];
+      const oracleMock = (await OracleMock.connect(
+        operator
+      ).deploy()) as OracleMock;
+      await oracleMock.deployed();
+      priceFeeds[token.tokenId] = oracleMock.address;
 
-    if (token.symbol == "ETH") {
-      baseTokenAddresses[token.tokenId] = DEFAULT_ETH_ADDRESS;
-    } else {
-      const erc20Mock = (await ERC20Mock.connect(operator).deploy(
-        token.name,
-        token.symbol,
-        token.decimals
-      )) as ERC20Mock;
-      await erc20Mock.deployed();
-      baseTokenAddresses[token.tokenId] = erc20Mock.address;
+      if (token.symbol == "ETH") {
+        baseTokenAddresses[token.tokenId] = DEFAULT_ETH_ADDRESS;
+      } else {
+        const erc20Mock = (await ERC20Mock.connect(operator).deploy(
+          token.name,
+          token.symbol,
+          token.decimals
+        )) as ERC20Mock;
+        await erc20Mock.deployed();
+        baseTokenAddresses[token.tokenId] = erc20Mock.address;
+      }
     }
   }
 
-  // deploy weth
-  const WETH = await ethers.getContractFactory("WETH9");
-  const weth = await WETH.connect(deployer).deploy();
-  await weth.deployed();
+  let weth: WETH9;
+  if (isMainnetForkTesting) {
+    weth = await ethers.getContractAt("WETH9", MAINNET_ADDRESS.WETH);
+  } else {
+    // deploy weth
+    const WETH = await ethers.getContractFactory("WETH9");
+    weth = await WETH.connect(deployer).deploy();
+    await weth.deployed();
+  }
 
   // deploy poseidonUnit2
   const PoseidonFactory = new ethers.ContractFactory(
@@ -117,7 +139,7 @@ export const deployAndInit = async (facetNames?: string[]) => {
       "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address tokenAddr,address priceFeed)",
     ],
     [
-      weth.address,
+      isMainnetForkTesting ? MAINNET_ADDRESS.WETH : weth.address,
       poseidonUnit2Contract.address,
       verifier.address,
       evacuVerifier.address,

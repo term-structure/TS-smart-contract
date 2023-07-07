@@ -16,6 +16,8 @@ library AddressStorage {
         address verifierAddr;
         /// @notice Evacuation verifier contract address
         address evacuVerifierAddr;
+        /// @notice Aave V3 pool address
+        address aaveV3PoolAddr;
     }
 
     function layout() internal pure returns (Layout storage l) {
