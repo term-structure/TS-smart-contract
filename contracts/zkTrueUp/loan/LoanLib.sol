@@ -59,21 +59,22 @@ library LoanLib {
     }
 
     /// @notice Internal function to get the loan info
+    /// @param s The loan storage
     /// @param loan The loan to be get its info
     /// @return liquidationFactor The liquidation factor of the loan
     /// @return collateralAsset The collateral asset of the loan
     /// @return debtAsset The debt asset of the loan
     function getLoanInfo(
+        LoanStorage.Layout storage s,
         Loan memory loan
     ) internal view returns (LiquidationFactor memory, AssetConfig memory, AssetConfig memory) {
         if (loan.accountId == 0) revert LoanIsNotExist();
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         AssetConfig memory collateralAsset = tsl.getAssetConfig(loan.collateralTokenId);
         AssetConfig memory debtAsset = tsl.getAssetConfig(loan.debtTokenId);
-        LoanStorage.Layout storage lsl = getLoanStorage();
         LiquidationFactor memory liquidationFactor = debtAsset.isStableCoin && collateralAsset.isStableCoin
-            ? lsl.getStableCoinPairLiquidationFactor()
-            : lsl.getLiquidationFactor();
+            ? s.getStableCoinPairLiquidationFactor()
+            : s.getLiquidationFactor();
         return (liquidationFactor, collateralAsset, debtAsset);
     }
 

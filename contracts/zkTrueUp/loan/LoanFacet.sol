@@ -40,9 +40,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @dev Anyone can add collateral to the loan
      */
     function addCollateral(bytes12 loanId, uint128 amount) external payable {
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
-        (, AssetConfig memory collateralAsset, ) = LoanLib.getLoanInfo(loan);
+        (, AssetConfig memory collateralAsset, ) = lsl.getLoanInfo(loan);
         Utils.transferFrom(collateralAsset.tokenAddr, msg.sender, amount, msg.value);
         loan.collateralAmt += amount;
         LoanStorage.layout().loans[loanId] = loan;
@@ -53,14 +53,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function removeCollateral(bytes12 loanId, uint128 amount) external nonReentrant {
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
         LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountStorage().getAccountAddr(loan.accountId));
         (
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = LoanLib.getLoanInfo(loan);
+        ) = lsl.getLoanInfo(loan);
 
         loan.collateralAmt -= amount;
         (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
@@ -119,7 +119,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = LoanLib.getLoanInfo(loan);
+        ) = lsl.getLoanInfo(loan);
         Utils.transferFrom(debtAsset.tokenAddr, msg.sender, debtAmt, msg.value);
 
         loan.debtAmt -= debtAmt;
@@ -132,7 +132,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
         LoanLib.requireHealthy(healthFactor);
 
-        LoanStorage.layout().loans[loanId] = loan;
+        lsl.loans[loanId] = loan;
         emit Repay(
             loanId,
             msg.sender,
@@ -163,7 +163,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = LoanLib.getLoanInfo(loan);
+        ) = lsl.getLoanInfo(loan);
         loan.debtAmt -= debtAmt;
         loan.collateralAmt -= collateralAmt;
 
@@ -184,37 +184,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function liquidate(bytes12 loanId, uint128 repayAmt) external payable returns (uint128, uint128) {
-        // LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
-        // Loan memory loan = lsl.getLoan(loanId);
-        // (
-        //     LiquidationFactor memory liquidationFactor,
-        //     AssetConfig memory collateralAsset,
-        //     AssetConfig memory debtAsset
-        // ) = LoanLib.getLoanInfo(loan);
-
-        // (uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt) = _liquidationCalculator(
-        //     lsl,
-        //     repayAmt,
-        //     loan,
-        //     collateralAsset,
-        //     debtAsset,
-        //     liquidationFactor
-        // );
-        // Utils.transferFrom(debtAsset.tokenAddr, msg.sender, repayAmt, msg.value);
-
-        // uint128 removedCollteralAmt = liquidatorRewardAmt + protocolPenaltyAmt;
-        // loan.debtAmt -= repayAmt;
-        // loan.collateralAmt -= removedCollteralAmt;
-        // LoanStorage.layout().loans[loanId] = loan;
-        // emit Repay(
-        //     loanId,
-        //     msg.sender,
-        //     collateralAsset.tokenAddr,
-        //     debtAsset.tokenAddr,
-        //     removedCollteralAmt,
-        //     repayAmt,
-        //     false
-        // );
         (LiquidationAmt memory liquidationAmt, address collateralToken) = _liquidate(loanId, repayAmt);
 
         uint128 liquidatorRewardAmt = liquidationAmt.liquidatorRewardAmt;
@@ -238,7 +207,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = LoanLib.getLoanInfo(loan);
+        ) = lsl.getLoanInfo(loan);
 
         LiquidationAmt memory liquidationAmt = _liquidationCalculator(
             lsl.getHalfLiquidationThreshold(),
@@ -312,7 +281,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = LoanLib.getLoanInfo(loan);
+        ) = lsl.getLoanInfo(loan);
         (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
             loan,
             liquidationFactor.ltvThreshold,
@@ -366,7 +335,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             LiquidationFactor memory liquidationFactor,
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
-        ) = LoanLib.getLoanInfo(loan);
+        ) = lsl.getLoanInfo(loan);
         (uint256 healthFactor, uint256 normalizedCollateralPrice, ) = LoanLib.getHealthFactor(
             loan,
             liquidationFactor.ltvThreshold,
