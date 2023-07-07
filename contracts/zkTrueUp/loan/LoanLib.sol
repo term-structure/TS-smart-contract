@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {TokenLib} from "../token/TokenLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {LoanStorage, Loan, LiquidationFactor} from "./LoanStorage.sol";
+import {TokenStorage} from "../token/TokenStorage.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
 
@@ -12,6 +13,7 @@ import {Config} from "../libraries/Config.sol";
  */
 library LoanLib {
     using LoanLib for LoanStorage.Layout;
+    using TokenLib for TokenStorage.Layout;
 
     /// @notice Error for sender is not the loan owner
     error SenderIsNotLoanOwner(address sender, address loanOwner);
@@ -65,8 +67,9 @@ library LoanLib {
         Loan memory loan
     ) internal view returns (LiquidationFactor memory, AssetConfig memory, AssetConfig memory) {
         if (loan.accountId == 0) revert LoanIsNotExist();
-        AssetConfig memory collateralAsset = TokenLib.getAssetConfig(loan.collateralTokenId);
-        AssetConfig memory debtAsset = TokenLib.getAssetConfig(loan.debtTokenId);
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        AssetConfig memory collateralAsset = tsl.getAssetConfig(loan.collateralTokenId);
+        AssetConfig memory debtAsset = tsl.getAssetConfig(loan.debtTokenId);
         LoanStorage.Layout storage lsl = getLoanStorage();
         LiquidationFactor memory liquidationFactor = debtAsset.isStableCoin && collateralAsset.isStableCoin
             ? lsl.getStableCoinPairLiquidationFactor()

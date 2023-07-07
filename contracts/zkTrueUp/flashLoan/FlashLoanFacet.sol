@@ -6,6 +6,7 @@ import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {FlashLoanStorage} from "./FlashLoanStorage.sol";
 import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol";
+import {TokenStorage} from "../token/TokenStorage.sol";
 import {FlashLoanLib} from "./FlashLoanLib.sol";
 import {IFlashLoanFacet} from "./IFlashLoanFacet.sol";
 import {IFlashLoanReceiver} from "../interfaces/IFlashLoanReceiver.sol";
@@ -20,6 +21,7 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
     using SafeERC20 for ISolidStateERC20;
     using FlashLoanLib for FlashLoanStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
+    using TokenLib for TokenStorage.Layout;
 
     /**
      * @inheritdoc IFlashLoanFacet
@@ -37,7 +39,7 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
         uint16 flashLoanPremium = FlashLoanLib.getFlashLoanStorage().getFlashLoanPremium();
         uint128[] memory premiums = new uint128[](assets.length);
         for (uint256 i; i < assets.length; i++) {
-            TokenLib.getValidToken(assets[i]);
+            TokenLib.getTokenStorage().getValidToken(assets[i]);
             premiums[i] = (amounts[i] * flashLoanPremium) / Config.FLASH_LOAN_PREMIUM_BASE;
             ISolidStateERC20(assets[i]).safeTransfer(receiver, amounts[i]);
         }

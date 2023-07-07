@@ -10,7 +10,6 @@ import {ProtocolParamsStorage, FundWeight} from "../protocolParams/ProtocolParam
 import {LoanStorage, LiquidationFactor} from "../loan/LoanStorage.sol";
 import {RollupStorage, StoredBlock} from "../rollup/RollupStorage.sol";
 import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
-import {TokenLib} from "../token/TokenLib.sol";
 import {Config, InitConfig} from "../libraries/Config.sol";
 
 /**
@@ -105,7 +104,7 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
 
         // init token facet
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        uint16 newTokenId = TokenLib.getTokenNum() + 1;
+        uint16 newTokenId = tsl.tokenNum + 1;
         tsl.tokenNum = newTokenId;
         tsl.tokenIds[Config.ETH_ADDRESS] = newTokenId;
         tsl.assetConfigs[newTokenId] = AssetConfig({

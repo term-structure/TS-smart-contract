@@ -2,32 +2,36 @@
 pragma solidity ^0.8.17;
 
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
+import {LoanStorage, Loan} from "../zkTrueUp/loan/LoanStorage.sol";
+import {TokenStorage} from "../zkTrueUp/token/TokenStorage.sol";
 import {RollupFacet} from "../zkTrueUp/rollup/RollupFacet.sol";
 import {TokenLib} from "../zkTrueUp/token/TokenLib.sol";
 import {LoanLib} from "../zkTrueUp/loan/LoanLib.sol";
 import {Operations} from "../zkTrueUp/libraries/Operations.sol";
 import {ITsbToken} from "../zkTrueUp/interfaces/ITsbToken.sol";
 import {AssetConfig} from "../zkTrueUp/token/TokenStorage.sol";
-import {LoanStorage, Loan} from "../zkTrueUp/loan/LoanStorage.sol";
 import {Utils} from "../zkTrueUp/libraries/Utils.sol";
 import {Config} from "../zkTrueUp/libraries/Config.sol";
 
 contract RollupMock is RollupFacet {
     using LoanLib for LoanStorage.Layout;
+    using TokenLib for TokenStorage.Layout;
 
     function updateLoanMock(Operations.AuctionEnd memory auctionEnd) external {
         // Utils.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
-        // // tsbToken config
-        AssetConfig memory assetConfig = TokenLib.getAssetConfig(auctionEnd.tsbTokenId);
+
+        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        // tsbToken config
+        AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
         // Utils.noneZeroAddr(assetConfig.tokenAddr);
         // if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(assetConfig.tokenAddr);
 
         // debt token config
         (address underlyingAsset, uint32 maturityTime) = ITsbToken(assetConfig.tokenAddr).tokenInfo();
-        (uint16 debtTokenId, AssetConfig memory underlyingAssetConfig) = TokenLib.getAssetConfig(underlyingAsset);
+        (uint16 debtTokenId, AssetConfig memory underlyingAssetConfig) = tsl.getAssetConfig(underlyingAsset);
 
         // collateral token config
-        assetConfig = TokenLib.getAssetConfig(auctionEnd.collateralTokenId);
+        assetConfig = tsl.getAssetConfig(auctionEnd.collateralTokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
 
         // update loan info

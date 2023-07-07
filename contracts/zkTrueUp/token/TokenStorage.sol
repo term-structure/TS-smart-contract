@@ -22,8 +22,8 @@ library TokenStorage {
         uint16 tokenNum;
         /// @notice Mapping of L1 Token Address => L2 Token Id
         mapping(address => uint16) tokenIds;
-        /// @notice Mapping of L1 Token Address => isPaused
-        mapping(address => bool) isPaused;
+        /// @notice Mapping of L1 Token Address => paused
+        mapping(address => bool) paused;
         /// @notice Mapping of Token Id => AssetConfig
         mapping(uint16 => AssetConfig) assetConfigs;
     }

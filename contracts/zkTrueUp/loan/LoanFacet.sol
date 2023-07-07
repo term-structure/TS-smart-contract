@@ -8,6 +8,7 @@ import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol";
+import {TokenStorage} from "../token/TokenStorage.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
@@ -32,6 +33,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using AddressLib for AddressStorage.Layout;
     using LoanLib for LoanStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
+    using TokenLib for TokenStorage.Layout;
 
     /**
      * @inheritdoc ILoanFacet
@@ -77,41 +79,12 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable {
-        // LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
-        // Loan memory loan = lsl.getLoan(loanId);
-        // LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountStorage().getAccountAddr(loan.accountId));
-        // (
-        //     LiquidationFactor memory liquidationFactor,
-        //     AssetConfig memory collateralAsset,
-        //     AssetConfig memory debtAsset
-        // ) = LoanLib.getLoanInfo(loan);
-        // Utils.transferFrom(debtAsset.tokenAddr, msg.sender, debtAmt, msg.value);
-
-        // loan.debtAmt -= debtAmt;
-        // loan.collateralAmt -= collateralAmt;
-        // (uint256 healthFactor, , ) = LoanLib.getHealthFactor(
-        //     loan,
-        //     liquidationFactor.ltvThreshold,
-        //     collateralAsset,
-        //     debtAsset
-        // );
-        // LoanLib.requireHealthy(healthFactor);
-
-        // LoanStorage.layout().loans[loanId] = loan;
-        // emit Repay(
-        //     loanId,
-        //     msg.sender,
-        //     collateralAsset.tokenAddr,
-        //     debtAsset.tokenAddr,
-        //     collateralAmt,
-        //     debtAmt,
-        //     repayAndDeposit
-        // );
-
         (address collateralToken, uint32 accountId) = _repay(loanId, collateralAmt, debtAmt, repayAndDeposit);
 
         if (repayAndDeposit) {
-            (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(collateralToken);
+            (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getTokenStorage().getValidToken(
+                collateralToken
+            );
             TokenLib.validDepositAmt(collateralAmt, assetConfig);
             AccountLib.addDepositReq(
                 msg.sender,

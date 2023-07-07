@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {AccountStorage} from "./AccountStorage.sol";
 import {RollupStorage} from "../rollup/RollupStorage.sol";
+import {TokenStorage} from "../token/TokenStorage.sol";
 import {IAccountFacet} from "./IAccountFacet.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
@@ -19,6 +20,7 @@ import {Utils} from "../libraries/Utils.sol";
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
     using AccountLib for AccountStorage.Layout;
     using RollupLib for RollupStorage.Layout;
+    using TokenLib for TokenStorage.Layout;
 
     /**
      * @inheritdoc IAccountFacet
@@ -28,9 +30,10 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         RollupLib.getRollupStorage().requireActive();
         AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
         if (asl.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);
-        TokenLib.requireBaseToken(tokenAddr);
+        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        tsl.requireBaseToken(tokenAddr);
         uint32 accountId = _register(asl, msg.sender, tsPubKeyX, tsPubKeyY);
-        _deposit(msg.sender, msg.sender, accountId, tokenAddr, amount);
+        _deposit(tsl, msg.sender, msg.sender, accountId, tokenAddr, amount);
     }
 
     /**
@@ -41,7 +44,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         RollupLib.getRollupStorage().requireActive();
         AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
         uint32 accountId = asl.getValidAccount(to);
-        _deposit(msg.sender, to, accountId, tokenAddr, amount);
+        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        _deposit(tsl, msg.sender, to, accountId, tokenAddr, amount);
     }
 
     /**
@@ -52,7 +56,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     function withdraw(address tokenAddr, uint128 amount) external virtual nonReentrant {
         AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
         uint32 accountId = asl.getValidAccount(msg.sender);
-        (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(tokenAddr);
+        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(tokenAddr);
         AccountLib.updateWithdrawRecord(msg.sender, accountId, tokenAddr, tokenId, amount);
         assetConfig.isTsbToken
             ? TsbLib.mintTsbToken(tokenAddr, msg.sender, amount)
@@ -65,7 +70,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     function forceWithdraw(address tokenAddr) external {
         AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
         uint32 accountId = asl.getValidAccount(msg.sender);
-        (uint16 tokenId, ) = TokenLib.getValidToken(tokenAddr);
+        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        (uint16 tokenId, ) = tsl.getValidToken(tokenAddr);
         AccountLib.addForceWithdrawReq(msg.sender, accountId, tokenAddr, tokenId);
     }
 
@@ -113,13 +119,21 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     }
 
     /// @notice Internal deposit function for register and deposit
+    /// @param tsl The token storage layout
     /// @param depositor The address that deposit the L1 token
     /// @param to The address credtied with the deposit
     /// @param accountId user account id in layer2
     /// @param tokenAddr The address of the token to be deposited
     /// @param amount The amount of the token
-    function _deposit(address depositor, address to, uint32 accountId, address tokenAddr, uint128 amount) internal {
-        (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getValidToken(tokenAddr);
+    function _deposit(
+        TokenStorage.Layout storage tsl,
+        address depositor,
+        address to,
+        uint32 accountId,
+        address tokenAddr,
+        uint128 amount
+    ) internal {
+        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(tokenAddr);
         TokenLib.validDepositAmt(amount, assetConfig);
         assetConfig.isTsbToken
             ? TsbLib.burnTsbToken(tokenAddr, to, amount)

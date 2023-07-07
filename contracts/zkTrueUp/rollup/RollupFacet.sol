@@ -9,6 +9,7 @@ import {AddressStorage} from "../address/AddressStorage.sol";
 import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
 import {ProtocolParamsStorage, FundWeight} from "../protocolParams/ProtocolParamsStorage.sol";
 import {RollupStorage} from "./RollupStorage.sol";
+import {TokenStorage} from "../token/TokenStorage.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {IRollupFacet} from "./IRollupFacet.sol";
 import {RollupLib} from "./RollupLib.sol";
@@ -33,6 +34,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     using LoanLib for LoanStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
     using RollupLib for RollupStorage.Layout;
+    using TokenLib for TokenStorage.Layout;
 
     /**
      * @inheritdoc IRollupFacet
@@ -257,7 +259,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
      * @inheritdoc IRollupFacet
      */
     function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128) {
-        uint16 tokenId = TokenLib.getTokenId(tokenAddr);
+        uint16 tokenId = TokenLib.getTokenStorage().getTokenId(tokenAddr);
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
         return RollupLib.getRollupStorage().getPendingBalances(key);
     }
@@ -317,14 +319,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             uint8 decimals;
             uint128 amount;
             Operations.OpType opType = Operations.OpType(uint8(pubData[0]));
+            TokenStorage.Layout storage tsl = TokenStorage.layout();
             if (opType == Operations.OpType.WITHDRAW) {
                 Operations.Withdraw memory withdrawReq = Operations.readWithdrawPubData(pubData);
-                decimals = TokenLib.getAssetConfig(withdrawReq.tokenId).decimals;
+                decimals = tsl.getAssetConfig(withdrawReq.tokenId).decimals;
                 amount = Utils.toL1Amt(withdrawReq.amount, decimals);
                 _addPendingBalance(withdrawReq.accountId, withdrawReq.tokenId, amount);
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                 Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(pubData);
-                decimals = TokenLib.getAssetConfig(forceWithdrawReq.tokenId).decimals;
+                decimals = tsl.getAssetConfig(forceWithdrawReq.tokenId).decimals;
                 amount = Utils.toL1Amt(forceWithdrawReq.amount, decimals);
                 _addPendingBalance(forceWithdrawReq.accountId, forceWithdrawReq.tokenId, amount);
             } else if (opType == Operations.OpType.AUCTION_END) {
@@ -389,8 +392,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             } else if (opType == Operations.OpType.CREATE_TSB_TOKEN) {
                 data = Bytes.sliceCreateTsbTokenData(publicData, offset);
                 Operations.CreateTsbToken memory createTsbTokenReq = Operations.readCreateTsbTokenPubData(data);
-                AssetConfig memory tsbTokenConfig = TokenLib.getAssetConfig(createTsbTokenReq.tsbTokenId);
-                AssetConfig memory baseTokenConfig = TokenLib.getAssetConfig(createTsbTokenReq.baseTokenId);
+                TokenStorage.Layout storage tsl = TokenStorage.layout();
+                AssetConfig memory tsbTokenConfig = tsl.getAssetConfig(createTsbTokenReq.tsbTokenId);
+                AssetConfig memory baseTokenConfig = tsl.getAssetConfig(createTsbTokenReq.baseTokenId);
                 (address underlyingAsset, uint32 maturityTime) = ITsbToken(tsbTokenConfig.tokenAddr).tokenInfo();
                 if (underlyingAsset != baseTokenConfig.tokenAddr) revert BaseTokenAddrIsNotMatched();
                 if (maturityTime != createTsbTokenReq.maturityTime) revert MaturityTimeIsNotMatched();
@@ -464,8 +468,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function _addPendingBalance(uint32 accountId, uint16 tokenId, uint128 amount) internal {
         address accountAddr = AccountLib.getAccountStorage().getAccountAddr(accountId);
         Utils.noneZeroAddr(accountAddr);
-        AssetConfig memory assetConfig = TokenLib.getAssetConfig(tokenId);
+
+        AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(tokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
+
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
         RollupStorage.layout().pendingBalances[key] += amount;
     }
@@ -474,17 +480,19 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param auctionEnd The auction end request
     function _updateLoan(Operations.AuctionEnd memory auctionEnd) internal {
         Utils.noneZeroAddr(AccountLib.getAccountStorage().getAccountAddr(auctionEnd.accountId));
+
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         // tsbToken config
-        AssetConfig memory assetConfig = TokenLib.getAssetConfig(auctionEnd.tsbTokenId);
+        AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(assetConfig.tokenAddr);
 
         // debt token config
         (address underlyingAsset, uint32 maturityTime) = ITsbToken(assetConfig.tokenAddr).tokenInfo();
-        (uint16 debtTokenId, AssetConfig memory underlyingAssetConfig) = TokenLib.getAssetConfig(underlyingAsset);
+        (uint16 debtTokenId, AssetConfig memory underlyingAssetConfig) = tsl.getAssetConfig(underlyingAsset);
 
         // collateral token config
-        assetConfig = TokenLib.getAssetConfig(auctionEnd.collateralTokenId);
+        assetConfig = tsl.getAssetConfig(auctionEnd.collateralTokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
 
         // update loan info
@@ -524,7 +532,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Internal function to withdraw fee to treasury, vault, and insurance
     /// @param withdrawFee The withdraw fee request
     function _withdrawFee(Operations.WithdrawFee memory withdrawFee) internal {
-        AssetConfig memory assetConfig = TokenLib.getAssetConfig(withdrawFee.tokenId);
+        AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(withdrawFee.tokenId);
         uint128 l1Amt = Utils.toL1Amt(withdrawFee.amount, assetConfig.decimals);
         ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
         FundWeight memory fundWeight = ppsl.getFundWeight();
@@ -565,7 +573,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         address receiver = AccountLib.getAccountStorage().getAccountAddr(evacuation.accountId);
         Utils.noneZeroAddr(receiver);
-        AssetConfig memory assetConfig = TokenLib.getAssetConfig(evacuation.tokenId);
+        AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(evacuation.tokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
         uint128 l1Amt = Utils.toL1Amt(evacuation.amount, assetConfig.decimals);
         RollupStorage.layout().evacuated[evacuation.accountId][evacuation.tokenId] = true;

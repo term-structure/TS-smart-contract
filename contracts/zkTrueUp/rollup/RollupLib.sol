@@ -103,6 +103,7 @@ library RollupLib {
     }
 
     /// @notice Internal function to get the L1 request of the specified id
+    /// @param s The rollup storage
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id
     function getL1Request(RollupStorage.Layout storage s, uint64 requestId) internal view returns (L1Request memory) {
@@ -110,6 +111,7 @@ library RollupLib {
     }
 
     /// @notice Internal function to get the number of committed L1 request
+    /// @param s The rollup storage
     /// @return committedL1RequestNum The number of committed L1 requests
     function getCommittedL1RequestNum(RollupStorage.Layout storage s) internal view returns (uint64) {
         return s.committedL1RequestNum;

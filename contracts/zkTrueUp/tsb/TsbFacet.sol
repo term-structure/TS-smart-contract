@@ -5,6 +5,7 @@ import {AccessControlInternal} from "@solidstate/contracts/access/access_control
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {TsbStorage} from "./TsbStorage.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
+import {TokenStorage} from "../token/TokenStorage.sol";
 import {TsbLib} from "./TsbLib.sol";
 import {ITsbFacet} from "./ITsbFacet.sol";
 import {TsbToken} from "../tsb/TsbToken.sol";
@@ -22,6 +23,7 @@ import {Utils} from "../libraries/Utils.sol";
  */
 contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     using AccountLib for AccountStorage.Layout;
+    using TokenLib for TokenStorage.Layout;
 
     /**
      * @inheritdoc ITsbFacet
@@ -34,7 +36,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         string memory symbol
     ) external virtual onlyRole(Config.OPERATOR_ROLE) returns (address) {
         if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime);
-        address underlyingAssetAddr = TokenLib.getAssetConfig(underlyingTokenId).tokenAddr;
+        address underlyingAssetAddr = TokenLib.getTokenStorage().getAssetConfig(underlyingTokenId).tokenAddr;
         if (underlyingAssetAddr == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
 
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
@@ -52,7 +54,8 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
      * @dev TSB token can be redeemed only after maturity
      */
     function redeem(address tsbTokenAddr, uint128 amount, bool redeemAndDeposit) external nonReentrant {
-        (, AssetConfig memory assetConfig) = TokenLib.getAssetConfig(tsbTokenAddr);
+        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(tsbTokenAddr);
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
         (address underlyingAsset, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
         TsbLib.requireMatured(tsbTokenAddr, maturityTime);
@@ -62,7 +65,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
 
         if (redeemAndDeposit) {
             uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
-            (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = TokenLib.getValidToken(underlyingAsset);
+            (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = tsl.getValidToken(underlyingAsset);
             TokenLib.validDepositAmt(amount, underlyingAssetConfig);
             AccountLib.addDepositReq(
                 msg.sender,

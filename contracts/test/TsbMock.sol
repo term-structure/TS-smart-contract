@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {TsbStorage} from "../zkTrueUp/tsb/TsbStorage.sol";
+import {TokenStorage} from "../zkTrueUp/token/TokenStorage.sol";
 import {TsbFacet} from "../zkTrueUp/tsb/TsbFacet.sol";
 import {TokenLib} from "../zkTrueUp/token/TokenLib.sol";
 import {TsbLib} from "../zkTrueUp/tsb/TsbLib.sol";
-import {TsbStorage} from "../zkTrueUp/tsb/TsbStorage.sol";
 import {TsbToken} from "../zkTrueUp/tsb/TsbToken.sol";
 import {Config} from "../zkTrueUp/libraries/Config.sol";
 
 contract TsbMock is TsbFacet {
+    using TokenLib for TokenStorage.Layout;
+
     //! Mock contract for testing
     function createTsbToken(
         uint16 underlyingTokenId,
@@ -17,7 +20,7 @@ contract TsbMock is TsbFacet {
         string memory symbol
     ) external override onlyRole(Config.OPERATOR_ROLE) returns (address) {
         // if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime); //! ignore for test
-        address underlyingAssetAddr = TokenLib.getAssetConfig(underlyingTokenId).tokenAddr;
+        address underlyingAssetAddr = TokenLib.getTokenStorage().getAssetConfig(underlyingTokenId).tokenAddr;
         if (underlyingAssetAddr == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
         address tokenAddr = TsbLib.getTsbTokenAddr(tsbTokenKey);
