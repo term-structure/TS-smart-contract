@@ -222,7 +222,10 @@ describe("Roll to Aave", () => {
 
       await expect(
         diamondLoan.connect(user1).rollToAave(loanId, collateralAmt, debtAmt)
-      ).to.be.revertedWithCustomError(diamondLoan, "SupplyToAaveFailed");
+      ).to.be.revertedWithCustomError(
+        diamondLoan,
+        "SupplyToAaveFailedLogString"
+      );
     });
     it("Fail roll to Aave, partial roll make LTV in Aave too high and borrow from Aave fail", async () => {
       // 500 USDC
@@ -239,7 +242,10 @@ describe("Roll to Aave", () => {
 
       await expect(
         diamondLoan.connect(user1).rollToAave(loanId, collateralAmt, debtAmt)
-      ).to.be.revertedWithCustomError(diamondLoan, "BorrowFromAaveFailed");
+      ).to.be.revertedWithCustomError(
+        diamondLoan,
+        "BorrowFromAaveFailedLogString"
+      );
     });
     it("Success roll to Aave, roll total loan to Aave", async () => {
       // before balance
@@ -691,7 +697,10 @@ describe("Roll to Aave", () => {
         diamondLoan
           .connect(impersonatedSigner)
           .rollToAave(loanId, collateralAmt, debtAmt)
-      ).to.be.revertedWithCustomError(diamondLoan, "BorrowFromAaveFailed");
+      ).to.be.revertedWithCustomError(
+        diamondLoan,
+        "BorrowFromAaveFailedLogString"
+      );
     });
   });
   describe("Roll to Aave (stable coin pairs loan case)", () => {
@@ -809,7 +818,10 @@ describe("Roll to Aave", () => {
         diamondLoan
           .connect(impersonatedSigner)
           .rollToAave(loanId, collateralAmt, debtAmt)
-      ).to.be.revertedWithCustomError(diamondLoan, "BorrowFromAaveFailed");
+      ).to.be.revertedWithCustomError(
+        diamondLoan,
+        "BorrowFromAaveFailedLogString"
+      );
     });
     it("Success roll to Aave, roll total loan to Aave ", async () => {
       // before balance

@@ -116,10 +116,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
     /**
      * @inheritdoc ILoanFacet
+     * @notice Should be `approveDelegation` before `borrow from AAVE V3 pool`
      * @dev Roll the loan to AAVE V3 pool,
      *      the user can transfer the loan of fixed rate and date from term structure
      *      to the floating rate and perpetual position on Aave without repaying the debt
-     * @dev should be `approveDelegation` before `borrow from AAVE V3 pool`
      */
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
         if (!LoanLib.isActivatedRoll()) revert RollIsNotActivated();
@@ -167,11 +167,15 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             {
                 emit Repay(loanId, msg.sender, collateralAsset.tokenAddr, debtTokenAddr, collateralAmt, debtAmt, false);
                 emit RollToAave(loanId, msg.sender, supplyTokenAddr, debtTokenAddr, collateralAmt, debtAmt);
-            } catch {
-                revert BorrowFromAaveFailed(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt);
+            } catch Error(string memory reason) {
+                revert BorrowFromAaveFailedLogString(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, reason);
+            } catch (bytes memory reason) {
+                revert BorrowFromAaveFailedLogBytes(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, reason);
             }
-        } catch {
-            revert SupplyToAaveFailed(supplyTokenAddr, collateralAmt);
+        } catch Error(string memory reason) {
+            revert SupplyToAaveFailedLogString(supplyTokenAddr, collateralAmt, reason);
+        } catch (bytes memory reason) {
+            revert SupplyToAaveFailedLogBytes(supplyTokenAddr, collateralAmt, reason);
         }
     }
 
