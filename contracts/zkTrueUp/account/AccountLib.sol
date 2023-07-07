@@ -53,11 +53,18 @@ library AccountLib {
     event Withdraw(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId, uint128 amount);
 
     /// @notice Internal function to add register request
+    /// @param s The rollup storage layout
     /// @param sender The address of the account on Layer1
     /// @param accountId The user account id in Layer2
     /// @param tsPubKeyX The x coordinate of the public key of the account
     /// @param tsPubKeyY The y coordinate of the public key of the account
-    function addRegisterReq(address sender, uint32 accountId, uint256 tsPubKeyX, uint256 tsPubKeyY) internal {
+    function addRegisterReq(
+        RollupStorage.Layout storage s,
+        address sender,
+        uint32 accountId,
+        uint256 tsPubKeyX,
+        uint256 tsPubKeyY
+    ) internal {
         bytes20 tsAddr = bytes20(
             uint160(
                 IPoseidonUnit2(AddressLib.getAddressStorage().getPoseidonUnit2Addr()).poseidon([tsPubKeyX, tsPubKeyY])
@@ -65,11 +72,12 @@ library AccountLib {
         );
         Operations.Register memory op = Operations.Register({accountId: accountId, tsAddr: tsAddr});
         bytes memory pubData = Operations.encodeRegisterPubData(op);
-        RollupLib.getRollupStorage().addL1Request(sender, Operations.OpType.REGISTER, pubData);
+        s.addL1Request(sender, Operations.OpType.REGISTER, pubData);
         emit Register(sender, accountId, tsPubKeyX, tsPubKeyY, tsAddr);
     }
 
     /// @notice Internal function to add deposit request
+    /// @param s The rollup storage layout
     /// @param to The address of the account on Layer1
     /// @param accountId The user account id in Layer2
     /// @param tokenAddr The address of the deposit token
@@ -77,6 +85,7 @@ library AccountLib {
     /// @param decimals The decimals of the deposit token
     /// @param amount The deposit amount
     function addDepositReq(
+        RollupStorage.Layout storage s,
         address to,
         uint32 accountId,
         address tokenAddr,
@@ -87,16 +96,23 @@ library AccountLib {
         uint128 l2Amt = Utils.toL2Amt(amount, decimals);
         Operations.Deposit memory op = Operations.Deposit({accountId: accountId, tokenId: tokenId, amount: l2Amt});
         bytes memory pubData = Operations.encodeDepositPubData(op);
-        RollupLib.getRollupStorage().addL1Request(to, Operations.OpType.DEPOSIT, pubData);
+        s.addL1Request(to, Operations.OpType.DEPOSIT, pubData);
         emit Deposit(to, accountId, tokenAddr, tokenId, amount);
     }
 
     /// @notice Internal function to add force withdraw request
+    /// @param s The rollup storage layout
     /// @param sender The address of the account on Layer1
     /// @param accountId The user account id in Layer2
     /// @param tokenAddr The address of the force withdraw token
     /// @param tokenId The token id of the force withdraw token
-    function addForceWithdrawReq(address sender, uint32 accountId, address tokenAddr, uint16 tokenId) internal {
+    function addForceWithdrawReq(
+        RollupStorage.Layout storage s,
+        address sender,
+        uint32 accountId,
+        address tokenAddr,
+        uint16 tokenId
+    ) internal {
         Operations.ForceWithdraw memory op = Operations.ForceWithdraw({
             accountId: accountId,
             tokenId: tokenId,
@@ -105,24 +121,26 @@ library AccountLib {
             amount: uint128(0)
         });
         bytes memory pubData = Operations.encodeForceWithdrawPubData(op);
-        RollupLib.getRollupStorage().addL1Request(sender, Operations.OpType.FORCE_WITHDRAW, pubData);
+        s.addL1Request(sender, Operations.OpType.FORCE_WITHDRAW, pubData);
         emit ForceWithdraw(sender, accountId, tokenAddr, tokenId);
     }
 
     /// @notice Internal function to update withdraw record
+    /// @param s The rollup storage layout
     /// @param sender The address of the account on Layer1
     /// @param accountId The user account id in Layer2
     /// @param tokenAddr The address of the withdraw token
     /// @param tokenId The token id of the withdraw token
     /// @param amount The withdraw amount
     function updateWithdrawRecord(
+        RollupStorage.Layout storage s,
         address sender,
         uint32 accountId,
         address tokenAddr,
         uint16 tokenId,
         uint128 amount
     ) internal {
-        RollupLib.getRollupStorage().updateWithdrawalRecord(sender, tokenId, amount);
+        s.updateWithdrawalRecord(sender, tokenId, amount);
         emit Withdraw(sender, accountId, tokenAddr, tokenId, amount);
     }
 

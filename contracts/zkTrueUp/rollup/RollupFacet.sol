@@ -31,10 +31,10 @@ import {Utils} from "../libraries/Utils.sol";
 contract RollupFacet is IRollupFacet, AccessControlInternal {
     using AccountLib for AccountStorage.Layout;
     using AddressLib for AddressStorage.Layout;
-    using LoanLib for LoanStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
     using RollupLib for RollupStorage.Layout;
     using TokenLib for TokenStorage.Layout;
+    using LoanLib for *;
 
     /**
      * @inheritdoc IRollupFacet
@@ -82,7 +82,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             emit BlockVerified(committedBlocks[i].blockNumber);
         }
         if (verifiedBlockNum > rsl.getCommittedBlockNum()) revert VerifiedBlockNumExceedCommittedNum(verifiedBlockNum);
-        RollupStorage.layout().verifiedBlockNum = verifiedBlockNum;
+        rsl.verifiedBlockNum = verifiedBlockNum;
     }
 
     /**
@@ -174,7 +174,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         bool evacuMode = block.number >= expirationBlock && expirationBlock != 0;
 
         if (evacuMode) {
-            RollupStorage.layout().evacuMode = true;
+            rsl.evacuMode = true;
             emit EvacuationActivated(block.number);
         }
     }
@@ -324,12 +324,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 Operations.Withdraw memory withdrawReq = Operations.readWithdrawPubData(pubData);
                 decimals = tsl.getAssetConfig(withdrawReq.tokenId).decimals;
                 amount = Utils.toL1Amt(withdrawReq.amount, decimals);
-                _addPendingBalance(withdrawReq.accountId, withdrawReq.tokenId, amount);
+                _addPendingBalance(rsl, tsl, withdrawReq.accountId, withdrawReq.tokenId, amount);
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                 Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(pubData);
                 decimals = tsl.getAssetConfig(forceWithdrawReq.tokenId).decimals;
                 amount = Utils.toL1Amt(forceWithdrawReq.amount, decimals);
-                _addPendingBalance(forceWithdrawReq.accountId, forceWithdrawReq.tokenId, amount);
+                _addPendingBalance(rsl, tsl, forceWithdrawReq.accountId, forceWithdrawReq.tokenId, amount);
             } else if (opType == Operations.OpType.AUCTION_END) {
                 Operations.AuctionEnd memory auctionEnd = Operations.readAuctionEndPubData(pubData);
                 _updateLoan(auctionEnd);
@@ -338,7 +338,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 _withdrawFee(withdrawFee);
             } else if (opType == Operations.OpType.EVACUATION) {
                 Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(pubData);
-                RollupStorage.layout().evacuated[evacuation.accountId][evacuation.tokenId] = false;
+                rsl.evacuated[evacuation.accountId][evacuation.tokenId] = false;
             } else {
                 revert InvalidOpType(opType);
             }
@@ -462,18 +462,26 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     }
 
     /// @notice Internal function to add the pending balance of an account
+    /// @param rsl The rollup storage
+    /// @param tsl The token storage
     /// @param accountId The id of the account
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
-    function _addPendingBalance(uint32 accountId, uint16 tokenId, uint128 amount) internal {
+    function _addPendingBalance(
+        RollupStorage.Layout storage rsl,
+        TokenStorage.Layout storage tsl,
+        uint32 accountId,
+        uint16 tokenId,
+        uint128 amount
+    ) internal {
         address accountAddr = AccountLib.getAccountStorage().getAccountAddr(accountId);
         Utils.noneZeroAddr(accountAddr);
 
-        AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(tokenId);
+        AssetConfig memory assetConfig = tsl.getAssetConfig(tokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
 
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
-        RollupStorage.layout().pendingBalances[key] += amount;
+        rsl.pendingBalances[key] += amount;
     }
 
     /// @notice Internal function to update the onchain loan info
@@ -502,7 +510,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             debtTokenId,
             auctionEnd.collateralTokenId
         );
-        Loan memory loan = LoanLib.getLoanStorage().getLoan(loanId);
+
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        Loan memory loan = lsl.getLoan(loanId);
         loan.accountId = auctionEnd.accountId;
         loan.debtTokenId = debtTokenId;
         loan.collateralTokenId = auctionEnd.collateralTokenId;
@@ -514,9 +524,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         decimals = assetConfig.decimals;
         uint128 addedCollateralAmt = Utils.toL1Amt(auctionEnd.collateralAmt, decimals);
 
-        loan.debtAmt += addedDebtAmt;
-        loan.collateralAmt += addedCollateralAmt;
-        LoanStorage.layout().loans[loanId] = loan;
+        // loan.debtAmt += addedDebtAmt;
+        // loan.collateralAmt += addedCollateralAmt;
+        loan = loan.updateLoan(addedCollateralAmt, addedDebtAmt);
+        lsl.loans[loanId] = loan;
 
         emit UpdateLoan(
             loanId,
@@ -576,7 +587,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(evacuation.tokenId);
         Utils.noneZeroAddr(assetConfig.tokenAddr);
         uint128 l1Amt = Utils.toL1Amt(evacuation.amount, assetConfig.decimals);
-        RollupStorage.layout().evacuated[evacuation.accountId][evacuation.tokenId] = true;
+        rsl.evacuated[evacuation.accountId][evacuation.tokenId] = true;
         bytes memory pubData = Operations.encodeEvacuationPubData(evacuation);
         rsl.addL1Request(receiver, Operations.OpType.EVACUATION, pubData);
         Utils.transfer(assetConfig.tokenAddr, payable(receiver), l1Amt);

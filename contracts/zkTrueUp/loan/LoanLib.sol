@@ -15,12 +15,63 @@ library LoanLib {
     using LoanLib for LoanStorage.Layout;
     using TokenLib for TokenStorage.Layout;
 
+    /// @notice Error for collateral amount is not enough when removing collateral
+    error CollateralAmtIsNotEnough(uint128 collateralAmt, uint128 amount);
+    /// @notice Error for debt amount less than repay amount when repaying
+    error DebtAmtLtRepayAmt(uint128 debtAmt, uint128 repayAmt);
     /// @notice Error for sender is not the loan owner
     error SenderIsNotLoanOwner(address sender, address loanOwner);
     /// @notice Error for health factor is under thresholds
     error LoanIsUnhealthy(uint256 healthFactor);
     /// @notice Error for get loan which is not exist
     error LoanIsNotExist();
+
+    /// @notice Internal function to add collateral to the loan
+    /// @param loan The loan to be added collateral
+    /// @param amount The amount of the collateral to be added
+    /// @return newLoan The new loan with added collateral
+    function addCollateral(Loan memory loan, uint128 amount) internal pure returns (Loan memory) {
+        loan.collateralAmt += amount;
+        return loan;
+    }
+
+    /// @notice Internal function to remove collateral from the loan
+    /// @param loan The loan to be removed collateral
+    /// @param amount The amount of the collateral to be removed
+    /// @return newLoan The new loan with removed collateral
+    function removeCollateral(Loan memory loan, uint128 amount) internal pure returns (Loan memory) {
+        if (loan.collateralAmt < amount) revert CollateralAmtIsNotEnough(loan.collateralAmt, amount);
+        unchecked {
+            loan.collateralAmt -= amount;
+        }
+        return loan;
+    }
+
+    /// @notice Internal function to repay the debt of the loan and remove collateral from the loan
+    /// @param loan The loan to be repaid
+    /// @param collateralAmt The amount of the collateral to be removed
+    /// @param repayAmt The amount of the debt to be repaid
+    /// @return newLoan The new loan with repaid debt and removed collateral
+    function repay(Loan memory loan, uint128 collateralAmt, uint128 repayAmt) internal pure returns (Loan memory) {
+        if (loan.collateralAmt < collateralAmt) revert CollateralAmtIsNotEnough(loan.collateralAmt, collateralAmt);
+        if (loan.debtAmt < repayAmt) revert DebtAmtLtRepayAmt(loan.debtAmt, repayAmt);
+        unchecked {
+            loan.collateralAmt -= collateralAmt;
+            loan.debtAmt -= repayAmt;
+        }
+        return loan;
+    }
+
+    /// @notice Internal function to update the loan
+    /// @param loan The loan to be updated
+    /// @param collateralAmt The amount of the collateral to be added
+    /// @param debtAmt The amount of the debt to be added
+    /// @return newLoan The new loan with updated collateral and debt
+    function updateLoan(Loan memory loan, uint128 collateralAmt, uint128 debtAmt) internal pure returns (Loan memory) {
+        loan.collateralAmt += collateralAmt;
+        loan.debtAmt += debtAmt;
+        return loan;
+    }
 
     /// @notice Internal function to get the health factor of the loan
     /// @dev The health factor formula: ltvThreshold * (collateralValue / collateralDecimals) / (debtValue / debtDecimals)

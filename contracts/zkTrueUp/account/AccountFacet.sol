@@ -24,16 +24,17 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
     /**
      * @inheritdoc IAccountFacet
-     * @dev The account is registered by depositing Ether or ERC20 to ZkTrueUp
+     * @dev The account is registered by depositing Ether or whitelisted ERC20 to ZkTrueUp
      */
     function register(uint256 tsPubKeyX, uint256 tsPubKeyY, address tokenAddr, uint128 amount) external payable {
-        RollupLib.getRollupStorage().requireActive();
-        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
-        if (asl.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);
+        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        rsl.requireActive();
+
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
         tsl.requireBaseToken(tokenAddr);
-        uint32 accountId = _register(asl, msg.sender, tsPubKeyX, tsPubKeyY);
-        _deposit(tsl, msg.sender, msg.sender, accountId, tokenAddr, amount);
+
+        uint32 accountId = _register(rsl, msg.sender, tsPubKeyX, tsPubKeyY);
+        _deposit(rsl, tsl, msg.sender, msg.sender, accountId, tokenAddr, amount);
     }
 
     /**
@@ -41,11 +42,13 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev Only registered accounts can deposit
      */
     function deposit(address to, address tokenAddr, uint128 amount) external payable {
-        RollupLib.getRollupStorage().requireActive();
-        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
-        uint32 accountId = asl.getValidAccount(to);
+        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        rsl.requireActive();
+
+        uint32 accountId = AccountLib.getAccountStorage().getValidAccount(to);
+
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
-        _deposit(tsl, msg.sender, to, accountId, tokenAddr, amount);
+        _deposit(rsl, tsl, msg.sender, to, accountId, tokenAddr, amount);
     }
 
     /**
@@ -54,11 +57,12 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev The token cannot be TSB token
      */
     function withdraw(address tokenAddr, uint128 amount) external virtual nonReentrant {
-        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
-        uint32 accountId = asl.getValidAccount(msg.sender);
+        uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(tokenAddr);
-        AccountLib.updateWithdrawRecord(msg.sender, accountId, tokenAddr, tokenId, amount);
+
+        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        AccountLib.updateWithdrawRecord(rsl, msg.sender, accountId, tokenAddr, tokenId, amount);
         assetConfig.isTsbToken
             ? TsbLib.mintTsbToken(tokenAddr, msg.sender, amount)
             : Utils.transfer(tokenAddr, payable(msg.sender), amount);
@@ -68,11 +72,11 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      */
     function forceWithdraw(address tokenAddr) external {
-        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
-        uint32 accountId = asl.getValidAccount(msg.sender);
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
-        (uint16 tokenId, ) = tsl.getValidToken(tokenAddr);
-        AccountLib.addForceWithdrawReq(msg.sender, accountId, tokenAddr, tokenId);
+        uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
+        (uint16 tokenId, ) = TokenLib.getTokenStorage().getValidToken(tokenAddr);
+
+        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        AccountLib.addForceWithdrawReq(rsl, msg.sender, accountId, tokenAddr, tokenId);
     }
 
     /**
@@ -97,28 +101,31 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     }
 
     /// @notice Internal register function
-    /// @param asl The account storage layout
+    /// @param rsl The rollup storage layout
     /// @param sender The address of sender
     /// @param tsPubKeyX The x coordinate of the public key of the token sender
     /// @param tsPubKeyY The y coordinate of the public key of the token sender
     /// @return accountId The registered L2 account Id
     function _register(
-        AccountStorage.Layout storage asl,
+        RollupStorage.Layout storage rsl,
         address sender,
         uint256 tsPubKeyX,
         uint256 tsPubKeyY
     ) internal returns (uint32) {
+        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
         uint32 accountId = asl.getAccountNum();
         if (accountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT) revert AccountNumExceedLimit(accountId);
+        if (asl.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);
 
         asl.accountIds[sender] = accountId;
         asl.accountAddresses[accountId] = sender;
         asl.accountNum++;
-        AccountLib.addRegisterReq(sender, accountId, tsPubKeyX, tsPubKeyY);
+        AccountLib.addRegisterReq(rsl, sender, accountId, tsPubKeyX, tsPubKeyY);
         return accountId;
     }
 
     /// @notice Internal deposit function for register and deposit
+    /// @param rsl The rollup storage layout
     /// @param tsl The token storage layout
     /// @param depositor The address that deposit the L1 token
     /// @param to The address credtied with the deposit
@@ -126,6 +133,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /// @param tokenAddr The address of the token to be deposited
     /// @param amount The amount of the token
     function _deposit(
+        RollupStorage.Layout storage rsl,
         TokenStorage.Layout storage tsl,
         address depositor,
         address to,
@@ -139,6 +147,6 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
             ? TsbLib.burnTsbToken(tokenAddr, to, amount)
             : Utils.transferFrom(tokenAddr, depositor, amount, msg.value);
 
-        AccountLib.addDepositReq(to, accountId, tokenAddr, tokenId, assetConfig.decimals, amount);
+        AccountLib.addDepositReq(rsl, to, accountId, tokenAddr, tokenId, assetConfig.decimals, amount);
     }
 }
