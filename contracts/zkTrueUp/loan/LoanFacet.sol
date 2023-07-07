@@ -167,15 +167,15 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             {
                 emit Repay(loanId, msg.sender, collateralAsset.tokenAddr, debtTokenAddr, collateralAmt, debtAmt, false);
                 emit RollToAave(loanId, msg.sender, supplyTokenAddr, debtTokenAddr, collateralAmt, debtAmt);
-            } catch Error(string memory reason) {
-                revert BorrowFromAaveFailedLogString(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, reason);
-            } catch (bytes memory reason) {
-                revert BorrowFromAaveFailedLogBytes(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, reason);
+            } catch Error(string memory err) {
+                revert BorrowFromAaveFailedLogString(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, err);
+            } catch (bytes memory err) {
+                revert BorrowFromAaveFailedLogBytes(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, err);
             }
-        } catch Error(string memory reason) {
-            revert SupplyToAaveFailedLogString(supplyTokenAddr, collateralAmt, reason);
-        } catch (bytes memory reason) {
-            revert SupplyToAaveFailedLogBytes(supplyTokenAddr, collateralAmt, reason);
+        } catch Error(string memory err) {
+            revert SupplyToAaveFailedLogString(supplyTokenAddr, collateralAmt, err);
+        } catch (bytes memory err) {
+            revert SupplyToAaveFailedLogBytes(supplyTokenAddr, collateralAmt, err);
         }
     }
 
