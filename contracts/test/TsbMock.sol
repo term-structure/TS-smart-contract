@@ -11,6 +11,7 @@ import {Config} from "../zkTrueUp/libraries/Config.sol";
 
 contract TsbMock is TsbFacet {
     using TokenLib for TokenStorage.Layout;
+    using TsbLib for TsbStorage.Layout;
 
     //! Mock contract for testing
     function createTsbToken(
@@ -22,11 +23,13 @@ contract TsbMock is TsbFacet {
         // if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime); //! ignore for test
         address underlyingAssetAddr = TokenLib.getTokenStorage().getAssetConfig(underlyingTokenId).tokenAddr;
         if (underlyingAssetAddr == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
+
+        TsbStorage.Layout storage tsbsl = TsbLib.getTsbStorage();
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
-        address tokenAddr = TsbLib.getTsbTokenAddr(tsbTokenKey);
+        address tokenAddr = tsbsl.getTsbTokenAddr(tsbTokenKey);
         if (tokenAddr != address(0)) revert TsbTokenIsExist(tokenAddr);
         address tsbTokenAddr = address(new TsbToken(name, symbol, underlyingAssetAddr, maturityTime));
-        TsbStorage.layout().tsbTokens[tsbTokenKey] = tsbTokenAddr;
+        tsbsl.tsbTokens[tsbTokenKey] = tsbTokenAddr;
         emit TsbTokenCreated(tsbTokenAddr, underlyingTokenId, maturityTime);
         return tsbTokenAddr;
     }

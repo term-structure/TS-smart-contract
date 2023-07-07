@@ -51,10 +51,11 @@ library TsbLib {
     }
 
     /// @notice Internal function to get the tsbToken address
+    /// @param s The Tsb storage
     /// @param tsbTokenKey The key of the tsbToken
     /// @return tsbTokenAddr The address of the tsbToken
-    function getTsbTokenAddr(uint48 tsbTokenKey) internal view returns (address) {
-        return TsbStorage.layout().tsbTokens[tsbTokenKey];
+    function getTsbTokenAddr(TsbStorage.Layout storage s, uint48 tsbTokenKey) internal view returns (address) {
+        return s.tsbTokens[tsbTokenKey];
     }
 
     /// @notice Internal function to get token key of the tsbToken
@@ -63,5 +64,11 @@ library TsbLib {
     /// @return tsbTokenKey The key of the tsbTokens
     function getTsbTokenKey(uint16 underlyingTokenId, uint32 maturityTime) internal pure returns (uint48) {
         return (uint48(underlyingTokenId) << 32) | maturityTime;
+    }
+
+    /// @notice Internal function to get the Tsb storage layout
+    /// @return tsbStorage The Tsb storage layout
+    function getTsbStorage() internal pure returns (TsbStorage.Layout storage) {
+        return TsbStorage.layout();
     }
 }
