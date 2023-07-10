@@ -22,8 +22,8 @@ interface IFlashLoanFacet {
         address indexed sender,
         address indexed receiver,
         address indexed asset,
-        uint128 amount,
-        uint128 premium
+        uint256 amount,
+        uint256 premium
     );
 
     /// @notice Emitted when the flash loan premium is set
@@ -38,7 +38,7 @@ interface IFlashLoanFacet {
     function flashLoan(
         address payable receiver,
         address[] calldata assets,
-        uint128[] calldata amounts,
+        uint256[] calldata amounts,
         bytes calldata data
     ) external;
 

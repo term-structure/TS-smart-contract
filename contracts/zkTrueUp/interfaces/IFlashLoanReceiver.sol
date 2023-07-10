@@ -16,8 +16,8 @@ interface IFlashLoanReceiver {
     function executeOperation(
         address sender,
         address[] calldata assets,
-        uint128[] calldata amounts,
-        uint128[] calldata premiums,
+        uint256[] calldata amounts,
+        uint256[] calldata premiums,
         bytes calldata data
     ) external;
 }

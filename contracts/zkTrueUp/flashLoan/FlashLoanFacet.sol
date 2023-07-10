@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
@@ -18,6 +19,7 @@ import {Config} from "../libraries/Config.sol";
  * @title Term Structure Flash Loan Facet Contract
  */
 contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
+    using Math for uint256;
     using SafeERC20 for ISolidStateERC20;
     using FlashLoanLib for FlashLoanStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
@@ -32,15 +34,15 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
     function flashLoan(
         address payable receiver,
         address[] memory assets,
-        uint128[] memory amounts,
+        uint256[] memory amounts,
         bytes memory data
     ) external {
         if (assets.length != amounts.length) revert InputLengthMismatch(assets.length, amounts.length);
         uint16 flashLoanPremium = FlashLoanLib.getFlashLoanStorage().getFlashLoanPremium();
-        uint128[] memory premiums = new uint128[](assets.length);
+        uint256[] memory premiums = new uint256[](assets.length);
         for (uint256 i; i < assets.length; i++) {
             TokenLib.getTokenStorage().getValidToken(assets[i]);
-            premiums[i] = (amounts[i] * flashLoanPremium) / Config.FLASH_LOAN_PREMIUM_BASE;
+            premiums[i] = amounts[i].mulDiv(flashLoanPremium, Config.FLASH_LOAN_PREMIUM_BASE);
             ISolidStateERC20(assets[i]).safeTransfer(receiver, amounts[i]);
         }
 
