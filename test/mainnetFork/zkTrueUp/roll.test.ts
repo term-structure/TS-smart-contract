@@ -2,7 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Contract, Signer, utils } from "ethers";
+import { BigNumber, Contract, Signer, Wallet, utils } from "ethers";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
 import { register } from "../../utils/register";
@@ -32,10 +32,10 @@ import {
   STABLECOIN_PAIR_LIQUIDATION_FACTOR,
   TS_BASE_TOKEN,
   TsTokenId,
+  getTsRollupSignerFromWallet,
 } from "term-structure-sdk";
 import { MAINNET_ADDRESS } from "../../../utils/config";
 import { useChainlink } from "../../../utils/useChainlink";
-import { getRandomUint256 } from "../../utils/helper";
 import { LiquidationFactorStruct } from "../../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 
 //! use RollupMock instead of RollupFacet for testing
@@ -832,7 +832,19 @@ describe("Roll to Aave", () => {
           .approve(diamondAcc.address, registerAmt2)
       ).wait();
       // register user2 for loan owner
-      const pubKey = { X: getRandomUint256(), Y: getRandomUint256() };
+      const chainId = Number(
+        (await impersonatedSigner.getChainId()).toString()
+      );
+      const tsSigner = await getTsRollupSignerFromWallet(
+        chainId,
+        diamondAcc.address,
+        impersonatedSigner as Wallet
+      );
+      const pubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
+
       await (
         await diamondAcc
           .connect(impersonatedSigner)
@@ -953,7 +965,19 @@ describe("Roll to Aave", () => {
           .approve(diamondAcc.address, registerAmt2)
       ).wait();
       // register impersonatedSigner for loan owner
-      const pubKey = { X: getRandomUint256(), Y: getRandomUint256() };
+      const chainId = Number(
+        (await impersonatedSigner.getChainId()).toString()
+      );
+      const tsSigner = await getTsRollupSignerFromWallet(
+        chainId,
+        diamondAcc.address,
+        impersonatedSigner as Wallet
+      );
+      const pubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
+
       await (
         await diamondAcc
           .connect(impersonatedSigner)

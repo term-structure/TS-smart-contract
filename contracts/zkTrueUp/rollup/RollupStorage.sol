@@ -71,7 +71,7 @@ library RollupStorage {
         mapping(bytes22 => uint128) pendingBalances;
         /// @notice Stored hashed StoredBlock for some block number
         mapping(uint32 => bytes32) storedBlockHashes;
-        /// @notice Mapping of L2 Account Id => L1 Address => isEvacuated
+        /// @notice Mapping of L2 Account Id => L2 Token Id => isEvacuated
         mapping(uint32 => mapping(uint16 => bool)) evacuated;
     }
 

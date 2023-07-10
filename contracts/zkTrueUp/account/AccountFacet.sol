@@ -13,6 +13,7 @@ import {TsbLib} from "../tsb/TsbLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
+import {BabyJubJub, Point} from "../libraries/BabyJubJub.sol";
 
 /**
  * @title Term Structure Account Facet Contract
@@ -32,6 +33,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
         tsl.requireBaseToken(tokenAddr);
+
+        if (!BabyJubJub.isOnCurve(Point({x: tsPubKeyX, y: tsPubKeyY}))) revert InvalidTsPublicKey(tsPubKeyX, tsPubKeyY);
 
         uint32 accountId = _register(rsl, msg.sender, tsPubKeyX, tsPubKeyY);
         _deposit(rsl, tsl, msg.sender, msg.sender, accountId, tokenAddr, amount);

@@ -1,9 +1,11 @@
 import { ethers } from "hardhat";
-import { BigNumber, Signer } from "ethers";
-import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
+import { BigNumber, Signer, Wallet } from "ethers";
+import {
+  DEFAULT_ETH_ADDRESS,
+  getTsRollupSignerFromWallet,
+} from "term-structure-sdk";
 import { AccountFacet, ERC20Mock } from "../../typechain-types";
 import { BaseTokenAddresses } from "../../utils/type";
-import { getRandomUint256 } from "./helper";
 
 export async function register(
   sender: Signer,
@@ -17,7 +19,18 @@ export async function register(
     "ERC20Mock",
     tokenAddr
   )) as ERC20Mock;
-  const pubKey = { X: getRandomUint256(), Y: getRandomUint256() };
+
+  const chainId = Number((await sender.getChainId()).toString());
+  const tsSigner = await getTsRollupSignerFromWallet(
+    chainId,
+    diamondAcc.address,
+    sender as Wallet
+  );
+  const pubKey = {
+    X: tsSigner.tsPubKey[0].toString(),
+    Y: tsSigner.tsPubKey[1].toString(),
+  };
+
   if (tokenId === 1) {
     const tokenAddr = DEFAULT_ETH_ADDRESS;
     await (

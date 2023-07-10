@@ -1,12 +1,15 @@
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { Signer, utils } from "ethers";
+import { Signer, Wallet, utils } from "ethers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { MIN_DEPOSIT_AMOUNT, TS_BASE_TOKEN } from "term-structure-sdk";
+import {
+  MIN_DEPOSIT_AMOUNT,
+  TS_BASE_TOKEN,
+  getTsRollupSignerFromWallet,
+} from "term-structure-sdk";
 import { FACET_NAMES } from "../../../../utils/config";
 import { deployAndInit } from "../../../utils/deployAndInit";
 import { useFacet } from "../../../../utils/useFacet";
-import { getRandomUint256 } from "../../../utils/helper";
 import {
   AccountFacet,
   ERC20Mock,
@@ -220,7 +223,17 @@ describe("TsFaucet", () => {
         await usdtMock.connect(user1).approve(zkTrueUp.address, amount)
       ).wait();
       const regAmount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
-      const pubKey = { X: getRandomUint256(), Y: getRandomUint256() };
+
+      const chainId = Number((await user1.getChainId()).toString());
+      const tsSigner = await getTsRollupSignerFromWallet(
+        chainId,
+        diamondAcc.address,
+        user1 as Wallet
+      );
+      const pubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
       const registerTx = await diamondAcc
         .connect(user1)
         .register(pubKey.X, pubKey.Y, usdtMock.address, regAmount);

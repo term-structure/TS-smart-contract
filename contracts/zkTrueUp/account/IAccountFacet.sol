@@ -9,6 +9,8 @@ interface IAccountFacet {
     error AccountIsRegistered(address sender);
     /// @notice Error for register account when exceed account number limit
     error AccountNumExceedLimit(uint32 registeredAccountId);
+    /// @notice Error for register account when the public key is invalid
+    error InvalidTsPublicKey(uint256 tsPubKeyX, uint256 tsPubKeyY);
 
     /// @notice Register account by deposit Ether or ERC20 to ZkTrueUp
     /// @param tsPubKeyX The X coordinate of the public key of the L2 account
