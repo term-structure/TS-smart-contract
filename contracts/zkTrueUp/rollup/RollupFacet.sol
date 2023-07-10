@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
-import {RollupStorage, StoredBlock, CommitBlock, ExecuteBlock, Proof, L1Request} from "./RollupStorage.sol";
+import {RollupStorage, Proof, StoredBlock, CommitBlock, ExecuteBlock, VerifyBlock, L1Request} from "./RollupStorage.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
@@ -67,21 +67,22 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /**
      * @inheritdoc IRollupFacet
      */
-    function verifyBlocks(
-        StoredBlock[] memory committedBlocks,
-        Proof[] memory proof
-    ) external onlyRole(Config.VERIFIER_ROLE) {
+    function verifyBlocks(VerifyBlock[] memory verifyingBlocks) external onlyRole(Config.VERIFIER_ROLE) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
         uint32 verifiedBlockNum = rsl.getVerifiedBlockNum();
-        for (uint256 i; i < committedBlocks.length; i++) {
-            if (rsl.getStoredBlockHash(++verifiedBlockNum) != keccak256(abi.encode(committedBlocks[i])))
-                revert InvalidCommittedBlock(committedBlocks[i]);
-            _verifyOneBlock(committedBlocks[i], proof[i]);
+        if (verifiedBlockNum + verifyingBlocks.length > rsl.getCommittedBlockNum())
+            revert VerifiedBlockNumExceedCommittedNum(verifiedBlockNum);
 
-            emit BlockVerified(committedBlocks[i].blockNumber);
+        for (uint256 i; i < verifyingBlocks.length; ++i) {
+            ++verifiedBlockNum;
+            VerifyBlock memory verifyingBlock = verifyingBlocks[i];
+            if (rsl.getStoredBlockHash(verifiedBlockNum) != keccak256(abi.encode(verifyingBlock.storedBlock)))
+                revert InvalidCommittedBlock(verifyingBlock.storedBlock);
+
+            _verifyOneBlock(verifyingBlock.storedBlock.commitment, verifyingBlock.proof);
+            emit BlockVerified(verifyingBlock.storedBlock.blockNumber);
         }
-        if (verifiedBlockNum > rsl.getCommittedBlockNum()) revert VerifiedBlockNumExceedCommittedNum(verifiedBlockNum);
         rsl.verifiedBlockNum = verifiedBlockNum;
     }
 
@@ -453,11 +454,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     }
 
     /// @notice Internal function to verify one block
-    /// @param committedBlock The committed block
+    /// @param commitment The commitment of the block
     /// @param proof The proof of the block
-    function _verifyOneBlock(StoredBlock memory committedBlock, Proof memory proof) internal view {
-        if (proof.commitment[0] & Config.INPUT_MASK != uint256(committedBlock.commitment) & Config.INPUT_MASK)
-            revert CommitmentInconsistant(proof.commitment[0], uint256(committedBlock.commitment));
+    function _verifyOneBlock(bytes32 commitment, Proof memory proof) internal view {
+        if (proof.commitment[0] & Config.INPUT_MASK != uint256(commitment) & Config.INPUT_MASK)
+            revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
         IVerifier verifier = IVerifier(AddressLib.getAddressStorage().getVerifierAddr());
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }

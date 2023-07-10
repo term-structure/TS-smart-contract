@@ -47,6 +47,7 @@ import {
   ExecuteBlockStruct,
   ProofStruct,
   StoredBlockStruct,
+  VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 
 const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-31");
@@ -226,10 +227,14 @@ describe("Evacuate", function () {
       const proof: ProofStruct = testCase.callData;
       proofs.push(proof);
 
+      const verifyingBlocks: VerifyBlockStruct[] = [];
+      verifyingBlocks.push({
+        storedBlock: committedBlock,
+        proof: proof,
+      });
+
       const [, oriProvedBlockNum] = await diamondRollup.getBlockNum();
-      await diamondRollup
-        .connect(operator)
-        .verifyBlocks(committedBlocks, proofs);
+      await diamondRollup.connect(operator).verifyBlocks(verifyingBlocks);
 
       const [, newProvedBlockNum] = await diamondRollup.getBlockNum();
       expect(newProvedBlockNum - oriProvedBlockNum).to.be.eq(

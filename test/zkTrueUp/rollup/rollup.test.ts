@@ -16,6 +16,7 @@ import {
   ExecuteBlockStruct,
   ProofStruct,
   StoredBlockStruct,
+  VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 import {
   AccountFacet,
@@ -218,10 +219,14 @@ describe("Rollup", function () {
       const proof: ProofStruct = testCase.callData;
       proofs.push(proof);
 
+      const verifyingBlocks: VerifyBlockStruct[] = [];
+      verifyingBlocks.push({
+        storedBlock: committedBlock,
+        proof: proof,
+      });
+
       const [, oriProvedBlockNum] = await diamondRollup.getBlockNum();
-      await diamondRollup
-        .connect(operator)
-        .verifyBlocks(committedBlocks, proofs);
+      await diamondRollup.connect(operator).verifyBlocks(verifyingBlocks);
 
       const [, newProvedBlockNum] = await diamondRollup.getBlockNum();
       expect(newProvedBlockNum - oriProvedBlockNum).to.be.eq(

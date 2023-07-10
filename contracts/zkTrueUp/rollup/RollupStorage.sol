@@ -3,6 +3,14 @@ pragma solidity ^0.8.17;
 
 import {Operations} from "../libraries/Operations.sol";
 
+/// @notice Data for verifying block
+struct Proof {
+    uint256[2] a;
+    uint256[2][2] b;
+    uint256[2] c;
+    uint256[1] commitment;
+}
+
 /// @notice Stored block data (stored after block is committed)
 struct StoredBlock {
     uint32 blockNumber;
@@ -23,18 +31,16 @@ struct CommitBlock {
     bytes publicData;
 }
 
+/// @notice Data needed to be verified (passed in by sequencer)
+struct VerifyBlock {
+    StoredBlock storedBlock;
+    Proof proof;
+}
+
 /// @notice Data needed to be executed (passed in by sequencer)
 struct ExecuteBlock {
     StoredBlock storedBlock;
     bytes[] pendingRollupTxPubData;
-}
-
-/// @notice Data for verifying block
-struct Proof {
-    uint256[2] a;
-    uint256[2][2] b;
-    uint256[2] c;
-    uint256[1] commitment;
 }
 
 /// @dev The priority request needs to be executed before the expirationBlock, or the system will enter the evacuation mode

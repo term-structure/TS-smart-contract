@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {RollupStorage, CommitBlock, StoredBlock, ExecuteBlock, Proof, L1Request} from "./RollupStorage.sol";
+import {RollupStorage, Proof, CommitBlock, StoredBlock, VerifyBlock, ExecuteBlock, L1Request} from "./RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 
 /**
@@ -112,9 +112,8 @@ interface IRollupFacet {
     function commitBlocks(StoredBlock memory lastCommittedBlock, CommitBlock[] memory newBlocks) external;
 
     /// @notice Verify blocks
-    /// @param committedBlocks The committed blocks to be verified
-    /// @param proof The proof of the committed blocks
-    function verifyBlocks(StoredBlock[] memory committedBlocks, Proof[] memory proof) external;
+    /// @param verifyingBlocks The committed blocks to be verified and proofs
+    function verifyBlocks(VerifyBlock[] memory verifyingBlocks) external;
 
     /// @notice Execute blocks
     /// @param pendingBlocks The pending blocks to be executed
