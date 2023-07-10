@@ -20,7 +20,7 @@ library Utils {
     /// @notice Error for get zero address
     error InvalidZeroAddr();
     /// @notice Error for transfer
-    error TransferFailed();
+    error TransferFailed(address receiver, uint256 amount, bytes data);
     /// @notice Error for invalid msg.value
     error InvalidMsgValue(uint256 msgValue);
     /// @notice Error for inconsistent amount
@@ -36,8 +36,8 @@ library Utils {
     function transfer(address tokenAddr, address payable receiver, uint128 amount) internal {
         if (tokenAddr == Config.ETH_ADDRESS) {
             IWETH(AddressLib.getAddressStorage().getWETHAddr()).withdraw(amount);
-            (bool success, ) = receiver.call{value: amount}("");
-            if (!success) revert TransferFailed();
+            (bool success, bytes memory data) = receiver.call{value: amount}("");
+            if (!success) revert TransferFailed(receiver, amount, data);
         } else {
             ISolidStateERC20(tokenAddr).safeTransfer(receiver, amount);
         }
