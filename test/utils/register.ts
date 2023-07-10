@@ -26,7 +26,7 @@ export async function register(
     diamondAcc.address,
     sender as Wallet
   );
-  const pubKey = {
+  const tsPubKey = {
     X: tsSigner.tsPubKey[0].toString(),
     Y: tsSigner.tsPubKey[1].toString(),
   };
@@ -36,7 +36,7 @@ export async function register(
     await (
       await diamondAcc
         .connect(sender)
-        .register(pubKey.X, pubKey.Y, tokenAddr, amount, { value: amount })
+        .register(tsPubKey.X, tsPubKey.Y, tokenAddr, amount, { value: amount })
     ).wait();
   } else {
     await (
@@ -48,7 +48,7 @@ export async function register(
     await (
       await diamondAcc
         .connect(sender)
-        .register(pubKey.X, pubKey.Y, tokenAddr, amount)
+        .register(tsPubKey.X, tsPubKey.Y, tokenAddr, amount)
     ).wait();
   }
 }

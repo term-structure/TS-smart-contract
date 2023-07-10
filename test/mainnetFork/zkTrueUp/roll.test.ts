@@ -2,7 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 const helpers = require("@nomicfoundation/hardhat-network-helpers");
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Contract, Signer, Wallet, utils } from "ethers";
+import { BigNumber, Contract, Signer, utils } from "ethers";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
 import { register } from "../../utils/register";
@@ -32,7 +32,7 @@ import {
   STABLECOIN_PAIR_LIQUIDATION_FACTOR,
   TS_BASE_TOKEN,
   TsTokenId,
-  getTsRollupSignerFromWallet,
+  getTsRollupSigner,
 } from "term-structure-sdk";
 import { MAINNET_ADDRESS } from "../../../utils/config";
 import { useChainlink } from "../../../utils/useChainlink";
@@ -831,15 +831,8 @@ describe("Roll to Aave", () => {
           .connect(impersonatedSigner)
           .approve(diamondAcc.address, registerAmt2)
       ).wait();
-      // register user2 for loan owner
-      const chainId = Number(
-        (await impersonatedSigner.getChainId()).toString()
-      );
-      const tsSigner = await getTsRollupSignerFromWallet(
-        chainId,
-        diamondAcc.address,
-        impersonatedSigner as Wallet
-      );
+      // register impersonatedSigner for loan owner
+      const tsSigner = getTsRollupSigner("0x1234567890");
       const pubKey = {
         X: tsSigner.tsPubKey[0].toString(),
         Y: tsSigner.tsPubKey[1].toString(),
@@ -965,14 +958,7 @@ describe("Roll to Aave", () => {
           .approve(diamondAcc.address, registerAmt2)
       ).wait();
       // register impersonatedSigner for loan owner
-      const chainId = Number(
-        (await impersonatedSigner.getChainId()).toString()
-      );
-      const tsSigner = await getTsRollupSignerFromWallet(
-        chainId,
-        diamondAcc.address,
-        impersonatedSigner as Wallet
-      );
+      const tsSigner = getTsRollupSigner("0x1234567890");
       const pubKey = {
         X: tsSigner.tsPubKey[0].toString(),
         Y: tsSigner.tsPubKey[1].toString(),
