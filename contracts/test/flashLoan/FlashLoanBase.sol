@@ -21,15 +21,17 @@ contract FlashLoanBase is IFlashLoanReceiver {
         loanFacet = ILoanFacet(zkTrueUpAddr);
     }
 
+    /**
+     * @inheritdoc IFlashLoanReceiver
+     */
     function executeOperation(
         address sender,
         address[] calldata assets,
         uint128[] calldata amounts,
         uint128[] calldata premiums,
         bytes calldata data
-    ) external override returns (bool) {
+    ) external {
         // do something...
-        return true;
     }
 
     function flashLoanCall(address[] calldata assets, uint128[] calldata amounts) external {

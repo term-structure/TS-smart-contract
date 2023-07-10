@@ -34,17 +34,16 @@ contract FlashLoanToLiquidation is IFlashLoanReceiver {
         uint128[] calldata amounts,
         uint128[] calldata premiums,
         bytes calldata data
-    ) external override returns (bool) {
+    ) external {
         Loan memory loan = loanFacet.getLoan(_loanId);
         address collateralToken = tokenFacet.getAssetConfig(loan.collateralTokenId).tokenAddr;
         (, , uint128 maxRepayAmt) = loanFacet.getLiquidationInfo(_loanId);
         (uint128 liquidatorRewardAmt, ) = loanFacet.liquidate(_loanId, maxRepayAmt);
         if (collateralToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             (bool success, ) = _liquidator.call{value: liquidatorRewardAmt}("");
-            return success;
+            require(success, "FlashLoanToLiquidation: ETH transfer failed");
         } else {
             IERC20(collateralToken).transfer(_liquidator, liquidatorRewardAmt);
-            return true;
         }
     }
 

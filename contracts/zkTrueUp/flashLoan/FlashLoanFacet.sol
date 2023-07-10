@@ -44,14 +44,17 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
             ISolidStateERC20(assets[i]).safeTransfer(receiver, amounts[i]);
         }
 
-        if (!IFlashLoanReceiver(receiver).executeOperation(msg.sender, assets, amounts, premiums, data))
-            revert FlashLoanExecuteFailed();
-
-        address payable treasuryAddr = ProtocolParamsLib.getProtocolParamsStorage().getTreasuryAddr();
-        for (uint256 i; i < assets.length; i++) {
-            ISolidStateERC20(assets[i]).safeTransferFrom(receiver, address(this), amounts[i] + premiums[i]);
-            ISolidStateERC20(assets[i]).safeTransfer(treasuryAddr, premiums[i]);
-            emit FlashLoan(msg.sender, receiver, assets[i], amounts[i], premiums[i]);
+        try IFlashLoanReceiver(receiver).executeOperation(msg.sender, assets, amounts, premiums, data) {
+            address payable treasuryAddr = ProtocolParamsLib.getProtocolParamsStorage().getTreasuryAddr();
+            for (uint256 i; i < assets.length; i++) {
+                ISolidStateERC20(assets[i]).safeTransferFrom(receiver, address(this), amounts[i] + premiums[i]);
+                ISolidStateERC20(assets[i]).safeTransfer(treasuryAddr, premiums[i]);
+                emit FlashLoan(msg.sender, receiver, assets[i], amounts[i], premiums[i]);
+            }
+        } catch Error(string memory err) {
+            revert ExecuteOperationFailedLogString(err);
+        } catch (bytes memory err) {
+            revert ExecuteOperationFailedLogBytes(err);
         }
     }
 

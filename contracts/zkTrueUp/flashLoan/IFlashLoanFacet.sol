@@ -7,8 +7,10 @@ pragma solidity ^0.8.17;
 interface IFlashLoanFacet {
     /// @notice Error for input length mismatch in flash loan function
     error InputLengthMismatch(uint256 assetLength, uint256 amountLength);
-    /// @notice Error for fail to execute flash loan
-    error FlashLoanExecuteFailed();
+    /// @notice Error for fail to execute operation in flash loan function
+    error ExecuteOperationFailedLogString(string err);
+    /// @notice Error for fail to execute operation in flash loan function
+    error ExecuteOperationFailedLogBytes(bytes err);
 
     /// @notice Emitted when the flash loan is executed
     /// @param sender The address of the sender
