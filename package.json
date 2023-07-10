@@ -87,6 +87,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
+    "@chainlink/contracts": "^0.6.1",
     "circomlibjs": "^0.1.7",
     "term-structure-sdk": "^0.1.30"
   }

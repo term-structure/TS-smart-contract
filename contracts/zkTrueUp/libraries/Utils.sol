@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {AddressLib} from "../address/AddressLib.sol";
-import {AggregatorV3Interface} from "../interfaces/AggregatorV3Interface.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
 import {Config} from "../libraries/Config.sol";
 
