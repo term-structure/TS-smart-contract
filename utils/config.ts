@@ -111,6 +111,8 @@ export const MAX_LTV_RATIO = 1000; // 100%
 
 export const CHUNK_BYTES = 12;
 
+export const NOOP_BYTES = 1;
+
 export const REGISTER_BYTES = 4 * CHUNK_BYTES;
 
 export const DEPOSIT_BYTES = 2 * CHUNK_BYTES;

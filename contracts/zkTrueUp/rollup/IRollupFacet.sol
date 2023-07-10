@@ -34,10 +34,8 @@ interface IRollupFacet {
     error InvalidOffset(uint256 offset);
     /// @notice Error for offset is already set
     error OffsetIsSet(uint256 chunkId);
-    /// @notice Error for base token address is not matched
-    error BaseTokenAddrIsNotMatched();
     /// @notice Error for maturity time is not matched
-    error MaturityTimeIsNotMatched();
+    error MaturityTimeIsNotMatched(uint32 tsbTokenMaturityTime, uint32 createTsbReqMaturityTime);
     /// @notice Error for invalid op type
     error InvalidOpType(Operations.OpType opType);
     /// @notice Error for inconsistent commitment
@@ -58,6 +56,8 @@ interface IRollupFacet {
     error NotEvacuMode();
     /// @notice Error for activate evacuation mode, but the timestamp is not expired
     error TimeStampIsNotExpired(uint256 curtimestamp, uint256 expirationTime);
+    /// @notice Error for underlyingAsset token and base token address is not matched
+    error TokenIsNotMatched(address underlyingAsset, address baseToken);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block

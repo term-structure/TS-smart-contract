@@ -7,7 +7,7 @@ import { useFacet } from "../../../utils/useFacet";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { FACET_NAMES } from "../../../utils/config";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
-import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-32/initStates.json";
 import { AccountState, BaseTokenAddresses } from "../../../utils/type";
 import {
   DEFAULT_ETH_ADDRESS,
@@ -50,8 +50,10 @@ import {
   VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 
-const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-31");
-const evacuationDataPath = resolve("./test/data/rollupData/evacuation");
+const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-32");
+const evacuationDataPath = resolve(
+  "./test/data/rollupData/zkTrueUp-evacuation-8-10-8-6-3-3-32"
+);
 const testData = initTestData(testDataPath);
 const evacuationData = initEvacuationTestData(evacuationDataPath);
 
@@ -185,7 +187,7 @@ describe("Evacuate", function () {
       const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
       // generate new blocks
       const newBlocks: CommitBlockStruct[] = [];
-      const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
+      const commitBlock = getCommitBlock(lastCommittedBlock, testCase, false);
       newBlocks.push(commitBlock);
       // get state before commit
       const [oriCommittedBlockNum, ,] = await diamondRollup.getBlockNum();
@@ -318,7 +320,11 @@ describe("Evacuate", function () {
 
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(lastCommittedBlock, evacuationData[0]);
+    const commitBlock = getCommitBlock(
+      lastCommittedBlock,
+      evacuationData[0],
+      true
+    );
     const evacuation = readEvacuationPubData(commitBlock.publicData.toString());
     const proof: ProofStruct = evacuationData[0].callData;
 
@@ -346,7 +352,11 @@ describe("Evacuate", function () {
   it("Failed to activate evacuation", async function () {
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(lastCommittedBlock, evacuationData[0]);
+    const commitBlock = getCommitBlock(
+      lastCommittedBlock,
+      evacuationData[0],
+      true
+    );
     const proof: ProofStruct = evacuationData[0].callData;
 
     await expect(

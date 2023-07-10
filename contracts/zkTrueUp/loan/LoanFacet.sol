@@ -23,8 +23,6 @@ import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt} from "./LoanStorag
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title Term Structure Loan Facet Contract
  */

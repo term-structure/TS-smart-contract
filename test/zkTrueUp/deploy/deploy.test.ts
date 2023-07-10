@@ -9,7 +9,7 @@ import { AddressFacet } from "../../../typechain-types/contracts/zkTrueUp/addres
 import { keccak256 } from "ethers/lib/utils";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 import { useFacet } from "../../../utils/useFacet";
-import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-32/initStates.json";
 import {
   AccountFacet,
   AccountFacet__factory,

@@ -27,7 +27,7 @@ struct CommitBlock {
     bytes32 newStateRoot;
     bytes32 newTsRoot;
     uint256 timestamp;
-    uint32[] publicDataOffsets;
+    uint16[] chunkIdDeltas;
     bytes publicData;
 }
 

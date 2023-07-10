@@ -53,7 +53,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         uint64 committedL1RequestNum = rsl.getCommittedL1RequestNum();
         for (uint32 i; i < newBlocks.length; ++i) {
-            lastCommittedBlock = _commitOneBlock(lastCommittedBlock, newBlocks[i], committedL1RequestNum);
+            lastCommittedBlock = _commitOneBlock(rsl, lastCommittedBlock, newBlocks[i], committedL1RequestNum);
             committedL1RequestNum += lastCommittedBlock.l1RequestNum;
             rsl.storedBlockHashes[lastCommittedBlock.blockNumber] = keccak256(abi.encode(lastCommittedBlock));
             emit BlockCommitted(lastCommittedBlock.blockNumber, lastCommittedBlock.commitment);
@@ -167,9 +167,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         bytes memory publicData = newBlock.publicData;
         if (publicData.length % Config.CHUNK_BYTES != 0) revert InvalidPubDataLength(publicData.length);
 
-        bytes memory commitmentOffset = new bytes(2);
-        commitmentOffset[0] = 0x01;
-        commitmentOffset[1] = 0x00;
+        bytes memory commitmentOffset = new bytes(1);
+        commitmentOffset[0] = 0x80; // 0b10000000
+
         bytes32 commitment = _createBlockCommitment(lastExecutedBlock, newBlock, commitmentOffset);
 
         // Verify the new block
@@ -283,11 +283,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     }
 
     /// @notice Internal function to commit one block
+    /// @param rsl Rollup storage layout
     /// @param previousBlock The previous block
     /// @param newBlock The new block to be committed
     /// @param committedL1RequestNum The committed L1 request number
     /// @return storedBlock The committed block
     function _commitOneBlock(
+        RollupStorage.Layout storage rsl,
         StoredBlock memory previousBlock,
         CommitBlock memory newBlock,
         uint64 committedL1RequestNum
@@ -296,23 +298,130 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert TimestampLtPrevious(newBlock.timestamp, previousBlock.timestamp);
         if (newBlock.blockNumber != previousBlock.blockNumber + 1) revert InvalidBlockNum(newBlock.blockNumber);
 
-        (
-            bytes32 pendingRollupTxHash,
-            uint64 processedL1RequestNum,
-            bytes memory commitmentOffset
-        ) = _collectRollupRequests(newBlock, committedL1RequestNum);
+        uint256 publicDataLength = newBlock.publicData.length;
+        if (publicDataLength % Config.CHUNK_BYTES != 0) revert InvalidPubDataLength(publicDataLength);
 
+        uint256 chunkId;
+        uint64 requestId = committedL1RequestNum;
+        bytes32 processableRollupTxHash = Config.EMPTY_STRING_KECCAK;
+        // The commitment offset array is used to store the commitment offset for each chunk
+        bytes memory commitmentOffset = new bytes(publicDataLength / Config.CHUNK_BYTES / Config.BITS_OF_BYTE);
+
+        for (uint256 i; i < newBlock.chunkIdDeltas.length; ++i) {
+            chunkId += newBlock.chunkIdDeltas[i];
+            uint256 offset = chunkId * Config.CHUNK_BYTES;
+            if (offset >= publicDataLength) revert OffsetGtPubDataLength(offset);
+
+            commitmentOffset = _updateCommitmentOffsetForChunk(commitmentOffset, chunkId);
+            (bytes memory data, bool isL1Request, bool isToBeExecuted) = _processOneRequest(
+                rsl,
+                newBlock.publicData,
+                offset,
+                requestId
+            );
+            // If processed request is L1 request, increase the L1 request id
+            if (isL1Request) ++requestId;
+            // If processed request is to be executed, update the processable rollup tx hash for executing the request when executeBlock
+            if (isToBeExecuted) processableRollupTxHash = keccak256(abi.encode(processableRollupTxHash, data));
+        }
+
+        uint64 processedL1RequestNum = requestId - committedL1RequestNum;
         bytes32 commitment = _createBlockCommitment(previousBlock, newBlock, commitmentOffset);
-
         return
             StoredBlock({
                 blockNumber: newBlock.blockNumber,
                 l1RequestNum: processedL1RequestNum,
-                pendingRollupTxHash: pendingRollupTxHash,
+                pendingRollupTxHash: processableRollupTxHash,
                 commitment: commitment,
                 stateRoot: newBlock.newStateRoot,
                 timestamp: newBlock.timestamp
             });
+    }
+
+    /// @notice Internal function to update the commitment offset for the chunk
+    /// @param commitmentOffset The commitment offset
+    /// @param chunkId The chunk id
+    /// @return commitmentOffset The updated commitment offset
+    function _updateCommitmentOffsetForChunk(
+        bytes memory commitmentOffset,
+        uint256 chunkId
+    ) internal pure returns (bytes memory) {
+        uint256 chunkIndex = chunkId / Config.BITS_OF_BYTE;
+        uint8 processingCommitmentOffset = uint8(commitmentOffset[chunkIndex]);
+        uint8 bitwiseMask = uint8(1 << (Config.LAST_INDEX_OF_BYTE - (chunkId % Config.BITS_OF_BYTE)));
+        if (processingCommitmentOffset & bitwiseMask != 0) revert OffsetIsSet(chunkId);
+
+        commitmentOffset[chunkIndex] = bytes1(processingCommitmentOffset | bitwiseMask);
+        return commitmentOffset;
+    }
+
+    /// @notice Process one request
+    /// @param rsl The rollup storage layout
+    /// @param publicData The public data of the new block
+    /// @param offset The offset of the public data
+    /// @param requestId The request id of the new block
+    /// @return data The data of the request
+    /// @return isL1Request Whether the request is L1 request
+    /// @return isToBeExecuted Whether the request is to be executed on L1 when executing the new block
+    function _processOneRequest(
+        RollupStorage.Layout storage rsl,
+        bytes memory publicData,
+        uint256 offset,
+        uint64 requestId
+    ) internal view returns (bytes memory, bool, bool) {
+        bytes memory data;
+        bool isL1Request;
+        bool isToBeExecuted;
+        Operations.OpType opType = Operations.OpType(uint8(publicData[offset]));
+
+        // non L1 request
+        if (opType == Operations.OpType.WITHDRAW) {
+            data = Bytes.sliceWithdrawData(publicData, offset);
+            isToBeExecuted = true;
+        } else if (opType == Operations.OpType.AUCTION_END) {
+            data = Bytes.sliceAuctionEndData(publicData, offset);
+            isToBeExecuted = true;
+        } else if (opType == Operations.OpType.WITHDRAW_FEE) {
+            data = Bytes.sliceWithdrawFeeData(publicData, offset);
+            isToBeExecuted = true;
+        } else if (opType == Operations.OpType.CREATE_TSB_TOKEN) {
+            data = Bytes.sliceCreateTsbTokenData(publicData, offset);
+            Operations.CreateTsbToken memory createTsbTokenReq = Operations.readCreateTsbTokenPubData(data);
+            TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+            AssetConfig memory tsbTokenConfig = tsl.getAssetConfig(createTsbTokenReq.tsbTokenId);
+            AssetConfig memory baseTokenConfig = tsl.getAssetConfig(createTsbTokenReq.baseTokenId);
+            (address underlyingAssetAddr, uint32 maturityTime) = ITsbToken(tsbTokenConfig.tokenAddr).tokenInfo();
+            if (underlyingAssetAddr != baseTokenConfig.tokenAddr)
+                revert TokenIsNotMatched(underlyingAssetAddr, baseTokenConfig.tokenAddr);
+            if (maturityTime != createTsbTokenReq.maturityTime)
+                revert MaturityTimeIsNotMatched(maturityTime, createTsbTokenReq.maturityTime);
+        } else {
+            // L1 request
+            isL1Request = true;
+            L1Request memory request = rsl.getL1Request(requestId);
+            if (opType == Operations.OpType.REGISTER) {
+                data = Bytes.sliceRegisterData(publicData, offset);
+                Operations.Register memory register = Operations.readRegisterPubData(data);
+                RollupLib.isRegisterInL1RequestQueue(register, request);
+            } else if (opType == Operations.OpType.DEPOSIT) {
+                data = Bytes.sliceDepositData(publicData, offset);
+                Operations.Deposit memory deposit = Operations.readDepositPubData(data);
+                RollupLib.isDepositInL1RequestQueue(deposit, request);
+            } else if (opType == Operations.OpType.EVACUATION) {
+                data = Bytes.sliceEvacuationData(publicData, offset);
+                Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(data);
+                RollupLib.isEvacuationInL1RequestQueue(evacuation, request);
+                isToBeExecuted = true;
+            } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
+                data = Bytes.sliceForceWithdrawData(publicData, offset);
+                Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(data);
+                RollupLib.isForceWithdrawInL1RequestQueue(forceWithdrawReq, request);
+                isToBeExecuted = true;
+            } else {
+                revert InvalidOpType(opType);
+            }
+        }
+        return (data, isL1Request, isToBeExecuted);
     }
 
     /// @notice Internal function to execute one block
@@ -342,89 +451,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             } else {
                 revert InvalidOpType(opType);
             }
-            pendingRollupTxHash = keccak256(abi.encodePacked(pendingRollupTxHash, pubData));
+            pendingRollupTxHash = keccak256(abi.encode(pendingRollupTxHash, pubData));
         }
 
         if (pendingRollupTxHash != executeBlock.storedBlock.pendingRollupTxHash)
             revert PendingRollupTxHashIsNotMatched(pendingRollupTxHash, executeBlock.storedBlock.pendingRollupTxHash);
-    }
-
-    /// @notice Internal function to collect and check the rollup requests
-    /// @param newBlock The new block to be committed
-    /// @param committedL1RequestNum The committed L1 request number
-    /// @return processableRollupTxHash The hash of the rollup txs to be processed
-    /// @return nextCommittedL1RequestId The next committed L1 request ID
-    /// @return commitmentOffset The offset of the commitment
-    function _collectRollupRequests(
-        CommitBlock memory newBlock,
-        uint64 committedL1RequestNum
-    ) internal view returns (bytes32, uint64, bytes memory) {
-        bytes memory publicData = newBlock.publicData;
-        if (publicData.length % Config.CHUNK_BYTES != 0) revert InvalidPubDataLength(publicData.length);
-        bytes32 processableRollupTxHash = Config.EMPTY_STRING_KECCAK;
-        bytes memory commitmentOffset = new bytes(publicData.length / Config.CHUNK_BYTES);
-        uint64 processedL1RequestNum;
-        uint256 offset;
-        L1Request memory request;
-        bytes memory data;
-        for (uint256 i; i < newBlock.publicDataOffsets.length; i++) {
-            offset = newBlock.publicDataOffsets[i];
-            if (offset >= publicData.length) revert OffsetGtPubDataLength(offset);
-            if (offset % Config.CHUNK_BYTES != 0) revert InvalidOffset(offset);
-            {
-                uint256 chunkId = offset / Config.CHUNK_BYTES;
-                if (commitmentOffset[chunkId] != bytes1(0x00)) revert OffsetIsSet(chunkId);
-                commitmentOffset[chunkId] = bytes1(0x01);
-            }
-            Operations.OpType opType = Operations.OpType(uint8(publicData[offset]));
-            if (opType == Operations.OpType.REGISTER) {
-                data = Bytes.sliceRegisterData(publicData, offset);
-                Operations.Register memory register = Operations.readRegisterPubData(data);
-                request = RollupLib.getRollupStorage().getL1Request(committedL1RequestNum + processedL1RequestNum);
-                if (!RollupLib.isRegisterInL1RequestQueue(register, request)) revert RequestIsNotExisted(request);
-                ++processedL1RequestNum;
-            } else if (opType == Operations.OpType.DEPOSIT) {
-                data = Bytes.sliceDepositData(publicData, offset);
-                Operations.Deposit memory deposit = Operations.readDepositPubData(data);
-                request = RollupLib.getRollupStorage().getL1Request(committedL1RequestNum + processedL1RequestNum);
-                if (!RollupLib.isDepositInL1RequestQueue(deposit, request)) revert RequestIsNotExisted(request);
-                ++processedL1RequestNum;
-            } else if (opType == Operations.OpType.CREATE_TSB_TOKEN) {
-                data = Bytes.sliceCreateTsbTokenData(publicData, offset);
-                Operations.CreateTsbToken memory createTsbTokenReq = Operations.readCreateTsbTokenPubData(data);
-                TokenStorage.Layout storage tsl = TokenStorage.layout();
-                AssetConfig memory tsbTokenConfig = tsl.getAssetConfig(createTsbTokenReq.tsbTokenId);
-                AssetConfig memory baseTokenConfig = tsl.getAssetConfig(createTsbTokenReq.baseTokenId);
-                (address underlyingAsset, uint32 maturityTime) = ITsbToken(tsbTokenConfig.tokenAddr).tokenInfo();
-                if (underlyingAsset != baseTokenConfig.tokenAddr) revert BaseTokenAddrIsNotMatched();
-                if (maturityTime != createTsbTokenReq.maturityTime) revert MaturityTimeIsNotMatched();
-            } else if (opType == Operations.OpType.EVACUATION) {
-                data = Bytes.sliceEvacuationData(publicData, offset);
-                Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(data);
-                request = RollupLib.getRollupStorage().getL1Request(committedL1RequestNum + processedL1RequestNum);
-                if (!RollupLib.isEvacuationInL1RequestQueue(evacuation, request)) revert RequestIsNotExisted(request);
-                ++processedL1RequestNum;
-            } else {
-                if (opType == Operations.OpType.WITHDRAW) {
-                    data = Bytes.sliceWithdrawData(publicData, offset);
-                } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
-                    data = Bytes.sliceForceWithdrawData(publicData, offset);
-                    Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(data);
-                    request = RollupLib.getRollupStorage().getL1Request(committedL1RequestNum + processedL1RequestNum);
-                    if (!RollupLib.isForceWithdrawInL1RequestQueue(forceWithdrawReq, request))
-                        revert RequestIsNotExisted(request);
-                    ++processedL1RequestNum;
-                } else if (opType == Operations.OpType.AUCTION_END) {
-                    data = Bytes.sliceAuctionEndData(publicData, offset);
-                } else if (opType == Operations.OpType.WITHDRAW_FEE) {
-                    data = Bytes.sliceWithdrawFeeData(publicData, offset);
-                } else {
-                    revert InvalidOpType(opType);
-                }
-                processableRollupTxHash = keccak256(abi.encodePacked(processableRollupTxHash, data));
-            }
-        }
-        return (processableRollupTxHash, processedL1RequestNum, commitmentOffset);
     }
 
     /// @notice Internal function create the commitment of the new block
@@ -455,13 +486,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param commitment The commitment of the block
     /// @param proof The proof of the block
     function _verifyOneBlock(bytes32 commitment, Proof memory proof, bool isEvacuationBlock) internal view {
-        if (proof.commitment[0] & Config.INPUT_MASK != uint256(commitment) & Config.INPUT_MASK)
+        if (proof.commitment[0] != uint256(commitment) % Config.SCALAR_FIELD_SIZE)
             revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
 
         AddressStorage.Layout storage asl = AddressStorage.layout();
         IVerifier verifier = isEvacuationBlock
             ? IVerifier(asl.getEvacuVerifierAddr())
             : IVerifier(asl.getVerifierAddr());
+
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
 
