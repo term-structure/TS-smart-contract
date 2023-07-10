@@ -74,7 +74,7 @@ library RollupStorage {
         /// @notice L1 request queue
         mapping(uint64 => L1Request) l1RequestQueue;
         /// @notice pending balances for withdrawal
-        mapping(bytes22 => uint128) pendingBalances;
+        mapping(bytes22 => uint256) pendingBalances;
         /// @notice Stored hashed StoredBlock for some block number
         mapping(uint32 => bytes32) storedBlockHashes;
         /// @notice Mapping of L2 Account Id => L2 Token Id => isEvacuated

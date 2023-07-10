@@ -16,6 +16,7 @@ import {Config} from "../zkTrueUp/libraries/Config.sol";
 contract RollupMock is RollupFacet {
     using LoanLib for LoanStorage.Layout;
     using TokenLib for TokenStorage.Layout;
+    using LoanLib for Loan;
 
     function updateLoanMock(Operations.AuctionEnd memory auctionEnd) external {
         // Utils.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
@@ -49,11 +50,10 @@ contract RollupMock is RollupFacet {
 
         // calculate added amount
         uint8 decimals = underlyingAssetConfig.decimals;
-        uint128 addedDebtAmt = Utils.toL1Amt(auctionEnd.debtAmt, decimals);
+        uint128 addedDebtAmt = SafeCast.toUint128(Utils.toL1Amt(auctionEnd.debtAmt, decimals));
         decimals = assetConfig.decimals;
-        uint128 addedCollateralAmt = Utils.toL1Amt(auctionEnd.collateralAmt, decimals);
-        loan.debtAmt += addedDebtAmt;
-        loan.collateralAmt += addedCollateralAmt;
+        uint128 addedCollateralAmt = SafeCast.toUint128(Utils.toL1Amt(auctionEnd.collateralAmt, decimals));
+        loan = loan.updateLoan(addedCollateralAmt, addedDebtAmt);
 
         LoanStorage.layout().loans[loanId] = loan;
 

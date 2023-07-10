@@ -12,7 +12,7 @@ library RollupLib {
     using RollupLib for RollupStorage.Layout;
 
     /// @notice Error for withdraw amount exceed pending balance
-    error WithdrawAmtExceedPendingBalance(uint128 pendingBalance, uint128 withdrawAmt);
+    error WithdrawAmtExceedPendingBalance(uint256 pendingBalance, uint128 withdrawAmt);
     /// @notice Error for trying to do transactions when evacuation mode is activated
     error EvacuModeActivated();
     /// @notice Error for operation type is not matched
@@ -69,7 +69,7 @@ library RollupLib {
         uint128 amount
     ) internal {
         bytes22 key = getPendingBalanceKey(sender, tokenId);
-        uint128 pendingBalance = s.getPendingBalances(key);
+        uint256 pendingBalance = s.getPendingBalances(key);
         if (pendingBalance < amount) revert WithdrawAmtExceedPendingBalance(pendingBalance, amount);
         unchecked {
             RollupStorage.layout().pendingBalances[key] = pendingBalance - amount;
@@ -164,7 +164,7 @@ library RollupLib {
     /// @param s The rollup storage
     /// @param key The key of the pending balance
     /// @return pendingBalances The pending balance of the specified key
-    function getPendingBalances(RollupStorage.Layout storage s, bytes22 key) internal view returns (uint128) {
+    function getPendingBalances(RollupStorage.Layout storage s, bytes22 key) internal view returns (uint256) {
         return s.pendingBalances[key];
     }
 

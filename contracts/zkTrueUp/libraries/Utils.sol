@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
 import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
@@ -14,6 +15,7 @@ import {Config} from "../libraries/Config.sol";
  * @title Term Structure Utils Library
  */
 library Utils {
+    using Math for *;
     using SafeERC20 for ISolidStateERC20;
     using AddressLib for AddressStorage.Layout;
 
@@ -23,8 +25,6 @@ library Utils {
     error TransferFailed(address receiver, uint256 amount, bytes data);
     /// @notice Error for invalid msg.value
     error InvalidMsgValue(uint256 msgValue);
-    /// @notice Error for inconsistent amount
-    error AmountInconsistent(uint128 transferredAmt, uint128 expectedAmt);
     /// @notice Error for get invalid price
     error InvalidPrice(int256 price);
 
@@ -33,7 +33,7 @@ library Utils {
     /// @param tokenAddr The address of the token to be transferred
     /// @param receiver The address of receiver
     /// @param amount The amount of the token
-    function transfer(address tokenAddr, address payable receiver, uint128 amount) internal {
+    function transfer(address tokenAddr, address payable receiver, uint256 amount) internal {
         if (tokenAddr == Config.ETH_ADDRESS) {
             IWETH(AddressLib.getAddressStorage().getWETHAddr()).withdraw(amount);
             (bool success, bytes memory data) = receiver.call{value: amount}("");
@@ -49,18 +49,14 @@ library Utils {
     /// @param sender The address of sender
     /// @param amount The amount of the token
     /// @param msgValue The msg.value
-    function transferFrom(address tokenAddr, address sender, uint128 amount, uint256 msgValue) internal {
+    function transferFrom(address tokenAddr, address sender, uint256 amount, uint256 msgValue) internal {
         if (tokenAddr == Config.ETH_ADDRESS) {
             if (msgValue != amount) revert InvalidMsgValue(msgValue);
             IWETH(AddressLib.getAddressStorage().getWETHAddr()).deposit{value: amount}();
         } else {
             if (msgValue != 0) revert InvalidMsgValue(msgValue);
             ISolidStateERC20 token = ISolidStateERC20(tokenAddr);
-            uint256 balanceBefore = token.balanceOf(address(this));
             token.safeTransferFrom(sender, address(this), amount);
-            uint256 balanceAfter = token.balanceOf(address(this));
-            uint128 transferredAmt = SafeCast.toUint128(balanceAfter - balanceBefore);
-            if (transferredAmt != amount) revert AmountInconsistent(transferredAmt, amount);
         }
     }
 
@@ -86,15 +82,15 @@ library Utils {
     /// @param l2Amt The amount in L2
     /// @param decimals The decimals of the token
     /// @return The amount in L1
-    function toL1Amt(uint128 l2Amt, uint8 decimals) internal pure returns (uint128) {
-        return SafeCast.toUint128((l2Amt * (10 ** decimals)) / (10 ** Config.SYSTEM_DECIMALS));
+    function toL1Amt(uint128 l2Amt, uint8 decimals) internal pure returns (uint256) {
+        return l2Amt.mulDiv(10 ** decimals, 10 ** Config.SYSTEM_DECIMALS);
     }
 
     /// @notice Internal function to convert L1 amount to L2 amount
     /// @param l1Amt The amount in L1
     /// @param decimals The decimals of the token
     /// @return The amount in L2
-    function toL2Amt(uint128 l1Amt, uint8 decimals) internal pure returns (uint128) {
-        return SafeCast.toUint128((l1Amt * 10 ** Config.SYSTEM_DECIMALS) / 10 ** decimals);
+    function toL2Amt(uint256 l1Amt, uint8 decimals) internal pure returns (uint128) {
+        return SafeCast.toUint128(l1Amt.mulDiv(10 ** Config.SYSTEM_DECIMALS, 10 ** decimals));
     }
 }

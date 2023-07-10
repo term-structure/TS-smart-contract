@@ -51,7 +51,7 @@ interface IRollupFacet {
     /// @notice Error for redeem with invalid tsb token address
     error InvalidTsbTokenAddr(address invalidTokenAddr);
     /// @notice Error for pending rollup tx hash is not matched
-    error PendingRollupTxHashIsNotMatched();
+    error PendingRollupTxHashIsNotMatched(bytes32 pendingRollupTxHash, bytes32 executeBlockPendingRollupTxHash);
     /// @notice Error for the specified accountId and tokenId is already evacuated
     error Evacuated(uint32 accountId, uint16 tokenId);
     /// @notice Error for the system is not in evacuation mode
@@ -82,7 +82,7 @@ interface IRollupFacet {
     /// @param tokenAddr The address of the token
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
-    event Evacuation(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId, uint128 amount);
+    event Evacuation(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId, uint256 amount);
 
     /// @notice Emitted when evacuation is activated
     /// @param timestamp The timestamp of the evacuation activation
@@ -195,5 +195,5 @@ interface IRollupFacet {
     /// @param accountAddr The address of the account
     /// @param tokenAddr The address of the token
     /// @return pendingBalance The pending balance of the specified account and token
-    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128 pendingBalance);
+    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint256 pendingBalance);
 }
