@@ -40,7 +40,7 @@ struct Proof {
 /// @dev The priority request needs to be executed before the expirationBlock, or the system will enter the evacuation mode
 struct L1Request {
     Operations.OpType opType;
-    uint64 expirationBlock;
+    uint32 expirationTime;
     bytes32 hashedPubData;
 }
 

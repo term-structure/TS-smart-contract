@@ -47,12 +47,6 @@ library Config {
     /// @notice Maximum deposit amount
     uint256 internal constant MAX_DEPOSIT_AMOUNT = type(uint128).max;
 
-    /// @notice Expiration block for L1 request
-    uint256 internal constant EXPIRATION_BLOCK = EXPIRATION_PERIOD / BLOCK_PERIOD;
-
-    /// @notice Expected average period of block creation
-    uint256 internal constant BLOCK_PERIOD = 15 seconds;
-
     /// @notice Expriation period for L1 request
     uint256 internal constant EXPIRATION_PERIOD = 14 days;
 

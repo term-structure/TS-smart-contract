@@ -1,4 +1,4 @@
-import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Signer, utils } from "ethers";
@@ -66,8 +66,8 @@ describe("Activating evacuation", function () {
       baseTokenAddresses,
       diamondAcc
     );
-    // expirationBlock = 14 days / 15 seconds (for one block) = 80640
-    await mine(80639);
+    // expiration period = 14 days
+    await time.increase(time.duration.days(14));
     expect(await diamondRollup.isEvacuMode()).to.equal(false);
     await diamondRollup.activateEvacuation();
     expect(await diamondRollup.isEvacuMode()).to.equal(true);
@@ -84,11 +84,12 @@ describe("Activating evacuation", function () {
       diamondAcc
     );
 
-    // expirationBlock = 14 days / 15 seconds (for one block) = 80640
-    await mine(80600);
+    // expiration period = 14 days
+    await time.increase(time.duration.days(14) - 1);
     expect(await diamondRollup.isEvacuMode()).to.equal(false);
-    await diamondRollup.activateEvacuation();
-    expect(await diamondRollup.isEvacuMode()).to.equal(false);
+    await expect(
+      diamondRollup.activateEvacuation()
+    ).to.be.revertedWithCustomError(diamondRollup, "TimeStampIsNotExpired");
   });
 
   it("Failed to activate evacuation, because the system is in evacuation mode", async function () {
@@ -102,8 +103,8 @@ describe("Activating evacuation", function () {
       diamondAcc
     );
 
-    // expirationBlock = 14 days / 15 seconds (for one block) = 80640
-    await mine(80639);
+    // expiration period = 14 days
+    await time.increase(time.duration.days(14));
     expect(await diamondRollup.isEvacuMode()).to.equal(false);
     await diamondRollup.activateEvacuation();
     expect(await diamondRollup.isEvacuMode()).to.equal(true);

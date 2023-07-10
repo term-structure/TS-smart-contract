@@ -24,13 +24,13 @@ library RollupLib {
     /// @param requestId The id of the request
     /// @param opType The operation type of the request
     /// @param pubData The public data of the request
-    /// @param expirationBlock The expiration block of the request
+    /// @param expirationTime The expiration time of the request
     event NewL1Request(
         address indexed sender,
         uint64 requestId,
         Operations.OpType opType,
         bytes pubData,
-        uint64 expirationBlock
+        uint32 expirationTime
     );
 
     /// @notice Add the L1 request into L1 request queue
@@ -45,16 +45,16 @@ library RollupLib {
         Operations.OpType opType,
         bytes memory pubData
     ) internal {
-        uint64 expirationBlock = uint64(block.number + Config.EXPIRATION_BLOCK);
+        uint32 expirationTime = uint32(block.timestamp + Config.EXPIRATION_PERIOD);
         uint64 nextL1RequestId = s.totalL1RequestNum;
         bytes32 hashedPubData = keccak256(pubData);
         s.l1RequestQueue[nextL1RequestId] = L1Request({
             hashedPubData: hashedPubData,
-            expirationBlock: expirationBlock,
+            expirationTime: expirationTime,
             opType: opType
         });
         s.totalL1RequestNum++;
-        emit NewL1Request(sender, nextL1RequestId, opType, pubData, expirationBlock);
+        emit NewL1Request(sender, nextL1RequestId, opType, pubData, expirationTime);
     }
 
     /// @notice Update pending balance and emit Withdraw event

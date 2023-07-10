@@ -169,13 +169,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function activateEvacuation() external {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
-        uint64 expirationBlock = rsl.getL1Request(rsl.getExecutedL1RequestNum()).expirationBlock;
+        uint32 expirationTime = rsl.getL1Request(rsl.getExecutedL1RequestNum()).expirationTime;
         // If all the L1 requests are executed, the first pending L1 request is empty and the expirationBlock of empty L1 requets is 0
-        bool evacuMode = block.number >= expirationBlock && expirationBlock != 0;
 
-        if (evacuMode) {
+        if (block.timestamp > expirationTime && expirationTime != 0) {
             rsl.evacuMode = true;
-            emit EvacuationActivated(block.number);
+            emit EvacuationActivation(block.timestamp);
+        } else {
+            revert TimeStampIsNotExpired(block.timestamp, expirationTime);
         }
     }
 

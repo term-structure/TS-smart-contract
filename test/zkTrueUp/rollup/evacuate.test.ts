@@ -1,4 +1,4 @@
-import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { BigNumber, utils, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
@@ -305,8 +305,8 @@ describe("Evacuate", function () {
       .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
         value: amount,
       });
-    // expirationBlock = 14 days / 15 seconds (for one block) = 80640
-    await mine(80639);
+    // expiration period = 14 days
+    await time.increase(time.duration.days(14));
     expect(await diamondRollup.isEvacuMode()).to.equal(false);
     await diamondRollup.activateEvacuation();
     expect(await diamondRollup.isEvacuMode()).to.equal(true);

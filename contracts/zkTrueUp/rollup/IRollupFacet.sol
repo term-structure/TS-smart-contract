@@ -54,8 +54,10 @@ interface IRollupFacet {
     error PendingRollupTxHashIsNotMatched();
     /// @notice Error for the specified accountId and tokenId is already evacuated
     error Evacuated(uint32 accountId, uint16 tokenId);
-    /// @notice The system is not in evacuation mode
+    /// @notice Error for the system is not in evacuation mode
     error NotEvacuMode();
+    /// @notice Error for activate evacuation mode, but the timestamp is not expired
+    error TimeStampIsNotExpired(uint256 curtimestamp, uint256 expirationTime);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
@@ -83,8 +85,8 @@ interface IRollupFacet {
     event Evacuation(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId, uint128 amount);
 
     /// @notice Emitted when evacuation is activated
-    /// @param evacuationBlock The block number when evacuation is activated
-    event EvacuationActivated(uint256 indexed evacuationBlock);
+    /// @param timestamp The timestamp of the evacuation activation
+    event EvacuationActivation(uint256 indexed timestamp);
 
     /// @notice Emit when there is a new loan created
     /// @param loanId The id of the loan
