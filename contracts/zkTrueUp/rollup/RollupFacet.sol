@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {RollupStorage, Proof, StoredBlock, CommitBlock, ExecuteBlock, VerifyBlock, L1Request} from "./RollupStorage.sol";
@@ -276,8 +277,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /**
      * @inheritdoc IRollupFacet
      */
-    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint256) {
-        uint16 tokenId = TokenLib.getTokenStorage().getTokenId(tokenAddr);
+    function getPendingBalances(address accountAddr, IERC20 token) external view returns (uint256) {
+        uint16 tokenId = TokenLib.getTokenStorage().getTokenId(token);
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
         return RollupLib.getRollupStorage().getPendingBalances(key);
     }
@@ -390,9 +391,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
             AssetConfig memory tsbTokenConfig = tsl.getAssetConfig(createTsbTokenReq.tsbTokenId);
             AssetConfig memory baseTokenConfig = tsl.getAssetConfig(createTsbTokenReq.baseTokenId);
-            (address underlyingAssetAddr, uint32 maturityTime) = ITsbToken(tsbTokenConfig.tokenAddr).tokenInfo();
-            if (underlyingAssetAddr != baseTokenConfig.tokenAddr)
-                revert TokenIsNotMatched(underlyingAssetAddr, baseTokenConfig.tokenAddr);
+            (IERC20 underlyingAsset, uint32 maturityTime) = ITsbToken(address(tsbTokenConfig.token)).tokenInfo();
+            if (underlyingAsset != baseTokenConfig.token)
+                revert TokenIsNotMatched(underlyingAsset, baseTokenConfig.token);
             if (maturityTime != createTsbTokenReq.maturityTime)
                 revert MaturityTimeIsNotMatched(maturityTime, createTsbTokenReq.maturityTime);
         } else {
@@ -490,9 +491,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
 
         AddressStorage.Layout storage asl = AddressStorage.layout();
-        IVerifier verifier = isEvacuationBlock
-            ? IVerifier(asl.getEvacuVerifierAddr())
-            : IVerifier(asl.getVerifierAddr());
+        IVerifier verifier = isEvacuationBlock ? asl.getEvacuVerifier() : asl.getVerifier();
 
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
@@ -513,7 +512,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
         AssetConfig memory assetConfig = tsl.getAssetConfig(tokenId);
-        Utils.noneZeroAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(address(assetConfig.token));
 
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
         uint256 l1Amt = l2Amt.toL1Amt(assetConfig.decimals);
@@ -528,16 +527,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         // tsbToken config
         AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
-        Utils.noneZeroAddr(assetConfig.tokenAddr);
-        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(address(assetConfig.token));
+        if (!assetConfig.isTsbToken) revert InvalidTsbToken(assetConfig.token);
 
         // debt token config
-        (address underlyingAsset, uint32 maturityTime) = ITsbToken(assetConfig.tokenAddr).tokenInfo();
+        (IERC20 underlyingAsset, uint32 maturityTime) = ITsbToken(address(assetConfig.token)).tokenInfo();
         (uint16 debtTokenId, AssetConfig memory underlyingAssetConfig) = tsl.getAssetConfig(underlyingAsset);
 
         // collateral token config
         assetConfig = tsl.getAssetConfig(auctionEnd.collateralTokenId);
-        Utils.noneZeroAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(address(assetConfig.token));
 
         // update loan info
         bytes12 loanId = LoanLib.getLoanId(
@@ -569,8 +568,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             loanId,
             loan.accountId,
             loan.maturityTime,
-            assetConfig.tokenAddr,
-            underlyingAssetConfig.tokenAddr,
+            assetConfig.token,
+            underlyingAssetConfig.token,
             addedCollateralAmt,
             addedDebtAmt
         );
@@ -587,18 +586,18 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint128 amount = (l1Amt * fundWeight.insurance) / Config.FUND_WEIGHT_BASE;
         address toAddr = ppsl.getInsuranceAddr();
         Utils.noneZeroAddr(toAddr);
-        Utils.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
+        Utils.transfer(assetConfig.token, payable(toAddr), amount);
         l1Amt -= amount;
         // vault
         amount = (l1Amt * fundWeight.vault) / Config.FUND_WEIGHT_BASE;
         toAddr = ppsl.getVaultAddr();
         Utils.noneZeroAddr(toAddr);
-        Utils.transfer(assetConfig.tokenAddr, payable(toAddr), amount);
+        Utils.transfer(assetConfig.token, payable(toAddr), amount);
         l1Amt -= amount;
         // treasury
         toAddr = ppsl.getTreasuryAddr();
         Utils.noneZeroAddr(toAddr);
-        Utils.transfer(assetConfig.tokenAddr, payable(toAddr), l1Amt);
+        Utils.transfer(assetConfig.token, payable(toAddr), l1Amt);
     }
 
     /// @notice Internal function to evacuate token to L1
@@ -612,7 +611,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Utils.noneZeroAddr(receiver);
 
         AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(evacuation.tokenId);
-        Utils.noneZeroAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(address(assetConfig.token));
 
         rsl.evacuated[evacuation.accountId][evacuation.tokenId] = true;
 
@@ -620,7 +619,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         rsl.addL1Request(receiver, Operations.OpType.EVACUATION, pubData);
 
         uint256 l1Amt = evacuation.amount.toL1Amt(assetConfig.decimals);
-        Utils.transfer(assetConfig.tokenAddr, payable(receiver), l1Amt);
-        emit Evacuation(receiver, evacuation.accountId, assetConfig.tokenAddr, evacuation.tokenId, l1Amt);
+        Utils.transfer(assetConfig.token, payable(receiver), l1Amt);
+        emit Evacuation(receiver, evacuation.accountId, assetConfig.token, evacuation.tokenId, l1Amt);
     }
 }

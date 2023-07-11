@@ -2,6 +2,8 @@
 // solhint-disable-next-line
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /**
  * @title Term Structure FlashLoan Receiver interface
  */
@@ -15,7 +17,7 @@ interface IFlashLoanReceiver {
     /// @param data Data to be passed to the receiver
     function executeOperation(
         address sender,
-        address[] calldata assets,
+        IERC20[] calldata assets,
         uint256[] calldata amounts,
         uint256[] calldata premiums,
         bytes calldata data

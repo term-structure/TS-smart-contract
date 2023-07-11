@@ -59,7 +59,7 @@ describe("TsbFactory", () => {
         isTsbToken: false,
         decimals: BigNumber.from(18),
         minDepositAmt: utils.parseEther("0.1"),
-        tokenAddr: Wallet.createRandom().address,
+        token: Wallet.createRandom().address,
         priceFeed: Wallet.createRandom().address,
       };
 
@@ -68,7 +68,7 @@ describe("TsbFactory", () => {
         .addToken(assetConfig);
       await addTokenTx.wait();
 
-      const tokenId = await diamondToken.getTokenId(assetConfig.tokenAddr);
+      const tokenId = await diamondToken.getTokenId(assetConfig.token);
 
       // after token number
       const afterTokenNum = BigNumber.from(await diamondToken.getTokenNum());
@@ -83,18 +83,18 @@ describe("TsbFactory", () => {
       expect(tokenConfig.isTsbToken).to.be.equal(assetConfig.isTsbToken);
       expect(tokenConfig.decimals).to.be.equal(assetConfig.decimals);
       expect(tokenConfig.minDepositAmt).to.be.equal(assetConfig.minDepositAmt);
-      expect(tokenConfig.tokenAddr).to.be.equal(assetConfig.tokenAddr);
+      expect(tokenConfig.token).to.be.equal(assetConfig.token);
       expect(tokenConfig.priceFeed).to.be.equal(assetConfig.priceFeed);
 
       // check event
       await expect(addTokenTx)
         .to.emit(diamondToken, "WhitelistBaseToken")
-        .withArgs(assetConfig.tokenAddr, afterTokenNum, [
+        .withArgs(assetConfig.token, afterTokenNum, [
           assetConfig.isStableCoin,
           assetConfig.isTsbToken,
           assetConfig.decimals,
           assetConfig.minDepositAmt,
-          assetConfig.tokenAddr,
+          assetConfig.token,
           assetConfig.priceFeed,
         ]);
     });
@@ -116,7 +116,7 @@ describe("TsbFactory", () => {
       const addr = createTsbTokenReceipt.events?.[0].args?.[0];
 
       // whitelist tsb token
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -130,7 +130,7 @@ describe("TsbFactory", () => {
         isTsbToken: true,
         decimals: await tsbToken.decimals(),
         minDepositAmt: tsbTokenData.minDepositAmt,
-        tokenAddr: tsbTokenAddr,
+        token: tsbTokenAddr,
         priceFeed: DEFAULT_ZERO_ADDR,
       };
 
@@ -140,7 +140,7 @@ describe("TsbFactory", () => {
         .addToken(assetConfig);
       await addTokenTx.wait();
 
-      const tokenId = await diamondToken.getTokenId(assetConfig.tokenAddr);
+      const tokenId = await diamondToken.getTokenId(assetConfig.token);
 
       // after token number
       const afterTokenNum = BigNumber.from(await diamondToken.getTokenNum());
@@ -155,7 +155,7 @@ describe("TsbFactory", () => {
       expect(tokenConfig.isTsbToken).to.be.equal(assetConfig.isTsbToken);
       expect(tokenConfig.decimals).to.be.equal(assetConfig.decimals);
       expect(tokenConfig.minDepositAmt).to.be.equal(assetConfig.minDepositAmt);
-      expect(tokenConfig.tokenAddr).to.be.equal(assetConfig.tokenAddr);
+      expect(tokenConfig.token).to.be.equal(assetConfig.token);
       expect(tokenConfig.priceFeed).to.be.equal(assetConfig.priceFeed);
 
       const [, maturityTime] = await tsbToken.tokenInfo();
@@ -164,14 +164,14 @@ describe("TsbFactory", () => {
       await expect(addTokenTx)
         .to.emit(diamondToken, "WhitelistTsbToken")
         .withArgs(
-          assetConfig.tokenAddr,
+          assetConfig.token,
           afterTokenNum,
           [
             assetConfig.isStableCoin,
             assetConfig.isTsbToken,
             assetConfig.decimals,
             assetConfig.minDepositAmt,
-            assetConfig.tokenAddr,
+            assetConfig.token,
             assetConfig.priceFeed,
           ],
           maturityTime
@@ -183,7 +183,7 @@ describe("TsbFactory", () => {
         isTsbToken: false,
         decimals: BigNumber.from(18),
         minDepositAmt: utils.parseEther("0.1"),
-        tokenAddr: Wallet.createRandom().address,
+        token: Wallet.createRandom().address,
         priceFeed: Wallet.createRandom().address,
       };
 
@@ -196,7 +196,7 @@ describe("TsbFactory", () => {
         isTsbToken: false,
         decimals: BigNumber.from(18),
         minDepositAmt: utils.parseEther("0.1"),
-        tokenAddr: DEFAULT_ETH_ADDRESS,
+        token: DEFAULT_ETH_ADDRESS,
         priceFeed: Wallet.createRandom().address,
       };
 

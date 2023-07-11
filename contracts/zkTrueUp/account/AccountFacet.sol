@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {AccountStorage} from "./AccountStorage.sol";
 import {RollupStorage} from "../rollup/RollupStorage.sol";
@@ -11,6 +12,7 @@ import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountLib} from "./AccountLib.sol";
 import {TsbLib} from "../tsb/TsbLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {BabyJubJub, Point} from "../libraries/BabyJubJub.sol";
@@ -27,31 +29,31 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      * @dev The account is registered by depositing Ether or whitelisted ERC20 to ZkTrueUp
      */
-    function register(uint256 tsPubKeyX, uint256 tsPubKeyY, address tokenAddr, uint128 amount) external payable {
+    function register(uint256 tsPubKeyX, uint256 tsPubKeyY, IERC20 token, uint128 amount) external payable {
         RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
         rsl.requireActive();
 
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
-        tsl.requireBaseToken(tokenAddr);
+        tsl.requireBaseToken(token);
 
         if (!BabyJubJub.isOnCurve(Point({x: tsPubKeyX, y: tsPubKeyY}))) revert InvalidTsPublicKey(tsPubKeyX, tsPubKeyY);
 
         uint32 accountId = _register(rsl, msg.sender, tsPubKeyX, tsPubKeyY);
-        _deposit(rsl, tsl, msg.sender, msg.sender, accountId, tokenAddr, amount);
+        _deposit(rsl, tsl, msg.sender, msg.sender, accountId, token, amount);
     }
 
     /**
      * @inheritdoc IAccountFacet
      * @dev Only registered accounts can deposit
      */
-    function deposit(address to, address tokenAddr, uint128 amount) external payable {
+    function deposit(address to, IERC20 token, uint128 amount) external payable {
         RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
         rsl.requireActive();
 
         uint32 accountId = AccountLib.getAccountStorage().getValidAccount(to);
 
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
-        _deposit(rsl, tsl, msg.sender, to, accountId, tokenAddr, amount);
+        _deposit(rsl, tsl, msg.sender, to, accountId, token, amount);
     }
 
     /**
@@ -59,27 +61,27 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev Only registered accounts can withdraw
      * @dev The token cannot be TSB token
      */
-    function withdraw(address tokenAddr, uint128 amount) external virtual nonReentrant {
+    function withdraw(IERC20 token, uint128 amount) external virtual nonReentrant {
         uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
-        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(tokenAddr);
+        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
 
         RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
-        AccountLib.updateWithdrawRecord(rsl, msg.sender, accountId, tokenAddr, tokenId, amount);
+        AccountLib.updateWithdrawRecord(rsl, msg.sender, accountId, token, tokenId, amount);
         assetConfig.isTsbToken
-            ? TsbLib.mintTsbToken(tokenAddr, msg.sender, amount)
-            : Utils.transfer(tokenAddr, payable(msg.sender), amount);
+            ? TsbLib.mintTsbToken(ITsbToken(address(token)), msg.sender, amount)
+            : Utils.transfer(token, payable(msg.sender), amount);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
-    function forceWithdraw(address tokenAddr) external {
+    function forceWithdraw(IERC20 token) external {
         uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
-        (uint16 tokenId, ) = TokenLib.getTokenStorage().getValidToken(tokenAddr);
+        (uint16 tokenId, ) = TokenLib.getTokenStorage().getValidToken(token);
 
         RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
-        AccountLib.addForceWithdrawReq(rsl, msg.sender, accountId, tokenAddr, tokenId);
+        AccountLib.addForceWithdrawReq(rsl, msg.sender, accountId, token, tokenId);
     }
 
     /**
@@ -133,7 +135,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /// @param depositor The address that deposit the L1 token
     /// @param to The address credtied with the deposit
     /// @param accountId user account id in layer2
-    /// @param tokenAddr The address of the token to be deposited
+    /// @param token The token to be deposited
     /// @param amount The amount of the token
     function _deposit(
         RollupStorage.Layout storage rsl,
@@ -141,15 +143,15 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         address depositor,
         address to,
         uint32 accountId,
-        address tokenAddr,
+        IERC20 token,
         uint128 amount
     ) internal {
-        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(tokenAddr);
+        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
         TokenLib.validDepositAmt(amount, assetConfig);
         assetConfig.isTsbToken
-            ? TsbLib.burnTsbToken(tokenAddr, to, amount)
-            : Utils.transferFrom(tokenAddr, depositor, amount, msg.value);
+            ? TsbLib.burnTsbToken(ITsbToken(address(token)), to, amount)
+            : Utils.transferFrom(token, depositor, amount, msg.value);
 
-        AccountLib.addDepositReq(rsl, to, accountId, tokenAddr, tokenId, assetConfig.decimals, amount);
+        AccountLib.addDepositReq(rsl, to, accountId, token, tokenId, assetConfig.decimals, amount);
     }
 }

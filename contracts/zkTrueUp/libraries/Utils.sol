@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
-import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {AddressLib} from "../address/AddressLib.sol";
@@ -16,7 +16,7 @@ import {Config} from "../libraries/Config.sol";
  */
 library Utils {
     using Math for *;
-    using SafeERC20 for ISolidStateERC20;
+    using SafeERC20 for IERC20;
     using AddressLib for AddressStorage.Layout;
 
     /// @notice Error for get zero address
@@ -30,32 +30,31 @@ library Utils {
 
     /// @notice Internal transfer function
     /// @dev Mutated transfer function to handle the case of ETH and ERC20
-    /// @param tokenAddr The address of the token to be transferred
+    /// @param token The token to be transferred
     /// @param receiver The address of receiver
     /// @param amount The amount of the token
-    function transfer(address tokenAddr, address payable receiver, uint256 amount) internal {
-        if (tokenAddr == Config.ETH_ADDRESS) {
-            IWETH(AddressLib.getAddressStorage().getWETHAddr()).withdraw(amount);
+    function transfer(IERC20 token, address payable receiver, uint256 amount) internal {
+        if (address(token) == Config.ETH_ADDRESS) {
+            AddressLib.getAddressStorage().getWETH().withdraw(amount);
             (bool success, bytes memory data) = receiver.call{value: amount}("");
             if (!success) revert TransferFailed(receiver, amount, data);
         } else {
-            ISolidStateERC20(tokenAddr).safeTransfer(receiver, amount);
+            token.safeTransfer(receiver, amount);
         }
     }
 
     /// @notice Internal transferFrom function
     /// @dev Mutated transferFrom function to handle the case of ETH and ERC20 to zkTrueUp contract
-    /// @param tokenAddr The address of the token to be transferred
+    /// @param token The token to be transferred
     /// @param sender The address of sender
     /// @param amount The amount of the token
     /// @param msgValue The msg.value
-    function transferFrom(address tokenAddr, address sender, uint256 amount, uint256 msgValue) internal {
-        if (tokenAddr == Config.ETH_ADDRESS) {
+    function transferFrom(IERC20 token, address sender, uint256 amount, uint256 msgValue) internal {
+        if (address(token) == Config.ETH_ADDRESS) {
             if (msgValue != amount) revert InvalidMsgValue(msgValue);
-            IWETH(AddressLib.getAddressStorage().getWETHAddr()).deposit{value: amount}();
+            AddressLib.getAddressStorage().getWETH().deposit{value: amount}();
         } else {
             if (msgValue != 0) revert InvalidMsgValue(msgValue);
-            ISolidStateERC20 token = ISolidStateERC20(tokenAddr);
             token.safeTransferFrom(sender, address(this), amount);
         }
     }

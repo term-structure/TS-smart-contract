@@ -26,7 +26,7 @@ contract FlashLoanBase is IFlashLoanReceiver {
      */
     function executeOperation(
         address sender,
-        address[] calldata assets,
+        IERC20[] calldata assets,
         uint256[] calldata amounts,
         uint256[] calldata premiums,
         bytes calldata data
@@ -34,7 +34,7 @@ contract FlashLoanBase is IFlashLoanReceiver {
         // do something...
     }
 
-    function flashLoanCall(address[] calldata assets, uint256[] calldata amounts) external {
+    function flashLoanCall(IERC20[] calldata assets, uint256[] calldata amounts) external {
         for (uint256 i = 0; i < assets.length; i++) {
             IERC20(assets[i]).approve(_zkTrueUpAddr, MAX_UINT_256);
         }

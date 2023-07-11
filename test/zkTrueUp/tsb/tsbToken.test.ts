@@ -101,7 +101,7 @@ describe("Ts Bond", () => {
         // check event
         await expect(createTsbTokenTx)
           .to.emit(diamondTsb, "TsbTokenCreated")
-          .withArgs(addr, underlyingTokenId, maturity);
+          .withArgs(addr, underlyingContractAddress, maturity);
 
         // check tsb token
         const tsbToken = (await ethers.getContractAt(
@@ -199,7 +199,7 @@ describe("Ts Bond", () => {
       ).wait();
 
       // whitelist tsb token
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -208,7 +208,7 @@ describe("Ts Bond", () => {
         isTsbToken: true,
         decimals: TS_DECIMALS.AMOUNT,
         minDepositAmt: tsbTokensJSON[0].minDepositAmt,
-        tokenAddr: tsbTokenAddr,
+        token: tsbTokenAddr,
         priceFeed: DEFAULT_ZERO_ADDR,
       };
       await diamondToken.connect(operator).addToken(assetConfig);
@@ -239,7 +239,7 @@ describe("Ts Bond", () => {
       // get params
       const underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[0].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -260,7 +260,7 @@ describe("Ts Bond", () => {
       // get params
       const underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[0].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -282,7 +282,7 @@ describe("Ts Bond", () => {
       // get params
       const underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[0].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -313,7 +313,7 @@ describe("Ts Bond", () => {
 
         // check getTsbTokenAddr
         expect(
-          await diamondTsb.getTsbTokenAddr(underlyingTokenId, maturity)
+          await diamondTsb.getTsbToken(underlyingTokenId, maturity)
         ).to.equal(addr);
       }
     });
@@ -333,7 +333,7 @@ describe("Ts Bond", () => {
             .connect(operator)
             .createTsbToken(underlyingTokenId, maturity, name, symbol)
         ).wait();
-        const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+        const tsbTokenAddr = await diamondTsb.getTsbToken(
           underlyingTokenId,
           maturity
         );
@@ -356,7 +356,7 @@ describe("Ts Bond", () => {
             .connect(operator)
             .createTsbToken(underlyingTokenId, maturity, name, symbol)
         ).wait();
-        const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+        const tsbTokenAddr = await diamondTsb.getTsbToken(
           underlyingTokenId,
           maturity
         );

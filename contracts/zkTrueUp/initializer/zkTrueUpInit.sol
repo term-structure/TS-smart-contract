@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {Ownable} from "@solidstate/contracts/access/ownable/Ownable.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
@@ -10,6 +11,10 @@ import {ProtocolParamsStorage, FundWeight} from "../protocolParams/ProtocolParam
 import {LoanStorage, LiquidationFactor} from "../loan/LoanStorage.sol";
 import {RollupStorage, StoredBlock} from "../rollup/RollupStorage.sol";
 import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
+import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
+import {IVerifier} from "../interfaces/IVerifier.sol";
+import {IPool} from "../interfaces/aaveV3/IPool.sol";
 import {Config} from "../libraries/Config.sol";
 import {InitialConfig} from "../libraries/InitialConfig.sol";
 
@@ -51,11 +56,11 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
 
         // init address facet
         AddressStorage.Layout storage addrsl = AddressStorage.layout();
-        addrsl.wETHAddr = wETHAddr;
-        addrsl.poseidonUnit2Addr = poseidonUnit2Addr;
-        addrsl.verifierAddr = verifierAddr;
-        addrsl.evacuVerifierAddr = evacuVerifierAddr;
-        addrsl.aaveV3PoolAddr = Config.AAVE_V3_POOL_ADDRESS;
+        addrsl.wETH = IWETH(wETHAddr);
+        addrsl.poseidonUnit2 = IPoseidonUnit2(poseidonUnit2Addr);
+        addrsl.verifier = IVerifier(verifierAddr);
+        addrsl.evacuVerifier = IVerifier(evacuVerifierAddr);
+        addrsl.aaveV3Pool = IPool(Config.AAVE_V3_POOL_ADDRESS);
 
         // init flashLoan facet
         FlashLoanStorage.Layout storage flsl = FlashLoanStorage.layout();
@@ -107,13 +112,14 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         uint16 newTokenId = tsl.tokenNum + 1;
         tsl.tokenNum = newTokenId;
-        tsl.tokenIds[Config.ETH_ADDRESS] = newTokenId;
+        IERC20 defaultEthToken = IERC20(Config.ETH_ADDRESS);
+        tsl.tokenIds[defaultEthToken] = newTokenId;
         tsl.assetConfigs[newTokenId] = AssetConfig({
             isStableCoin: ethConfig.isStableCoin,
             isTsbToken: ethConfig.isTsbToken,
             decimals: ethConfig.decimals,
             minDepositAmt: ethConfig.minDepositAmt,
-            tokenAddr: Config.ETH_ADDRESS,
+            token: defaultEthToken,
             priceFeed: ethConfig.priceFeed
         });
     }

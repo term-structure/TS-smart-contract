@@ -2,44 +2,48 @@
 pragma solidity ^0.8.17;
 
 import {AddressStorage} from "./AddressStorage.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
+import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
+import {IVerifier} from "../interfaces/IVerifier.sol";
+import {IPool} from "../interfaces/aaveV3/IPool.sol";
 
 /**
  * @title Term Structure Address Library
  */
 library AddressLib {
-    /// @notice Internal function to return the address of wETH contract
+    /// @notice Internal function to return the wETH contract
     /// @param s The address storage layout
-    /// @return wETHAddr Address of wETH
-    function getWETHAddr(AddressStorage.Layout storage s) internal view returns (address) {
-        return s.wETHAddr;
+    /// @return wETH The WETH contract
+    function getWETH(AddressStorage.Layout storage s) internal view returns (IWETH) {
+        return s.wETH;
     }
 
-    /// @notice Internal function to return the address of PoseidonUnit2 contract
+    /// @notice Internal function to return the PoseidonUnit2 contract
     /// @param s The address storage layout
-    /// @return poseidonUnit2Addr Address of PoseidonUnit2 contract
-    function getPoseidonUnit2Addr(AddressStorage.Layout storage s) internal view returns (address) {
-        return s.poseidonUnit2Addr;
+    /// @return poseidonUnit2 The PoseidonUnit2 contract
+    function getPoseidonUnit2(AddressStorage.Layout storage s) internal view returns (IPoseidonUnit2) {
+        return s.poseidonUnit2;
     }
 
-    /// @notice Internal function to return the address of Verifier contract
+    /// @notice Internal function to return the Verifier contract
     /// @param s The address storage layout
-    /// @return verifierAddr Address of Verifier contract
-    function getVerifierAddr(AddressStorage.Layout storage s) internal view returns (address) {
-        return s.verifierAddr;
+    /// @return verifier The Verifier contract
+    function getVerifier(AddressStorage.Layout storage s) internal view returns (IVerifier) {
+        return s.verifier;
     }
 
-    /// @notice Internal function to return the address of Evacuation Verifier contract
+    /// @notice Internal function to return the Evacuation Verifier contract
     /// @param s The address storage layout
-    /// @return evacuVerifierAddr Address of Evacuation Verifier contract
-    function getEvacuVerifierAddr(AddressStorage.Layout storage s) internal view returns (address) {
-        return s.evacuVerifierAddr;
+    /// @return evacuVerifier The Evacuation Verifier contract
+    function getEvacuVerifier(AddressStorage.Layout storage s) internal view returns (IVerifier) {
+        return s.evacuVerifier;
     }
 
-    /// @notice Internal function to return the address of Aave V3 pool contract
+    /// @notice Internal function to return the Aave V3 pool contract
     /// @param s The address storage layout
-    /// @return aaveV3PoolAddr Address of Aave V3 pool contract
-    function getAaveV3PoolAddr(AddressStorage.Layout storage s) internal view returns (address) {
-        return s.aaveV3PoolAddr;
+    /// @return aaveV3Pool The Aave V3 pool contract
+    function getAaveV3Pool(AddressStorage.Layout storage s) internal view returns (IPool) {
+        return s.aaveV3Pool;
     }
 
     /// @notice Internal function to get the address storage layout

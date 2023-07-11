@@ -97,7 +97,7 @@ describe("Redeem TsbToken", () => {
         ).wait();
 
         // whitelist tsb token
-        const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
+        const tsbTokenAddr = await diamondTsbMock.getTsbToken(
           underlyingTokenId,
           maturity
         );
@@ -106,7 +106,7 @@ describe("Redeem TsbToken", () => {
           isTsbToken: true,
           decimals: TS_DECIMALS.AMOUNT,
           minDepositAmt: maturedTsbTokensJSON[i].minDepositAmt,
-          tokenAddr: tsbTokenAddr,
+          token: tsbTokenAddr,
           priceFeed: DEFAULT_ZERO_ADDR,
         };
         await diamondToken.connect(operator).addToken(assetConfig);
@@ -141,10 +141,7 @@ describe("Redeem TsbToken", () => {
       ).wait();
 
       // withdraw tsb token
-      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
-        tokenId,
-        maturity
-      );
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(tokenId, maturity);
       await (
         await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, amount)
       ).wait(); //! ignore _withdraw in AccountMock
@@ -154,7 +151,7 @@ describe("Redeem TsbToken", () => {
       // get params tsbUSDC
       const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
-      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -228,14 +225,14 @@ describe("Redeem TsbToken", () => {
       // redeem tsb token with invalid token address
       await expect(
         diamondTsbMock.connect(user1).redeem(invalidTsbTokenAddr, amount, false)
-      ).to.be.revertedWithCustomError(diamondTsbMock, "InvalidTsbTokenAddr");
+      ).to.be.revertedWithCustomError(diamondTsbMock, "InvalidTsbToken");
     });
 
     it("Fail to redeem tsb token, tsb token is not matured", async () => {
       // get params
       const underlyingTokenId = maturedTsbTokensJSON[1].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[1].maturity);
-      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -263,7 +260,7 @@ describe("Redeem TsbToken", () => {
         ).wait();
 
         // whitelist tsb token
-        const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
+        const tsbTokenAddr = await diamondTsbMock.getTsbToken(
           underlyingTokenId,
           maturity
         );
@@ -272,7 +269,7 @@ describe("Redeem TsbToken", () => {
           isTsbToken: true,
           decimals: TS_DECIMALS.AMOUNT,
           minDepositAmt: maturedTsbTokensJSON[i].minDepositAmt,
-          tokenAddr: tsbTokenAddr,
+          token: tsbTokenAddr,
           priceFeed: DEFAULT_ZERO_ADDR,
         };
         await diamondToken.connect(operator).addToken(assetConfig);
@@ -308,10 +305,7 @@ describe("Redeem TsbToken", () => {
 
       // withdraw tsb token
       const tsbTokenAmt = utils.parseUnits("500", TS_DECIMALS.AMOUNT);
-      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
-        tokenId,
-        maturity
-      );
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(tokenId, maturity);
       await (
         await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, tsbTokenAmt)
       ).wait(); //! ignore _withdraw in AccountMock
@@ -321,7 +315,7 @@ describe("Redeem TsbToken", () => {
       // get params tsbUSDC
       const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
-      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -391,14 +385,14 @@ describe("Redeem TsbToken", () => {
       // redeem for deposit tsb token with invalid token address
       await expect(
         diamondTsbMock.connect(user1).redeem(invalidTsbTokenAddr, amount, true)
-      ).to.be.revertedWithCustomError(diamondTsbMock, "InvalidTsbTokenAddr");
+      ).to.be.revertedWithCustomError(diamondTsbMock, "InvalidTsbToken");
     });
 
     it("Fail to redeem tsb token for deposit, tsb token is not matured", async () => {
       // get params
       const underlyingTokenId = maturedTsbTokensJSON[1].underlyingTokenId;
       const maturity = BigNumber.from(maturedTsbTokensJSON[1].maturity);
-      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -414,7 +408,7 @@ describe("Redeem TsbToken", () => {
       // get params
       const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
-      const tsbTokenAddr = await diamondTsbMock.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(
         underlyingTokenId,
         maturity
       );

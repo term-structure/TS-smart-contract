@@ -2,8 +2,9 @@
 // solhint-disable-next-line
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "../interfaces/ITsbToken.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 /**
   * @title Term Structure Bond Token Contract
@@ -19,7 +20,7 @@ contract TsbToken is ERC20, ITsbToken {
      */
     address public immutable zkTrueUp;
     /// @notice The underlying asset of the TSB token
-    address private immutable _underlyingAsset;
+    IERC20 private immutable _underlyingAsset;
     /// @notice The maturity time of the TSB token
     uint32 private immutable _maturityTime;
 
@@ -31,7 +32,7 @@ contract TsbToken is ERC20, ITsbToken {
     constructor(
         string memory name_,
         string memory symbol_,
-        address underlyingAsset_,
+        IERC20 underlyingAsset_,
         uint32 maturityTime_
     ) ERC20(name_, symbol_) {
         zkTrueUp = msg.sender;
@@ -69,7 +70,7 @@ contract TsbToken is ERC20, ITsbToken {
     /**
      * @inheritdoc ITsbToken
      */
-    function tokenInfo() external view returns (address, uint32) {
+    function tokenInfo() external view returns (IERC20, uint32) {
         return (_underlyingAsset, _maturityTime);
     }
 

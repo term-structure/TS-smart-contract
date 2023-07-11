@@ -1,31 +1,40 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IWETH} from "../interfaces/IWETH.sol";
+import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
+import {IVerifier} from "../interfaces/IVerifier.sol";
+import {IPool} from "../interfaces/aaveV3/IPool.sol";
+
 /**
  * @title Term Structure Address Facet Interface
  */
 interface IAddressFacet {
-    /// @notice Set the address of verifier contract
-    /// @param newVerifierAddr The new verifier contract address
-    function setVerifierAddr(address newVerifierAddr) external;
+    /// @notice Set new verifier contract
+    /// @param newVerifier The new verifier contract
+    function setVerifier(IVerifier newVerifier) external;
 
-    /// @notice Set the address of evacuVerifier contract
-    /// @param newEvacuVerifierAddr The new evacuVerifier contract address
-    function setEvacuVerifierAddr(address newEvacuVerifierAddr) external;
+    /// @notice Set new evacuVerifier contract
+    /// @param newEvacuVerifier The new evacuVerifier contract
+    function setEvacuVerifier(IVerifier newEvacuVerifier) external;
 
-    /// @notice Get the address of WETH contract
-    /// @return wethAddr The address of WETH contract
-    function getWETHAddr() external view returns (address wethAddr);
+    /// @notice Get WETH contract
+    /// @return weth The WETH contract
+    function getWETH() external view returns (IWETH weth);
 
-    /// @notice Get the address of PoseidonUnit2 contract
-    /// @return poseidonUnit2Addr The address of PoseidonUnit2 contract
-    function getPoseidonUnit2Addr() external view returns (address poseidonUnit2Addr);
+    /// @notice Get PoseidonUnit2 contract
+    /// @return poseidonUnit2 The PoseidonUnit2 contract
+    function getPoseidonUnit2() external view returns (IPoseidonUnit2 poseidonUnit2);
 
-    /// @notice Get the address of verifier contract
-    /// @return verifierAddr The address of verifier contract
-    function getVerifierAddr() external view returns (address verifierAddr);
+    /// @notice Get verifier contract
+    /// @return verifier The verifier contract
+    function getVerifier() external view returns (IVerifier verifier);
 
-    /// @notice Get the address of evacuVerifier contract
-    /// @return evacuVerifierAddr The address of evacuVerifier contract
-    function getEvacuVerifierAddr() external view returns (address evacuVerifierAddr);
+    /// @notice Get evacuVerifier contract
+    /// @return evacuVerifier The evacuVerifier contract
+    function getEvacuVerifier() external view returns (IVerifier evacuVerifier);
+
+    /// @notice Get Aave V3 pool contract
+    /// @return aaveV3Pool The Aave V3 pool contract
+    function getAaveV3Pool() external view returns (IPool aaveV3Pool);
 }

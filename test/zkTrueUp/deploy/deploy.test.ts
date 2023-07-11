@@ -413,7 +413,7 @@ describe("Deploy", () => {
         "address",
         "address",
         "bytes32",
-        "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address tokenAddr,address priceFeed)",
+        "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address token,address priceFeed)",
       ],
       [
         weth.address,
@@ -431,7 +431,7 @@ describe("Deploy", () => {
           isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
           decimals: ETH_ASSET_CONFIG.decimals,
           minDepositAmt: ETH_ASSET_CONFIG.minDepositAmt,
-          tokenAddr: ETH_ASSET_CONFIG.tokenAddr,
+          token: ETH_ASSET_CONFIG.tokenAddr,
           priceFeed: ETH_ASSET_CONFIG.priceFeed,
         },
       ]
@@ -493,12 +493,12 @@ describe("Deploy", () => {
     // check address facet init
     const diamondAddr = await useFacet("AddressFacet", zkTrueUpMockAddr);
 
-    expect(await diamondAddr.getWETHAddr()).to.equal(weth.address);
-    expect(await diamondAddr.getPoseidonUnit2Addr()).to.equal(
+    expect(await diamondAddr.getWETH()).to.equal(weth.address);
+    expect(await diamondAddr.getPoseidonUnit2()).to.equal(
       poseidonUnit2Contract.address
     );
-    expect(await diamondAddr.getVerifierAddr()).to.equal(verifier.address);
-    expect(await diamondAddr.getEvacuVerifierAddr()).to.equal(
+    expect(await diamondAddr.getVerifier()).to.equal(verifier.address);
+    expect(await diamondAddr.getEvacuVerifier()).to.equal(
       evacuVerifier.address
     );
 
@@ -574,7 +574,7 @@ describe("Deploy", () => {
     expect(ethAssetConfig.minDepositAmt).to.equal(
       ETH_ASSET_CONFIG.minDepositAmt
     );
-    expect(ethAssetConfig.tokenAddr).to.equal(ETH_ASSET_CONFIG.tokenAddr);
+    expect(ethAssetConfig.token).to.equal(ETH_ASSET_CONFIG.tokenAddr);
     expect(ethAssetConfig.priceFeed).to.equal(ETH_ASSET_CONFIG.priceFeed);
   });
 });

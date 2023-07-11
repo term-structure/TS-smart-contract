@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /// @notice Configuration of the asset in the network
 struct AssetConfig {
     bool isStableCoin;
     bool isTsbToken;
     uint8 decimals;
     uint128 minDepositAmt;
-    address tokenAddr;
+    IERC20 token;
     address priceFeed;
 }
 
@@ -20,10 +22,10 @@ library TokenStorage {
     struct Layout {
         /// @notice Total number of ERC20 tokens registered in the network.
         uint16 tokenNum;
-        /// @notice Mapping of L1 Token Address => L2 Token Id
-        mapping(address => uint16) tokenIds;
-        /// @notice Mapping of L1 Token Address => paused
-        mapping(address => bool) paused;
+        /// @notice Mapping of L1 Token => L2 Token Id
+        mapping(IERC20 => uint16) tokenIds;
+        /// @notice Mapping of L1 Token => paused
+        mapping(IERC20 => bool) paused;
         /// @notice Mapping of Token Id => AssetConfig
         mapping(uint16 => AssetConfig) assetConfigs;
     }

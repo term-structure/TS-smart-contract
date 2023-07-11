@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {TsbStorage} from "./TsbStorage.sol";
@@ -36,35 +37,38 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         uint32 maturityTime,
         string memory name,
         string memory symbol
-    ) external virtual onlyRole(Config.OPERATOR_ROLE) returns (address) {
+    ) external virtual onlyRole(Config.OPERATOR_ROLE) {
         if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime);
-        address underlyingAssetAddr = TokenLib.getTokenStorage().getAssetConfig(underlyingTokenId).tokenAddr;
-        if (underlyingAssetAddr == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
+        IERC20 underlyingAsset = TokenLib.getTokenStorage().getAssetConfig(underlyingTokenId).token;
+        if (address(underlyingAsset) == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
 
         TsbStorage.Layout storage tsbsl = TsbLib.getTsbStorage();
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
-        address tokenAddr = tsbsl.getTsbTokenAddr(tsbTokenKey);
-        if (tokenAddr != address(0)) revert TsbTokenIsExist(tokenAddr);
+        ITsbToken tsbToken = tsbsl.getTsbToken(tsbTokenKey);
+        if (address(tsbToken) != address(0)) revert TsbTokenIsExist(tsbToken);
 
-        address tsbTokenAddr = address(new TsbToken(name, symbol, underlyingAssetAddr, maturityTime));
-        tsbsl.tsbTokens[tsbTokenKey] = tsbTokenAddr;
-        emit TsbTokenCreated(tsbTokenAddr, underlyingTokenId, maturityTime);
-        return tsbTokenAddr;
+        try new TsbToken(name, symbol, underlyingAsset, maturityTime) returns (TsbToken newTsbToken) {
+            tsbToken = ITsbToken(address(newTsbToken));
+            tsbsl.tsbTokens[tsbTokenKey] = tsbToken;
+            emit TsbTokenCreated(tsbToken, underlyingAsset, maturityTime);
+        } catch {
+            revert TsbTokenCreateFailed(name, symbol, underlyingAsset, maturityTime);
+        }
     }
 
     /**
      * @inheritdoc ITsbFacet
      * @dev TSB token can be redeemed only after maturity
      */
-    function redeem(address tsbTokenAddr, uint128 amount, bool redeemAndDeposit) external nonReentrant {
+    function redeem(ITsbToken tsbToken, uint128 amount, bool redeemAndDeposit) external nonReentrant {
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
-        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(tsbTokenAddr);
-        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
-        (address underlyingAsset, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
-        TsbLib.requireMatured(tsbTokenAddr, maturityTime);
+        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(tsbToken);
+        if (!assetConfig.isTsbToken) revert InvalidTsbToken(tsbToken);
+        (IERC20 underlyingAsset, uint32 maturityTime) = tsbToken.tokenInfo();
+        TsbLib.requireMatured(tsbToken, maturityTime);
 
-        TsbLib.burnTsbToken(tsbTokenAddr, msg.sender, amount);
-        emit Redeem(msg.sender, tsbTokenAddr, underlyingAsset, amount, redeemAndDeposit);
+        TsbLib.burnTsbToken(tsbToken, msg.sender, amount);
+        emit Redeem(msg.sender, tsbToken, underlyingAsset, amount, redeemAndDeposit);
 
         if (redeemAndDeposit) {
             uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
@@ -74,7 +78,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
                 RollupLib.getRollupStorage(),
                 msg.sender,
                 accountId,
-                underlyingAssetConfig.tokenAddr,
+                underlyingAssetConfig.token,
                 tokenId,
                 underlyingAssetConfig.decimals,
                 amount
@@ -87,9 +91,9 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ITsbFacet
      */
-    function getTsbTokenAddr(uint16 underlyingTokenId, uint32 maturity) external view returns (address) {
+    function getTsbToken(uint16 underlyingTokenId, uint32 maturity) external view returns (ITsbToken) {
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturity);
-        return TsbLib.getTsbStorage().getTsbTokenAddr(tsbTokenKey);
+        return TsbLib.getTsbStorage().getTsbToken(tsbTokenKey);
     }
 
     /**
@@ -116,8 +120,8 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ITsbFacet
      */
-    function getUnderlyingAsset(address tsbTokenAddr) external view returns (address) {
-        (address underlyingAsset, ) = ITsbToken(tsbTokenAddr).tokenInfo();
+    function getUnderlyingAsset(ITsbToken tsbToken) external view returns (IERC20) {
+        (IERC20 underlyingAsset, ) = tsbToken.tokenInfo();
         return underlyingAsset;
     }
 

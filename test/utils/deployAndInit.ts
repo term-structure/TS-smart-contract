@@ -136,7 +136,7 @@ export const deployAndInit = async (
       "address",
       "address",
       "bytes32",
-      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address tokenAddr,address priceFeed)",
+      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address token,address priceFeed)",
     ],
     [
       isMainnetForkTesting ? MAINNET_ADDRESS.WETH : weth.address,
@@ -154,7 +154,7 @@ export const deployAndInit = async (
         isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
         decimals: ETH_ASSET_CONFIG.decimals,
         minDepositAmt: ETH_ASSET_CONFIG.minDepositAmt,
-        tokenAddr: ETH_ASSET_CONFIG.tokenAddr,
+        token: ETH_ASSET_CONFIG.tokenAddr,
         priceFeed: priceFeeds[TsTokenId.ETH],
       },
     ]

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {LoanStorage, Loan} from "../zkTrueUp/loan/LoanStorage.sol";
 import {TokenStorage} from "../zkTrueUp/token/TokenStorage.sol";
@@ -28,12 +29,12 @@ contract RollupMock is RollupFacet {
         // if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(assetConfig.tokenAddr);
 
         // debt token config
-        (address underlyingAsset, uint32 maturityTime) = ITsbToken(assetConfig.tokenAddr).tokenInfo();
+        (IERC20 underlyingAsset, uint32 maturityTime) = ITsbToken(address(assetConfig.token)).tokenInfo();
         (uint16 debtTokenId, AssetConfig memory underlyingAssetConfig) = tsl.getAssetConfig(underlyingAsset);
 
         // collateral token config
         assetConfig = tsl.getAssetConfig(auctionEnd.collateralTokenId);
-        Utils.noneZeroAddr(assetConfig.tokenAddr);
+        Utils.noneZeroAddr(address(assetConfig.token));
 
         // update loan info
         bytes12 loanId = LoanLib.getLoanId(
@@ -61,8 +62,8 @@ contract RollupMock is RollupFacet {
             loanId,
             loan.accountId,
             loan.maturityTime,
-            assetConfig.tokenAddr,
-            underlyingAssetConfig.tokenAddr,
+            assetConfig.token,
+            underlyingAssetConfig.token,
             addedCollateralAmt,
             addedDebtAmt
         );

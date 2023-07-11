@@ -328,7 +328,7 @@ describe("Deposit", function () {
         ).wait();
 
         // whitelist tsb token
-        const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+        const tsbTokenAddr = await diamondTsb.getTsbToken(
           underlyingTokenId,
           maturity
         );
@@ -337,7 +337,7 @@ describe("Deposit", function () {
           isTsbToken: true,
           decimals: TS_DECIMALS.AMOUNT,
           minDepositAmt: tsbTokensJSON[1].minDepositAmt,
-          tokenAddr: tsbTokenAddr,
+          token: tsbTokenAddr,
           priceFeed: DEFAULT_ZERO_ADDR,
         };
         await diamondToken.connect(operator).addToken(assetConfig);
@@ -377,10 +377,7 @@ describe("Deposit", function () {
       const tsbEthAmt = utils.parseUnits("10", TS_DECIMALS.AMOUNT);
       let underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
       let maturity = BigNumber.from(tsbTokensJSON[0].maturity);
-      const tsbEth = await diamondTsb.getTsbTokenAddr(
-        underlyingTokenId,
-        maturity
-      );
+      const tsbEth = await diamondTsb.getTsbToken(underlyingTokenId, maturity);
       await (
         await diamondAccMock.connect(user1).withdraw(tsbEth, tsbEthAmt)
       ).wait(); //! ignore _withdraw in AccountMock
@@ -389,10 +386,7 @@ describe("Deposit", function () {
       const tsbUsdtAmt = utils.parseUnits("100", TS_DECIMALS.AMOUNT);
       underlyingTokenId = tsbTokensJSON[2].underlyingTokenId;
       maturity = BigNumber.from(tsbTokensJSON[2].maturity);
-      const tsbUsdt = await diamondTsb.getTsbTokenAddr(
-        underlyingTokenId,
-        maturity
-      );
+      const tsbUsdt = await diamondTsb.getTsbToken(underlyingTokenId, maturity);
       await (
         await diamondAccMock.connect(user1).withdraw(tsbUsdt, tsbUsdtAmt)
       ).wait(); //! ignore _withdraw in AccountMock
@@ -402,7 +396,7 @@ describe("Deposit", function () {
       // get params tsbUSDT
       const underlyingTokenId = tsbTokensJSON[2].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[2].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -487,7 +481,7 @@ describe("Deposit", function () {
       // get params tsbUSDT
       const underlyingTokenId = tsbTokensJSON[2].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[2].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
         underlyingTokenId,
         maturity
       );

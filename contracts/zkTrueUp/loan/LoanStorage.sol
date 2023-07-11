@@ -24,16 +24,6 @@ struct LiquidationAmt {
     uint128 protocolPenaltyAmt;
 }
 
-// /// @notice The information of the loan
-// struct LoanInfo {
-//     Loan loan;
-//     uint32 maturityTime;
-//     uint32 accountId;
-//     LiquidationFactor liquidationFactor;
-//     AssetConfig collateralAsset;
-//     AssetConfig debtAsset;
-// }
-
 /**
  * @title Term Structure Loan Storage
  */

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {TokenStorage, AssetConfig} from "./TokenStorage.sol";
 import {TokenLib} from "./TokenLib.sol";
@@ -19,64 +20,65 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
      * @inheritdoc ITokenFacet
      */
     function addToken(AssetConfig memory assetConfig) external onlyRole(Config.OPERATOR_ROLE) {
-        address tokenAddr = assetConfig.tokenAddr;
-        Utils.noneZeroAddr(tokenAddr);
+        IERC20 token = assetConfig.token;
+        Utils.noneZeroAddr(address(token));
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        if (tsl.getTokenId(tokenAddr) != 0) revert TokenIsWhitelisted(tokenAddr);
+        if (tsl.getTokenId(token) != 0) revert TokenIsWhitelisted(token);
         uint16 newTokenId = tsl.getTokenNum() + 1;
         if (newTokenId > Config.MAX_AMOUNT_OF_REGISTERED_TOKENS) revert TokenNumExceedLimit(newTokenId);
 
         tsl.tokenNum = newTokenId;
-        tsl.tokenIds[tokenAddr] = newTokenId;
+        tsl.tokenIds[token] = newTokenId;
         tsl.assetConfigs[newTokenId] = assetConfig;
 
         if (assetConfig.isTsbToken) {
-            (, uint32 maturityTime) = ITsbToken(tokenAddr).tokenInfo();
-            emit WhitelistTsbToken(tokenAddr, newTokenId, assetConfig, maturityTime);
+            ITsbToken tsbToken = ITsbToken(address(token));
+            (, uint32 maturityTime) = tsbToken.tokenInfo();
+            emit WhitelistTsbToken(tsbToken, newTokenId, assetConfig, maturityTime);
         } else {
-            emit WhitelistBaseToken(tokenAddr, newTokenId, assetConfig);
+            emit WhitelistBaseToken(token, newTokenId, assetConfig);
         }
     }
 
     /**
      * @inheritdoc ITokenFacet
      */
-    function setPaused(address tokenAddr, bool isPaused) external onlyRole(Config.ADMIN_ROLE) {
+    function setPaused(IERC20 token, bool isPaused) external onlyRole(Config.ADMIN_ROLE) {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        tsl.getValidTokenId(tokenAddr);
-        tsl.paused[tokenAddr] = isPaused;
-        emit SetPaused(tokenAddr, isPaused);
+        tsl.getValidTokenId(token);
+        tsl.paused[token] = isPaused;
+        emit SetPaused(token, isPaused);
     }
 
     /**
      * @inheritdoc ITokenFacet
      */
-    function setPriceFeed(address tokenAddr, address priceFeed) external onlyRole(Config.ADMIN_ROLE) {
+    function setPriceFeed(IERC20 token, address priceFeed) external onlyRole(Config.ADMIN_ROLE) {
         Utils.noneZeroAddr(priceFeed);
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        uint16 tokenId = tsl.getValidTokenId(tokenAddr);
+        uint16 tokenId = tsl.getValidTokenId(token);
         tsl.assetConfigs[tokenId].priceFeed = priceFeed;
-        emit SetPriceFeed(tokenAddr, priceFeed);
+        emit SetPriceFeed(token, priceFeed);
     }
 
     /**
      * @inheritdoc ITokenFacet
      */
-    function setIsStableCoin(address tokenAddr, bool isStableCoin) external onlyRole(Config.ADMIN_ROLE) {
+    function setIsStableCoin(IERC20 token, bool isStableCoin) external onlyRole(Config.ADMIN_ROLE) {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        uint16 tokenId = tsl.getValidTokenId(tokenAddr);
+        uint16 tokenId = tsl.getValidTokenId(token);
         tsl.assetConfigs[tokenId].isStableCoin = isStableCoin;
-        emit SetIsStableCoin(tokenAddr, isStableCoin);
+        emit SetIsStableCoin(token, isStableCoin);
     }
 
     /**
      * @inheritdoc ITokenFacet
      */
-    function setMinDepositAmt(address tokenAddr, uint128 minDepositAmt) external onlyRole(Config.ADMIN_ROLE) {
+    function setMinDepositAmt(IERC20 token, uint128 minDepositAmt) external onlyRole(Config.ADMIN_ROLE) {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        uint16 tokenId = tsl.getValidTokenId(tokenAddr);
+        uint16 tokenId = tsl.getValidTokenId(token);
         tsl.assetConfigs[tokenId].minDepositAmt = minDepositAmt;
-        emit SetMinDepositAmt(tokenAddr, minDepositAmt);
+        emit SetMinDepositAmt(token, minDepositAmt);
     }
 
     /**
@@ -89,8 +91,8 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
     /**
      * @inheritdoc ITokenFacet
      */
-    function getTokenId(address tokenAddr) external view returns (uint16) {
-        return TokenLib.getTokenStorage().getTokenId(tokenAddr);
+    function getTokenId(IERC20 token) external view returns (uint16) {
+        return TokenLib.getTokenStorage().getTokenId(token);
     }
 
     /**
@@ -103,7 +105,7 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
     /**
      * @inheritdoc ITokenFacet
      */
-    function isTokenPaused(address tokenAddr) external view returns (bool) {
-        return TokenLib.getTokenStorage().isPaused(tokenAddr);
+    function isTokenPaused(IERC20 token) external view returns (bool) {
+        return TokenLib.getTokenStorage().isPaused(token);
     }
 }

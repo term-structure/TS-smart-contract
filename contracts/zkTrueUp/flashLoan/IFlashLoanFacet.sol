@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /**
  * @title Term Structure Flash Loan Facet Interface
  */
@@ -15,13 +17,13 @@ interface IFlashLoanFacet {
     /// @notice Emitted when the flash loan is executed
     /// @param sender The address of the sender
     /// @param receiver The address of the receiver
-    /// @param asset The address of the asset
+    /// @param asset The assets of the flash loan
     /// @param amount The amount of the asset
     /// @param premium The premium of the flash loan
     event FlashLoan(
         address indexed sender,
         address indexed receiver,
-        address indexed asset,
+        IERC20 indexed asset,
         uint256 amount,
         uint256 premium
     );
@@ -32,12 +34,12 @@ interface IFlashLoanFacet {
 
     /// @notice Flash loan
     /// @param receiver The address of the receiver
-    /// @param assets The addresses of the assets
+    /// @param assets The assets of the flash loan
     /// @param amounts The amounts of the assets
     /// @param data The data that will be passed to the receiver
     function flashLoan(
         address payable receiver,
-        address[] calldata assets,
+        IERC20[] calldata assets,
         uint256[] calldata amounts,
         bytes calldata data
     ) external;

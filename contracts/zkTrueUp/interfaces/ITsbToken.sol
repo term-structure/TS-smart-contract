@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Term Structure Bond Interface
@@ -30,5 +30,5 @@ interface ITsbToken is IERC20 {
     /// @notice Get the underlying asset and maturity time of the TSB token
     /// @return underlyingAsset The underlying asset of the TSB token
     /// @return maturityTime The maturity time of the TSB token
-    function tokenInfo() external view returns (address underlyingAsset, uint32 maturityTime);
+    function tokenInfo() external view returns (IERC20 underlyingAsset, uint32 maturityTime);
 }

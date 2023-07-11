@@ -140,10 +140,10 @@ export const getStates = async (
       const tsbTokenConfig: AssetConfigStruct =
         await diamondToken.getAssetConfig(loanPubData.bondTokenId);
       const maturityTime = await diamondTsb.getMaturityTime(
-        tsbTokenConfig.tokenAddr
+        tsbTokenConfig.token
       );
       const baseTokenAddr = await diamondTsb.getUnderlyingAsset(
-        tsbTokenConfig.tokenAddr
+        tsbTokenConfig.token
       );
       const baseTokenId = await diamondToken.getTokenId(baseTokenAddr);
       const loanId = `${accountId}-${loanPubData.collateralTokenId}-${baseTokenId}-${maturityTime}`;
@@ -257,10 +257,10 @@ export const checkStates = async (
         loanPubData.bondTokenId
       );
       const maturityTime = await diamondTsb.getMaturityTime(
-        tsbTokenConfig.tokenAddr
+        tsbTokenConfig.token
       );
       const baseTokenAddr = await diamondTsb.getUnderlyingAsset(
-        tsbTokenConfig.tokenAddr
+        tsbTokenConfig.token
       );
       const debtTokenId = await diamondToken.getTokenId(baseTokenAddr);
       const debtTokenConfig = await diamondToken.getAssetConfig(debtTokenId);
@@ -461,17 +461,14 @@ export const doCreateBondToken = async (
   await diamondTsb
     .connect(operator)
     .createTsbToken(baseTokenId, maturityTime, name, symbol);
-  const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
-    baseTokenId,
-    maturityTime
-  );
+  const tsbTokenAddr = await diamondTsb.getTsbToken(baseTokenId, maturityTime);
 
   const assetConfig: AssetConfigStruct = {
     isStableCoin: baseTokenId <= BigNumber.from("2") ? false : true,
     isTsbToken: true,
     decimals: TS_SYSTEM_DECIMALS,
     minDepositAmt: "0",
-    tokenAddr: tsbTokenAddr,
+    token: tsbTokenAddr,
     priceFeed: DEFAULT_ZERO_ADDR,
   };
   await diamondToken.connect(operator).addToken(assetConfig);

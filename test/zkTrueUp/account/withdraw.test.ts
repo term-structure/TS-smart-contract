@@ -208,7 +208,7 @@ describe("Withdraw", () => {
             .createTsbToken(underlyingTokenId, maturity, name, symbol)
         ).wait();
         // whitelist tsb token
-        const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+        const tsbTokenAddr = await diamondTsb.getTsbToken(
           underlyingTokenId,
           maturity
         );
@@ -217,7 +217,7 @@ describe("Withdraw", () => {
           isTsbToken: true,
           decimals: TS_DECIMALS.AMOUNT,
           minDepositAmt: tsbTokensJSON[i].minDepositAmt,
-          tokenAddr: tsbTokenAddr,
+          token: tsbTokenAddr,
           priceFeed: DEFAULT_ZERO_ADDR,
         };
         await diamondToken.connect(operator).addToken(assetConfig);
@@ -239,7 +239,7 @@ describe("Withdraw", () => {
       );
 
       // get tsb token address
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(tokenId, maturity);
+      const tsbTokenAddr = await diamondTsb.getTsbToken(tokenId, maturity);
 
       // before balance
       const beforeUser1TsbTokenBalance = await diamondTsb.balanceOf(
@@ -302,7 +302,7 @@ describe("Withdraw", () => {
       ).wait();
 
       // get tsb token address
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
         underlyingTokenId,
         maturity
       );
@@ -383,7 +383,7 @@ describe("Withdraw", () => {
       // get params tsbUSDC
       const underlyingTokenId = tsbTokensJSON[3].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[3].maturity);
-      const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
         underlyingTokenId,
         maturity
       );

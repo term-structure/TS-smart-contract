@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
-import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
-import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol";
@@ -27,7 +27,7 @@ import {Utils} from "../libraries/Utils.sol";
  * @title Term Structure Loan Facet Contract
  */
 contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
-    using SafeERC20 for ISolidStateERC20;
+    using SafeERC20 for IERC20;
     using AccountLib for AccountStorage.Layout;
     using AddressLib for AddressStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
@@ -42,11 +42,11 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
         (, AssetConfig memory collateralAsset, ) = lsl.getLoanInfo(loan);
-        Utils.transferFrom(collateralAsset.tokenAddr, msg.sender, amount, msg.value);
+        Utils.transferFrom(collateralAsset.token, msg.sender, amount, msg.value);
 
         loan = loan.addCollateral(amount);
         lsl.loans[loanId] = loan;
-        emit AddCollateral(loanId, msg.sender, collateralAsset.tokenAddr, amount);
+        emit AddCollateral(loanId, msg.sender, collateralAsset.token, amount);
     }
 
     /**
@@ -73,15 +73,15 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanLib.requireHealthy(healthFactor);
 
         lsl.loans[loanId] = loan;
-        Utils.transfer(collateralAsset.tokenAddr, payable(msg.sender), amount);
-        emit RemoveCollateral(loanId, msg.sender, collateralAsset.tokenAddr, amount);
+        Utils.transfer(collateralAsset.token, payable(msg.sender), amount);
+        emit RemoveCollateral(loanId, msg.sender, collateralAsset.token, amount);
     }
 
     /**
      * @inheritdoc ILoanFacet
      */
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable {
-        (address collateralToken, uint32 accountId) = _repay(loanId, collateralAmt, debtAmt, repayAndDeposit);
+        (IERC20 collateralToken, uint32 accountId) = _repay(loanId, collateralAmt, debtAmt, repayAndDeposit);
 
         if (repayAndDeposit) {
             (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getTokenStorage().getValidToken(
@@ -92,7 +92,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                 RollupLib.getRollupStorage(),
                 msg.sender,
                 accountId,
-                assetConfig.tokenAddr,
+                assetConfig.token,
                 tokenId,
                 assetConfig.decimals,
                 collateralAmt
@@ -134,14 +134,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
         lsl.loans[loanId] = loan;
 
-        _supplyToBorrow(loanId, collateralAsset.tokenAddr, debtAsset.tokenAddr, collateralAmt, debtAmt);
+        _supplyToBorrow(loanId, collateralAsset.token, debtAsset.token, collateralAmt, debtAmt);
     }
 
     /**
      * @inheritdoc ILoanFacet
      */
     function liquidate(bytes12 loanId, uint128 repayAmt) external payable returns (uint128, uint128) {
-        (LiquidationAmt memory liquidationAmt, address collateralToken) = _liquidate(loanId, repayAmt);
+        (LiquidationAmt memory liquidationAmt, IERC20 collateralToken) = _liquidate(loanId, repayAmt);
         uint128 liquidatorRewardAmt = liquidationAmt.liquidatorRewardAmt;
         uint128 protocolPenaltyAmt = liquidationAmt.protocolPenaltyAmt;
         Utils.transfer(collateralToken, payable(msg.sender), liquidatorRewardAmt);
@@ -244,7 +244,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function getLiquidationInfo(bytes12 loanId) external view returns (bool, address, uint128) {
+    function getLiquidationInfo(bytes12 loanId) external view returns (bool, IERC20, uint128) {
         LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
         Loan memory loan = lsl.getLoan(loanId);
         (
@@ -266,7 +266,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
         uint16 halfLiquidationThreshold = lsl.getHalfLiquidationThreshold();
         uint128 maxRepayAmt = _getMaxRepayAmt(halfLiquidationThreshold, loan, collateralValue);
-        return (_isLiquidable, debtAsset.tokenAddr, maxRepayAmt);
+        return (_isLiquidable, debtAsset.token, maxRepayAmt);
     }
 
     /**
@@ -288,7 +288,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint128 collateralAmt,
         uint128 debtAmt,
         bool repayAndDeposit
-    ) internal returns (address, uint32) {
+    ) internal returns (IERC20, uint32) {
         LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
         Loan memory loan = lsl.getLoan(loanId);
         LoanLib.senderIsLoanOwner(msg.sender, AccountLib.getAccountStorage().getAccountAddr(loan.accountId));
@@ -297,7 +297,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             AssetConfig memory collateralAsset,
             AssetConfig memory debtAsset
         ) = lsl.getLoanInfo(loan);
-        Utils.transferFrom(debtAsset.tokenAddr, msg.sender, debtAmt, msg.value);
+        Utils.transferFrom(debtAsset.token, msg.sender, debtAmt, msg.value);
 
         loan = loan.repay(collateralAmt, debtAmt);
 
@@ -310,16 +310,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanLib.requireHealthy(healthFactor);
 
         lsl.loans[loanId] = loan;
-        emit Repay(
-            loanId,
-            msg.sender,
-            collateralAsset.tokenAddr,
-            debtAsset.tokenAddr,
-            collateralAmt,
-            debtAmt,
-            repayAndDeposit
-        );
-        return (collateralAsset.tokenAddr, loan.accountId);
+        emit Repay(loanId, msg.sender, collateralAsset.token, debtAsset.token, collateralAmt, debtAmt, repayAndDeposit);
+        return (collateralAsset.token, loan.accountId);
     }
 
     /// @notice Internal liquidate function
@@ -327,7 +319,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @param repayAmt The amount of the loan to be repaid
     /// @return liquidationAmt The amount of the loan to be liquidated
     /// @return collateralToken The collateral token of the loan
-    function _liquidate(bytes12 loanId, uint128 repayAmt) internal returns (LiquidationAmt memory, address) {
+    function _liquidate(bytes12 loanId, uint128 repayAmt) internal returns (LiquidationAmt memory, IERC20) {
         LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
         Loan memory loan = lsl.getLoan(loanId);
         (
@@ -346,7 +338,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
 
         uint128 totalRemovedCollateralAmt = liquidationAmt.liquidatorRewardAmt + liquidationAmt.protocolPenaltyAmt;
-        Utils.transferFrom(debtAsset.tokenAddr, msg.sender, repayAmt, msg.value);
+        Utils.transferFrom(debtAsset.token, msg.sender, repayAmt, msg.value);
 
         loan.repay(totalRemovedCollateralAmt, repayAmt);
 
@@ -354,14 +346,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit Repay(
             loanId,
             msg.sender,
-            collateralAsset.tokenAddr,
-            debtAsset.tokenAddr,
+            collateralAsset.token,
+            debtAsset.token,
             totalRemovedCollateralAmt,
             repayAmt,
             false
         );
 
-        return (liquidationAmt, collateralAsset.tokenAddr);
+        return (liquidationAmt, collateralAsset.token);
     }
 
     /// @notice Liquidation calculator to calculate the liquidator reward and protocol penalty
@@ -481,50 +473,49 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Internal function to supply collateral to AAVE V3 then borrow debt from AAVE V3
     /// @dev    The collateral token is WETH if the collateral token is ETH
     /// @param loanId The loan id to be rolled over
-    /// @param collateralTokenAddr The address of the collateral token
-    /// @param debtTokenAddr The address of the debt token
+    /// @param collateralToken The collateral token to be supplied
+    /// @param debtToken The debt token to be borrowed
     /// @param collateralAmt The amount of the collateral token to be supplied
     /// @param debtAmt The amount of the debt token to be borrowed
     function _supplyToBorrow(
         bytes12 loanId,
-        address collateralTokenAddr,
-        address debtTokenAddr,
+        IERC20 collateralToken,
+        IERC20 debtToken,
         uint128 collateralAmt,
         uint128 debtAmt
     ) internal {
         AddressStorage.Layout storage asl = AddressLib.getAddressStorage();
-        address aaveV3PoolAddr = asl.getAaveV3PoolAddr();
+        IPool aaveV3Pool = asl.getAaveV3Pool();
         // AAVE receive WETH as collateral
-        address supplyTokenAddr = collateralTokenAddr == Config.ETH_ADDRESS ? asl.getWETHAddr() : collateralTokenAddr;
+        IERC20 supplyToken = address(collateralToken) == Config.ETH_ADDRESS ? asl.getWETH() : collateralToken;
 
-        ISolidStateERC20(supplyTokenAddr).safeApprove(aaveV3PoolAddr, collateralAmt);
-        IPool aaveV3Pool = IPool(aaveV3PoolAddr);
+        supplyToken.safeApprove(address(aaveV3Pool), collateralAmt);
         // referralCode: 0
         // (see https://docs.aave.com/developers/core-contracts/pool#supply)
-        try aaveV3Pool.supply(supplyTokenAddr, collateralAmt, msg.sender, Config.AAVE_V3_REFERRAL_CODE) {
+        try aaveV3Pool.supply(address(supplyToken), collateralAmt, msg.sender, Config.AAVE_V3_REFERRAL_CODE) {
             // variable rate mode: 2
             // referralCode: 0
             // (see https://docs.aave.com/developers/core-contracts/pool#borrow)
             try
                 aaveV3Pool.borrow(
-                    debtTokenAddr,
+                    address(debtToken),
                     debtAmt,
                     Config.AAVE_V3_INTEREST_RATE_MODE,
                     Config.AAVE_V3_REFERRAL_CODE,
                     msg.sender
                 )
             {
-                emit Repay(loanId, msg.sender, collateralTokenAddr, debtTokenAddr, collateralAmt, debtAmt, false);
-                emit RollToAave(loanId, msg.sender, supplyTokenAddr, debtTokenAddr, collateralAmt, debtAmt);
+                emit Repay(loanId, msg.sender, collateralToken, debtToken, collateralAmt, debtAmt, false);
+                emit RollToAave(loanId, msg.sender, supplyToken, debtToken, collateralAmt, debtAmt);
             } catch Error(string memory err) {
-                revert BorrowFromAaveFailedLogString(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, err);
+                revert BorrowFromAaveFailedLogString(supplyToken, collateralAmt, debtToken, debtAmt, err);
             } catch (bytes memory err) {
-                revert BorrowFromAaveFailedLogBytes(supplyTokenAddr, collateralAmt, debtTokenAddr, debtAmt, err);
+                revert BorrowFromAaveFailedLogBytes(supplyToken, collateralAmt, debtToken, debtAmt, err);
             }
         } catch Error(string memory err) {
-            revert SupplyToAaveFailedLogString(supplyTokenAddr, collateralAmt, err);
+            revert SupplyToAaveFailedLogString(supplyToken, collateralAmt, err);
         } catch (bytes memory err) {
-            revert SupplyToAaveFailedLogBytes(supplyTokenAddr, collateralAmt, err);
+            revert SupplyToAaveFailedLogBytes(supplyToken, collateralAmt, err);
         }
     }
 

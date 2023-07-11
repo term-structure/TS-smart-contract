@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
 import {AddressLib} from "../address/AddressLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
@@ -32,25 +33,25 @@ library AccountLib {
     /// @notice Emit when there is a new deposit
     /// @param accountAddr The user account address in layer1
     /// @param accountId The user account id in the L2 system
-    /// @param tokenAddr The address of the deposit token
+    /// @param token The token to be deposited
     /// @param tokenId The token id of the deposit token
     /// @param amount The deposit amount
-    event Deposit(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId, uint128 amount);
+    event Deposit(address indexed accountAddr, uint32 accountId, IERC20 token, uint16 tokenId, uint128 amount);
 
     /// @notice Emit when there is a new force withdraw
     /// @param accountAddr The user account address in layer1
     /// @param accountId The user account id in the L2 system
-    /// @param tokenAddr The address of the force withdraw token
+    /// @param token The token to be withdrawn
     /// @param tokenId Layer2 id of force withdraw token
-    event ForceWithdraw(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId);
+    event ForceWithdraw(address indexed accountAddr, uint32 accountId, IERC20 token, uint16 tokenId);
 
     /// @notice Emit when there is a new withdraw
     /// @param accountAddr The user account address in layer1
     /// @param accountId The user account id in the L2 system
-    /// @param tokenAddr The address of the withdraw token
+    /// @param token The token to be withdrawn
     /// @param tokenId Layer2 id of withdraw token
     /// @param amount The withdraw amount
-    event Withdraw(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId, uint128 amount);
+    event Withdraw(address indexed accountAddr, uint32 accountId, IERC20 token, uint16 tokenId, uint128 amount);
 
     /// @notice Internal function to add register request
     /// @param s The rollup storage layout
@@ -66,9 +67,7 @@ library AccountLib {
         uint256 tsPubKeyY
     ) internal {
         bytes20 tsAddr = bytes20(
-            uint160(
-                IPoseidonUnit2(AddressLib.getAddressStorage().getPoseidonUnit2Addr()).poseidon([tsPubKeyX, tsPubKeyY])
-            )
+            uint160(AddressLib.getAddressStorage().getPoseidonUnit2().poseidon([tsPubKeyX, tsPubKeyY]))
         );
         Operations.Register memory op = Operations.Register({accountId: accountId, tsAddr: tsAddr});
         bytes memory pubData = Operations.encodeRegisterPubData(op);
@@ -80,7 +79,7 @@ library AccountLib {
     /// @param s The rollup storage layout
     /// @param to The address of the account on Layer1
     /// @param accountId The user account id in Layer2
-    /// @param tokenAddr The address of the deposit token
+    /// @param token The token to be deposited
     /// @param tokenId The token id of the deposit token
     /// @param decimals The decimals of the deposit token
     /// @param amount The deposit amount
@@ -88,7 +87,7 @@ library AccountLib {
         RollupStorage.Layout storage s,
         address to,
         uint32 accountId,
-        address tokenAddr,
+        IERC20 token,
         uint16 tokenId,
         uint8 decimals,
         uint128 amount
@@ -97,20 +96,20 @@ library AccountLib {
         Operations.Deposit memory op = Operations.Deposit({accountId: accountId, tokenId: tokenId, amount: l2Amt});
         bytes memory pubData = Operations.encodeDepositPubData(op);
         s.addL1Request(to, Operations.OpType.DEPOSIT, pubData);
-        emit Deposit(to, accountId, tokenAddr, tokenId, amount);
+        emit Deposit(to, accountId, token, tokenId, amount);
     }
 
     /// @notice Internal function to add force withdraw request
     /// @param s The rollup storage layout
     /// @param sender The address of the account on Layer1
     /// @param accountId The user account id in Layer2
-    /// @param tokenAddr The address of the force withdraw token
+    /// @param token The token to be withdrawn
     /// @param tokenId The token id of the force withdraw token
     function addForceWithdrawReq(
         RollupStorage.Layout storage s,
         address sender,
         uint32 accountId,
-        address tokenAddr,
+        IERC20 token,
         uint16 tokenId
     ) internal {
         Operations.ForceWithdraw memory op = Operations.ForceWithdraw({
@@ -122,26 +121,26 @@ library AccountLib {
         });
         bytes memory pubData = Operations.encodeForceWithdrawPubData(op);
         s.addL1Request(sender, Operations.OpType.FORCE_WITHDRAW, pubData);
-        emit ForceWithdraw(sender, accountId, tokenAddr, tokenId);
+        emit ForceWithdraw(sender, accountId, token, tokenId);
     }
 
     /// @notice Internal function to update withdraw record
     /// @param s The rollup storage layout
     /// @param sender The address of the account on Layer1
     /// @param accountId The user account id in Layer2
-    /// @param tokenAddr The address of the withdraw token
+    /// @param token The token to be withdrawn
     /// @param tokenId The token id of the withdraw token
     /// @param amount The withdraw amount
     function updateWithdrawRecord(
         RollupStorage.Layout storage s,
         address sender,
         uint32 accountId,
-        address tokenAddr,
+        IERC20 token,
         uint16 tokenId,
         uint128 amount
     ) internal {
         s.updateWithdrawalRecord(sender, tokenId, amount);
-        emit Withdraw(sender, accountId, tokenAddr, tokenId, amount);
+        emit Withdraw(sender, accountId, token, tokenId, amount);
     }
 
     /// @notice Internal function to get the valid account id

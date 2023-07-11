@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
-import {ISolidStateERC20} from "@solidstate/contracts/token/ERC20/ISolidStateERC20.sol";
-import {SafeERC20} from "@solidstate/contracts/utils/SafeERC20.sol";
 import {FlashLoanStorage} from "./FlashLoanStorage.sol";
 import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
@@ -20,7 +20,7 @@ import {Config} from "../libraries/Config.sol";
  */
 contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
     using Math for uint256;
-    using SafeERC20 for ISolidStateERC20;
+    using SafeERC20 for IERC20;
     using FlashLoanLib for FlashLoanStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
     using TokenLib for TokenStorage.Layout;
@@ -33,7 +33,7 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
      */
     function flashLoan(
         address payable receiver,
-        address[] memory assets,
+        IERC20[] memory assets,
         uint256[] memory amounts,
         bytes memory data
     ) external {
@@ -43,14 +43,14 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
         for (uint256 i; i < assets.length; i++) {
             TokenLib.getTokenStorage().getValidToken(assets[i]);
             premiums[i] = amounts[i].mulDiv(flashLoanPremium, Config.FLASH_LOAN_PREMIUM_BASE);
-            ISolidStateERC20(assets[i]).safeTransfer(receiver, amounts[i]);
+            assets[i].safeTransfer(receiver, amounts[i]);
         }
 
         try IFlashLoanReceiver(receiver).executeOperation(msg.sender, assets, amounts, premiums, data) {
             address payable treasuryAddr = ProtocolParamsLib.getProtocolParamsStorage().getTreasuryAddr();
             for (uint256 i; i < assets.length; i++) {
-                ISolidStateERC20(assets[i]).safeTransferFrom(receiver, address(this), amounts[i] + premiums[i]);
-                ISolidStateERC20(assets[i]).safeTransfer(treasuryAddr, premiums[i]);
+                assets[i].safeTransferFrom(receiver, address(this), amounts[i] + premiums[i]);
+                assets[i].safeTransfer(treasuryAddr, premiums[i]);
                 emit FlashLoan(msg.sender, receiver, assets[i], amounts[i], premiums[i]);
             }
         } catch Error(string memory err) {

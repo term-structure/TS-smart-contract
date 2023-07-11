@@ -310,8 +310,8 @@ describe("Health factor", () => {
             loanId,
             loan.accountId,
             BigNumber.from(tsbTokenData.maturity),
-            collateralToken.tokenAddr,
-            debtToken.tokenAddr,
+            collateralToken.token,
+            debtToken.token,
             BigNumber.from(collateralAmt),
             BigNumber.from(debtAmt)
           );
@@ -430,8 +430,8 @@ describe("Health factor", () => {
             loanId,
             loan.accountId,
             BigNumber.from(tsbTokenData.maturity),
-            collateralToken.tokenAddr,
-            debtToken.tokenAddr,
+            collateralToken.token,
+            debtToken.token,
             BigNumber.from(collateralAmt),
             BigNumber.from(debtAmt)
           );

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {RollupStorage, Proof, CommitBlock, StoredBlock, VerifyBlock, ExecuteBlock, L1Request} from "./RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 
@@ -47,7 +48,7 @@ interface IRollupFacet {
     /// @notice Error for invalid executed block number
     error InvalidExecutedBlockNum(uint32 executedBlockNum);
     /// @notice Error for redeem with invalid tsb token address
-    error InvalidTsbTokenAddr(address invalidTokenAddr);
+    error InvalidTsbToken(IERC20 invalidToken);
     /// @notice Error for pending rollup tx hash is not matched
     error PendingRollupTxHashIsNotMatched(bytes32 pendingRollupTxHash, bytes32 executeBlockPendingRollupTxHash);
     /// @notice Error for the specified accountId and tokenId is already evacuated
@@ -56,8 +57,8 @@ interface IRollupFacet {
     error NotEvacuMode();
     /// @notice Error for activate evacuation mode, but the timestamp is not expired
     error TimeStampIsNotExpired(uint256 curtimestamp, uint256 expirationTime);
-    /// @notice Error for underlyingAsset token and base token address is not matched
-    error TokenIsNotMatched(address underlyingAsset, address baseToken);
+    /// @notice Error for underlyingAsset token and base token is not matched
+    error TokenIsNotMatched(IERC20 underlyingAsset, IERC20 baseToken);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
@@ -79,10 +80,10 @@ interface IRollupFacet {
     /// @notice Emit when there is an evacuation
     /// @param accountAddr The address of the account
     /// @param accountId The id of the account
-    /// @param tokenAddr The address of the token
+    /// @param token The token to be evacuated
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
-    event Evacuation(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId, uint256 amount);
+    event Evacuation(address indexed accountAddr, uint32 accountId, IERC20 token, uint16 tokenId, uint256 amount);
 
     /// @notice Emitted when evacuation is activated
     /// @param timestamp The timestamp of the evacuation activation
@@ -92,16 +93,16 @@ interface IRollupFacet {
     /// @param loanId The id of the loan
     /// @param accountId The account id of the loan owner
     /// @param maturityTime The maturity time of the loan
-    /// @param collateralTokenAddr The address of the collateral token
-    /// @param debtTokenAddr The address of the debt token
+    /// @param collateralToken The collateral token
+    /// @param debtToken The debt token
     /// @param addedCollateralAmt  The added collateral amount of the loan
     /// @param addedDebtAmt The added debt amount of the loan
     event UpdateLoan(
         bytes12 indexed loanId,
         uint32 indexed accountId,
         uint32 maturityTime,
-        address collateralTokenAddr,
-        address debtTokenAddr,
+        IERC20 collateralToken,
+        IERC20 debtToken,
         uint128 addedCollateralAmt,
         uint128 addedDebtAmt
     );
@@ -193,7 +194,7 @@ interface IRollupFacet {
 
     /// @notice Return the pending balance of the specified account and token
     /// @param accountAddr The address of the account
-    /// @param tokenAddr The address of the token
+    /// @param token The token to be checked
     /// @return pendingBalance The pending balance of the specified account and token
-    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint256 pendingBalance);
+    function getPendingBalances(address accountAddr, IERC20 token) external view returns (uint256 pendingBalance);
 }
