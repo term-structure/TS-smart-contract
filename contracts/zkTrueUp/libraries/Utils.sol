@@ -20,7 +20,7 @@ library Utils {
     using AddressLib for AddressStorage.Layout;
 
     /// @notice Error for get zero address
-    error InvalidZeroAddr();
+    error InvalidZeroAddr(address addr);
     /// @notice Error for transfer
     error TransferFailed(address receiver, uint256 amount, bytes data);
     /// @notice Error for invalid msg.value
@@ -64,7 +64,7 @@ library Utils {
     /// @param priceFeed The address of the price feed
     /// @return normalizedPirce The price with 18 decimals
     function getPrice(address priceFeed) internal view returns (uint256) {
-        Utils.noneZeroAddr(priceFeed);
+        notZeroAddr(priceFeed);
         uint8 decimals = AggregatorV3Interface(priceFeed).decimals();
         (, int256 price, , , ) = AggregatorV3Interface(priceFeed).latestRoundData();
         if (price <= 0) revert InvalidPrice(price);
@@ -73,8 +73,8 @@ library Utils {
 
     /// @notice Internal function to check the address is not zero address
     /// @param addr The address to be checked
-    function noneZeroAddr(address addr) internal pure {
-        if (addr == address(0)) revert InvalidZeroAddr();
+    function notZeroAddr(address addr) internal pure {
+        if (addr == address(0)) revert InvalidZeroAddr(addr);
     }
 
     /// @notice Internal function to convert L2 amount to L1 amount

@@ -226,7 +226,7 @@ describe("Repay", () => {
 
       // check event
       await expect(repayTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -322,7 +322,7 @@ describe("Repay", () => {
 
       // check event
       await expect(repayTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -523,7 +523,7 @@ describe("Repay", () => {
 
       // check event
       await expect(repayTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -819,7 +819,7 @@ describe("Repay", () => {
 
       // check event
       await expect(repayTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -907,7 +907,7 @@ describe("Repay", () => {
 
       // check event
       await expect(repayTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -1000,7 +1000,7 @@ describe("Repay", () => {
 
       // check event
       await expect(repayTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,

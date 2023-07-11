@@ -21,7 +21,7 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
      */
     function addToken(AssetConfig memory assetConfig) external onlyRole(Config.OPERATOR_ROLE) {
         IERC20 token = assetConfig.token;
-        Utils.noneZeroAddr(address(token));
+        Utils.notZeroAddr(address(token));
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         if (tsl.getTokenId(token) != 0) revert TokenIsWhitelisted(token);
         uint16 newTokenId = tsl.getTokenNum() + 1;
@@ -34,9 +34,9 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
         if (assetConfig.isTsbToken) {
             ITsbToken tsbToken = ITsbToken(address(token));
             (, uint32 maturityTime) = tsbToken.tokenInfo();
-            emit WhitelistTsbToken(tsbToken, newTokenId, assetConfig, maturityTime);
+            emit TsbTokenWhitelisted(tsbToken, newTokenId, assetConfig, maturityTime);
         } else {
-            emit WhitelistBaseToken(token, newTokenId, assetConfig);
+            emit BaseTokenWhitelisted(token, newTokenId, assetConfig);
         }
     }
 
@@ -54,7 +54,7 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
      * @inheritdoc ITokenFacet
      */
     function setPriceFeed(IERC20 token, address priceFeed) external onlyRole(Config.ADMIN_ROLE) {
-        Utils.noneZeroAddr(priceFeed);
+        Utils.notZeroAddr(priceFeed);
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         uint16 tokenId = tsl.getValidTokenId(token);
         tsl.assetConfigs[tokenId].priceFeed = priceFeed;

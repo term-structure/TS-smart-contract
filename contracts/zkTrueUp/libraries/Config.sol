@@ -50,9 +50,6 @@ library Config {
     /// @notice Expriation period for L1 request
     uint256 internal constant EXPIRATION_PERIOD = 14 days;
 
-    /// @notice The mask for commitment
-    uint256 internal constant INPUT_MASK = (type(uint256).max >> 3);
-
     /// @notice Number of reserved accountsx (reserved accountId 0 as default accountId)
     uint8 internal constant NUM_RESERVED_ACCOUNTS = 1;
 

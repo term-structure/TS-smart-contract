@@ -88,7 +88,7 @@ describe("TsbFactory", () => {
 
       // check event
       await expect(addTokenTx)
-        .to.emit(diamondToken, "WhitelistBaseToken")
+        .to.emit(diamondToken, "BaseTokenWhitelisted")
         .withArgs(assetConfig.token, afterTokenNum, [
           assetConfig.isStableCoin,
           assetConfig.isTsbToken,
@@ -162,7 +162,7 @@ describe("TsbFactory", () => {
 
       // check event
       await expect(addTokenTx)
-        .to.emit(diamondToken, "WhitelistTsbToken")
+        .to.emit(diamondToken, "TsbTokenWhitelisted")
         .withArgs(
           assetConfig.token,
           afterTokenNum,

@@ -10,6 +10,14 @@ import {IPool} from "../interfaces/aaveV3/IPool.sol";
  * @title Term Structure Address Facet Interface
  */
 interface IAddressFacet {
+    /// @notice Emitted when the new verifier contract is set
+    /// @param newVerifier The new verifier contract
+    event SetVerifier(IVerifier indexed newVerifier);
+
+    /// @notice Emitted when the new evacuVerifier contract is set
+    /// @param newEvacuVerifier The new evacuVerifier contract
+    event SetEvacuVerifier(IVerifier indexed newEvacuVerifier);
+
     /// @notice Set new verifier contract
     /// @param newVerifier The new verifier contract
     function setVerifier(IVerifier newVerifier) external;

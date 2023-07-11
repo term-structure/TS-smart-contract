@@ -325,7 +325,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -482,7 +482,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -634,7 +634,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -785,7 +785,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -924,7 +924,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -1146,7 +1146,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -1288,7 +1288,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -1440,7 +1440,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -1569,7 +1569,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -1794,7 +1794,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -1945,7 +1945,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -2174,7 +2174,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -2317,7 +2317,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,

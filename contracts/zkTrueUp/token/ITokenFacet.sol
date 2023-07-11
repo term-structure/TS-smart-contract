@@ -38,14 +38,14 @@ interface ITokenFacet {
     /// @param token The whitelisted base token
     /// @param tokenId The token id on Layer2
     /// @param assetConfig The configuration of the token
-    event WhitelistBaseToken(IERC20 indexed token, uint16 indexed tokenId, AssetConfig assetConfig);
+    event BaseTokenWhitelisted(IERC20 indexed token, uint16 indexed tokenId, AssetConfig assetConfig);
 
     /// @notice Emitted when a new tsb token is added to the network
     /// @param tsbToken The whitelisted tsb token
     /// @param tokenId The token id on Layer2
     /// @param assetConfig The configuration of the token
     /// @param maturityTime The maturity time of the tsb token
-    event WhitelistTsbToken(
+    event TsbTokenWhitelisted(
         ITsbToken indexed tsbToken,
         uint16 indexed tokenId,
         AssetConfig assetConfig,

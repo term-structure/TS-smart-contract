@@ -31,7 +31,7 @@ interface ITsbFacet {
     /// @param underlyingAsset The underlying asset of the tsbToken
     /// @param amount The amount of the underlying asset
     /// @param redeemAndDeposit Whether to deposit the underlying asset after redeem the tsbToken
-    event Redeem(
+    event Redemption(
         address indexed sender,
         ITsbToken indexed tsbToken,
         IERC20 underlyingAsset,

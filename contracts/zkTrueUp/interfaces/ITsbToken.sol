@@ -9,19 +9,15 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface ITsbToken is IERC20 {
     /// @notice Mint TSB token
     /// @dev Only TsbFactory can mint
-    /// @param account The address of the account
+    /// @param to The address mint to
     /// @param amount The amount of the TSB token
-    function mint(address account, uint256 amount) external;
+    function mint(address to, uint256 amount) external;
 
     /// @notice Burn TSB token
     /// @dev Only TsbFactory can burn
-    /// @param account The address of the account
+    /// @param from The address burn from
     /// @param amount The amount of the TSB token
-    function burn(address account, uint256 amount) external;
-
-    /// @notice The address of the ZkTrueUp contract
-    /// @return zkTrueUpAddr address of the ZkTrueUp contract
-    function zkTrueUp() external view returns (address zkTrueUpAddr);
+    function burn(address from, uint256 amount) external;
 
     /// @notice Check if the TSB token is matured
     /// @return isMatured if the TSB token is matured

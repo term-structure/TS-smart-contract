@@ -194,7 +194,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(addCollateralTx)
-        .to.emit(diamondLoan, "AddCollateral")
+        .to.emit(diamondLoan, "CollateralAdded")
         .withArgs(loanId, user1Addr, DEFAULT_ETH_ADDRESS, amount);
 
       // convert amount to 8 decimals for loan data
@@ -258,7 +258,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(addCollateralTx)
-        .to.emit(diamondLoan, "AddCollateral")
+        .to.emit(diamondLoan, "CollateralAdded")
         .withArgs(loanId, user2Addr, DEFAULT_ETH_ADDRESS, amount);
 
       // convert amount to 8 decimals for loan data
@@ -319,7 +319,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(removeCollateralTx)
-        .to.emit(diamondLoan, "RemoveCollateral")
+        .to.emit(diamondLoan, "CollateralRemoved")
         .withArgs(loanId, user1Addr, DEFAULT_ETH_ADDRESS, amount);
 
       // convert amount to 8 decimals for loan data
@@ -503,7 +503,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(addCollateralTx)
-        .to.emit(diamondLoan, "AddCollateral")
+        .to.emit(diamondLoan, "CollateralAdded")
         .withArgs(loanId, user2Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data
@@ -565,7 +565,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(addCollateralTx)
-        .to.emit(diamondLoan, "AddCollateral")
+        .to.emit(diamondLoan, "CollateralAdded")
         .withArgs(loanId, user1Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data
@@ -622,7 +622,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(removeCollateralTx)
-        .to.emit(diamondLoan, "RemoveCollateral")
+        .to.emit(diamondLoan, "CollateralRemoved")
         .withArgs(loanId, user2Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data

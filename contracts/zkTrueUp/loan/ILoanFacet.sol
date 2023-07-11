@@ -9,7 +9,7 @@ import {LiquidationFactor, Loan} from "./LoanStorage.sol";
  */
 interface ILoanFacet {
     /// @notice Error for setting invalid liquidation factor
-    error InvalidLiquidationFactor();
+    error InvalidLiquidationFactor(LiquidationFactor liquidationFactor);
     /// @notice Error for liquidate the loan which is safe
     error LoanIsSafe(uint256 healthFactor, uint32 maturityTime);
     /// @notice Error for liquidate the loan with invalid repay amount
@@ -42,7 +42,7 @@ interface ILoanFacet {
     /// @param sender The address of the sender
     /// @param collateralToken The collateral token to add
     /// @param addedCollateralAmt The amount of the added collateral
-    event AddCollateral(
+    event CollateralAdded(
         bytes12 indexed loanId,
         address indexed sender,
         IERC20 collateralToken,
@@ -54,7 +54,7 @@ interface ILoanFacet {
     /// @param sender The address of the sender
     /// @param collateralToken The collateral token to remove
     /// @param removedCollateralAmt The amount of the removed collateral
-    event RemoveCollateral(
+    event CollateralRemoved(
         bytes12 indexed loanId,
         address indexed sender,
         IERC20 collateralToken,
@@ -69,7 +69,7 @@ interface ILoanFacet {
     /// @param removedCollateralAmt The amount of the removed collateral
     /// @param removedDebtAmt The amount of the removed debt
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
-    event Repay(
+    event Repayment(
         bytes12 indexed loanId,
         address indexed sender,
         IERC20 collateralToken,
@@ -203,7 +203,7 @@ interface ILoanFacet {
     ) external view returns (bool _isLiquidable, IERC20 debtToken, uint128 maxRepayAmt);
 
     /// @notice Check if the roll function is activated
-    /// @return True if the roll function is activated
+    /// @return isActivate If the roll function is activated
     function isActivatedRoller() external view returns (bool);
 
     /// @notice Return the loan id by the loan info

@@ -221,7 +221,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -323,7 +323,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -535,7 +535,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -828,7 +828,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -924,7 +924,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -1015,7 +1015,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(secondRepayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -1128,7 +1128,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -1222,7 +1222,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(secondRepayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,

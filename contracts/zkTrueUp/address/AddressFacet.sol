@@ -22,16 +22,18 @@ contract AddressFacet is IAddressFacet, AccessControlInternal {
      * @inheritdoc IAddressFacet
      */
     function setVerifier(IVerifier newVerifier) external onlyRole(Config.ADMIN_ROLE) {
-        Utils.noneZeroAddr(address(newVerifier));
+        Utils.notZeroAddr(address(newVerifier));
         AddressStorage.layout().verifier = newVerifier;
+        emit SetVerifier(newVerifier);
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
     function setEvacuVerifier(IVerifier newEvacuVerifier) external onlyRole(Config.ADMIN_ROLE) {
-        Utils.noneZeroAddr(address(newEvacuVerifier));
+        Utils.notZeroAddr(address(newEvacuVerifier));
         AddressStorage.layout().evacuVerifier = newEvacuVerifier;
+        emit SetEvacuVerifier(newEvacuVerifier);
     }
 
     /**

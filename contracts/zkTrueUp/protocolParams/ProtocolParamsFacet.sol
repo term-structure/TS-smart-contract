@@ -18,7 +18,7 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
      * @inheritdoc IProtocolParamsFacet
      */
     function setTreasuryAddr(address payable treasuryAddr) external onlyRole(Config.ADMIN_ROLE) {
-        Utils.noneZeroAddr(treasuryAddr);
+        Utils.notZeroAddr(treasuryAddr);
         ProtocolParamsStorage.layout().treasuryAddr = treasuryAddr;
         emit SetTreasuryAddr(treasuryAddr);
     }
@@ -27,7 +27,7 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
      * @inheritdoc IProtocolParamsFacet
      */
     function setInsuranceAddr(address payable insuranceAddr) external onlyRole(Config.ADMIN_ROLE) {
-        Utils.noneZeroAddr(insuranceAddr);
+        Utils.notZeroAddr(insuranceAddr);
         ProtocolParamsStorage.layout().insuranceAddr = insuranceAddr;
         emit SetInsuranceAddr(insuranceAddr);
     }
@@ -36,7 +36,7 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
      * @inheritdoc IProtocolParamsFacet
      */
     function setVaultAddr(address payable vaultAddr) external onlyRole(Config.ADMIN_ROLE) {
-        Utils.noneZeroAddr(vaultAddr);
+        Utils.notZeroAddr(vaultAddr);
         ProtocolParamsStorage.layout().vaultAddr = vaultAddr;
         emit SetVaultAddr(vaultAddr);
     }
@@ -46,7 +46,7 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
      */
     function setFundWeight(FundWeight memory fundWeight) external onlyRole(Config.ADMIN_ROLE) {
         if (fundWeight.treasury + fundWeight.insurance + fundWeight.vault != Config.FUND_WEIGHT_BASE)
-            revert InvalidFundWeight();
+            revert InvalidFundWeight(fundWeight);
         ProtocolParamsStorage.layout().fundWeight = fundWeight;
         emit SetFundWeight(fundWeight);
     }

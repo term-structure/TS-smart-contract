@@ -313,7 +313,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -431,7 +431,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check event
       await expect(liquidateTx2)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -579,7 +579,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -808,7 +808,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,
@@ -954,7 +954,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check event
       await expect(liquidateTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           liquidatorAddr,

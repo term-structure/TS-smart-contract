@@ -63,19 +63,19 @@ interface IRollupFacet {
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
     /// @param commitment The commitment of the block
-    event BlockCommitted(uint32 blockNumber, bytes32 commitment);
+    event BlockCommit(uint32 indexed blockNumber, bytes32 indexed commitment);
 
     /// @notice Emit when there is a new block verified
     /// @param blockNumber The number of the verified block
-    event BlockVerified(uint32 blockNumber);
+    event BlockVerification(uint32 indexed blockNumber);
 
     /// @notice Emit when there is a new block executed
     /// @param blockNumber The number of the executed block
-    event BlockExecuted(uint32 blockNumber);
+    event BlockExecution(uint32 indexed blockNumber);
 
     /// @notice Emit when there is a new block reverted
     /// @param blockNumber The number of the reverted block
-    event BlockReverted(uint32 blockNumber);
+    event BlockRevert(uint32 indexed blockNumber);
 
     /// @notice Emit when there is an evacuation
     /// @param accountAddr The address of the account
@@ -83,7 +83,13 @@ interface IRollupFacet {
     /// @param token The token to be evacuated
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
-    event Evacuation(address indexed accountAddr, uint32 accountId, IERC20 token, uint16 tokenId, uint256 amount);
+    event Evacuation(
+        address indexed accountAddr,
+        uint32 indexed accountId,
+        IERC20 token,
+        uint16 tokenId,
+        uint256 amount
+    );
 
     /// @notice Emitted when evacuation is activated
     /// @param timestamp The timestamp of the evacuation activation

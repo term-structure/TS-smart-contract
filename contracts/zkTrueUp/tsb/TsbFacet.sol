@@ -71,7 +71,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         TsbLib.requireMatured(tsbToken, maturityTime);
 
         TsbLib.burnTsbToken(tsbToken, msg.sender, amount);
-        emit Redeem(msg.sender, tsbToken, underlyingAsset, amount, redeemAndDeposit);
+        emit Redemption(msg.sender, tsbToken, underlyingAsset, amount, redeemAndDeposit);
 
         (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = tsl.getValidToken(underlyingAsset);
         uint128 underlyingAssetAmt = SafeCast.toUint128(amount.toL1Amt(underlyingAssetConfig.decimals));

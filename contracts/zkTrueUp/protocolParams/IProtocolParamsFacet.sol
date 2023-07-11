@@ -8,7 +8,7 @@ import {ProtocolParamsStorage, FundWeight} from "./ProtocolParamsStorage.sol";
  */
 interface IProtocolParamsFacet {
     /// Error for setting invalid fund weight value
-    error InvalidFundWeight();
+    error InvalidFundWeight(FundWeight fundWeight);
 
     /// @notice Emitted when the treasury address is set
     /// @param treasuryAddr The address of the treasury

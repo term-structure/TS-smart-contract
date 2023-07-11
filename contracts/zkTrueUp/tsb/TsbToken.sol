@@ -18,7 +18,8 @@ contract TsbToken is ERC20, ITsbToken {
     /**
      * @inheritdoc ITsbToken
      */
-    address public immutable zkTrueUp;
+    /// @notice The address of the ZkTrueUp contract
+    address private immutable _zkTrueUpAddr;
     /// @notice The underlying asset of the TSB token
     IERC20 private immutable _underlyingAsset;
     /// @notice The maturity time of the TSB token
@@ -35,29 +36,29 @@ contract TsbToken is ERC20, ITsbToken {
         IERC20 underlyingAsset_,
         uint32 maturityTime_
     ) ERC20(name_, symbol_) {
-        zkTrueUp = msg.sender;
+        _zkTrueUpAddr = msg.sender;
         _underlyingAsset = underlyingAsset_;
         _maturityTime = maturityTime_;
     }
 
     /// @notice Only ZkTrueUp modifier
     modifier onlyZkTrueUp() {
-        if (_msgSender() != zkTrueUp) revert OnlyZkTrueUp();
+        if (_msgSender() != _zkTrueUpAddr) revert OnlyZkTrueUp();
         _;
     }
 
     /**
      * @inheritdoc ITsbToken
      */
-    function mint(address account, uint256 amount) external onlyZkTrueUp {
-        _mint(account, amount);
+    function mint(address to, uint256 amount) external onlyZkTrueUp {
+        _mint(to, amount);
     }
 
     /**
      * @inheritdoc ITsbToken
      */
-    function burn(address account, uint256 amount) external onlyZkTrueUp {
-        _burn(account, amount);
+    function burn(address from, uint256 amount) external onlyZkTrueUp {
+        _burn(from, amount);
     }
 
     /**

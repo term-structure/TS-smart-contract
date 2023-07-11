@@ -50,7 +50,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         Loan memory loan = loanInfo.loan;
         loan = loan.addCollateral(amount);
         lsl.loans[loanId] = loan;
-        emit AddCollateral(loanId, msg.sender, collateralToken, amount);
+        emit CollateralAdded(loanId, msg.sender, collateralToken, amount);
     }
 
     /**
@@ -68,7 +68,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         lsl.loans[loanId] = loan;
         IERC20 collateralToken = loanInfo.collateralAsset.token;
         Utils.transfer(collateralToken, payable(msg.sender), amount);
-        emit RemoveCollateral(loanId, msg.sender, collateralToken, amount);
+        emit CollateralRemoved(loanId, msg.sender, collateralToken, amount);
     }
 
     /**
@@ -78,7 +78,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         (IERC20 collateralToken, uint32 accountId) = _repay(loanId, collateralAmt, debtAmt, repayAndDeposit);
 
         if (repayAndDeposit) {
-            TokenStorage.Layout storage tsl = TokenStorage.layout();
+            TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
             (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(collateralToken);
             TokenLib.validDepositAmt(collateralAmt, assetConfig.minDepositAmt);
             AccountLib.addDepositReq(
@@ -155,10 +155,12 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             liquidationFactor.ltvThreshold == 0 ||
             liquidationFactor.ltvThreshold + liquidationFactor.liquidatorIncentive + liquidationFactor.protocolPenalty >
             Config.MAX_LTV_RATIO
-        ) revert InvalidLiquidationFactor();
+        ) revert InvalidLiquidationFactor(liquidationFactor);
+
+        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
         isStableCoinPair
-            ? LoanStorage.layout().stableCoinPairLiquidationFactor = liquidationFactor
-            : LoanStorage.layout().liquidationFactor = liquidationFactor;
+            ? lsl.stableCoinPairLiquidationFactor = liquidationFactor
+            : lsl.liquidationFactor = liquidationFactor;
         emit SetLiquidationFactor(liquidationFactor, isStableCoinPair);
     }
 
@@ -286,7 +288,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         loan.requireHealthy(loanInfo);
 
         lsl.loans[loanId] = loan;
-        emit Repay(loanId, msg.sender, collateralToken, debtToken, collateralAmt, debtAmt, repayAndDeposit);
+        emit Repayment(loanId, msg.sender, collateralToken, debtToken, collateralAmt, debtAmt, repayAndDeposit);
         return (collateralToken, loanInfo.accountId);
     }
 
@@ -314,7 +316,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         loan.repay(totalRemovedCollateralAmt, repayAmt);
         lsl.loans[loanId] = loan;
 
-        emit Repay(loanId, msg.sender, collateralToken, debtToken, totalRemovedCollateralAmt, repayAmt, false);
+        emit Repayment(loanId, msg.sender, collateralToken, debtToken, totalRemovedCollateralAmt, repayAmt, false);
 
         return (liquidationAmt, collateralToken);
     }
@@ -451,7 +453,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                     msg.sender
                 )
             {
-                emit Repay(loanId, msg.sender, collateralToken, debtToken, collateralAmt, debtAmt, false);
+                emit Repayment(loanId, msg.sender, collateralToken, debtToken, collateralAmt, debtAmt, false);
                 emit RollToAave(loanId, msg.sender, supplyToken, debtToken, collateralAmt, debtAmt);
             } catch Error(string memory err) {
                 revert BorrowFromAaveFailedLogString(supplyToken, collateralAmt, debtToken, debtAmt, err);

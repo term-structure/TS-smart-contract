@@ -348,7 +348,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -515,7 +515,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -698,7 +698,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -1106,7 +1106,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           impersonatedSignerAddr,
@@ -1259,7 +1259,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           impersonatedSignerAddr,

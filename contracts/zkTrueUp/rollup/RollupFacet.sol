@@ -57,7 +57,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             lastCommittedBlock = _commitOneBlock(rsl, lastCommittedBlock, newBlocks[i], committedL1RequestNum);
             committedL1RequestNum += lastCommittedBlock.l1RequestNum;
             rsl.storedBlockHashes[lastCommittedBlock.blockNumber] = keccak256(abi.encode(lastCommittedBlock));
-            emit BlockCommitted(lastCommittedBlock.blockNumber, lastCommittedBlock.commitment);
+            emit BlockCommit(lastCommittedBlock.blockNumber, lastCommittedBlock.commitment);
         }
 
         if (committedL1RequestNum > rsl.getTotalL1RequestNum())
@@ -85,7 +85,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 revert InvalidCommittedBlock(verifyingBlock.storedBlock);
 
             _verifyOneBlock(verifyingBlock.storedBlock.commitment, verifyingBlock.proof, false);
-            emit BlockVerified(verifyingBlock.storedBlock.blockNumber);
+            emit BlockVerification(verifyingBlock.storedBlock.blockNumber);
         }
         rsl.verifiedBlockNum = verifiedBlockNum;
     }
@@ -115,7 +115,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
             _executeOneBlock(rsl, pendingBlock);
             executedL1RequestNum += pendingBlock.storedBlock.l1RequestNum;
-            emit BlockExecuted(pendingBlock.storedBlock.blockNumber);
+            emit BlockExecution(pendingBlock.storedBlock.blockNumber);
         }
         rsl.executedBlockNum = executedBlockNum;
         rsl.executedL1RequestNum = executedL1RequestNum;
@@ -148,7 +148,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         rsl.committedBlockNum = committedBlockNum;
         rsl.committedL1RequestNum -= revertedL1RequestNum;
         if (committedBlockNum < rsl.getVerifiedBlockNum()) rsl.verifiedBlockNum = committedBlockNum;
-        emit BlockReverted(committedBlockNum);
+        emit BlockRevert(committedBlockNum);
     }
 
     /**
@@ -508,11 +508,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint128 l2Amt
     ) internal {
         address accountAddr = AccountLib.getAccountStorage().getAccountAddr(accountId);
-        Utils.noneZeroAddr(accountAddr);
+        Utils.notZeroAddr(accountAddr);
 
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
         AssetConfig memory assetConfig = tsl.getAssetConfig(tokenId);
-        Utils.noneZeroAddr(address(assetConfig.token));
+        Utils.notZeroAddr(address(assetConfig.token));
 
         bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
         uint256 l1Amt = l2Amt.toL1Amt(assetConfig.decimals);
@@ -524,13 +524,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function _updateLoan(Operations.AuctionEnd memory auctionEnd) internal {
         uint32 accountId = auctionEnd.accountId;
         address accountAddr = AccountLib.getAccountStorage().getAccountAddr(accountId);
-        Utils.noneZeroAddr(accountAddr);
+        Utils.notZeroAddr(accountAddr);
 
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
         // tsbToken config
         AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
         address tokenAddr = address(assetConfig.token);
-        Utils.noneZeroAddr(tokenAddr);
+        Utils.notZeroAddr(tokenAddr);
         ITsbToken tsbToken = ITsbToken(tokenAddr);
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tokenAddr);
 
@@ -557,7 +557,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         // collateral token config
         uint16 collateralTokenId = auctionEnd.collateralTokenId;
         AssetConfig memory assetConfig = tsl.getAssetConfig(collateralTokenId);
-        Utils.noneZeroAddr(address(assetConfig.token));
+        Utils.notZeroAddr(address(assetConfig.token));
         Loan memory loan;
         uint8 decimals = assetConfig.decimals;
         loan.collateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(decimals));
@@ -582,18 +582,18 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         // insurance
         uint128 amount = (l1Amt * fundWeight.insurance) / Config.FUND_WEIGHT_BASE;
         address toAddr = ppsl.getInsuranceAddr();
-        Utils.noneZeroAddr(toAddr);
+        Utils.notZeroAddr(toAddr);
         Utils.transfer(assetConfig.token, payable(toAddr), amount);
         l1Amt -= amount;
         // vault
         amount = (l1Amt * fundWeight.vault) / Config.FUND_WEIGHT_BASE;
         toAddr = ppsl.getVaultAddr();
-        Utils.noneZeroAddr(toAddr);
+        Utils.notZeroAddr(toAddr);
         Utils.transfer(assetConfig.token, payable(toAddr), amount);
         l1Amt -= amount;
         // treasury
         toAddr = ppsl.getTreasuryAddr();
-        Utils.noneZeroAddr(toAddr);
+        Utils.notZeroAddr(toAddr);
         Utils.transfer(assetConfig.token, payable(toAddr), l1Amt);
     }
 
@@ -605,10 +605,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert Evacuated(evacuation.accountId, evacuation.tokenId);
 
         address receiver = AccountLib.getAccountStorage().getAccountAddr(evacuation.accountId);
-        Utils.noneZeroAddr(receiver);
+        Utils.notZeroAddr(receiver);
 
         AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(evacuation.tokenId);
-        Utils.noneZeroAddr(address(assetConfig.token));
+        Utils.notZeroAddr(address(assetConfig.token));
 
         rsl.evacuated[evacuation.accountId][evacuation.tokenId] = true;
 
