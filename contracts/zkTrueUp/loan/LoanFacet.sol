@@ -13,7 +13,6 @@ import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol
 import {TokenStorage} from "../token/TokenStorage.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
-import {IWETH} from "../interfaces/IWETH.sol";
 import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {AddressLib} from "../address/AddressLib.sol";
@@ -34,7 +33,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using AddressLib for AddressStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
     using TokenLib for TokenStorage.Layout;
-    using Math for uint256;
+    using Math for *;
     using LoanLib for *;
 
     /**
@@ -386,7 +385,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         // ==> repayToCollateralRatio = LTV_BASE * normalizedRepayValue * 10**collateralAssetDecimals /
         //     normalizedCollateralPrice / collateralAmt
         // ==> repayToCollateralRatio = LTV_BASE * repayValueEquivCollateralAmt / collateralAmt
-        uint256 repayToCollateralRatio = (Config.LTV_BASE * repayValueEquivCollateralAmt) / collateralAmt;
+        uint256 repayToCollateralRatio = Config.LTV_BASE.mulDiv(repayValueEquivCollateralAmt, collateralAmt);
         uint16 liquidatorIncentive = liquidationFactor.liquidatorIncentive;
         uint16 protocolPenalty = liquidationFactor.protocolPenalty;
 
@@ -433,10 +432,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint128 debtAmt
     ) internal {
         AddressStorage.Layout storage asl = AddressLib.getAddressStorage();
-        IPool aaveV3Pool = asl.getAaveV3Pool();
         // AAVE receive WETH as collateral
         IERC20 supplyToken = address(collateralToken) == Config.ETH_ADDRESS ? asl.getWETH() : collateralToken;
 
+        IPool aaveV3Pool = asl.getAaveV3Pool();
         supplyToken.safeApprove(address(aaveV3Pool), collateralAmt);
         // referralCode: 0
         // (see https://docs.aave.com/developers/core-contracts/pool#supply)
