@@ -8,7 +8,6 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {AddressLib} from "../address/AddressLib.sol";
-import {IWETH} from "../interfaces/IWETH.sol";
 import {Config} from "../libraries/Config.sol";
 
 /**
@@ -68,6 +67,7 @@ library Utils {
         uint8 decimals = AggregatorV3Interface(priceFeed).decimals();
         (, int256 price, , , ) = AggregatorV3Interface(priceFeed).latestRoundData();
         if (price <= 0) revert InvalidPrice(price);
+
         return uint256(price) * 10 ** (18 - decimals);
     }
 

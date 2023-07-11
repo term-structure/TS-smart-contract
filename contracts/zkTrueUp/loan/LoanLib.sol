@@ -102,15 +102,13 @@ library LoanLib {
         // ==> healthFactor =
         //      ltvThreshold * (normalizedCollateralPrice * collateralAmt / 10**collateralDecimals) /
         //      (normalizedDebtPrice * loan.debtAmt / 10**debtDecimals)
-        // ==> healthFactor =
-        //      ltvThreshold * normalizedCollateralPrice * collateralAmt * 10**debtDecimals /
-        //      (normalizedDebtPrice * loan.debtAmt) / 10**collateralDecimals
-        uint256 healthFactor = (ltvThreshold *
-            normalizedCollateralPrice *
-            loan.collateralAmt *
-            10 ** debtAsset.decimals) /
-            (normalizedDebtPrice * loan.debtAmt) /
-            10 ** collateralAsset.decimals;
+        // ==> healthFactor = ltvThreshold * normalizedCollateralValue / normalizedDebtValue
+        uint256 normalizedCollateralValue = normalizedCollateralPrice.mulDiv(
+            loan.collateralAmt,
+            10 ** collateralAsset.decimals
+        );
+        uint256 normalizedDebtValue = normalizedDebtPrice.mulDiv(loan.debtAmt, 10 ** debtAsset.decimals);
+        uint256 healthFactor = ltvThreshold.mulDiv(normalizedCollateralValue, normalizedDebtValue);
         return (healthFactor, normalizedCollateralPrice, normalizedDebtPrice);
     }
 
