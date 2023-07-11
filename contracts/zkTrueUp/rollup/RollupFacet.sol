@@ -555,9 +555,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         // calculate added amount
         uint8 decimals = underlyingAssetConfig.decimals;
-        uint128 addedDebtAmt = SafeCast.toUint128(Utils.toL1Amt(auctionEnd.debtAmt, decimals));
+        uint128 addedDebtAmt = SafeCast.toUint128(auctionEnd.debtAmt.toL1Amt(decimals));
         decimals = assetConfig.decimals;
-        uint128 addedCollateralAmt = SafeCast.toUint128(Utils.toL1Amt(auctionEnd.collateralAmt, decimals));
+        uint128 addedCollateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(decimals));
 
         // loan.debtAmt += addedDebtAmt;
         // loan.collateralAmt += addedCollateralAmt;
@@ -579,7 +579,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param withdrawFee The withdraw fee request
     function _withdrawFee(Operations.WithdrawFee memory withdrawFee) internal {
         AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(withdrawFee.tokenId);
-        uint128 l1Amt = SafeCast.toUint128(Utils.toL1Amt(withdrawFee.amount, assetConfig.decimals));
+        uint128 l1Amt = SafeCast.toUint128(withdrawFee.amount.toL1Amt(assetConfig.decimals));
         ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
         FundWeight memory fundWeight = ppsl.getFundWeight();
         // insurance

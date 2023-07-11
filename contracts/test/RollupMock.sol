@@ -18,6 +18,7 @@ contract RollupMock is RollupFacet {
     using LoanLib for LoanStorage.Layout;
     using TokenLib for TokenStorage.Layout;
     using LoanLib for Loan;
+    using Utils for *;
 
     function updateLoanMock(Operations.AuctionEnd memory auctionEnd) external {
         // Utils.noneZeroAddr(AccountLib.getAccountAddr(auctionEnd.accountId));
@@ -51,9 +52,9 @@ contract RollupMock is RollupFacet {
 
         // calculate added amount
         uint8 decimals = underlyingAssetConfig.decimals;
-        uint128 addedDebtAmt = SafeCast.toUint128(Utils.toL1Amt(auctionEnd.debtAmt, decimals));
+        uint128 addedDebtAmt = SafeCast.toUint128(auctionEnd.debtAmt.toL1Amt(decimals));
         decimals = assetConfig.decimals;
-        uint128 addedCollateralAmt = SafeCast.toUint128(Utils.toL1Amt(auctionEnd.collateralAmt, decimals));
+        uint128 addedCollateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(decimals));
         loan = loan.updateLoan(addedCollateralAmt, addedDebtAmt);
 
         LoanStorage.layout().loans[loanId] = loan;

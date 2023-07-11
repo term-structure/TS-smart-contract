@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {TsbStorage} from "./TsbStorage.sol";
@@ -27,6 +28,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     using AccountLib for AccountStorage.Layout;
     using TokenLib for TokenStorage.Layout;
     using TsbLib for TsbStorage.Layout;
+    using Utils for *;
 
     /**
      * @inheritdoc ITsbFacet
@@ -64,16 +66,19 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
         (, AssetConfig memory assetConfig) = tsl.getAssetConfig(tsbToken);
         if (!assetConfig.isTsbToken) revert InvalidTsbToken(tsbToken);
+
         (IERC20 underlyingAsset, uint32 maturityTime) = tsbToken.tokenInfo();
         TsbLib.requireMatured(tsbToken, maturityTime);
 
         TsbLib.burnTsbToken(tsbToken, msg.sender, amount);
         emit Redeem(msg.sender, tsbToken, underlyingAsset, amount, redeemAndDeposit);
 
+        (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = tsl.getValidToken(underlyingAsset);
+        uint128 underlyingAssetAmt = SafeCast.toUint128(amount.toL1Amt(underlyingAssetConfig.decimals));
+
         if (redeemAndDeposit) {
             uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
-            (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = tsl.getValidToken(underlyingAsset);
-            TokenLib.validDepositAmt(amount, underlyingAssetConfig);
+            TokenLib.validDepositAmt(underlyingAssetAmt, underlyingAssetConfig);
             AccountLib.addDepositReq(
                 RollupLib.getRollupStorage(),
                 msg.sender,
@@ -81,10 +86,10 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
                 underlyingAssetConfig.token,
                 tokenId,
                 underlyingAssetConfig.decimals,
-                amount
+                underlyingAssetAmt
             );
         } else {
-            Utils.transfer(underlyingAsset, payable(msg.sender), amount);
+            Utils.transfer(underlyingAsset, payable(msg.sender), underlyingAssetAmt);
         }
     }
 
