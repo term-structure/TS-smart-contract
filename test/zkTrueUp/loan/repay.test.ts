@@ -592,7 +592,7 @@ describe("Repay", () => {
         diamondLoan
           .connect(user2)
           .repay(loanId, removedCollateralAmt, repayDebtAmt, false)
-      ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
     });
     it("Fail to repay (ETH case), health factor under threshold", async () => {
       // before health factor

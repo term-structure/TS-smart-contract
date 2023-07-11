@@ -78,7 +78,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
 
         if (redeemAndDeposit) {
             uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
-            TokenLib.validDepositAmt(underlyingAssetAmt, underlyingAssetConfig);
+            TokenLib.validDepositAmt(underlyingAssetAmt, underlyingAssetConfig.minDepositAmt);
             AccountLib.addDepositReq(
                 RollupLib.getRollupStorage(),
                 msg.sender,

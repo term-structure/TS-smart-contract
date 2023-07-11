@@ -12,6 +12,7 @@ import { updateRoundData } from "../../utils/updateRoundData";
 import {
   calcLiquidatorRewardAmt,
   calcProtocolPenaltyAmt,
+  calcRepayValueEquivCollateralAmt,
   toL1Amt,
 } from "../../utils/amountConvertor";
 import {
@@ -552,24 +553,26 @@ describe("Flash loan", () => {
         BigNumber.from(loanData.debtAmt),
         TS_BASE_TOKEN.USDC
       );
-      const debtValue = repayAmt.mul(usdcAnswer);
+
+      // repay value equivalent collateral amount with collateral token decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer,
+        TS_BASE_TOKEN.USDC,
+        usdcAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // check balance

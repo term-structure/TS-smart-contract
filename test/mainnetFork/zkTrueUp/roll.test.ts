@@ -179,7 +179,7 @@ describe("Roll to Aave", () => {
 
       await expect(
         diamondLoan.connect(user2).rollToAave(loanId, collateralAmt, debtAmt)
-      ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
     });
     it("Fail roll to Aave, roll function is not activated", async () => {
       const debtAmt = toL1Amt(

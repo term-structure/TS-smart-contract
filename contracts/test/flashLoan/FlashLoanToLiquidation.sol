@@ -35,8 +35,8 @@ contract FlashLoanToLiquidation is IFlashLoanReceiver {
         uint256[] calldata premiums,
         bytes calldata data
     ) external {
-        Loan memory loan = loanFacet.getLoan(_loanId);
-        IERC20 collateralToken = tokenFacet.getAssetConfig(loan.collateralTokenId).token;
+        (, , , uint16 collateralTokenId) = loanFacet.resolveLoanId(_loanId);
+        IERC20 collateralToken = tokenFacet.getAssetConfig(collateralTokenId).token;
         (, , uint128 maxRepayAmt) = loanFacet.getLiquidationInfo(_loanId);
         (uint128 liquidatorRewardAmt, ) = loanFacet.liquidate(_loanId, maxRepayAmt);
         if (address(collateralToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {

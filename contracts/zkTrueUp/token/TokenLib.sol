@@ -18,7 +18,7 @@ library TokenLib {
     /// @notice Error for get token which is not whitelisted
     error TokenIsNotExist(IERC20 notWhitelistedToken);
     /// @notice Error for deposit amount is invalid
-    error InvalidDepositAmt(uint128 depositAmt);
+    error InvalidDepositAmt(uint128 depositAmt, uint128 minDepositAmt);
     /// @notice Error for register account with tsb token
     error InvalidBaseTokenAddr(IERC20 invalidTokenAddr);
 
@@ -107,9 +107,9 @@ library TokenLib {
 
     /// @notice Internal function to check if the deposit amount is valid
     /// @param depositAmt The deposit amount to be checked
-    /// @param assetConfig The configuration of the token
-    function validDepositAmt(uint128 depositAmt, AssetConfig memory assetConfig) internal pure {
-        if (depositAmt < assetConfig.minDepositAmt) revert InvalidDepositAmt(depositAmt);
+    /// @param minDepositAmt The minimum deposit amount
+    function validDepositAmt(uint128 depositAmt, uint128 minDepositAmt) internal pure {
+        if (depositAmt < minDepositAmt) revert InvalidDepositAmt(depositAmt, minDepositAmt);
     }
 
     /// @notice Internal function to get the token storage layout

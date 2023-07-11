@@ -356,7 +356,7 @@ describe("Collateral", () => {
       // check revert
       await expect(
         diamondLoan.connect(user2).removeCollateral(loanId, amount)
-      ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
     });
 
     it("Fail to remove collateral (ETH case), health factor under threshold", async () => {
@@ -661,7 +661,7 @@ describe("Collateral", () => {
       // check revert
       await expect(
         diamondLoan.connect(user1).removeCollateral(loanId, amount)
-      ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
     });
 
     it("Fail to remove collateral (stable coin pair), health factor under threshold", async () => {

@@ -14,6 +14,7 @@ import { getExpectedHealthFactor } from "../../utils/getHealthFactor";
 import {
   calcLiquidatorRewardAmt,
   calcProtocolPenaltyAmt,
+  calcRepayValueEquivCollateralAmt,
   toL1Amt,
   toL2Amt,
 } from "../../utils/amountConvertor";
@@ -282,25 +283,27 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const repayValue = repayAmt.mul(usdcAnswer);
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer,
+        TS_BASE_TOKEN.USDC,
+        usdcAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        repayValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        repayValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
@@ -437,25 +440,27 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const repayValue = repayAmt.mul(usdcAnswer);
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer,
+        TS_BASE_TOKEN.USDC,
+        usdcAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        repayValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        repayValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
@@ -587,25 +592,27 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const repayValue = maxRepayAmt.mul(usdcAnswer);
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        maxRepayAmt,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer,
+        TS_BASE_TOKEN.USDC,
+        usdcAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        repayValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        repayValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
@@ -736,15 +743,19 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         treasuryAddr
       );
 
-      const debtValue = maxRepayAmt.mul(usdcAnswer);
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        maxRepayAmt,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer,
+        TS_BASE_TOKEN.USDC,
+        usdcAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
@@ -1093,23 +1104,27 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
       const debtValue = repayAmt.mul(daiAnswer);
 
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.USDT,
+        usdtAnswer,
+        TS_BASE_TOKEN.DAI,
+        daiAnswer
+      );
+
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
@@ -1230,25 +1245,28 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const afterLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-      const debtValue = maxRepayAmt.mul(daiAnswer);
+
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        maxRepayAmt,
+        TS_BASE_TOKEN.USDT,
+        usdtAnswer,
+        TS_BASE_TOKEN.DAI,
+        daiAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
@@ -1370,24 +1388,26 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const afterLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-      const debtValue = maxRepayAmt.mul(daiAnswer);
+
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        maxRepayAmt,
+        TS_BASE_TOKEN.USDT,
+        usdtAnswer,
+        TS_BASE_TOKEN.DAI,
+        daiAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
-      // full protocol penalty if collateral can cover
+      // protocol penalty with collateral token L1 decimals
       const fullProtocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // leftover protocol penalty with collateral token L1 decimals
@@ -1731,24 +1751,26 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const afterTreasuryEthBalance = await ethers.provider.getBalance(
         treasuryAddr
       );
-      const debtValue = repayAmt.mul(usdcAnswer);
+
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer,
+        TS_BASE_TOKEN.USDC,
+        usdcAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
@@ -1880,24 +1902,26 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const afterTreasuryEthBalance = await ethers.provider.getBalance(
         treasuryAddr
       );
-      const debtValue = repayAmt.mul(usdcAnswer);
+
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer,
+        TS_BASE_TOKEN.USDC,
+        usdcAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.ETH,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        ethAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
@@ -2108,23 +2132,27 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
       const debtValue = repayAmt.mul(usdcAnswer);
 
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.USDT,
+        usdtAnswer,
+        TS_BASE_TOKEN.USDC,
+        usdcAnswer
+      );
+
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
@@ -2247,23 +2275,27 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
       const debtValue = repayAmt.mul(usdcAnswer);
 
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.USDT,
+        usdtAnswer,
+        TS_BASE_TOKEN.USDC,
+        usdcAnswer
+      );
+
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.USDC,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance

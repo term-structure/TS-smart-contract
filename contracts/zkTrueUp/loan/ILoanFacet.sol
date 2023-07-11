@@ -188,19 +188,6 @@ interface ILoanFacet {
         bool isStableCoinPair
     ) external view returns (LiquidationFactor memory liquidationFactor);
 
-    /// @notice Return the loan id by the loan info
-    /// @param accountId The id of the account
-    /// @param maturityTime The maturity time of the loan
-    /// @param debtTokenId The id of the debt token
-    /// @param collateralTokenId The id of the collateral token
-    /// @return loanId The id of the loan
-    function getLoanId(
-        uint32 accountId,
-        uint32 maturityTime,
-        uint16 debtTokenId,
-        uint16 collateralTokenId
-    ) external pure returns (bytes12 loanId);
-
     /// @notice Return the loan by the loan id
     /// @param loanId The id of the loan
     /// @return loan The loan
@@ -218,4 +205,27 @@ interface ILoanFacet {
     /// @notice Check if the roll function is activated
     /// @return True if the roll function is activated
     function isActivatedRoller() external view returns (bool);
+
+    /// @notice Return the loan id by the loan info
+    /// @param accountId The id of the account
+    /// @param maturityTime The maturity time of the loan
+    /// @param debtTokenId The id of the debt token
+    /// @param collateralTokenId The id of the collateral token
+    /// @return loanId The id of the loan
+    function getLoanId(
+        uint32 accountId,
+        uint32 maturityTime,
+        uint16 debtTokenId,
+        uint16 collateralTokenId
+    ) external pure returns (bytes12 loanId);
+
+    /// @notice Resolve the loan id
+    /// @param loanId The loan id
+    /// @return accountId The account id
+    /// @return maturityTime The maturity time
+    /// @return debtTokenId The debt token id
+    /// @return collateralTokenId The collateral token id
+    function resolveLoanId(
+        bytes12 loanId
+    ) external pure returns (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId);
 }

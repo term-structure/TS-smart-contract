@@ -615,7 +615,7 @@ describe("Repay and deposit", () => {
           .repay(loanId, depositCollateralAmt, repayDebtAmt, true, {
             value: repayDebtAmt,
           })
-      ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
     });
     it("Fail to repay and deposit (general case), health factor under threshold", async () => {
       // before health factor

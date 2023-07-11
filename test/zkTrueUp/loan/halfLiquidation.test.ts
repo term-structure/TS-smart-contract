@@ -14,6 +14,7 @@ import { getExpectedHealthFactor } from "../../utils/getHealthFactor";
 import {
   calcLiquidatorRewardAmt,
   calcProtocolPenaltyAmt,
+  calcRepayValueEquivCollateralAmt,
   toL1Amt,
   toL2Amt,
 } from "../../utils/amountConvertor";
@@ -270,26 +271,27 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const afterLiquidatorEthBalance = await liquidator.getBalance();
       const afterTreasuryWbtcBalance = await wbtc.balanceOf(treasuryAddr);
 
-      // calculate expected amount
-      const debtValue = repayAmt.mul(ethAnswer);
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.WBTC,
+        wbtcAnswer,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.WBTC,
-        TS_BASE_TOKEN.ETH,
-        liquidationFactor,
-        wbtcAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.WBTC,
-        TS_BASE_TOKEN.ETH,
-        liquidationFactor,
-        wbtcAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
@@ -390,25 +392,25 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const afterLiquidatorWbtcBalance2 = await wbtc.balanceOf(liquidatorAddr);
       const afterLiquidatorEthBalance2 = await liquidator.getBalance();
 
-      // calculate expected amount
-      const debtValue2 = repayAmt2.mul(ethAnswer);
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt2 = calcRepayValueEquivCollateralAmt(
+        repayAmt2,
+        TS_BASE_TOKEN.WBTC,
+        wbtcAnswer,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward2 = calcLiquidatorRewardAmt(
-        debtValue2,
-        TS_BASE_TOKEN.WBTC,
-        TS_BASE_TOKEN.ETH,
-        liquidationFactor,
-        wbtcAnswer
+        repayValueEquivCollateralAmt2,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty2 = calcProtocolPenaltyAmt(
-        debtValue2,
-        TS_BASE_TOKEN.WBTC,
-        TS_BASE_TOKEN.ETH,
-        liquidationFactor,
-        wbtcAnswer
+        repayValueEquivCollateralAmt2,
+        liquidationFactor
       );
 
       const removedCollateralAmt2 = liquidatorReward2.add(protocolPenalty2);
@@ -535,26 +537,27 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const afterLiquidatorEthBalance = await liquidator.getBalance();
       const afterTreasuryWbtcBalance = await wbtc.balanceOf(treasuryAddr);
 
-      // calculate expected amount
-      const debtValue = maxRepayAmt.mul(ethAnswer);
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        maxRepayAmt,
+        TS_BASE_TOKEN.WBTC,
+        wbtcAnswer,
+        TS_BASE_TOKEN.ETH,
+        ethAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.WBTC,
-        TS_BASE_TOKEN.ETH,
-        liquidationFactor,
-        wbtcAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.WBTC,
-        TS_BASE_TOKEN.ETH,
-        liquidationFactor,
-        wbtcAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
@@ -762,25 +765,28 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const afterLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-      const debtValue = repayAmt.mul(daiAnswer);
+
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.USDT,
+        usdtAnswer,
+        TS_BASE_TOKEN.DAI,
+        daiAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
+
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 
       // check balance
@@ -906,24 +912,26 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       const afterLiquidatorUsdtBalance = await usdt.balanceOf(liquidatorAddr);
       const afterLiquidatorDaiBalance = await dai.balanceOf(liquidatorAddr);
       const afterTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
-      const debtValue = repayAmt.mul(daiAnswer);
+
+      // repay value equivalent collateral amount with collateral token L1 decimals
+      const repayValueEquivCollateralAmt = calcRepayValueEquivCollateralAmt(
+        repayAmt,
+        TS_BASE_TOKEN.USDT,
+        usdtAnswer,
+        TS_BASE_TOKEN.DAI,
+        daiAnswer
+      );
 
       // liquidator reward with collateral token L1 decimals
       const liquidatorReward = calcLiquidatorRewardAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
 
       // protocol penalty with collateral token L1 decimals
       const protocolPenalty = calcProtocolPenaltyAmt(
-        debtValue,
-        TS_BASE_TOKEN.USDT,
-        TS_BASE_TOKEN.DAI,
-        liquidationFactor,
-        usdtAnswer
+        repayValueEquivCollateralAmt,
+        liquidationFactor
       );
       const removedCollateralAmt = liquidatorReward.add(protocolPenalty);
 

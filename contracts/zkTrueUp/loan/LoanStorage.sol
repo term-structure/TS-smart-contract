@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {AssetConfig} from "../token/TokenStorage.sol";
+
 /// @notice Liquidation factor of the loan
 struct LiquidationFactor {
     uint16 ltvThreshold;
@@ -10,12 +12,18 @@ struct LiquidationFactor {
 
 /// @notice Data of loan
 struct Loan {
-    uint32 accountId;
-    uint32 maturityTime;
-    uint16 collateralTokenId;
-    uint16 debtTokenId;
-    uint128 collateralAmt;
     uint128 debtAmt;
+    uint128 collateralAmt;
+}
+
+/// @notice The information of the loan
+struct LoanInfo {
+    Loan loan;
+    uint32 maturityTime;
+    uint32 accountId;
+    LiquidationFactor liquidationFactor;
+    AssetConfig collateralAsset;
+    AssetConfig debtAsset;
 }
 
 /// @notice The amount of the liquidation

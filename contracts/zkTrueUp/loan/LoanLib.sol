@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {TokenLib} from "../token/TokenLib.sol";
+import {AccountLib} from "../account/AccountLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
-import {LoanStorage, Loan, LiquidationFactor} from "./LoanStorage.sol";
+import {AccountStorage} from "../account/AccountStorage.sol";
+import {LoanStorage, Loan, LiquidationFactor, LoanInfo} from "./LoanStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
@@ -12,19 +15,21 @@ import {Config} from "../libraries/Config.sol";
  * @title Term Structure Loan Library
  */
 library LoanLib {
-    using LoanLib for LoanStorage.Layout;
+    using Math for uint256;
+    using AccountLib for AccountStorage.Layout;
     using TokenLib for TokenStorage.Layout;
+    using LoanLib for *;
 
     /// @notice Error for collateral amount is not enough when removing collateral
     error CollateralAmtIsNotEnough(uint128 collateralAmt, uint128 amount);
     /// @notice Error for debt amount less than repay amount when repaying
     error DebtAmtLtRepayAmt(uint128 debtAmt, uint128 repayAmt);
-    /// @notice Error for sender is not the loan owner
-    error SenderIsNotLoanOwner(address sender, address loanOwner);
+    /// @notice Error for addr is not the loan owner
+    error isNotLoanOwner(address addr, address loanOwner);
     /// @notice Error for health factor is under thresholds
     error LoanIsUnhealthy(uint256 healthFactor);
     /// @notice Error for get loan which is not exist
-    error LoanIsNotExist();
+    error LoanIsNotExist(bytes12 loanId);
 
     /// @notice Internal function to add collateral to the loan
     /// @param loan The loan to be added collateral
@@ -111,22 +116,31 @@ library LoanLib {
 
     /// @notice Internal function to get the loan info
     /// @param s The loan storage
-    /// @param loan The loan to be get its info
-    /// @return liquidationFactor The liquidation factor of the loan
-    /// @return collateralAsset The collateral asset of the loan
-    /// @return debtAsset The debt asset of the loan
-    function getLoanInfo(
-        LoanStorage.Layout storage s,
-        Loan memory loan
-    ) internal view returns (LiquidationFactor memory, AssetConfig memory, AssetConfig memory) {
-        if (loan.accountId == 0) revert LoanIsNotExist();
-        TokenStorage.Layout storage tsl = TokenStorage.layout();
-        AssetConfig memory collateralAsset = tsl.getAssetConfig(loan.collateralTokenId);
-        AssetConfig memory debtAsset = tsl.getAssetConfig(loan.debtTokenId);
+    /// @param loanId The id of the loan
+    /// @return LoanInfo The loan info
+    function getLoanInfo(LoanStorage.Layout storage s, bytes12 loanId) internal view returns (LoanInfo memory) {
+        Loan memory loan = s.getLoan(loanId);
+        (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = resolveLoanId(loanId);
+        if (accountId == 0) revert LoanIsNotExist(loanId);
+
+        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        AssetConfig memory collateralAsset = tsl.getAssetConfig(collateralTokenId);
+        AssetConfig memory debtAsset = tsl.getAssetConfig(debtTokenId);
+
         LiquidationFactor memory liquidationFactor = debtAsset.isStableCoin && collateralAsset.isStableCoin
             ? s.getStableCoinPairLiquidationFactor()
             : s.getLiquidationFactor();
-        return (liquidationFactor, collateralAsset, debtAsset);
+
+        return (
+            LoanInfo({
+                loan: loan,
+                accountId: accountId,
+                maturityTime: maturityTime,
+                liquidationFactor: liquidationFactor,
+                collateralAsset: collateralAsset,
+                debtAsset: debtAsset
+            })
+        );
     }
 
     /// @notice Internal function to get the loan
@@ -167,6 +181,14 @@ library LoanLib {
         return s.isActivatedRoller;
     }
 
+    /// @notice Internal function to check if the sender is the loan owner
+    /// @param addr The address of the sender
+    /// @param loanInfo The loan info
+    function isLoanOwner(address addr, LoanInfo memory loanInfo) internal view {
+        address loanOwner = AccountLib.getAccountStorage().getAccountAddr(loanInfo.accountId);
+        if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
+    }
+
     /// @notice Internal function to check if the loan is liquidable
     /// @param healthFactor The health factor of the loan
     /// @param maturityTime The maturity time of the loan
@@ -189,17 +211,49 @@ library LoanLib {
         return healthFactor >= Config.HEALTH_FACTOR_THRESHOLD;
     }
 
-    /// @notice Internal function to check if the sender is the loan owner
-    /// @param sender The address of the sender
-    /// @param loanOwner The address of the loan owner
-    function senderIsLoanOwner(address sender, address loanOwner) internal pure {
-        if (sender != loanOwner) revert SenderIsNotLoanOwner(sender, loanOwner);
+    /// @notice Internal function to check if the loan is healthy
+    /// @param loan The loan to be checked
+    /// @param loanInfo The loan info
+    function requireHealthy(Loan memory loan, LoanInfo memory loanInfo) internal view {
+        (uint256 healthFactor, , ) = loan.getHealthFactor(
+            loanInfo.liquidationFactor.ltvThreshold,
+            loanInfo.collateralAsset,
+            loanInfo.debtAsset
+        );
+        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert LoanIsUnhealthy(healthFactor);
     }
 
-    /// @notice Internal function to check if the health factor is safe
-    /// @param healthFactor The health factor to be checked
-    function requireHealthy(uint256 healthFactor) internal pure {
-        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert LoanIsUnhealthy(healthFactor);
+    /// @notice Return the max repayable amount of the loan
+    /// @dev    If the collateral value is less than half liquidation threshold or the loan is expired,
+    ///         then the liquidator can repay the all debt
+    ///         otherwise, the liquidator can repay max to half of the debt
+    /// @param collateralValue The collateral value without decimals
+    /// @param debtAmt The amount of the debt
+    /// @param halfLiquidationThreshold The value of half liquidation threshold
+    /// @return maxRepayAmt The maximum amount of the debt to be repaid
+    function calcMaxRepayAmt(
+        uint256 collateralValue,
+        uint128 debtAmt,
+        uint32 maturityTime,
+        uint16 halfLiquidationThreshold
+    ) internal view returns (uint128) {
+        uint128 maxRepayAmt = collateralValue < halfLiquidationThreshold || isMatured(maturityTime)
+            ? debtAmt
+            : debtAmt / 2;
+        return maxRepayAmt;
+    }
+
+    /// @notice Internal function to calculate the collateral value
+    /// @param normalizedCollateralPrice The normalized collateral price
+    /// @param collateralAmt The collateral amount
+    /// @param collateralDecimals The collateral decimals
+    /// @return collateralValue The collateral value
+    function calcCollateralValue(
+        uint256 normalizedCollateralPrice,
+        uint128 collateralAmt,
+        uint8 collateralDecimals
+    ) internal pure returns (uint256) {
+        return normalizedCollateralPrice.mulDiv(collateralAmt, 10 ** collateralDecimals) / 10 ** 18;
     }
 
     /// @notice Internal function to get the loan id by the loan info
@@ -208,7 +262,7 @@ library LoanLib {
     /// @param debtTokenId The debt token id
     /// @param collateralTokenId The collateral token id
     /// @return loanId The loan id
-    function getLoanId(
+    function calcLoanId(
         uint32 accountId,
         uint32 maturityTime,
         uint16 debtTokenId,
@@ -221,6 +275,17 @@ library LoanLib {
                     (uint96(maturityTime) << 32) |
                     (uint96(accountId) << 64)
             );
+    }
+
+    /// @notice Resolve the loan id
+    /// @param loanId The loan id
+    /// @return accountId The account id
+    /// @return maturityTime The maturity time
+    /// @return debtTokenId The debt token id
+    /// @return collateralTokenId The collateral token id
+    function resolveLoanId(bytes12 loanId) internal pure returns (uint32, uint32, uint16, uint16) {
+        uint96 _loanId = uint96(loanId);
+        return (uint32(_loanId >> 64), uint32(_loanId >> 32), uint16(_loanId >> 16), uint16(_loanId));
     }
 
     /// @notice Internal function to get the loan storage layout

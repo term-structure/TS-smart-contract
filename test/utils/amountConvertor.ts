@@ -1,6 +1,7 @@
 import { BigNumber } from "ethers";
 import { TS_DECIMALS, TsTokenType } from "term-structure-sdk";
 import { MAX_LTV_RATIO } from "../../utils/config";
+import { LiquidationFactorStruct } from "../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 
 export const toL2Amt = (
   l1Amt: BigNumber,
@@ -20,32 +21,41 @@ export const toL1Amt = (
     .div(BigNumber.from(10).pow(TS_DECIMALS.AMOUNT));
 };
 
-export const calcLiquidatorRewardAmt = (
-  repayValue: BigNumber,
+export const calcRepayValueEquivCollateralAmt = (
+  repayAmt: BigNumber,
   collateralToken: TsTokenType,
+  collateralPrice: BigNumber,
   debtToken: TsTokenType,
-  liquidationFactor: any,
-  collateralPrice: BigNumber
+  debtPrice: BigNumber
 ): BigNumber => {
-  return BigNumber.from(repayValue)
+  // normalized means 18 decimals in price which is received from chainlink
+  const normalizedRepayValue = debtPrice
+    .mul(repayAmt)
+    .div(BigNumber.from(10).pow(debtToken.decimals));
+  const repayValueEquivCollateralAmt = normalizedRepayValue
     .mul(BigNumber.from(10).pow(collateralToken.decimals))
-    .mul(MAX_LTV_RATIO + liquidationFactor.liquidatorIncentive)
-    .div(MAX_LTV_RATIO)
-    .div(BigNumber.from(10).pow(debtToken.decimals))
     .div(collateralPrice);
+  return repayValueEquivCollateralAmt;
+};
+
+export const calcLiquidatorRewardAmt = (
+  repayValueEquivCollateralAmt: BigNumber,
+  liquidationFactor: LiquidationFactorStruct
+): BigNumber => {
+  return repayValueEquivCollateralAmt
+    .mul(
+      BigNumber.from(MAX_LTV_RATIO).add(
+        BigNumber.from(liquidationFactor.liquidatorIncentive)
+      )
+    )
+    .div(BigNumber.from(MAX_LTV_RATIO));
 };
 
 export const calcProtocolPenaltyAmt = (
-  repayValue: BigNumber,
-  collateralToken: TsTokenType,
-  debtToken: TsTokenType,
-  liquidationFactor: any,
-  collateralPrice: BigNumber
+  repayValueEquivCollateralAmt: BigNumber,
+  liquidationFactor: any
 ): BigNumber => {
-  return BigNumber.from(repayValue)
-    .mul(BigNumber.from(10).pow(collateralToken.decimals))
+  return repayValueEquivCollateralAmt
     .mul(liquidationFactor.protocolPenalty)
-    .div(MAX_LTV_RATIO)
-    .div(BigNumber.from(10).pow(debtToken.decimals))
-    .div(collateralPrice);
+    .div(BigNumber.from(MAX_LTV_RATIO));
 };

@@ -48,7 +48,7 @@ interface IRollupFacet {
     /// @notice Error for invalid executed block number
     error InvalidExecutedBlockNum(uint32 executedBlockNum);
     /// @notice Error for redeem with invalid tsb token address
-    error InvalidTsbToken(IERC20 invalidToken);
+    error InvalidTsbTokenAddr(address invalidTokenAddr);
     /// @notice Error for pending rollup tx hash is not matched
     error PendingRollupTxHashIsNotMatched(bytes32 pendingRollupTxHash, bytes32 executeBlockPendingRollupTxHash);
     /// @notice Error for the specified accountId and tokenId is already evacuated
@@ -92,17 +92,11 @@ interface IRollupFacet {
     /// @notice Emit when there is a new loan created
     /// @param loanId The id of the loan
     /// @param accountId The account id of the loan owner
-    /// @param maturityTime The maturity time of the loan
-    /// @param collateralToken The collateral token
-    /// @param debtToken The debt token
     /// @param addedCollateralAmt  The added collateral amount of the loan
     /// @param addedDebtAmt The added debt amount of the loan
     event UpdateLoan(
         bytes12 indexed loanId,
         uint32 indexed accountId,
-        uint32 maturityTime,
-        IERC20 collateralToken,
-        IERC20 debtToken,
         uint128 addedCollateralAmt,
         uint128 addedDebtAmt
     );

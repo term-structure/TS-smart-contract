@@ -147,7 +147,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         uint128 amount
     ) internal {
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
-        TokenLib.validDepositAmt(amount, assetConfig);
+        TokenLib.validDepositAmt(amount, assetConfig.minDepositAmt);
         assetConfig.isTsbToken
             ? TsbLib.burnTsbToken(ITsbToken(address(token)), to, amount)
             : Utils.transferFrom(token, depositor, amount, msg.value);
