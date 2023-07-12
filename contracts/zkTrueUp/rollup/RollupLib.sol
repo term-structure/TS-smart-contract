@@ -243,10 +243,4 @@ library RollupLib {
     function calcPendingBalanceKey(address addr, uint16 tokenId) internal pure returns (bytes22) {
         return bytes22((uint176(uint160(addr)) | (uint176(tokenId) << 160)));
     }
-
-    /// @notice Internal function to get rollup storage layout
-    /// @return rollupStorage The rollup storage layout
-    function getRollupStorage() internal pure returns (RollupStorage.Layout storage) {
-        return RollupStorage.layout();
-    }
 }

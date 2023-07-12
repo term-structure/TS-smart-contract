@@ -30,10 +30,10 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev The account is registered by depositing Ether or whitelisted ERC20 to ZkTrueUp
      */
     function register(uint256 tsPubKeyX, uint256 tsPubKeyY, IERC20 token, uint128 amount) external payable {
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
 
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         tsl.requireBaseToken(token);
 
         if (!BabyJubJub.isOnCurve(Point({x: tsPubKeyX, y: tsPubKeyY}))) revert InvalidTsPublicKey(tsPubKeyX, tsPubKeyY);
@@ -47,12 +47,13 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev Only registered accounts can deposit
      */
     function deposit(address to, IERC20 token, uint128 amount) external payable {
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
 
-        uint32 accountId = AccountLib.getAccountStorage().getValidAccount(to);
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        uint32 accountId = asl.getValidAccount(to);
 
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         _deposit(rsl, tsl, msg.sender, to, accountId, token, amount);
     }
 
@@ -62,11 +63,13 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev The token cannot be TSB token
      */
     function withdraw(IERC20 token, uint256 amount) external virtual nonReentrant {
-        uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        uint32 accountId = asl.getValidAccount(msg.sender);
+
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
 
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         AccountLib.updateWithdrawalRecord(rsl, msg.sender, accountId, token, tokenId, amount);
 
         assetConfig.isTsbToken
@@ -78,10 +81,11 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      */
     function forceWithdraw(IERC20 token) external {
-        uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
-        (uint16 tokenId, ) = TokenLib.getTokenStorage().getValidToken(token);
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        uint32 accountId = asl.getValidAccount(msg.sender);
+        (uint16 tokenId, ) = TokenStorage.layout().getValidToken(token);
 
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         AccountLib.addForceWithdrawReq(rsl, msg.sender, accountId, token, tokenId);
     }
 
@@ -89,21 +93,21 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      */
     function getAccountAddr(uint32 accountId) external view returns (address) {
-        return AccountLib.getAccountStorage().getAccountAddr(accountId);
+        return AccountStorage.layout().getAccountAddr(accountId);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
     function getAccountId(address accountAddr) external view returns (uint32) {
-        return AccountLib.getAccountStorage().getAccountId(accountAddr);
+        return AccountStorage.layout().getAccountId(accountAddr);
     }
 
     /**
      * @inheritdoc IAccountFacet
      */
     function getAccountNum() external view returns (uint32) {
-        return AccountLib.getAccountStorage().getAccountNum();
+        return AccountStorage.layout().getAccountNum();
     }
 
     /// @notice Internal register function
@@ -118,7 +122,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         uint256 tsPubKeyX,
         uint256 tsPubKeyY
     ) internal returns (uint32) {
-        AccountStorage.Layout storage asl = AccountLib.getAccountStorage();
+        AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getAccountNum();
         if (accountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT) revert AccountNumExceedLimit(accountId);
         if (asl.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);

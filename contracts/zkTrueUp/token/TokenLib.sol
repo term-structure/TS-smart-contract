@@ -47,9 +47,7 @@ library TokenLib {
         TokenStorage.Layout storage s,
         IERC20 token
     ) internal view returns (uint16, AssetConfig memory) {
-        token = address(token) == address(AddressLib.getAddressStorage().getWETH())
-            ? IERC20(Config.ETH_ADDRESS)
-            : token;
+        token = address(token) == address(AddressStorage.layout().getWETH()) ? IERC20(Config.ETH_ADDRESS) : token;
         bool isTokenPaused = s.paused[token];
         if (isTokenPaused) revert TokenIsPaused(token);
 
@@ -110,11 +108,5 @@ library TokenLib {
     /// @param minDepositAmt The minimum deposit amount
     function validDepositAmt(uint128 depositAmt, uint128 minDepositAmt) internal pure {
         if (depositAmt < minDepositAmt) revert InvalidDepositAmt(depositAmt, minDepositAmt);
-    }
-
-    /// @notice Internal function to get the token storage layout
-    /// @return tokenStorage The token storage layout
-    function getTokenStorage() internal pure returns (TokenStorage.Layout storage) {
-        return TokenStorage.layout();
     }
 }

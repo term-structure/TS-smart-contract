@@ -21,8 +21,8 @@ contract AccountMock is AccountFacet {
     event Withdraw(address indexed accountAddr, uint32 accountId, IERC20 token, uint16 tokenId, uint256 amount);
 
     function withdraw(IERC20 token, uint256 amount) external override nonReentrant {
-        uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
-        (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getTokenStorage().getValidToken(token);
+        uint32 accountId = AccountStorage.layout().getValidAccount(msg.sender);
+        (uint16 tokenId, AssetConfig memory assetConfig) = TokenStorage.layout().getValidToken(token);
         // RollupLib.updateWithdrawalRecord(msg.sender, tokenId, amount); //! ignore for test
         emit Withdraw(msg.sender, accountId, assetConfig.token, tokenId, amount);
         assetConfig.isTsbToken

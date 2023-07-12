@@ -38,16 +38,16 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
         bytes memory data
     ) external {
         if (assets.length != amounts.length) revert InputLengthMismatch(assets.length, amounts.length);
-        uint16 flashLoanPremium = FlashLoanLib.getFlashLoanStorage().getFlashLoanPremium();
+        uint16 flashLoanPremium = FlashLoanStorage.layout().getFlashLoanPremium();
         uint256[] memory premiums = new uint256[](assets.length);
         for (uint256 i; i < assets.length; i++) {
-            TokenLib.getTokenStorage().getValidToken(assets[i]);
+            TokenStorage.layout().getValidToken(assets[i]);
             premiums[i] = amounts[i].mulDiv(flashLoanPremium, Config.FLASH_LOAN_PREMIUM_BASE);
             assets[i].safeTransfer(receiver, amounts[i]);
         }
 
         try IFlashLoanReceiver(receiver).executeOperation(msg.sender, assets, amounts, premiums, data) {
-            address payable treasuryAddr = ProtocolParamsLib.getProtocolParamsStorage().getTreasuryAddr();
+            address payable treasuryAddr = ProtocolParamsStorage.layout().getTreasuryAddr();
             for (uint256 i; i < assets.length; i++) {
                 assets[i].safeTransferFrom(receiver, address(this), amounts[i] + premiums[i]);
                 assets[i].safeTransfer(treasuryAddr, premiums[i]);
@@ -72,6 +72,6 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
      * @inheritdoc IFlashLoanFacet
      */
     function getFlashLoanPremium() external view returns (uint16) {
-        return FlashLoanLib.getFlashLoanStorage().getFlashLoanPremium();
+        return FlashLoanStorage.layout().getFlashLoanPremium();
     }
 }

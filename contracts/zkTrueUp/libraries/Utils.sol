@@ -34,7 +34,7 @@ library Utils {
     /// @param amount The amount of the token
     function transfer(IERC20 token, address payable receiver, uint256 amount) internal {
         if (address(token) == Config.ETH_ADDRESS) {
-            AddressLib.getAddressStorage().getWETH().withdraw(amount);
+            AddressStorage.layout().getWETH().withdraw(amount);
             (bool success, bytes memory data) = receiver.call{value: amount}("");
             if (!success) revert TransferFailed(receiver, amount, data);
         } else {
@@ -51,7 +51,7 @@ library Utils {
     function transferFrom(IERC20 token, address sender, uint256 amount, uint256 msgValue) internal {
         if (address(token) == Config.ETH_ADDRESS) {
             if (msgValue != amount) revert InvalidMsgValue(msgValue);
-            AddressLib.getAddressStorage().getWETH().deposit{value: amount}();
+            AddressStorage.layout().getWETH().deposit{value: amount}();
         } else {
             if (msgValue != 0) revert InvalidMsgValue(msgValue);
             token.safeTransferFrom(sender, address(this), amount);
@@ -62,10 +62,10 @@ library Utils {
     /// @dev The price is normalized to 18 decimals
     /// @param priceFeed The address of the price feed
     /// @return normalizedPirce The price with 18 decimals
-    function getPrice(address priceFeed) internal view returns (uint256) {
-        notZeroAddr(priceFeed);
-        uint8 decimals = AggregatorV3Interface(priceFeed).decimals();
-        (, int256 price, , , ) = AggregatorV3Interface(priceFeed).latestRoundData();
+    function getPrice(AggregatorV3Interface priceFeed) internal view returns (uint256) {
+        notZeroAddr(address(priceFeed));
+        uint8 decimals = priceFeed.decimals();
+        (, int256 price, , , ) = priceFeed.latestRoundData();
         if (price <= 0) revert InvalidPrice(price);
 
         return uint256(price) * 10 ** (18 - decimals);

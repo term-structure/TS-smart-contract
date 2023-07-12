@@ -29,10 +29,10 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
         IERC20 token,
         uint256 amount
     ) external onlyRole(Config.ADMIN_ROLE) {
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         uint16 tokenId = tsl.getValidTokenId(token);
 
-        ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsLib.getProtocolParamsStorage();
+        ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
         address payable receiverAddr;
         if (receiver == ProtocolFeeRecipient.Treasury) {
             receiverAddr = ppsl.getTreasuryAddr();
@@ -44,7 +44,7 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
             revert InvalidFeeRecepient(receiverAddr);
         }
 
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.updateWithdrawalRecord(receiverAddr, tokenId, amount);
         Utils.transfer(token, receiverAddr, amount);
         emit ProtocolFeeWithdrawn(receiverAddr, token, amount);
@@ -91,27 +91,27 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
      * @inheritdoc IProtocolParamsFacet
      */
     function getTreasuryAddr() external view override returns (address) {
-        return ProtocolParamsLib.getProtocolParamsStorage().getTreasuryAddr();
+        return ProtocolParamsStorage.layout().getTreasuryAddr();
     }
 
     /**
      * @inheritdoc IProtocolParamsFacet
      */
     function getInsuranceAddr() external view override returns (address) {
-        return ProtocolParamsLib.getProtocolParamsStorage().getInsuranceAddr();
+        return ProtocolParamsStorage.layout().getInsuranceAddr();
     }
 
     /**
      * @inheritdoc IProtocolParamsFacet
      */
     function getVaultAddr() external view override returns (address) {
-        return ProtocolParamsLib.getProtocolParamsStorage().getVaultAddr();
+        return ProtocolParamsStorage.layout().getVaultAddr();
     }
 
     /**
      * @inheritdoc IProtocolParamsFacet
      */
     function getFundWeight() external view override returns (FundWeight memory) {
-        return ProtocolParamsLib.getProtocolParamsStorage().getFundWeight();
+        return ProtocolParamsStorage.layout().getFundWeight();
     }
 }

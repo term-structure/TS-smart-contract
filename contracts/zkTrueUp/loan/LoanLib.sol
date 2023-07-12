@@ -121,7 +121,7 @@ library LoanLib {
         (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = resolveLoanId(loanId);
         if (accountId == 0) revert LoanIsNotExist(loanId);
 
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         AssetConfig memory collateralAsset = tsl.getAssetConfig(collateralTokenId);
         AssetConfig memory debtAsset = tsl.getAssetConfig(debtTokenId);
 
@@ -183,7 +183,7 @@ library LoanLib {
     /// @param addr The address of the sender
     /// @param loanInfo The loan info
     function isLoanOwner(address addr, LoanInfo memory loanInfo) internal view {
-        address loanOwner = AccountLib.getAccountStorage().getAccountAddr(loanInfo.accountId);
+        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
         if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
     }
 
@@ -284,11 +284,5 @@ library LoanLib {
     function resolveLoanId(bytes12 loanId) internal pure returns (uint32, uint32, uint16, uint16) {
         uint96 _loanId = uint96(loanId);
         return (uint32(_loanId >> 64), uint32(_loanId >> 32), uint16(_loanId >> 16), uint16(_loanId));
-    }
-
-    /// @notice Internal function to get the loan storage layout
-    /// @return loanStorage The loan storage layout
-    function getLoanStorage() internal pure returns (LoanStorage.Layout storage) {
-        return LoanStorage.layout();
     }
 }

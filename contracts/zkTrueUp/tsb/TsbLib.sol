@@ -65,10 +65,4 @@ library TsbLib {
     function getTsbTokenKey(uint16 underlyingTokenId, uint32 maturityTime) internal pure returns (uint48) {
         return (uint48(underlyingTokenId) << 32) | maturityTime;
     }
-
-    /// @notice Internal function to get the Tsb storage layout
-    /// @return tsbStorage The Tsb storage layout
-    function getTsbStorage() internal pure returns (TsbStorage.Layout storage) {
-        return TsbStorage.layout();
-    }
 }

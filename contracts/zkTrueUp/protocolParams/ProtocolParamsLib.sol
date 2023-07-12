@@ -34,10 +34,4 @@ library ProtocolParamsLib {
     function getFundWeight(ProtocolParamsStorage.Layout storage s) internal view returns (FundWeight memory) {
         return s.fundWeight;
     }
-
-    /// @notice Internal function to get the protocol params storage layout
-    /// @return protocolParamsStorage The protocol params storage layout
-    function getProtocolParamsStorage() internal pure returns (ProtocolParamsStorage.Layout storage) {
-        return ProtocolParamsStorage.layout();
-    }
 }

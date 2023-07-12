@@ -78,7 +78,7 @@ library AccountLib {
         uint256 tsPubKeyX,
         uint256 tsPubKeyY
     ) internal {
-        AddressStorage.Layout storage asl = AddressLib.getAddressStorage();
+        AddressStorage.Layout storage asl = AddressStorage.layout();
         bytes20 tsAddr = bytes20(uint160(asl.getPoseidonUnit2().poseidon([tsPubKeyX, tsPubKeyY])));
         Operations.Register memory op = Operations.Register({accountId: accountId, tsAddr: tsAddr});
         bytes memory pubData = Operations.encodeRegisterPubData(op);
@@ -186,11 +186,5 @@ library AccountLib {
     /// @return accountNum The total number of accounts
     function getAccountNum(AccountStorage.Layout storage s) internal view returns (uint32) {
         return s.accountNum;
-    }
-
-    /// @notice Internal function to get the account storage layout
-    /// @return accountStorage The account storage layout
-    function getAccountStorage() internal pure returns (AccountStorage.Layout storage) {
-        return AccountStorage.layout();
     }
 }

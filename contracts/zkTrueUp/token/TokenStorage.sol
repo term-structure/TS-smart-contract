@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /// @notice Configuration of the asset in the network
 struct AssetConfig {
@@ -10,7 +11,7 @@ struct AssetConfig {
     uint8 decimals;
     uint128 minDepositAmt;
     IERC20 token;
-    address priceFeed;
+    AggregatorV3Interface priceFeed;
 }
 
 /**

@@ -5,9 +5,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
-import {TsbStorage} from "./TsbStorage.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
+import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
+import {TsbStorage} from "./TsbStorage.sol";
 import {TsbLib} from "./TsbLib.sol";
 import {ITsbFacet} from "./ITsbFacet.sol";
 import {TsbToken} from "../tsb/TsbToken.sol";
@@ -41,10 +42,11 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         string memory symbol
     ) external virtual onlyRole(Config.OPERATOR_ROLE) {
         if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime);
-        IERC20 underlyingAsset = TokenLib.getTokenStorage().getAssetConfig(underlyingTokenId).token;
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        IERC20 underlyingAsset = tsl.getAssetConfig(underlyingTokenId).token;
         if (address(underlyingAsset) == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
 
-        TsbStorage.Layout storage tsbsl = TsbLib.getTsbStorage();
+        TsbStorage.Layout storage tsbsl = TsbStorage.layout();
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
         ITsbToken tsbToken = tsbsl.getTsbToken(tsbTokenKey);
         if (address(tsbToken) != address(0)) revert TsbTokenIsExist(tsbToken);
@@ -63,7 +65,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
      * @dev TSB token can be redeemed only after maturity
      */
     function redeem(ITsbToken tsbToken, uint128 amount, bool redeemAndDeposit) external nonReentrant {
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         (, AssetConfig memory assetConfig) = tsl.getAssetConfig(tsbToken);
         if (!assetConfig.isTsbToken) revert InvalidTsbToken(tsbToken);
 
@@ -77,10 +79,10 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         uint128 underlyingAssetAmt = SafeCast.toUint128(amount.toL1Amt(underlyingAssetConfig.decimals));
 
         if (redeemAndDeposit) {
-            uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
+            uint32 accountId = AccountStorage.layout().getValidAccount(msg.sender);
             TokenLib.validDepositAmt(underlyingAssetAmt, underlyingAssetConfig.minDepositAmt);
             AccountLib.addDepositReq(
-                RollupLib.getRollupStorage(),
+                RollupStorage.layout(),
                 msg.sender,
                 accountId,
                 underlyingAssetConfig.token,
@@ -98,7 +100,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
      */
     function getTsbToken(uint16 underlyingTokenId, uint32 maturity) external view returns (ITsbToken) {
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturity);
-        return TsbLib.getTsbStorage().getTsbToken(tsbTokenKey);
+        return TsbStorage.layout().getTsbToken(tsbTokenKey);
     }
 
     /**

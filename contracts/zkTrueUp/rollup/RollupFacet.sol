@@ -206,7 +206,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
      * @inheritdoc IRollupFacet
      */
     function isEvacuMode() external view returns (bool) {
-        return RollupLib.getRollupStorage().isEvacuMode();
+        return RollupStorage.layout().isEvacuMode();
     }
 
     /**
@@ -216,7 +216,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Operations.Register memory register,
         uint64 requestId
     ) external view returns (bool) {
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
         return request.isRegisterInL1RequestQueue(register);
@@ -229,7 +229,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Operations.Deposit memory deposit,
         uint64 requestId
     ) external view returns (bool) {
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
         return request.isDepositInL1RequestQueue(deposit);
@@ -242,7 +242,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Operations.ForceWithdraw memory forceWithdraw,
         uint64 requestId
     ) external view returns (bool) {
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
         return request.isForceWithdrawInL1RequestQueue(forceWithdraw);
@@ -252,14 +252,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
      * @inheritdoc IRollupFacet
      */
     function getL1Request(uint64 requestId) external view returns (L1Request memory) {
-        return RollupLib.getRollupStorage().getL1Request(requestId);
+        return RollupStorage.layout().getL1Request(requestId);
     }
 
     /**
      * @inheritdoc IRollupFacet
      */
     function getL1RequestNum() external view returns (uint64, uint64, uint64) {
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         return (rsl.getCommittedL1RequestNum(), rsl.getExecutedL1RequestNum(), rsl.getTotalL1RequestNum());
     }
 
@@ -267,7 +267,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
      * @inheritdoc IRollupFacet
      */
     function getBlockNum() external view returns (uint32, uint32, uint32) {
-        RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         return (rsl.getCommittedBlockNum(), rsl.getVerifiedBlockNum(), rsl.getExecutedBlockNum());
     }
 
@@ -275,16 +275,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
      * @inheritdoc IRollupFacet
      */
     function getStoredBlockHash(uint32 blockNum) external view returns (bytes32) {
-        return RollupLib.getRollupStorage().getStoredBlockHash(blockNum);
+        return RollupStorage.layout().getStoredBlockHash(blockNum);
     }
 
     /**
      * @inheritdoc IRollupFacet
      */
     function getPendingBalances(address accountAddr, IERC20 token) external view returns (uint256) {
-        uint16 tokenId = TokenLib.getTokenStorage().getTokenId(token);
+        uint16 tokenId = TokenStorage.layout().getTokenId(token);
         bytes22 key = RollupLib.calcPendingBalanceKey(accountAddr, tokenId);
-        return RollupLib.getRollupStorage().getPendingBalances(key);
+        return RollupStorage.layout().getPendingBalances(key);
     }
 
     /// @notice Internal function to commit one block
@@ -392,7 +392,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         } else if (opType == Operations.OpType.CREATE_TSB_TOKEN) {
             data = pubData.sliceCreateTsbTokenData(offset);
             Operations.CreateTsbToken memory createTsbTokenReq = data.readCreateTsbTokenPubData();
-            TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+            TokenStorage.Layout storage tsl = TokenStorage.layout();
             AssetConfig memory tokenConfig = tsl.getAssetConfig(createTsbTokenReq.tsbTokenId);
             (IERC20 underlyingAsset, uint32 maturityTime) = ITsbToken(address(tokenConfig.token)).tokenInfo();
             if (maturityTime != createTsbTokenReq.maturityTime)
@@ -511,10 +511,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint16 tokenId,
         uint128 l2Amt
     ) internal {
-        address accountAddr = AccountLib.getAccountStorage().getAccountAddr(accountId);
+        address accountAddr = AccountStorage.layout().getAccountAddr(accountId);
         Utils.notZeroAddr(accountAddr);
 
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         AssetConfig memory assetConfig = tsl.getAssetConfig(tokenId);
         Utils.notZeroAddr(address(assetConfig.token));
 
@@ -527,10 +527,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param auctionEnd The auction end request
     function _updateLoan(Operations.AuctionEnd memory auctionEnd) internal {
         uint32 accountId = auctionEnd.accountId;
-        address accountAddr = AccountLib.getAccountStorage().getAccountAddr(accountId);
+        address accountAddr = AccountStorage.layout().getAccountAddr(accountId);
         Utils.notZeroAddr(accountAddr);
 
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         // tsbToken config
         AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
         address tokenAddr = address(assetConfig.token);
@@ -541,7 +541,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         (bytes12 loanId, Loan memory newLoan) = _getAuctionInfo(tsl, auctionEnd, tsbToken);
 
         // update loan
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
         loan = loan.updateLoan(newLoan.collateralAmt, newLoan.debtAmt);
         lsl.loans[loanId] = loan;
@@ -581,9 +581,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param rsl The rollup storage
     /// @param withdrawFee The withdraw fee request
     function _withdrawFee(RollupStorage.Layout storage rsl, Operations.WithdrawFee memory withdrawFee) internal {
-        AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(withdrawFee.tokenId);
+        AssetConfig memory assetConfig = TokenStorage.layout().getAssetConfig(withdrawFee.tokenId);
         uint256 l1Amt = withdrawFee.amount.toL1Amt(assetConfig.decimals);
-        ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsLib.getProtocolParamsStorage();
+        ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
         FundWeight memory fundWeight = ppsl.getFundWeight();
 
         // insurance
@@ -615,10 +615,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (rsl.isEvacuated(evacuation.accountId, evacuation.tokenId))
             revert Evacuated(evacuation.accountId, evacuation.tokenId);
 
-        address receiver = AccountLib.getAccountStorage().getAccountAddr(evacuation.accountId);
+        address receiver = AccountStorage.layout().getAccountAddr(evacuation.accountId);
         Utils.notZeroAddr(receiver);
 
-        AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(evacuation.tokenId);
+        AssetConfig memory assetConfig = TokenStorage.layout().getAssetConfig(evacuation.tokenId);
         Utils.notZeroAddr(address(assetConfig.token));
 
         rsl.evacuated[evacuation.accountId][evacuation.tokenId] = true;

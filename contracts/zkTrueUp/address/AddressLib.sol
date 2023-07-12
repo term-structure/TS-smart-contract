@@ -45,10 +45,4 @@ library AddressLib {
     function getAaveV3Pool(AddressStorage.Layout storage s) internal view returns (IPool) {
         return s.aaveV3Pool;
     }
-
-    /// @notice Internal function to get the address storage layout
-    /// @return AddressStorage The address storage layout
-    function getAddressStorage() internal pure returns (AddressStorage.Layout storage) {
-        return AddressStorage.layout();
-    }
 }

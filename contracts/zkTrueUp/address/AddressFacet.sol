@@ -40,34 +40,34 @@ contract AddressFacet is IAddressFacet, AccessControlInternal {
      * @inheritdoc IAddressFacet
      */
     function getWETH() external view returns (IWETH) {
-        return AddressLib.getAddressStorage().getWETH();
+        return AddressStorage.layout().getWETH();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
     function getPoseidonUnit2() external view returns (IPoseidonUnit2) {
-        return AddressLib.getAddressStorage().getPoseidonUnit2();
+        return AddressStorage.layout().getPoseidonUnit2();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
     function getVerifier() external view returns (IVerifier) {
-        return AddressLib.getAddressStorage().getVerifier();
+        return AddressStorage.layout().getVerifier();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
     function getEvacuVerifier() external view returns (IVerifier) {
-        return AddressLib.getAddressStorage().getEvacuVerifier();
+        return AddressStorage.layout().getEvacuVerifier();
     }
 
     /**
      * @inheritdoc IAddressFacet
      */
     function getAaveV3Pool() external view returns (IPool) {
-        return AddressLib.getAddressStorage().getAaveV3Pool();
+        return AddressStorage.layout().getAaveV3Pool();
     }
 }

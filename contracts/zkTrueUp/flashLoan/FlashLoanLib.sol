@@ -12,8 +12,4 @@ library FlashLoanLib {
     function getFlashLoanPremium(FlashLoanStorage.Layout storage s) internal view returns (uint16) {
         return s.flashLoanPremium;
     }
-
-    function getFlashLoanStorage() internal pure returns (FlashLoanStorage.Layout storage) {
-        return FlashLoanStorage.layout();
-    }
 }

@@ -25,10 +25,10 @@ contract RollupMock is RollupFacet {
 
     function updateLoanMock(Operations.AuctionEnd memory auctionEnd) external {
         uint32 accountId = auctionEnd.accountId;
-        address accountAddr = AccountLib.getAccountStorage().getAccountAddr(accountId);
+        address accountAddr = AccountStorage.layout().getAccountAddr(accountId);
         // Utils.noneZeroAddr(accountAddr); //! ignore for test
 
-        TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
         // tsbToken config
         AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
         address tokenAddr = address(assetConfig.token);
@@ -39,7 +39,7 @@ contract RollupMock is RollupFacet {
         (bytes12 loanId, Loan memory newLoan) = _getAuctionInfo(tsl, auctionEnd, tsbToken);
 
         // update loan
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
         loan = loan.updateLoan(newLoan.collateralAmt, newLoan.debtAmt);
         lsl.loans[loanId] = loan;

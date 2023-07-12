@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {TokenStorage, AssetConfig} from "./TokenStorage.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
@@ -27,7 +28,7 @@ interface ITokenFacet {
     /// @notice Emitted when the price feed of a token is set
     /// @param token The token to be set
     /// @param priceFeed The address of the price feed
-    event SetPriceFeed(IERC20 indexed token, address indexed priceFeed);
+    event SetPriceFeed(IERC20 indexed token, AggregatorV3Interface indexed priceFeed);
 
     /// @notice Emitted when the minimum deposit amount of a token is set
     /// @param token The token to be set
@@ -64,7 +65,7 @@ interface ITokenFacet {
     /// @notice Set the price feed of a token
     /// @param token The token to be set
     /// @param priceFeed The address of the price feed
-    function setPriceFeed(IERC20 token, address priceFeed) external;
+    function setPriceFeed(IERC20 token, AggregatorV3Interface priceFeed) external;
 
     /// @notice Set the isStableCoin status of a token
     /// @param token The token to be set

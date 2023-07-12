@@ -23,10 +23,10 @@ contract TsbMock is TsbFacet {
         string memory symbol
     ) external override onlyRole(Config.OPERATOR_ROLE) {
         // if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime);
-        IERC20 underlyingAsset = TokenLib.getTokenStorage().getAssetConfig(underlyingTokenId).token;
+        IERC20 underlyingAsset = TokenStorage.layout().getAssetConfig(underlyingTokenId).token;
         if (address(underlyingAsset) == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
 
-        TsbStorage.Layout storage tsbsl = TsbLib.getTsbStorage();
+        TsbStorage.Layout storage tsbsl = TsbStorage.layout();
         uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
         ITsbToken tsbToken = tsbsl.getTsbToken(tsbTokenKey);
         if (address(tsbToken) != address(0)) revert TsbTokenIsExist(tsbToken);

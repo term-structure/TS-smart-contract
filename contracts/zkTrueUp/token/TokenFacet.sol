@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {TokenStorage, AssetConfig} from "./TokenStorage.sol";
 import {TokenLib} from "./TokenLib.sol";
 import {ITokenFacet} from "./ITokenFacet.sol";
@@ -53,8 +54,8 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
     /**
      * @inheritdoc ITokenFacet
      */
-    function setPriceFeed(IERC20 token, address priceFeed) external onlyRole(Config.ADMIN_ROLE) {
-        Utils.notZeroAddr(priceFeed);
+    function setPriceFeed(IERC20 token, AggregatorV3Interface priceFeed) external onlyRole(Config.ADMIN_ROLE) {
+        Utils.notZeroAddr(address(priceFeed));
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         uint16 tokenId = tsl.getValidTokenId(token);
         tsl.assetConfigs[tokenId].priceFeed = priceFeed;
@@ -85,27 +86,27 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
      * @inheritdoc ITokenFacet
      */
     function getTokenNum() external view returns (uint16) {
-        return TokenLib.getTokenStorage().getTokenNum();
+        return TokenStorage.layout().getTokenNum();
     }
 
     /**
      * @inheritdoc ITokenFacet
      */
     function getTokenId(IERC20 token) external view returns (uint16) {
-        return TokenLib.getTokenStorage().getTokenId(token);
+        return TokenStorage.layout().getTokenId(token);
     }
 
     /**
      * @inheritdoc ITokenFacet
      */
     function getAssetConfig(uint16 tokenId) external view returns (AssetConfig memory) {
-        return TokenLib.getTokenStorage().getAssetConfig(tokenId);
+        return TokenStorage.layout().getAssetConfig(tokenId);
     }
 
     /**
      * @inheritdoc ITokenFacet
      */
     function isTokenPaused(IERC20 token) external view returns (bool) {
-        return TokenLib.getTokenStorage().isPaused(token);
+        return TokenStorage.layout().isPaused(token);
     }
 }

@@ -10,6 +10,7 @@ import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/R
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol";
+import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
@@ -77,11 +78,11 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         (IERC20 collateralToken, uint32 accountId) = _repay(loanId, collateralAmt, debtAmt, repayAndDeposit);
 
         if (repayAndDeposit) {
-            TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
+            TokenStorage.Layout storage tsl = TokenStorage.layout();
             (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(collateralToken);
             TokenLib.validDepositAmt(collateralAmt, assetConfig.minDepositAmt);
             AccountLib.addDepositReq(
-                RollupLib.getRollupStorage(),
+                RollupStorage.layout(),
                 msg.sender,
                 accountId,
                 assetConfig.token,
@@ -104,7 +105,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint128 protocolPenaltyAmt = liquidationAmt.protocolPenaltyAmt;
         Utils.transfer(collateralToken, payable(msg.sender), liquidatorRewardAmt);
 
-        address payable treasuryAddr = ProtocolParamsLib.getProtocolParamsStorage().getTreasuryAddr();
+        address payable treasuryAddr = ProtocolParamsStorage.layout().getTreasuryAddr();
         Utils.transfer(collateralToken, treasuryAddr, protocolPenaltyAmt);
 
         emit Liquidation(loanId, msg.sender, collateralToken, liquidatorRewardAmt, protocolPenaltyAmt);
@@ -119,7 +120,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      *      to the floating rate and perpetual position on Aave without repaying the debt
      */
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         bool isActivated = lsl.getRollerState();
         if (!isActivated) revert RollIsNotActivated();
 
@@ -156,7 +157,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             Config.MAX_LTV_RATIO
         ) revert InvalidLiquidationFactor(liquidationFactor);
 
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         isStableCoinPair
             ? lsl.stableCoinPairLiquidationFactor = liquidationFactor
             : lsl.liquidationFactor = liquidationFactor;
@@ -175,7 +176,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function getHealthFactor(bytes12 loanId) external view returns (uint256) {
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         Loan memory loan = loanInfo.loan;
         (uint256 healthFactor, , ) = loan.getHealthFactor(
@@ -190,14 +191,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function getHalfLiquidationThreshold() external view returns (uint16) {
-        return LoanLib.getLoanStorage().getHalfLiquidationThreshold();
+        return LoanStorage.layout().getHalfLiquidationThreshold();
     }
 
     /**
      * @inheritdoc ILoanFacet
      */
     function getLiquidationFactor(bool isStableCoinPair) external view returns (LiquidationFactor memory) {
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         return isStableCoinPair ? lsl.getStableCoinPairLiquidationFactor() : lsl.getLiquidationFactor();
     }
 
@@ -205,7 +206,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function getLoan(bytes12 loanId) external view returns (Loan memory) {
-        return LoanLib.getLoanStorage().getLoan(loanId);
+        return LoanStorage.layout().getLoan(loanId);
     }
 
     /**
@@ -231,7 +232,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function getLiquidationInfo(bytes12 loanId) external view returns (bool, IERC20, uint128) {
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         Loan memory loan = loanInfo.loan;
         (uint256 healthFactor, uint256 normalizedCollateralPrice, ) = loan.getHealthFactor(
@@ -258,7 +259,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function isActivatedRoller() external view returns (bool) {
-        return LoanLib.getLoanStorage().getRollerState();
+        return LoanStorage.layout().getRollerState();
     }
 
     /// @notice Internal repay function
@@ -274,7 +275,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint128 debtAmt,
         bool repayAndDeposit
     ) internal returns (IERC20, uint32) {
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         msg.sender.isLoanOwner(loanInfo);
 
@@ -297,7 +298,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @return liquidationAmt The amount of the loan to be liquidated
     /// @return collateralToken The collateral token of the loan
     function _liquidate(bytes12 loanId, uint128 repayAmt) internal returns (LiquidationAmt memory, IERC20) {
-        LoanStorage.Layout storage lsl = LoanLib.getLoanStorage();
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         Loan memory loan = loanInfo.loan;
 
@@ -431,7 +432,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint128 collateralAmt,
         uint128 debtAmt
     ) internal {
-        AddressStorage.Layout storage asl = AddressLib.getAddressStorage();
+        AddressStorage.Layout storage asl = AddressStorage.layout();
         // AAVE receive WETH as collateral
         IERC20 supplyToken = address(collateralToken) == Config.ETH_ADDRESS ? asl.getWETH() : collateralToken;
 
