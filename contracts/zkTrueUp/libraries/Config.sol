@@ -32,20 +32,11 @@ library Config {
     /// @notice The last index of 1 byte
     uint8 internal constant LAST_INDEX_OF_BYTE = 7;
 
-    /// @notice The bytes lengths of L2 Token Id
-    uint8 internal constant TOKEN_BYTES = 2;
-
     /// @notice The max amount of registered tokens
     uint32 internal constant MAX_AMOUNT_OF_REGISTERED_TOKENS = type(uint16).max;
 
-    /// @notice The bytes lengths of accountId
-    uint8 internal constant ACCOUNT_BYTES = 4;
-
     /// @notice The max amount of registered tokens
     uint32 internal constant MAX_AMOUNT_OF_REGISTERED_ACCOUNT = type(uint32).max;
-
-    /// @notice Maximum deposit amount
-    uint256 internal constant MAX_DEPOSIT_AMOUNT = type(uint128).max;
 
     /// @notice Expriation period for L1 request
     uint256 internal constant EXPIRATION_PERIOD = 14 days;

@@ -110,6 +110,7 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
 
         // init token facet
         TokenStorage.Layout storage tsl = TokenStorage.layout();
+        // The first token Id is start from 1 in init
         uint16 newTokenId = tsl.tokenNum + 1;
         tsl.tokenNum = newTokenId;
         IERC20 defaultEthToken = IERC20(Config.ETH_ADDRESS);

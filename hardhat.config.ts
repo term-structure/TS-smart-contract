@@ -48,12 +48,6 @@ const config: HardhatUserConfig = {
       {
         version: "0.4.18",
       },
-      {
-        version: "0.4.24",
-      },
-      {
-        version: "0.6.11",
-      },
     ],
   },
   spdxLicenseIdentifier: {

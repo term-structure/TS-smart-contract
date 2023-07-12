@@ -204,7 +204,7 @@ interface ILoanFacet {
 
     /// @notice Check if the roll function is activated
     /// @return isActivate If the roll function is activated
-    function isActivatedRoller() external view returns (bool);
+    function isActivatedRoller() external view returns (bool isActivate);
 
     /// @notice Return the loan id by the loan info
     /// @param accountId The id of the account

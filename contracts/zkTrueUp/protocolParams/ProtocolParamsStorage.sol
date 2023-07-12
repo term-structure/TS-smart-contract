@@ -9,6 +9,10 @@ enum ProtocolFeeRecipient {
 }
 
 /// @notice The fund distribution weight of the protocol
+/// @dev The sum of the weights should be 10000
+/// @dev treasury: own by governance
+/// @dev insurance: used for insurance fund
+/// @dev vault: own by core team (Term Structure Labs)
 struct FundWeight {
     uint16 treasury;
     uint16 insurance;

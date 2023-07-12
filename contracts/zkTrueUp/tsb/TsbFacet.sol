@@ -106,22 +106,22 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ITsbFacet
      */
-    function balanceOf(address account, address tsbTokenAddr) external view returns (uint256) {
-        return ITsbToken(tsbTokenAddr).balanceOf(account);
+    function balanceOf(address account, ITsbToken tsbToken) external view returns (uint256) {
+        return tsbToken.balanceOf(account);
     }
 
     /**
      * @inheritdoc ITsbFacet
      */
-    function allowance(address owner, address spender, address tsbTokenAddr) external view returns (uint256) {
-        return ITsbToken(tsbTokenAddr).allowance(owner, spender);
+    function allowance(address owner, address spender, ITsbToken tsbToken) external view returns (uint256) {
+        return tsbToken.allowance(owner, spender);
     }
 
     /**
      * @inheritdoc ITsbFacet
      */
-    function activeSupply(address tsbTokenAddr) external view returns (uint256) {
-        return ITsbToken(tsbTokenAddr).totalSupply();
+    function activeSupply(ITsbToken tsbToken) external view returns (uint256) {
+        return tsbToken.totalSupply();
     }
 
     /**
@@ -135,8 +135,8 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ITsbFacet
      */
-    function getMaturityTime(address tsbTokenAddr) external view returns (uint32) {
-        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+    function getMaturityTime(ITsbToken tsbToken) external view returns (uint32) {
+        (, uint32 maturityTime) = tsbToken.tokenInfo();
         return maturityTime;
     }
 }

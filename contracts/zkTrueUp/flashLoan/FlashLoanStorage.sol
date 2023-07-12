@@ -8,7 +8,8 @@ library FlashLoanStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.FlashLoan")) - 1);
 
     struct Layout {
-        /// @notice The flash loan premium
+        /// @notice The flash loan premium, base is 1e4 (10000)
+        ///         i.e. 3 means 0.03% premium for flash loan
         uint16 flashLoanPremium;
     }
 

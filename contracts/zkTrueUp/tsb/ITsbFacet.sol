@@ -66,21 +66,21 @@ interface ITsbFacet {
 
     /// @notice Check the balance of the tsbToken
     /// @param account The address of the account
-    /// @param tsbTokenAddr The address of the tsbToken
+    /// @param tsbToken The tsbToken to check
     /// @return balance The balance of the tsbToken
-    function balanceOf(address account, address tsbTokenAddr) external view returns (uint256);
+    function balanceOf(address account, ITsbToken tsbToken) external view returns (uint256);
 
     /// @notice Check the allowance of the tsbToken
     /// @param owner The address of the owner
     /// @param spender The address of the spender
-    /// @param tsbTokenAddr The address of the tsbToken
+    /// @param tsbToken The tsbToken to check
     /// @return allowance_ The allowance of the tsbToken
-    function allowance(address owner, address spender, address tsbTokenAddr) external view returns (uint256 allowance_);
+    function allowance(address owner, address spender, ITsbToken tsbToken) external view returns (uint256 allowance_);
 
     /// @notice Check the total supply of the tsbToken
-    /// @param tsbTokenAddr The address of the tsbToken
+    /// @param tsbToken The tsbToken to check
     /// @return totalSupply The total supply of the tsbToken
-    function activeSupply(address tsbTokenAddr) external view returns (uint256 totalSupply);
+    function activeSupply(ITsbToken tsbToken) external view returns (uint256 totalSupply);
 
     /// @notice Return the underlying asset of the tsbToken
     /// @param tsbToken The tsbToken to check
@@ -88,7 +88,7 @@ interface ITsbFacet {
     function getUnderlyingAsset(ITsbToken tsbToken) external view returns (IERC20 underlyingAsset);
 
     /// @notice Return the maturity time of the tsbToken
-    /// @param tsbTokenAddr The address of the tsbToken
+    /// @param tsbToken The tsbToken to check
     /// @return maturityTime The maturity time of the tsbToken
-    function getMaturityTime(address tsbTokenAddr) external view returns (uint32 maturityTime);
+    function getMaturityTime(ITsbToken tsbToken) external view returns (uint32 maturityTime);
 }
