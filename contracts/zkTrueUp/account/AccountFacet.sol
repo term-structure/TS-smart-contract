@@ -67,7 +67,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
 
         RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
-        AccountLib.updateWithdrawRecord(rsl, msg.sender, accountId, token, tokenId, amount);
+        AccountLib.updateWithdrawalRecord(rsl, msg.sender, accountId, token, tokenId, amount);
 
         assetConfig.isTsbToken
             ? TsbLib.mintTsbToken(ITsbToken(address(token)), msg.sender, amount)

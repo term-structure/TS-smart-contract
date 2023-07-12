@@ -142,7 +142,7 @@ library AccountLib {
     /// @param token The token to be withdrawn
     /// @param tokenId The token id of the withdraw token
     /// @param amount The withdraw amount
-    function updateWithdrawRecord(
+    function updateWithdrawalRecord(
         RollupStorage.Layout storage s,
         address sender,
         uint32 accountId,
