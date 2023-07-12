@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/// @notice The enum of the protocol fee recipient
+enum ProtocolFeeRecipient {
+    Treasury,
+    Insurance,
+    Vault
+}
+
 /// @notice The fund distribution weight of the protocol
 struct FundWeight {
     uint16 treasury;

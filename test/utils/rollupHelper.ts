@@ -284,10 +284,6 @@ export const checkStates = async (
         )
         .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
       const loan: LoanStruct = {
-        accountId: accountId,
-        maturityTime: maturityTime,
-        collateralTokenId: loanPubData.collateralTokenId.toNumber(),
-        debtTokenId: debtTokenId,
         debtAmt: debtAmt,
         collateralAmt: collateralAmt,
       };
@@ -331,14 +327,6 @@ export const checkStates = async (
       expect(
         newStates[accountId].pendingBalances[tokenId].sub(
           oriStates[accountId].pendingBalances[tokenId]
-        )
-      ).to.be.eq(amount);
-    }
-    for (const tokenId in deltaStates[accountId].withdrawFees) {
-      const amount = deltaStates[accountId].withdrawFees[tokenId];
-      expect(
-        newStates[accountId].withdrawFees[tokenId].sub(
-          oriStates[accountId].withdrawFees[tokenId]
         )
       ).to.be.eq(amount);
     }

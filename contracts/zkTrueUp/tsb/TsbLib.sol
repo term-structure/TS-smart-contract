@@ -35,7 +35,7 @@ library TsbLib {
     /// @param tsbToken The tsbToken to be minted
     /// @param to The address of the recipient
     /// @param amount The amount of the tsbToken
-    function mintTsbToken(ITsbToken tsbToken, address to, uint128 amount) internal {
+    function mintTsbToken(ITsbToken tsbToken, address to, uint256 amount) internal {
         tsbToken.mint(to, amount);
         emit TsbTokenMinted(tsbToken, to, amount);
     }
@@ -45,7 +45,7 @@ library TsbLib {
     /// @param tsbToken The tsbToken to be burned
     /// @param from The address of the sender
     /// @param amount The amount of the tsbToken to burn
-    function burnTsbToken(ITsbToken tsbToken, address from, uint128 amount) internal {
+    function burnTsbToken(ITsbToken tsbToken, address from, uint256 amount) internal {
         tsbToken.burn(from, amount);
         emit TsbTokenBurned(tsbToken, from, amount);
     }

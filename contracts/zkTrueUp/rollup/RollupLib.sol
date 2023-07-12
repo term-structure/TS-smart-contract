@@ -12,7 +12,7 @@ library RollupLib {
     using RollupLib for RollupStorage.Layout;
 
     /// @notice Error for withdraw amount exceed pending balance
-    error WithdrawAmtExceedPendingBalance(uint256 pendingBalance, uint128 withdrawAmt);
+    error InsufficientPendingBalances(uint256 pendingBalance, uint256 withdrawAmt);
     /// @notice Error for trying to do transactions when evacuation mode is activated
     error EvacuModeActivated();
     /// @notice Error for operation type is not matched
@@ -59,20 +59,20 @@ library RollupLib {
 
     /// @notice Update pending balance and emit Withdraw event
     /// @param s The rollup storage
-    /// @param sender The address of the sender
+    /// @param receiver The address of the receiver
     /// @param tokenId The token id on layer2
     /// @param amount The amount of the token
     function updateWithdrawalRecord(
         RollupStorage.Layout storage s,
-        address sender,
+        address receiver,
         uint16 tokenId,
-        uint128 amount
+        uint256 amount
     ) internal {
-        bytes22 key = getPendingBalanceKey(sender, tokenId);
+        bytes22 key = calcPendingBalanceKey(receiver, tokenId);
         uint256 pendingBalance = s.getPendingBalances(key);
-        if (pendingBalance < amount) revert WithdrawAmtExceedPendingBalance(pendingBalance, amount);
+        if (pendingBalance < amount) revert InsufficientPendingBalances(pendingBalance, amount);
         unchecked {
-            RollupStorage.layout().pendingBalances[key] = pendingBalance - amount;
+            s.pendingBalances[key] = pendingBalance - amount;
         }
     }
 
@@ -178,12 +178,12 @@ library RollupLib {
     }
 
     /// @notice Internal function to check whether the register request is in the L1 request queue
-    /// @param register The register request
     /// @param request The L1 request
+    /// @param register The register request
     /// @return bool if the register request is in the L1 request queue
     function isRegisterInL1RequestQueue(
-        Operations.Register memory register,
-        L1Request memory request
+        L1Request memory request,
+        Operations.Register memory register
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.REGISTER);
         if (Operations.isRegisterHashedPubDataMatched(register, request.hashedPubData)) return true;
@@ -191,12 +191,12 @@ library RollupLib {
     }
 
     /// @notice Internal function to check whether the deposit request is in the L1 request queue
-    /// @param deposit The deposit request
     /// @param request The L1 request
+    /// @param deposit The deposit request
     /// @return bool if the deposit request is in the L1 request queue
     function isDepositInL1RequestQueue(
-        Operations.Deposit memory deposit,
-        L1Request memory request
+        L1Request memory request,
+        Operations.Deposit memory deposit
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.DEPOSIT);
         if (Operations.isDepositHashedPubDataMatched(deposit, request.hashedPubData)) return true;
@@ -204,12 +204,12 @@ library RollupLib {
     }
 
     /// @notice Internal function to check whether the force withdraw request is in the L1 request queue
-    /// @param forceWithdraw The force withdraw request
     /// @param request The L1 request
+    /// @param forceWithdraw The force withdraw request
     /// @return bool if the force withdraw request is in the L1 request queue
     function isForceWithdrawInL1RequestQueue(
-        Operations.ForceWithdraw memory forceWithdraw,
-        L1Request memory request
+        L1Request memory request,
+        Operations.ForceWithdraw memory forceWithdraw
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.FORCE_WITHDRAW);
         if (Operations.isForceWithdrawHashedPubDataMatched(forceWithdraw, request.hashedPubData)) return true;
@@ -217,12 +217,12 @@ library RollupLib {
     }
 
     /// @notice Internal function to check whether the evacuation is in the L1 request queue
-    /// @param evacuation The evacuation request
     /// @param request The L1 request
+    /// @param evacuation The evacuation request
     /// @return bool if the evacuation request is in the L1 request queue
     function isEvacuationInL1RequestQueue(
-        Operations.Evacuation memory evacuation,
-        L1Request memory request
+        L1Request memory request,
+        Operations.Evacuation memory evacuation
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.EVACUATION);
         if (Operations.isEvacuationHashedPubDataMatched(evacuation, request.hashedPubData)) return true;
@@ -236,11 +236,11 @@ library RollupLib {
         if (opType != expectedOpType) revert OpTypeIsNotMatched(opType, expectedOpType);
     }
 
-    /// @notice Internal function to get the key of pending balance
+    /// @notice Internal function to calculate the pending balance key
     /// @param addr The user address
     /// @param tokenId The token id
     /// @return pendingBalanceKey The key of pending balance
-    function getPendingBalanceKey(address addr, uint16 tokenId) internal pure returns (bytes22) {
+    function calcPendingBalanceKey(address addr, uint16 tokenId) internal pure returns (bytes22) {
         return bytes22((uint176(uint160(addr)) | (uint176(tokenId) << 160)));
     }
 

@@ -18,9 +18,9 @@ contract AccountMock is AccountFacet {
     using AccountLib for AccountStorage.Layout;
     using TokenLib for TokenStorage.Layout;
 
-    event Withdraw(address indexed accountAddr, uint32 accountId, IERC20 token, uint16 tokenId, uint128 amount);
+    event Withdraw(address indexed accountAddr, uint32 accountId, IERC20 token, uint16 tokenId, uint256 amount);
 
-    function withdraw(IERC20 token, uint128 amount) external override nonReentrant {
+    function withdraw(IERC20 token, uint256 amount) external override nonReentrant {
         uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
         (uint16 tokenId, AssetConfig memory assetConfig) = TokenLib.getTokenStorage().getValidToken(token);
         // RollupLib.updateWithdrawalRecord(msg.sender, tokenId, amount); //! ignore for test

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {RollupStorage, Proof, StoredBlock, CommitBlock, ExecuteBlock, VerifyBlock, L1Request} from "./RollupStorage.sol";
@@ -33,10 +34,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     using AccountLib for AccountStorage.Layout;
     using AddressLib for AddressStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
-    using RollupLib for RollupStorage.Layout;
     using TokenLib for TokenStorage.Layout;
+    using Bytes for bytes;
+    using Operations for bytes;
+    using RollupLib for *;
     using LoanLib for *;
     using Utils for *;
+    using Math for *;
 
     /**
      * @inheritdoc IRollupFacet
@@ -215,7 +219,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
         if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
-        return RollupLib.isRegisterInL1RequestQueue(register, request);
+        return request.isRegisterInL1RequestQueue(register);
     }
 
     /**
@@ -228,7 +232,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
         if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
-        return RollupLib.isDepositInL1RequestQueue(deposit, request);
+        return request.isDepositInL1RequestQueue(deposit);
     }
 
     /**
@@ -241,7 +245,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.Layout storage rsl = RollupLib.getRollupStorage();
         if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
-        return RollupLib.isForceWithdrawInL1RequestQueue(forceWithdraw, request);
+        return request.isForceWithdrawInL1RequestQueue(forceWithdraw);
     }
 
     /**
@@ -279,7 +283,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
      */
     function getPendingBalances(address accountAddr, IERC20 token) external view returns (uint256) {
         uint16 tokenId = TokenLib.getTokenStorage().getTokenId(token);
-        bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
+        bytes22 key = RollupLib.calcPendingBalanceKey(accountAddr, tokenId);
         return RollupLib.getRollupStorage().getPendingBalances(key);
     }
 
@@ -358,7 +362,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
     /// @notice Process one request
     /// @param rsl The rollup storage layout
-    /// @param publicData The public data of the new block
+    /// @param pubData The public data of the new block
     /// @param offset The offset of the public data
     /// @param requestId The request id of the new block
     /// @return data The data of the request
@@ -366,57 +370,57 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @return isToBeExecuted Whether the request is to be executed on L1 when executing the new block
     function _processOneRequest(
         RollupStorage.Layout storage rsl,
-        bytes memory publicData,
+        bytes memory pubData,
         uint256 offset,
         uint64 requestId
     ) internal view returns (bytes memory, bool, bool) {
         bytes memory data;
         bool isL1Request;
         bool isToBeExecuted;
-        Operations.OpType opType = Operations.OpType(uint8(publicData[offset]));
+        Operations.OpType opType = Operations.OpType(uint8(pubData[offset]));
 
         // non L1 request
         if (opType == Operations.OpType.WITHDRAW) {
-            data = Bytes.sliceWithdrawData(publicData, offset);
+            data = pubData.sliceWithdrawData(offset);
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.AUCTION_END) {
-            data = Bytes.sliceAuctionEndData(publicData, offset);
+            data = pubData.sliceAuctionEndData(offset);
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.WITHDRAW_FEE) {
-            data = Bytes.sliceWithdrawFeeData(publicData, offset);
+            data = pubData.sliceWithdrawFeeData(offset);
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.CREATE_TSB_TOKEN) {
-            data = Bytes.sliceCreateTsbTokenData(publicData, offset);
-            Operations.CreateTsbToken memory createTsbTokenReq = Operations.readCreateTsbTokenPubData(data);
+            data = pubData.sliceCreateTsbTokenData(offset);
+            Operations.CreateTsbToken memory createTsbTokenReq = data.readCreateTsbTokenPubData();
             TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
-            AssetConfig memory tsbTokenConfig = tsl.getAssetConfig(createTsbTokenReq.tsbTokenId);
-            AssetConfig memory baseTokenConfig = tsl.getAssetConfig(createTsbTokenReq.baseTokenId);
-            (IERC20 underlyingAsset, uint32 maturityTime) = ITsbToken(address(tsbTokenConfig.token)).tokenInfo();
-            if (underlyingAsset != baseTokenConfig.token)
-                revert TokenIsNotMatched(underlyingAsset, baseTokenConfig.token);
+            AssetConfig memory tokenConfig = tsl.getAssetConfig(createTsbTokenReq.tsbTokenId);
+            (IERC20 underlyingAsset, uint32 maturityTime) = ITsbToken(address(tokenConfig.token)).tokenInfo();
             if (maturityTime != createTsbTokenReq.maturityTime)
                 revert MaturityTimeIsNotMatched(maturityTime, createTsbTokenReq.maturityTime);
+
+            tokenConfig = tsl.getAssetConfig(createTsbTokenReq.baseTokenId);
+            if (underlyingAsset != tokenConfig.token) revert TokenIsNotMatched(underlyingAsset, tokenConfig.token);
         } else {
             // L1 request
             isL1Request = true;
             L1Request memory request = rsl.getL1Request(requestId);
             if (opType == Operations.OpType.REGISTER) {
-                data = Bytes.sliceRegisterData(publicData, offset);
-                Operations.Register memory register = Operations.readRegisterPubData(data);
-                RollupLib.isRegisterInL1RequestQueue(register, request);
+                data = pubData.sliceRegisterData(offset);
+                Operations.Register memory register = data.readRegisterPubData();
+                request.isRegisterInL1RequestQueue(register);
             } else if (opType == Operations.OpType.DEPOSIT) {
-                data = Bytes.sliceDepositData(publicData, offset);
-                Operations.Deposit memory deposit = Operations.readDepositPubData(data);
-                RollupLib.isDepositInL1RequestQueue(deposit, request);
+                data = pubData.sliceDepositData(offset);
+                Operations.Deposit memory deposit = data.readDepositPubData();
+                request.isDepositInL1RequestQueue(deposit);
             } else if (opType == Operations.OpType.EVACUATION) {
-                data = Bytes.sliceEvacuationData(publicData, offset);
-                Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(data);
-                RollupLib.isEvacuationInL1RequestQueue(evacuation, request);
+                data = pubData.sliceEvacuationData(offset);
+                Operations.Evacuation memory evacuation = data.readEvacuationPubdata();
+                request.isEvacuationInL1RequestQueue(evacuation);
                 isToBeExecuted = true;
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
-                data = Bytes.sliceForceWithdrawData(publicData, offset);
-                Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(data);
-                RollupLib.isForceWithdrawInL1RequestQueue(forceWithdrawReq, request);
+                data = pubData.sliceForceWithdrawData(offset);
+                Operations.ForceWithdraw memory forceWithdrawReq = data.readForceWithdrawPubData();
+                request.isForceWithdrawInL1RequestQueue(forceWithdrawReq);
                 isToBeExecuted = true;
             } else {
                 revert InvalidOpType(opType);
@@ -435,19 +439,19 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             pubData = executeBlock.pendingRollupTxPubData[i];
             Operations.OpType opType = Operations.OpType(uint8(pubData[0]));
             if (opType == Operations.OpType.WITHDRAW) {
-                Operations.Withdraw memory withdrawReq = Operations.readWithdrawPubData(pubData);
+                Operations.Withdraw memory withdrawReq = pubData.readWithdrawPubData();
                 _addPendingBalance(rsl, withdrawReq.accountId, withdrawReq.tokenId, withdrawReq.amount);
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
-                Operations.ForceWithdraw memory forceWithdrawReq = Operations.readForceWithdrawPubData(pubData);
+                Operations.ForceWithdraw memory forceWithdrawReq = pubData.readForceWithdrawPubData();
                 _addPendingBalance(rsl, forceWithdrawReq.accountId, forceWithdrawReq.tokenId, forceWithdrawReq.amount);
             } else if (opType == Operations.OpType.AUCTION_END) {
-                Operations.AuctionEnd memory auctionEnd = Operations.readAuctionEndPubData(pubData);
+                Operations.AuctionEnd memory auctionEnd = pubData.readAuctionEndPubData();
                 _updateLoan(auctionEnd);
             } else if (opType == Operations.OpType.WITHDRAW_FEE) {
-                Operations.WithdrawFee memory withdrawFee = Operations.readWithdrawFeePubdata(pubData);
-                _withdrawFee(withdrawFee);
+                Operations.WithdrawFee memory withdrawFee = pubData.readWithdrawFeePubdata();
+                _withdrawFee(rsl, withdrawFee);
             } else if (opType == Operations.OpType.EVACUATION) {
-                Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(pubData);
+                Operations.Evacuation memory evacuation = pubData.readEvacuationPubdata();
                 rsl.evacuated[evacuation.accountId][evacuation.tokenId] = false;
             } else {
                 revert InvalidOpType(opType);
@@ -514,7 +518,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         AssetConfig memory assetConfig = tsl.getAssetConfig(tokenId);
         Utils.notZeroAddr(address(assetConfig.token));
 
-        bytes22 key = RollupLib.getPendingBalanceKey(accountAddr, tokenId);
+        bytes22 key = RollupLib.calcPendingBalanceKey(accountAddr, tokenId);
         uint256 l1Amt = l2Amt.toL1Amt(assetConfig.decimals);
         rsl.pendingBalances[key] += l1Amt;
     }
@@ -558,6 +562,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint16 collateralTokenId = auctionEnd.collateralTokenId;
         AssetConfig memory assetConfig = tsl.getAssetConfig(collateralTokenId);
         Utils.notZeroAddr(address(assetConfig.token));
+
         Loan memory loan;
         uint8 decimals = assetConfig.decimals;
         loan.collateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(decimals));
@@ -573,28 +578,34 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     }
 
     /// @notice Internal function to withdraw fee to treasury, vault, and insurance
+    /// @param rsl The rollup storage
     /// @param withdrawFee The withdraw fee request
-    function _withdrawFee(Operations.WithdrawFee memory withdrawFee) internal {
+    function _withdrawFee(RollupStorage.Layout storage rsl, Operations.WithdrawFee memory withdrawFee) internal {
         AssetConfig memory assetConfig = TokenLib.getTokenStorage().getAssetConfig(withdrawFee.tokenId);
-        uint128 l1Amt = SafeCast.toUint128(withdrawFee.amount.toL1Amt(assetConfig.decimals));
-        ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
+        uint256 l1Amt = withdrawFee.amount.toL1Amt(assetConfig.decimals);
+        ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsLib.getProtocolParamsStorage();
         FundWeight memory fundWeight = ppsl.getFundWeight();
+
         // insurance
-        uint128 amount = (l1Amt * fundWeight.insurance) / Config.FUND_WEIGHT_BASE;
         address toAddr = ppsl.getInsuranceAddr();
         Utils.notZeroAddr(toAddr);
-        Utils.transfer(assetConfig.token, payable(toAddr), amount);
-        l1Amt -= amount;
+        uint256 insuranceAmt = l1Amt.mulDiv(fundWeight.insurance, Config.FUND_WEIGHT_BASE);
+        bytes22 pendingBalanceKey = RollupLib.calcPendingBalanceKey(toAddr, withdrawFee.tokenId);
+        rsl.pendingBalances[pendingBalanceKey] += insuranceAmt;
+
         // vault
-        amount = (l1Amt * fundWeight.vault) / Config.FUND_WEIGHT_BASE;
         toAddr = ppsl.getVaultAddr();
         Utils.notZeroAddr(toAddr);
-        Utils.transfer(assetConfig.token, payable(toAddr), amount);
-        l1Amt -= amount;
+        uint256 vaultAmt = l1Amt.mulDiv(fundWeight.vault, Config.FUND_WEIGHT_BASE);
+        pendingBalanceKey = RollupLib.calcPendingBalanceKey(toAddr, withdrawFee.tokenId);
+        rsl.pendingBalances[pendingBalanceKey] += vaultAmt;
+
         // treasury
         toAddr = ppsl.getTreasuryAddr();
         Utils.notZeroAddr(toAddr);
-        Utils.transfer(assetConfig.token, payable(toAddr), l1Amt);
+        uint256 treasuryAmt = l1Amt.mulDiv(fundWeight.treasury, Config.FUND_WEIGHT_BASE);
+        pendingBalanceKey = RollupLib.calcPendingBalanceKey(toAddr, withdrawFee.tokenId);
+        rsl.pendingBalances[pendingBalanceKey] += treasuryAmt;
     }
 
     /// @notice Internal function to evacuate token to L1

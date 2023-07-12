@@ -61,7 +61,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev Only registered accounts can withdraw
      * @dev The token cannot be TSB token
      */
-    function withdraw(IERC20 token, uint128 amount) external virtual nonReentrant {
+    function withdraw(IERC20 token, uint256 amount) external virtual nonReentrant {
         uint32 accountId = AccountLib.getAccountStorage().getValidAccount(msg.sender);
         TokenStorage.Layout storage tsl = TokenLib.getTokenStorage();
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);

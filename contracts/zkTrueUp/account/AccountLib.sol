@@ -62,7 +62,7 @@ library AccountLib {
         uint32 indexed accountId,
         IERC20 token,
         uint16 tokenId,
-        uint128 amount
+        uint256 amount
     );
 
     /// @notice Internal function to add register request
@@ -148,7 +148,7 @@ library AccountLib {
         uint32 accountId,
         IERC20 token,
         uint16 tokenId,
-        uint128 amount
+        uint256 amount
     ) internal {
         s.updateWithdrawalRecord(sender, tokenId, amount);
         emit Withdrawal(sender, accountId, token, tokenId, amount);

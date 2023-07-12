@@ -9,19 +9,19 @@ import {Config} from "./Config.sol";
  */
 library Bytes {
     /// @notice Error for invalid slice length
-    error OverPublicDataLength(uint256 publicDataLength, uint256 start, uint256 expectedDataLength);
+    error OverPublicDataLength(uint256 pubDataLength, uint256 start, uint256 expectedDataLength);
 
     /// @notice slice public data to get register data
-    /// @param publicData The public data of the rollup
+    /// @param pubData The public data of the rollup
     /// @param start The start index of the register data
     /// @return data The register data
-    function sliceRegisterData(bytes memory publicData, uint256 start) internal pure returns (bytes memory) {
+    function sliceRegisterData(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
         uint256 bytesLength = Config.REGISTER_BYTES; // 48 bytes
-        _validSliceLength(publicData.length, start, bytesLength);
+        _validSliceLength(pubData.length, start, bytesLength);
         bytes memory data = new bytes(bytesLength);
         assembly {
             let slice_curr := add(data, 0x20)
-            let array_curr := add(publicData, add(start, 0x20))
+            let array_curr := add(pubData, add(start, 0x20))
             // mstore 2 times for 48 bytes
             mstore(slice_curr, mload(array_curr))
             mstore(add(slice_curr, 0x20), mload(add(array_curr, 0x20)))
@@ -30,16 +30,16 @@ library Bytes {
     }
 
     /// @notice slice public data to get deposit data
-    /// @param publicData The public data of the rollup
+    /// @param pubData The public data of the rollup
     /// @param start The start index of the deposit data
     /// @return data The deposit data
-    function sliceDepositData(bytes memory publicData, uint256 start) internal pure returns (bytes memory) {
+    function sliceDepositData(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
         uint256 bytesLength = Config.DEPOSIT_BYTES; // 24 bytes
-        _validSliceLength(publicData.length, start, bytesLength);
+        _validSliceLength(pubData.length, start, bytesLength);
         bytes memory data = new bytes(bytesLength);
         assembly {
             let slice_curr := add(data, 0x20)
-            let array_curr := add(publicData, add(start, 0x20))
+            let array_curr := add(pubData, add(start, 0x20))
             // mstore 1 times for 24 bytes
             mstore(slice_curr, mload(array_curr))
         }
@@ -47,16 +47,16 @@ library Bytes {
     }
 
     /// @notice slice public data to get withdraw data
-    /// @param publicData The public data of the rollup
+    /// @param pubData The public data of the rollup
     /// @param start The start index of the withdraw data
     /// @return data The withdraw data
-    function sliceWithdrawData(bytes memory publicData, uint256 start) internal pure returns (bytes memory) {
+    function sliceWithdrawData(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
         uint256 bytesLength = Config.WITHDRAW_BYTES; // 24 bytes
-        _validSliceLength(publicData.length, start, bytesLength);
+        _validSliceLength(pubData.length, start, bytesLength);
         bytes memory data = new bytes(bytesLength);
         assembly {
             let slice_curr := add(data, 0x20)
-            let array_curr := add(publicData, add(start, 0x20))
+            let array_curr := add(pubData, add(start, 0x20))
             // mstore 1 times for 24 bytes
             mstore(slice_curr, mload(array_curr))
         }
@@ -64,16 +64,16 @@ library Bytes {
     }
 
     /// @notice slice public data to get force withdraw data
-    /// @param publicData The public data of the rollup
+    /// @param pubData The public data of the rollup
     /// @param start The start index of the force withdraw data
     /// @return data The force withdraw data
-    function sliceForceWithdrawData(bytes memory publicData, uint256 start) internal pure returns (bytes memory) {
+    function sliceForceWithdrawData(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
         uint256 bytesLength = Config.FORCE_WITHDRAW_BYTES; // 24 bytes
-        _validSliceLength(publicData.length, start, bytesLength);
+        _validSliceLength(pubData.length, start, bytesLength);
         bytes memory data = new bytes(bytesLength);
         assembly {
             let slice_curr := add(data, 0x20)
-            let array_curr := add(publicData, add(start, 0x20))
+            let array_curr := add(pubData, add(start, 0x20))
             // mstore 1 times for 24 bytes
             mstore(slice_curr, mload(array_curr))
         }
@@ -81,16 +81,16 @@ library Bytes {
     }
 
     /// @notice slice public data to get auction end data
-    /// @param publicData The public data of the rollup
+    /// @param pubData The public data of the rollup
     /// @param start The start index of the auction end data
     /// @return data The auction end data
-    function sliceAuctionEndData(bytes memory publicData, uint256 start) internal pure returns (bytes memory) {
+    function sliceAuctionEndData(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
         uint256 bytesLength = Config.AUCTION_END_BYTES; // 48 bytes
-        _validSliceLength(publicData.length, start, bytesLength);
+        _validSliceLength(pubData.length, start, bytesLength);
         bytes memory data = new bytes(bytesLength);
         assembly {
             let slice_curr := add(data, 0x20)
-            let array_curr := add(publicData, add(start, 0x20))
+            let array_curr := add(pubData, add(start, 0x20))
             // mstore 2 times for 48 bytes
             mstore(slice_curr, mload(array_curr))
             mstore(add(slice_curr, 0x20), mload(add(array_curr, 0x20)))
@@ -99,16 +99,16 @@ library Bytes {
     }
 
     /// @notice slice public data to get create tsb token data
-    /// @param publicData The public data of the rollup
+    /// @param pubData The public data of the rollup
     /// @param start The start index of the create tsb token data
     /// @return data The create tsb token data
-    function sliceCreateTsbTokenData(bytes memory publicData, uint256 start) internal pure returns (bytes memory) {
+    function sliceCreateTsbTokenData(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
         uint256 bytesLength = Config.CREATE_TSB_TOKEN_BYTES; // 12 bytes
-        _validSliceLength(publicData.length, start, bytesLength);
+        _validSliceLength(pubData.length, start, bytesLength);
         bytes memory data = new bytes(bytesLength);
         assembly {
             let slice_curr := add(data, 0x20)
-            let array_curr := add(publicData, add(start, 0x20))
+            let array_curr := add(pubData, add(start, 0x20))
             // mstore 1 times for 12 bytes
             mstore(slice_curr, mload(array_curr))
         }
@@ -116,16 +116,16 @@ library Bytes {
     }
 
     /// @notice slice public data to get withdraw fee data
-    /// @param publicData The public data of the rollup
+    /// @param pubData The public data of the rollup
     /// @param start The start index of the withdraw fee data
     /// @return data The withdraw fee data
-    function sliceWithdrawFeeData(bytes memory publicData, uint256 start) internal pure returns (bytes memory) {
+    function sliceWithdrawFeeData(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
         uint256 bytesLength = Config.WITHDRAW_FEE_BYTES; // 24 bytes
-        _validSliceLength(publicData.length, start, bytesLength);
+        _validSliceLength(pubData.length, start, bytesLength);
         bytes memory data = new bytes(bytesLength);
         assembly {
             let slice_curr := add(data, 0x20)
-            let array_curr := add(publicData, add(start, 0x20))
+            let array_curr := add(pubData, add(start, 0x20))
             // mstore 1 times for 24 bytes
             mstore(slice_curr, mload(array_curr))
         }
@@ -133,16 +133,16 @@ library Bytes {
     }
 
     /// @notice slice public data to get evacuation data
-    /// @param publicData The public data of the rollup
+    /// @param pubData The public data of the rollup
     /// @param start The start index of the evacuation data
     /// @return data The evacuation data
-    function sliceEvacuationData(bytes memory publicData, uint256 start) internal pure returns (bytes memory) {
+    function sliceEvacuationData(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
         uint256 bytesLength = Config.EVACUATION_BYTES; // 24 bytes
-        _validSliceLength(publicData.length, start, bytesLength);
+        _validSliceLength(pubData.length, start, bytesLength);
         bytes memory data = new bytes(bytesLength);
         assembly {
             let slice_curr := add(data, 0x20)
-            let array_curr := add(publicData, add(start, 0x20))
+            let array_curr := add(pubData, add(start, 0x20))
             // mstore 1 times for 24 bytes
             mstore(slice_curr, mload(array_curr))
         }
@@ -200,7 +200,7 @@ library Bytes {
         r = bytesToUInt128(_data, _offset);
     }
 
-    function _validSliceLength(uint256 publicDataLength, uint256 start, uint256 sliceLength) private pure {
-        if (publicDataLength < (start + sliceLength)) revert OverPublicDataLength(publicDataLength, start, sliceLength);
+    function _validSliceLength(uint256 pubDataLength, uint256 start, uint256 sliceLength) private pure {
+        if (pubDataLength < (start + sliceLength)) revert OverPublicDataLength(pubDataLength, start, sliceLength);
     }
 }

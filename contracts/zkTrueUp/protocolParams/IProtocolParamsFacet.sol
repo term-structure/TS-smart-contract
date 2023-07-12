@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {ProtocolParamsStorage, FundWeight} from "./ProtocolParamsStorage.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ProtocolParamsStorage, FundWeight, ProtocolFeeRecipient} from "./ProtocolParamsStorage.sol";
 
 /**
  * @title Term Structure Protocol Params Library
@@ -9,6 +10,14 @@ import {ProtocolParamsStorage, FundWeight} from "./ProtocolParamsStorage.sol";
 interface IProtocolParamsFacet {
     /// Error for setting invalid fund weight value
     error InvalidFundWeight(FundWeight fundWeight);
+    /// @notice Error for trying to withdraw protocol to invalid recepient
+    error InvalidFeeRecepient(address feeRecepient);
+
+    /// @notice Emitted when the protocol fee is withdrawn
+    /// @param receiver The address of the receiver
+    /// @param token The token to be withdrawn
+    /// @param amount The amount of the token to be withdrawn
+    event ProtocolFeeWithdrawn(address indexed receiver, IERC20 token, uint256 amount);
 
     /// @notice Emitted when the treasury address is set
     /// @param treasuryAddr The address of the treasury
@@ -25,6 +34,12 @@ interface IProtocolParamsFacet {
     /// @notice Emitted when the fund weight is set
     /// @param fundWeight The fund weight
     event SetFundWeight(FundWeight indexed fundWeight);
+
+    /// @notice Withdraw the protocol fee
+    /// @param receiver The enum of the protocol fee recipient
+    /// @param token The token to be withdrawn
+    /// @param amount The amount of the token to be withdrawn
+    function withdrawProtocolFee(ProtocolFeeRecipient receiver, IERC20 token, uint256 amount) external;
 
     /// @notice Set the treasury address
     /// @param treasuryAddr The address of the treasury
