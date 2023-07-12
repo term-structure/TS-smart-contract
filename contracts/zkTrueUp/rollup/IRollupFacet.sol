@@ -92,8 +92,7 @@ interface IRollupFacet {
     );
 
     /// @notice Emitted when evacuation is activated
-    /// @param timestamp The timestamp of the evacuation activation
-    event EvacuationActivation(uint256 indexed timestamp);
+    event EvacuationActivation();
 
     /// @notice Emit when there is a new loan created
     /// @param loanId The id of the loan

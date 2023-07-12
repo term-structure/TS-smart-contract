@@ -196,7 +196,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         if (block.timestamp > expirationTime && expirationTime != 0) {
             rsl.evacuMode = true;
-            emit EvacuationActivation(block.timestamp);
+            emit EvacuationActivation();
         } else {
             revert TimeStampIsNotExpired(block.timestamp, expirationTime);
         }
