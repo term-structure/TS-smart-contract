@@ -221,7 +221,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) external view returns (bool) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
         return request.isRegisterInL1RequestQueue(register);
     }
@@ -234,7 +234,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) external view returns (bool) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
         return request.isDepositInL1RequestQueue(deposit);
     }
@@ -247,7 +247,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) external view returns (bool) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
         return request.isForceWithdrawInL1RequestQueue(forceWithdraw);
     }

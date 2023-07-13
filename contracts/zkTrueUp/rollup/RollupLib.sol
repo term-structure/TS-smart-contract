@@ -168,11 +168,14 @@ library RollupLib {
         return s.pendingBalances[key];
     }
 
-    /// @notice Internal function to check whether the request id is greater than the current request number
+    /// @notice Internal function to check whether the request id is greater than or equal to the current request number
     /// @param s The rollup storage
     /// @param requestId The id of the request
     /// @return bool Return true is the request id is greater than the current request number, else return false
-    function isRequestIdGtCurRequestNum(RollupStorage.Layout storage s, uint64 requestId) internal view returns (bool) {
+    function isRequestIdGtOrEqCurRequestNum(
+        RollupStorage.Layout storage s,
+        uint64 requestId
+    ) internal view returns (bool) {
         uint64 curRequestNum = s.getTotalL1RequestNum();
         return requestId >= curRequestNum;
     }
