@@ -2,7 +2,7 @@ import { Wallet, utils } from "ethers";
 import { ethers } from "hardhat";
 import { deployBaseTokens } from "../../utils/deploy/deployBaseTokens";
 import { deployFacets } from "../../utils/deploy/deployFacets";
-import { FacetInfo, getString } from "../../utils/type";
+import { FacetInfo } from "../../utils/type";
 import { cutFacets } from "../../utils/cutFacets";
 import { TsTokenId } from "term-structure-sdk";
 import {
@@ -18,12 +18,10 @@ const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
 export const main = async () => {
-  const provider = new ethers.providers.JsonRpcProvider(
-    process.env.DEVNET_RPC_URL
-  );
+  const provider = ethers.provider;
 
   const node = utils.HDNode.fromMnemonic(
-    getString(process.env.DEVNET_MNEMONIC)
+    "test test test test test test test test test test test junk"
   );
 
   const wallets = [];
@@ -34,14 +32,14 @@ export const main = async () => {
     wallets.push(wallet);
   }
 
-  const operatorAddr = getString(process.env.DEVNET_OPERATOR_ADDRESS);
-  const deployerPrivKey = getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY);
+  const operatorAddr = wallets[3].address;
+  const deployerPrivKey = wallets[4].privateKey;
   const deployer = new Wallet(deployerPrivKey, provider);
 
-  const adminAddr = getString(process.env.DEVNET_ADMIN_ADDRESS);
-  const treasuryAddr = getString(process.env.DEVNET_TREASURY_ADDRESS);
-  const insuranceAddr = getString(process.env.DEVNET_INSURANCE_ADDRESS);
-  const vaultAddr = getString(process.env.DEVNET_VAULT_ADDRESS);
+  const adminAddr = wallets[5].address;
+  const treasuryAddr = wallets[6].address;
+  const insuranceAddr = wallets[7].address;
+  const vaultAddr = wallets[8].address;
 
   console.log(
     "Deploying contracts with deployer:",

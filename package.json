@@ -12,6 +12,7 @@
     "verify": "hardhat verify --network",
     "storage:layout": "hardhat storage-layout",
     "size": "hardhat size-contracts",
+    "deploy:local": "hardhat run scripts/deploy/local.ts",
     "deploy:devnet": "hardhat run scripts/deploy/devnet.ts",
     "deploy:testnet": "hardhat run scripts/deploy/testnet.ts",
     "deploy:mainnet": "hardhat run scripts/deploy/mainnet.ts",
