@@ -12,6 +12,7 @@ import {Config} from "../libraries/Config.sol";
  */
 library TokenLib {
     using AddressLib for AddressStorage.Layout;
+    using TokenLib for TokenStorage.Layout;
 
     /// @notice Error for get invalid token which is paused
     error TokenIsPaused(IERC20 pausedToken);
@@ -26,7 +27,7 @@ library TokenLib {
     /// @param s The token storage
     /// @param token The token to be checked
     function requireBaseToken(TokenStorage.Layout storage s, IERC20 token) internal view {
-        (, AssetConfig memory assetConfig) = getValidToken(s, token);
+        (, AssetConfig memory assetConfig) = s.getValidToken(token);
         if (assetConfig.isTsbToken) revert InvalidBaseTokenAddr(token);
     }
 
@@ -47,11 +48,11 @@ library TokenLib {
         TokenStorage.Layout storage s,
         IERC20 token
     ) internal view returns (uint16, AssetConfig memory) {
-        token = address(token) == address(AddressStorage.layout().getWETH()) ? IERC20(Config.ETH_ADDRESS) : token;
+        token = token == AddressStorage.layout().getWETH() ? IERC20(Config.ETH_ADDRESS) : token;
         bool isTokenPaused = s.paused[token];
         if (isTokenPaused) revert TokenIsPaused(token);
 
-        uint16 tokenId = getValidTokenId(s, token);
+        uint16 tokenId = s.getValidTokenId(token);
         AssetConfig memory assetConfig = s.assetConfigs[tokenId];
         return (tokenId, assetConfig);
     }
