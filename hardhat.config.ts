@@ -81,10 +81,12 @@ const config: HardhatUserConfig = {
         ? { url: getString(process.env.MAINNET_RPC_URL), blockNumber: 17426510 }
         : undefined,
     },
-    goerli: {
-      url: getString(process.env.GOERLI_RPC_URL),
-      accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY)],
-    },
+    goerli: process.env.GOERLI_RPC_URL
+      ? {
+          url: getString(process.env.GOERLI_RPC_URL),
+          accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY)],
+        }
+      : undefined,
   },
 };
 
