@@ -17,6 +17,8 @@ import {Utils} from "../libraries/Utils.sol";
 contract TokenFacet is AccessControlInternal, ITokenFacet {
     using TokenLib for TokenStorage.Layout;
 
+    /* ============ External Admin Functions ============ */
+
     /**
      * @inheritdoc ITokenFacet
      */
@@ -81,6 +83,8 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
         tsl.assetConfigs[tokenId].minDepositAmt = minDepositAmt;
         emit SetMinDepositAmt(token, minDepositAmt);
     }
+
+    /* ============ External View Functions ============ */
 
     /**
      * @inheritdoc ITokenFacet

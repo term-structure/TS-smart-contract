@@ -18,6 +18,8 @@ import {Config} from "../libraries/Config.sol";
 contract AddressFacet is IAddressFacet, AccessControlInternal {
     using AddressLib for AddressStorage.Layout;
 
+    /* ============ External Admin Functions ============ */
+
     /**
      * @inheritdoc IAddressFacet
      */
@@ -35,6 +37,8 @@ contract AddressFacet is IAddressFacet, AccessControlInternal {
         AddressStorage.layout().evacuVerifier = newEvacuVerifier;
         emit SetEvacuVerifier(newEvacuVerifier);
     }
+
+    /* ============ External View Functions ============ */
 
     /**
      * @inheritdoc IAddressFacet

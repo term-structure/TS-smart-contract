@@ -37,6 +37,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using Math for *;
     using LoanLib for *;
 
+    /* ============ External Functions ============ */
+
     /**
      * @inheritdoc ILoanFacet
      * @dev Anyone can add collateral to the loan
@@ -136,6 +138,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         _supplyToBorrow(loanId, loanInfo.collateralAsset.token, loanInfo.debtAsset.token, collateralAmt, debtAmt);
     }
 
+    /* ============ Admin Functions ============ */
+
     /**
      * @inheritdoc ILoanFacet
      */
@@ -171,6 +175,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanStorage.layout().isActivatedRoller = isActivated;
         emit SetIsActivatedRoller(isActivated);
     }
+
+    /* ============ External View Functions ============ */
 
     /**
      * @inheritdoc ILoanFacet
@@ -212,25 +218,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function getLoanId(
-        uint32 accountId,
-        uint32 maturityTime,
-        uint16 debtTokenId,
-        uint16 collateralTokenId
-    ) external pure returns (bytes12) {
-        return LoanLib.calcLoanId(accountId, maturityTime, debtTokenId, collateralTokenId);
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     */
-    function resolveLoanId(bytes12 loanId) external pure returns (uint32, uint32, uint16, uint16) {
-        return LoanLib.resolveLoanId(loanId);
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     */
     function getLiquidationInfo(bytes12 loanId) external view returns (bool, IERC20, uint128) {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
@@ -261,6 +248,27 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     function isActivatedRoller() external view returns (bool) {
         return LoanStorage.layout().getRollerState();
     }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getLoanId(
+        uint32 accountId,
+        uint32 maturityTime,
+        uint16 debtTokenId,
+        uint16 collateralTokenId
+    ) external pure returns (bytes12) {
+        return LoanLib.calcLoanId(accountId, maturityTime, debtTokenId, collateralTokenId);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function resolveLoanId(bytes12 loanId) external pure returns (uint32, uint32, uint16, uint16) {
+        return LoanLib.resolveLoanId(loanId);
+    }
+
+    /* ============ Internal Functions ============ */
 
     /// @notice Internal repay function
     /// @param loanId The id of the loan

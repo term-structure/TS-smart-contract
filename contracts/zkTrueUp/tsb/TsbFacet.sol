@@ -31,6 +31,8 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     using TsbLib for TsbStorage.Layout;
     using Utils for *;
 
+    /* ============ External Admin Functions ============ */
+
     /**
      * @inheritdoc ITsbFacet
      * @dev This function is only called by the operator
@@ -59,6 +61,8 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
             revert TsbTokenCreateFailed(name, symbol, underlyingAsset, maturityTime);
         }
     }
+
+    /* ============ External Functions ============ */
 
     /**
      * @inheritdoc ITsbFacet
@@ -94,6 +98,8 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
             Utils.transfer(underlyingAsset, payable(msg.sender), underlyingAssetAmt);
         }
     }
+
+    /* ============ External View Functions ============ */
 
     /**
      * @inheritdoc ITsbFacet

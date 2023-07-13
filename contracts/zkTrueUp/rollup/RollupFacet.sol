@@ -42,6 +42,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     using Utils for *;
     using Math for *;
 
+    /* ============ External Functions ============ */
+
     /**
      * @inheritdoc IRollupFacet
      */
@@ -202,6 +204,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         }
     }
 
+    /* ============ External View Functions ============ */
+
     /**
      * @inheritdoc IRollupFacet
      */
@@ -286,6 +290,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         bytes22 key = RollupLib.calcPendingBalanceKey(accountAddr, tokenId);
         return RollupStorage.layout().getPendingBalances(key);
     }
+
+    /* ============ Internal Functions ============ */
 
     /// @notice Internal function to commit one block
     /// @param rsl Rollup storage layout
@@ -463,30 +469,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert PendingRollupTxHashIsNotMatched(pendingRollupTxHash, executeBlock.storedBlock.pendingRollupTxHash);
     }
 
-    /// @notice Internal function create the commitment of the new block
-    /// @param previousBlock The previous block
-    /// @param newBlock The new block to be committed
-    /// @param commitmentOffset The offset of the commitment
-    /// @return commitment The commitment of the new block
-    function _createBlockCommitment(
-        StoredBlock memory previousBlock,
-        CommitBlock memory newBlock,
-        bytes memory commitmentOffset
-    ) internal pure returns (bytes32) {
-        // newTsRoot is packed in commitment for data availablity and will be proved in the circuit
-        return
-            sha256(
-                abi.encodePacked(
-                    previousBlock.stateRoot,
-                    newBlock.newStateRoot,
-                    newBlock.newTsRoot,
-                    newBlock.timestamp,
-                    commitmentOffset,
-                    newBlock.publicData
-                )
-            );
-    }
-
     /// @notice Internal function to verify one block
     /// @param commitment The commitment of the block
     /// @param proof The proof of the block
@@ -629,5 +611,29 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint256 l1Amt = evacuation.amount.toL1Amt(assetConfig.decimals);
         Utils.transfer(assetConfig.token, payable(receiver), l1Amt);
         emit Evacuation(receiver, evacuation.accountId, assetConfig.token, evacuation.tokenId, l1Amt);
+    }
+
+    /// @notice Internal function create the commitment of the new block
+    /// @param previousBlock The previous block
+    /// @param newBlock The new block to be committed
+    /// @param commitmentOffset The offset of the commitment
+    /// @return commitment The commitment of the new block
+    function _createBlockCommitment(
+        StoredBlock memory previousBlock,
+        CommitBlock memory newBlock,
+        bytes memory commitmentOffset
+    ) internal pure returns (bytes32) {
+        // newTsRoot is packed in commitment for data availablity and will be proved in the circuit
+        return
+            sha256(
+                abi.encodePacked(
+                    previousBlock.stateRoot,
+                    newBlock.newStateRoot,
+                    newBlock.newTsRoot,
+                    newBlock.timestamp,
+                    commitmentOffset,
+                    newBlock.publicData
+                )
+            );
     }
 }

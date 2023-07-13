@@ -21,6 +21,8 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
     using TokenLib for TokenStorage.Layout;
     using RollupLib for RollupStorage.Layout;
 
+    /* ============ External Functions ============ */
+
     /**
      * @inheritdoc IProtocolParamsFacet
      */
@@ -49,6 +51,8 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
         Utils.transfer(token, receiverAddr, amount);
         emit ProtocolFeeWithdrawn(receiverAddr, token, amount);
     }
+
+    /* ============ External Admin Functions ============ */
 
     /**
      * @inheritdoc IProtocolParamsFacet
@@ -86,6 +90,8 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
         ProtocolParamsStorage.layout().fundWeight = fundWeight;
         emit SetFundWeight(fundWeight);
     }
+
+    /* ============ External View Functions ============ */
 
     /**
      * @inheritdoc IProtocolParamsFacet

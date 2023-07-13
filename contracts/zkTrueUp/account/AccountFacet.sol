@@ -25,6 +25,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     using RollupLib for RollupStorage.Layout;
     using TokenLib for TokenStorage.Layout;
 
+    /* ============ External Functions ============ */
+
     /**
      * @inheritdoc IAccountFacet
      * @dev The account is registered by depositing Ether or whitelisted ERC20 to ZkTrueUp
@@ -91,6 +93,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         AccountLib.addForceWithdrawReq(rsl, msg.sender, accountId, token, tokenId);
     }
 
+    /* ============ External View Functions ============ */
+
     /**
      * @inheritdoc IAccountFacet
      */
@@ -111,6 +115,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     function getAccountNum() external view returns (uint32) {
         return AccountStorage.layout().getAccountNum();
     }
+
+    /* ============ Internal Functions ============ */
 
     /// @notice Internal register function
     /// @param rsl The rollup storage layout
