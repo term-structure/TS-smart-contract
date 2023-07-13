@@ -16,10 +16,12 @@ library AccountStorage {
         mapping(uint32 => address) accountAddresses;
     }
 
-    function layout() internal pure returns (Layout storage l) {
+    function layout() internal pure returns (Layout storage s) {
         bytes32 slot = STORAGE_SLOT;
+
+        // solhint-disable-next-line no-inline-assembly
         assembly {
-            l.slot := slot
+            s.slot := slot
         }
     }
 }

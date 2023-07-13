@@ -196,10 +196,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint32 expirationTime = rsl.getL1Request(rsl.getExecutedL1RequestNum()).expirationTime;
         // If all the L1 requests are executed, the first pending L1 request is empty and the expirationBlock of empty L1 requets is 0
 
+        // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
             rsl.evacuMode = true;
             emit EvacuationActivation();
         } else {
+            // solhint-disable-next-line not-rely-on-time
             revert TimeStampIsNotExpired(block.timestamp, expirationTime);
         }
     }
@@ -221,7 +223,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) external view returns (bool) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
         return request.isRegisterInL1RequestQueue(register);
     }
@@ -234,7 +236,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) external view returns (bool) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
         return request.isDepositInL1RequestQueue(deposit);
     }
@@ -247,7 +249,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint64 requestId
     ) external view returns (bool) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        if (rsl.isRequestIdGtCurRequestNum(requestId)) return false;
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
         L1Request memory request = rsl.getL1Request(requestId);
         return request.isForceWithdrawInL1RequestQueue(forceWithdraw);
     }
@@ -585,7 +587,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         // treasury
         toAddr = ppsl.getTreasuryAddr();
         Utils.notZeroAddr(toAddr);
-        uint256 treasuryAmt = l1Amt.mulDiv(fundWeight.treasury, Config.FUND_WEIGHT_BASE);
+        uint256 treasuryAmt = l1Amt - insuranceAmt - vaultAmt;
         pendingBalanceKey = RollupLib.calcPendingBalanceKey(toAddr, withdrawFee.tokenId);
         rsl.pendingBalances[pendingBalanceKey] += treasuryAmt;
     }
@@ -594,23 +596,25 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param rsl The rollup storage layout
     /// @param evacuation The evacuation request
     function _evacuate(RollupStorage.Layout storage rsl, Operations.Evacuation memory evacuation) internal {
-        if (rsl.isEvacuated(evacuation.accountId, evacuation.tokenId))
-            revert Evacuated(evacuation.accountId, evacuation.tokenId);
+        uint32 accountId = evacuation.accountId;
+        uint16 tokenId = evacuation.tokenId;
+        if (rsl.isEvacuated(accountId, tokenId)) revert Evacuated(accountId, tokenId);
 
-        address receiver = AccountStorage.layout().getAccountAddr(evacuation.accountId);
+        address receiver = AccountStorage.layout().getAccountAddr(accountId);
         Utils.notZeroAddr(receiver);
 
-        AssetConfig memory assetConfig = TokenStorage.layout().getAssetConfig(evacuation.tokenId);
-        Utils.notZeroAddr(address(assetConfig.token));
+        AssetConfig memory assetConfig = TokenStorage.layout().getAssetConfig(tokenId);
+        IERC20 token = assetConfig.token;
+        Utils.notZeroAddr(address(token));
 
-        rsl.evacuated[evacuation.accountId][evacuation.tokenId] = true;
+        rsl.evacuated[accountId][tokenId] = true;
 
         bytes memory pubData = Operations.encodeEvacuationPubData(evacuation);
         rsl.addL1Request(receiver, Operations.OpType.EVACUATION, pubData);
 
         uint256 l1Amt = evacuation.amount.toL1Amt(assetConfig.decimals);
-        Utils.transfer(assetConfig.token, payable(receiver), l1Amt);
-        emit Evacuation(receiver, evacuation.accountId, assetConfig.token, evacuation.tokenId, l1Amt);
+        Utils.transfer(token, payable(receiver), l1Amt);
+        emit Evacuation(receiver, accountId, token, tokenId, l1Amt);
     }
 
     /// @notice Internal function create the commitment of the new block
