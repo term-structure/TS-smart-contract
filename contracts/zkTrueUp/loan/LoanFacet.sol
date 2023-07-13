@@ -229,16 +229,11 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
         bool _isLiquidable = LoanLib.isLiquidable(healthFactor, loanInfo.maturityTime);
 
-        uint256 collateralValue = normalizedCollateralPrice.calcCollateralValue(
-            loan.collateralAmt,
-            loanInfo.collateralAsset.decimals
-        );
         uint16 halfLiquidationThreshold = lsl.getHalfLiquidationThreshold();
-        uint128 maxRepayAmt = collateralValue.calcMaxRepayAmt(
-            loan.debtAmt,
-            loanInfo.maturityTime,
-            halfLiquidationThreshold
-        );
+        uint128 maxRepayAmt = normalizedCollateralPrice
+            .calcCollateralValue(loan.collateralAmt, loanInfo.collateralAsset.decimals)
+            .calcMaxRepayAmt(loan.debtAmt, loanInfo.maturityTime, halfLiquidationThreshold);
+
         return (_isLiquidable, loanInfo.debtAsset.token, maxRepayAmt);
     }
 

@@ -199,6 +199,7 @@ library LoanLib {
     /// @param maturityTime The maturity time of the loan
     /// @return isMatured True if the loan is matured, otherwise false
     function isMatured(uint32 maturityTime) internal view returns (bool) {
+        // solhint-disable-next-line not-rely-on-time
         return block.timestamp >= maturityTime;
     }
 

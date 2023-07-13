@@ -45,6 +45,7 @@ library RollupLib {
         Operations.OpType opType,
         bytes memory pubData
     ) internal {
+        // solhint-disable-next-line not-rely-on-time
         uint32 expirationTime = uint32(block.timestamp + Config.EXPIRATION_PERIOD);
         uint64 nextL1RequestId = s.totalL1RequestNum;
         bytes32 hashedPubData = keccak256(pubData);

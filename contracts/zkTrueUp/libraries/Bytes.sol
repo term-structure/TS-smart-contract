@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// solhint-disable-next-line
+// solhint-disable no-inline-assembly
 pragma solidity ^0.8.17;
 
 import {Config} from "./Config.sol";

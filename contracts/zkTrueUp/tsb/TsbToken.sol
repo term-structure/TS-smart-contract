@@ -65,6 +65,7 @@ contract TsbToken is ERC20, ITsbToken {
      * @inheritdoc ITsbToken
      */
     function isMatured() external view returns (bool) {
+        // solhint-disable-next-line not-rely-on-time
         return block.timestamp >= uint256(_maturityTime);
     }
 

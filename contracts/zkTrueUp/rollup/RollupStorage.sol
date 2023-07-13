@@ -81,10 +81,12 @@ library RollupStorage {
         mapping(uint32 => mapping(uint16 => bool)) evacuated;
     }
 
-    function layout() internal pure returns (Layout storage l) {
+    function layout() internal pure returns (Layout storage s) {
         bytes32 slot = STORAGE_SLOT;
+
+        // solhint-disable-next-line no-inline-assembly
         assembly {
-            l.slot := slot
+            s.slot := slot
         }
     }
 }

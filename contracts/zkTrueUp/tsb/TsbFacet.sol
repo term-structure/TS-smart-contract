@@ -43,6 +43,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         string memory name,
         string memory symbol
     ) external virtual onlyRole(Config.OPERATOR_ROLE) {
+        // solhint-disable-next-line not-rely-on-time
         if (maturityTime <= block.timestamp) revert InvalidMaturityTime(maturityTime);
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         IERC20 underlyingAsset = tsl.getAssetConfig(underlyingTokenId).token;

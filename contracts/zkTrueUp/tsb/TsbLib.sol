@@ -27,6 +27,7 @@ library TsbLib {
     /// @param tsbToken The tsbToken to be checked
     /// @param maturityTime The maturity time of the tsbToken
     function requireMatured(ITsbToken tsbToken, uint32 maturityTime) internal view {
+        // solhint-disable-next-line not-rely-on-time
         if (block.timestamp < maturityTime) revert TsbTokenIsNotMatured(tsbToken);
     }
 
