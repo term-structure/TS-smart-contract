@@ -8,6 +8,7 @@ import "hardhat-spdx-license-identifier";
 import "hardhat-storage-layout";
 import "hardhat-tracer";
 import "hardhat-gas-reporter";
+import "solidity-coverage";
 import { resolve } from "path";
 import { getBoolean, getString } from "./utils/type";
 import { existsSync, mkdirSync } from "fs";

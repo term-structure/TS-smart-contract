@@ -86,13 +86,15 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      */
     function forceWithdraw(IERC20 token) external {
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        rsl.requireActive();
+
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getValidAccount(msg.sender);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         (uint16 tokenId, ) = tsl.getValidToken(token);
 
-        RollupStorage.Layout storage rsl = RollupStorage.layout();
         AccountLib.addForceWithdrawReq(rsl, msg.sender, accountId, token, tokenId);
     }
 

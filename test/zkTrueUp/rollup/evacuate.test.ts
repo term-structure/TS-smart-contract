@@ -301,7 +301,7 @@ describe("Evacuate", function () {
     }
   });
 
-  it("Success to activate evacuation", async function () {
+  it("Success to evacuate", async function () {
     // register
     const user1 = accounts[1];
     const user1Addr = await user1.getAddress();
@@ -331,10 +331,7 @@ describe("Evacuate", function () {
     const accountAddr = await diamondAcc.getAccountAddr(evacuation.accountId);
     const tokenId = Number(evacuation.tokenId);
     const tokenAddr = baseTokenAddresses[tokenId];
-    const token = await ethers.getContractAt(
-      "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
-      tokenAddr
-    );
+    const token = await ethers.getContractAt("IERC20", tokenAddr);
     const oriBalance = await token.balanceOf(accountAddr);
 
     await diamondRollup.evacuate(lastExecutedBlock, commitBlock, proof);
@@ -349,7 +346,7 @@ describe("Evacuate", function () {
     expect(newBalance.sub(oriBalance)).to.be.eq(evacuationAmt);
   });
 
-  it("Failed to activate evacuation", async function () {
+  it("Failed to evacuate, not in evacu mode", async function () {
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const commitBlock = getCommitBlock(

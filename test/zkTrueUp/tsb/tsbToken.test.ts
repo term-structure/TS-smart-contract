@@ -361,10 +361,17 @@ describe("Ts Bond", () => {
           maturity
         );
 
+        const tsbToken = (await ethers.getContractAt(
+          "TsbToken",
+          tsbTokenAddr
+        )) as TsbToken;
+        const isMatured = await tsbToken.isMatured();
+
         // check getMaturityTime
         expect(await diamondTsb.getMaturityTime(tsbTokenAddr)).to.equal(
           maturity
         );
+        expect(isMatured).to.equal(false);
       }
     });
   });

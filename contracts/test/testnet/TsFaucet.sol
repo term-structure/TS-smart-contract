@@ -44,8 +44,7 @@ contract TsFaucet is Ownable {
         uint8 decimals;
     }
 
-    constructor(bytes memory data) {
-        address _zkTrueUpAddr = abi.decode(data, (address));
+    constructor(address _zkTrueUpAddr) {
         zkTrueUp = _zkTrueUpAddr;
 
         tsERC20s[0] = _createTsERC20(TokenInfo(WETH_NAME, WETH_SYMBOL, WETH_DECIMALS));
