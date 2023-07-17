@@ -6,6 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @title Term Structure Bond Interface
  * @author Term Structure Labs
+ * @notice Interface for Term Structure Bond token (ERC20)
  */
 interface ITsbToken is IERC20 {
     /// @notice Mint TSB token

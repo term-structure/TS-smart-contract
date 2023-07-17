@@ -23,7 +23,7 @@ pragma solidity ^0.8.17;
 /**
  * @title Verifier contract
  * @author Term Structure Labs
- * @notice Verifier contract for the proof verification of the TermStructure protocol
+ * @notice Verifier contract for the proof verification of the Term Structure Protocol
  */
 contract Verifier {
     // Scalar field size

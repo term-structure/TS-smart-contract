@@ -28,7 +28,7 @@ import {Utils} from "../libraries/Utils.sol";
 /**
  * @title Term Structure Loan Facet Contract
  * @author Term Structure Labs
- * @notice The LoanFacet is a contract to manages loans in Term Structure Protocol,
+ * @notice The LoanFacet is a contract to manages loans in Term Structure Protocol
  */
 contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using SafeERC20 for IERC20;

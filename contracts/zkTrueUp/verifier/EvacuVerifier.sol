@@ -23,7 +23,7 @@ pragma solidity ^0.8.17;
 /**
  * @title EvacuVerifier contract
  * @author Term Structure Labs
- * @notice Verifier for the Evacuation circuit
+ * @notice Verifier contract for the Evacuation circuit
  */
 contract EvacuVerifier {
     // Scalar field size

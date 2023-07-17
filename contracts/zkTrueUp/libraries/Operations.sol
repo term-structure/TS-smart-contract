@@ -5,10 +5,10 @@ pragma solidity ^0.8.17;
 import {Bytes} from "./Bytes.sol";
 
 /**
-  * @title Operations Library
-  * @author Term Structure Labs
-  * @notice This library is used to define the operation type and the operation data structure,
-            used in the rollup circuit
+ * @title Operations Library
+ * @author Term Structure Labs
+ * @notice Library for define the operation type and the operation data structure,
+ *         used in the rollup circuit
  */
 library Operations {
     /// @notice circuit operation type
