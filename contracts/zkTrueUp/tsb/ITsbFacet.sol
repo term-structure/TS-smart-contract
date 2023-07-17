@@ -6,6 +6,7 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 /**
  * @title Term Structure Bond Facet Interface
+ * @author Term Structure Labs
  */
 interface ITsbFacet {
     /// @notice Error for create TsbToken with invalid maturity time

@@ -12,6 +12,7 @@ import {Utils} from "../libraries/Utils.sol";
 
 /**
  * @title Term Structure Account Library
+ * @author Term Structure Labs
  */
 library AccountLib {
     using AccountLib for AccountStorage.Layout;

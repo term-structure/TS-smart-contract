@@ -8,7 +8,7 @@ struct Point {
 }
 
 /**
- * @dev BabyJubJub curve operations
+ * @title BabyJubJub curve operations library
  * @notice Original source code: https://github.com/mesquka/babyjubjub-solidity/blob/main/contracts/LibBabyJubJub.sol
  */
 library BabyJubJub {

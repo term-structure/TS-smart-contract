@@ -3,7 +3,9 @@
 pragma solidity ^0.8.17;
 
 /**
- * @title Term Structure Config Library
+ * @title Config Library
+ * @author Term Structure Labs
+ * @notice Library for constants and configuration parameters
  */
 library Config {
     /// @notice The default address of ETH

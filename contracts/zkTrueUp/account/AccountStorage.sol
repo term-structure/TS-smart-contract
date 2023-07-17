@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 /**
  * @title Term Structure Account Storage
+ * @author Term Structure Labs
  */
 library AccountStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Account")) - 1);

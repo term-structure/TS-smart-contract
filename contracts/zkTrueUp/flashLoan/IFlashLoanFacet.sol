@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Term Structure Flash Loan Facet Interface
+ * @author Term Structure Labs
  */
 interface IFlashLoanFacet {
     /// @notice Error for input length mismatch in flash loan function

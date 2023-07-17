@@ -15,6 +15,8 @@ import {Config} from "../libraries/Config.sol";
 
 /**
  * @title Term Structure Protocol Params Facet Contract
+ * @author Term Structure Labs
+ * @notice The ProtocolParamsFacet contract is used to store the protocol parameters which are used by the Term Structure Protocol.
  */
 contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;

@@ -13,6 +13,7 @@ import {Config} from "../libraries/Config.sol";
 
 /**
  * @title Term Structure Loan Library
+ * @author Term Structure Labs
  */
 library LoanLib {
     using Math for uint256;

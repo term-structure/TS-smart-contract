@@ -5,6 +5,7 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 /**
  * @title Term Structure Bond Storage
+ * @author Term Structure Labs
  */
 library TsbStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Tsb")) - 1);

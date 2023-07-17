@@ -6,6 +6,7 @@ import {LiquidationFactor, Loan} from "./LoanStorage.sol";
 
 /**
  * @title Term Structure Loan Facet Interface
+ * @author Term Structure Labs
  */
 interface ILoanFacet {
     /// @notice Error for setting invalid liquidation factor

@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 /**
  * @title Term Structure Flash Loan Storage
+ * @author Term Structure Labs
  */
 library FlashLoanStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.FlashLoan")) - 1);

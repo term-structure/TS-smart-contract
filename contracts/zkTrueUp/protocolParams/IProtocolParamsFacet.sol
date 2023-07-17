@@ -6,6 +6,7 @@ import {ProtocolParamsStorage, FundWeight, ProtocolFeeRecipient} from "./Protoco
 
 /**
  * @title Term Structure Protocol Params Library
+ * @author Term Structure Labs
  */
 interface IProtocolParamsFacet {
     /// Error for setting invalid fund weight value

@@ -7,6 +7,7 @@ import {Operations} from "../libraries/Operations.sol";
 
 /**
  * @title Term Structure Rollup Facet Interface
+ * @author Term Structure Labs
  */
 interface IRollupFacet {
     /// @notice Error for invalid last committed block

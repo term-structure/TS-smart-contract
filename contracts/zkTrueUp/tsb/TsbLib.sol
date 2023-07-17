@@ -6,6 +6,7 @@ import {TsbStorage} from "./TsbStorage.sol";
 
 /**
  * @title Term Structure Bond Library
+ * @author Term Structure Labs
  */
 library TsbLib {
     /// @notice Error for redeem with tsb token which is not matured

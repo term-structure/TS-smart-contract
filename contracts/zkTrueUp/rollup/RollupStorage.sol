@@ -52,6 +52,7 @@ struct L1Request {
 
 /**
  * @title Term Structure Rollup Storage
+ * @author Term Structure Labs
  */
 library RollupStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Rollup")) - 1);

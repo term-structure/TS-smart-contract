@@ -8,6 +8,7 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 /**
  * @title Term Structure Token Facet Interface
+ * @author Term Structure Labs
  */
 interface ITokenFacet {
     /// @notice Error for whitelist token which is already whitelisted

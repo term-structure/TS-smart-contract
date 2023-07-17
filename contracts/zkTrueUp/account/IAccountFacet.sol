@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Term Structure Account Facet Interface
+ * @author Term Structure Labs
  */
 interface IAccountFacet {
     /// @notice Error for register account which is already registered

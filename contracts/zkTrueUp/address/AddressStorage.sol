@@ -8,6 +8,7 @@ import {IPool} from "../interfaces/aaveV3/IPool.sol";
 
 /**
  * @title Term Structure Address Storage
+ * @author Term Structure Labs
  */
 library AddressStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Address")) - 1);

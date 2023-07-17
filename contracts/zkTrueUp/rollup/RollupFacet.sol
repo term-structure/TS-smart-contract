@@ -29,6 +29,8 @@ import {Utils} from "../libraries/Utils.sol";
 
 /**
  * @title Term Structure Rollup Facet Contract
+ * @author Term Structure Labs
+ * @notice The RollupFacet contract is used to manage the functions abount zk-rollup
  */
 contract RollupFacet is IRollupFacet, AccessControlInternal {
     using AccountLib for AccountStorage.Layout;

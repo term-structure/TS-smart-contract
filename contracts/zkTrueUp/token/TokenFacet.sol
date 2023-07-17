@@ -13,6 +13,8 @@ import {Utils} from "../libraries/Utils.sol";
 
 /**
  * @title Term Structure Token Facet Contract
+ * @author Term Structure Labs
+ * @notice The TokenFacet contract is used to manage the tokens which interact with the Term Structure Protocol.
  */
 contract TokenFacet is AccessControlInternal, ITokenFacet {
     using TokenLib for TokenStorage.Layout;

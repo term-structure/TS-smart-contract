@@ -5,7 +5,9 @@ pragma solidity ^0.8.17;
 import {Config} from "./Config.sol";
 
 /**
- * @title Term Structure Bytes Library
+ * @title Bytes Library
+ * @author Term Structure Labs
+ * @notice Library for bytes operations
  */
 library Bytes {
     /// @notice Error for invalid slice length

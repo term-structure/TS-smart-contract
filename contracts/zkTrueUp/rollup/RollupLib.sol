@@ -7,6 +7,7 @@ import {Operations} from "../libraries/Operations.sol";
 
 /**
  * @title Term Structure Rollup Library
+ * @author Term Structure Labs
  */
 library RollupLib {
     using RollupLib for RollupStorage.Layout;

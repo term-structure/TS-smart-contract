@@ -19,6 +19,9 @@ import {BabyJubJub, Point} from "../libraries/BabyJubJub.sol";
 
 /**
  * @title Term Structure Account Facet Contract
+ * @author Term Structure Labs
+ * @notice The AccountFacet is a contract to manages accounts in Term Structure Protocol,
+ *         including many I.O. operations such as register, deposit, withdraw, forceWithdraw, etc.
  */
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
     using AccountLib for AccountStorage.Layout;

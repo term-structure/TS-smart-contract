@@ -20,7 +20,8 @@ import {InitialConfig} from "../libraries/InitialConfig.sol";
 
 /**
  * @title Zk-TureUp Initializer Contract
- * @notice This contract is used to initialize the zkTrueUp protocol
+ * @author Term Structure Labs
+ * @notice This contract is used to initialize the Term Structure Protocol
  */
 contract ZkTrueUpInit is Ownable, AccessControlInternal {
     function init(bytes calldata data) external {
