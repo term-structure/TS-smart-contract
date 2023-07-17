@@ -1,6 +1,5 @@
 import { Wallet, utils } from "ethers";
 import { ethers } from "hardhat";
-import { deployBaseTokens } from "../../utils/deploy/deployBaseTokens";
 import { deployFacets } from "../../utils/deploy/deployFacets";
 import {
   BaseTokenAddresses,
@@ -26,18 +25,6 @@ export const main = async () => {
   const provider = new ethers.providers.JsonRpcProvider(
     process.env.DEVNET_RPC_URL
   );
-
-  const node = utils.HDNode.fromMnemonic(
-    getString(process.env.DEVNET_MNEMONIC)
-  );
-
-  const wallets = [];
-  for (let i = 0; i < 1000; i++) {
-    // eslint-disable-next-line quotes
-    const path = "m/44'/60'/0'/0/" + i;
-    const wallet = node.derivePath(path);
-    wallets.push(wallet);
-  }
 
   const operatorAddr = getString(process.env.DEVNET_OPERATOR_ADDRESS);
   const deployerPrivKey = getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY);
