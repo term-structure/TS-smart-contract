@@ -161,6 +161,8 @@ interface ILoanFacet {
     ) external payable returns (uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt);
 
     /// @notice Set the half liquidation threshold
+    /// @dev The half liquidation threshold is the threshold of the liquidation price (USD),
+    ///      the initial value 1e4 i.e. 10000 USD
     /// @param halfLiquidationThreshold The half liquidation threshold
     function setHalfLiquidationThreshold(uint16 halfLiquidationThreshold) external;
 
@@ -179,6 +181,7 @@ interface ILoanFacet {
     function getHealthFactor(bytes12 loanId) external view returns (uint256 healthFactor);
 
     /// @notice Return the half liquidation threshold
+    /// @dev The halfLiquidationThreshold is the threshold of the liquidation price (USD), i.e. 1e4 = 10000 USD
     /// @return halfLiquidationThreshold The half liquidation threshold
     function getHalfLiquidationThreshold() external view returns (uint16 halfLiquidationThreshold);
 

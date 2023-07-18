@@ -5,7 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
-import {RollupStorage, Proof, StoredBlock, CommitBlock, ExecuteBlock, VerifyBlock, L1Request} from "./RollupStorage.sol";
+import {RollupStorage, Proof, StoredBlock, CommitBlock, ExecuteBlock, VerifyBlock, Request} from "./RollupStorage.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
@@ -226,7 +226,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     ) external view returns (bool) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
-        L1Request memory request = rsl.getL1Request(requestId);
+        Request memory request = rsl.getL1Request(requestId);
         return request.isRegisterInL1RequestQueue(register);
     }
 
@@ -239,7 +239,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     ) external view returns (bool) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
-        L1Request memory request = rsl.getL1Request(requestId);
+        Request memory request = rsl.getL1Request(requestId);
         return request.isDepositInL1RequestQueue(deposit);
     }
 
@@ -252,14 +252,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     ) external view returns (bool) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
-        L1Request memory request = rsl.getL1Request(requestId);
+        Request memory request = rsl.getL1Request(requestId);
         return request.isForceWithdrawInL1RequestQueue(forceWithdraw);
     }
 
     /**
      * @inheritdoc IRollupFacet
      */
-    function getL1Request(uint64 requestId) external view returns (L1Request memory) {
+    function getL1Request(uint64 requestId) external view returns (Request memory) {
         return RollupStorage.layout().getL1Request(requestId);
     }
 
@@ -413,7 +413,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         } else {
             // L1 request
             isL1Request = true;
-            L1Request memory request = rsl.getL1Request(requestId);
+            Request memory request = rsl.getL1Request(requestId);
             if (opType == Operations.OpType.REGISTER) {
                 data = pubData.sliceRegisterData(offset);
                 Operations.Register memory register = data.readRegisterPubData();

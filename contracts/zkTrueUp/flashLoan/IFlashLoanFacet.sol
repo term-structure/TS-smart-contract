@@ -46,10 +46,14 @@ interface IFlashLoanFacet {
     ) external;
 
     /// @notice Set the flash loan premium
-    /// @param flashLoanPremium The flash loan premium
+    /// @dev The flash loan premium is the percentage of the flash loan amount,
+    ///      the max value is 1e4 and the base is 1e4,
+    ///      i.e. 3 = 0.03%
     function setFlashLoanPremium(uint16 flashLoanPremium) external;
 
     /// @notice Get the flash loan premium
-    /// @return flashLoanPremium The flash loan premium
+    /// @dev The flash loan premium is the percentage of the flash loan amount
+    ///      the base is 1e4, i.e. 3 = 0.03%
+    /// @return flashLoanPremium The premium of flash loan
     function getFlashLoanPremium() external view returns (uint16 flashLoanPremium);
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {RollupStorage, L1Request} from "./RollupStorage.sol";
+import {RollupStorage, Request} from "./RollupStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Operations} from "../libraries/Operations.sol";
 
@@ -26,7 +26,7 @@ library RollupLib {
     /// @param opType The operation type of the request
     /// @param pubData The public data of the request
     /// @param expirationTime The expiration time of the request
-    event NewL1Request(
+    event L1Request(
         address indexed sender,
         uint64 requestId,
         Operations.OpType opType,
@@ -48,15 +48,15 @@ library RollupLib {
     ) internal {
         // solhint-disable-next-line not-rely-on-time
         uint32 expirationTime = uint32(block.timestamp + Config.EXPIRATION_PERIOD);
-        uint64 nextL1RequestId = s.totalL1RequestNum;
+        uint64 requestId = s.totalL1RequestNum;
         bytes32 hashedPubData = keccak256(pubData);
-        s.l1RequestQueue[nextL1RequestId] = L1Request({
+        s.l1RequestQueue[requestId] = Request({
             hashedPubData: hashedPubData,
             expirationTime: expirationTime,
             opType: opType
         });
         s.totalL1RequestNum++;
-        emit NewL1Request(sender, nextL1RequestId, opType, pubData, expirationTime);
+        emit L1Request(sender, requestId, opType, pubData, expirationTime);
     }
 
     /// @notice Update pending balance and emit Withdraw event
@@ -108,7 +108,7 @@ library RollupLib {
     /// @param s The rollup storage
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id
-    function getL1Request(RollupStorage.Layout storage s, uint64 requestId) internal view returns (L1Request memory) {
+    function getL1Request(RollupStorage.Layout storage s, uint64 requestId) internal view returns (Request memory) {
         return s.l1RequestQueue[requestId];
     }
 
@@ -187,7 +187,7 @@ library RollupLib {
     /// @param register The register request
     /// @return bool if the register request is in the L1 request queue
     function isRegisterInL1RequestQueue(
-        L1Request memory request,
+        Request memory request,
         Operations.Register memory register
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.REGISTER);
@@ -200,7 +200,7 @@ library RollupLib {
     /// @param deposit The deposit request
     /// @return bool if the deposit request is in the L1 request queue
     function isDepositInL1RequestQueue(
-        L1Request memory request,
+        Request memory request,
         Operations.Deposit memory deposit
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.DEPOSIT);
@@ -213,7 +213,7 @@ library RollupLib {
     /// @param forceWithdraw The force withdraw request
     /// @return bool if the force withdraw request is in the L1 request queue
     function isForceWithdrawInL1RequestQueue(
-        L1Request memory request,
+        Request memory request,
         Operations.ForceWithdraw memory forceWithdraw
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.FORCE_WITHDRAW);
@@ -226,7 +226,7 @@ library RollupLib {
     /// @param evacuation The evacuation request
     /// @return bool if the evacuation request is in the L1 request queue
     function isEvacuationInL1RequestQueue(
-        L1Request memory request,
+        Request memory request,
         Operations.Evacuation memory evacuation
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.EVACUATION);

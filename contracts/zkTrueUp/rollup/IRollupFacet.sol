@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {RollupStorage, Proof, CommitBlock, StoredBlock, VerifyBlock, ExecuteBlock, L1Request} from "./RollupStorage.sol";
+import {RollupStorage, Proof, CommitBlock, StoredBlock, VerifyBlock, ExecuteBlock, Request} from "./RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 
 /**
@@ -27,7 +27,7 @@ interface IRollupFacet {
     /// @notice Error for invalid block number
     error InvalidBlockNum(uint32 newBlockNum);
     /// @notice Error for request is not existed
-    error RequestIsNotExisted(L1Request request);
+    error RequestIsNotExisted(Request request);
     /// @notice Error for invalid invalid public data length
     error InvalidPubDataLength(uint256 pubDataLength);
     /// @notice Error for offset is greater than public data length
@@ -166,8 +166,8 @@ interface IRollupFacet {
 
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
-    /// @return l1Request The request of the specified id
-    function getL1Request(uint64 requestId) external view returns (L1Request memory l1Request);
+    /// @return request The request of the specified id
+    function getL1Request(uint64 requestId) external view returns (Request memory request);
 
     /// @notice Return the L1 request number
     /// @return committedL1RequestNum The number of committed L1 requests
