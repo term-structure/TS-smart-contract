@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract TsERC20 is ERC20 {
     address public immutable tsFaucet;
     address public immutable zkTrueUp;
-
     uint8 private immutable _decimals;
 
     constructor(address zkTrueUpAddr, string memory name_, string memory symbol_, uint8 dec_) ERC20(name_, symbol_) {
