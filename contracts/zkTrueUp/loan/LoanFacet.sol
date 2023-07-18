@@ -173,9 +173,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function setIsActivatedRoller(bool isActivated) external onlyRole(Config.ADMIN_ROLE) {
+    function setActivatedRoller(bool isActivated) external onlyRole(Config.ADMIN_ROLE) {
         LoanStorage.layout().isActivatedRoller = isActivated;
-        emit SetIsActivatedRoller(isActivated);
+        emit SetActivatedRoller(isActivated);
     }
 
     /* ============ External View Functions ============ */

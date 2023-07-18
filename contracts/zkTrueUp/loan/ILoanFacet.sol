@@ -125,7 +125,7 @@ interface ILoanFacet {
 
     /// @notice Emitted when the roll activation is set
     /// @param isActivatedRoll Whether the roll activation is set
-    event SetIsActivatedRoller(bool isActivatedRoll);
+    event SetActivatedRoller(bool isActivatedRoll);
 
     /// @notice Add collateral to the loan
     /// @param loanId The id of the loan
@@ -173,7 +173,7 @@ interface ILoanFacet {
 
     /// @notice Set the roll function activation
     /// @param isActivated The roll function activation
-    function setIsActivatedRoller(bool isActivated) external;
+    function setActivatedRoller(bool isActivated) external;
 
     /// @notice Return the health factor of the loan
     /// @param loanId The id of the loan
