@@ -121,6 +121,7 @@ interface IRollupFacet {
     function executeBlocks(ExecuteBlock[] memory pendingBlocks) external;
 
     /// @notice Revert blocks
+    /// @dev This function is only used for revert the unexecuted blocks
     /// @param revertedBlocks The blocks to be reverted
     function revertBlocks(StoredBlock[] memory revertedBlocks) external;
 
