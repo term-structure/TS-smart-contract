@@ -165,7 +165,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
      */
     function evacuate(StoredBlock memory lastExecutedBlock, CommitBlock memory newBlock, Proof memory proof) external {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        if (!rsl.isEvacuMode()) revert NotEvacuMode();
+        rsl.requireEvacuMode();
         if (rsl.getStoredBlockHash(rsl.getExecutedBlockNum()) != keccak256(abi.encode(lastExecutedBlock)))
             revert InvalidLastExecutedBlock(lastExecutedBlock);
         if (newBlock.timestamp < lastExecutedBlock.timestamp)
@@ -356,7 +356,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Internal function to update the commitment offset for the chunk
     /// @param commitmentOffset The commitment offset
     /// @param chunkId The chunk id
-    /// @return commitmentOffset The updated commitment offset
+    /// @return newCommitmentOffset The updated commitment offset
     function _updateCommitmentOffsetForChunk(
         bytes memory commitmentOffset,
         uint256 chunkId

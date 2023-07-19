@@ -16,6 +16,8 @@ library RollupLib {
     error InsufficientPendingBalances(uint256 pendingBalance, uint256 withdrawAmt);
     /// @notice Error for trying to do transactions when evacuation mode is activated
     error EvacuModeActivated();
+    /// @notice Error for the system is not in evacuation mode
+    error NotEvacuMode();
     /// @notice Error for operation type is not matched
     error OpTypeIsNotMatched(Operations.OpType requestOpType, Operations.OpType expectedOpType);
 
@@ -82,6 +84,12 @@ library RollupLib {
     /// @param s The rollup storage
     function requireActive(RollupStorage.Layout storage s) internal view {
         if (s.isEvacuMode()) revert EvacuModeActivated();
+    }
+
+    /// @notice Internal function to check if the contract is in the evacuMode
+    /// @param s The rollup storage
+    function requireEvacuMode(RollupStorage.Layout storage s) internal view {
+        if (!s.isEvacuMode()) revert NotEvacuMode();
     }
 
     /// @notice Internal function to get evacuation mode status

@@ -54,8 +54,6 @@ interface IRollupFacet {
     error PendingRollupTxHashIsNotMatched(bytes32 pendingRollupTxHash, bytes32 executeBlockPendingRollupTxHash);
     /// @notice Error for the specified accountId and tokenId is already evacuated
     error Evacuated(uint32 accountId, uint16 tokenId);
-    /// @notice Error for the system is not in evacuation mode
-    error NotEvacuMode();
     /// @notice Error for activate evacuation mode, but the timestamp is not expired
     error TimeStampIsNotExpired(uint256 curtimestamp, uint256 expirationTime);
     /// @notice Error for underlyingAsset token and base token is not matched
