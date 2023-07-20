@@ -135,6 +135,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function revertBlocks(StoredBlock[] memory revertedBlocks) external onlyRole(Config.COMMITTER_ROLE) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
+
         uint32 committedBlockNum = rsl.getCommittedBlockNum();
         uint32 executedBlockNum = rsl.getExecutedBlockNum();
         uint32 pendingBlockNum = committedBlockNum - executedBlockNum;
@@ -166,6 +167,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function evacuate(StoredBlock memory lastExecutedBlock, CommitBlock memory newBlock, Proof memory proof) external {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
+
         if (rsl.getStoredBlockHash(rsl.getExecutedBlockNum()) != keccak256(abi.encode(lastExecutedBlock)))
             revert InvalidLastExecutedBlock(lastExecutedBlock);
         if (newBlock.timestamp < lastExecutedBlock.timestamp)
@@ -183,6 +185,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         // Verify the new block
         _verifyOneBlock(commitment, proof, true);
+
         // Execute the new block
         Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(newBlock.publicData);
         _evacuate(rsl, evacuation);
@@ -196,7 +199,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
         uint32 expirationTime = rsl.getL1Request(rsl.getExecutedL1RequestNum()).expirationTime;
-        // If all the L1 requests are executed, the first pending L1 request is empty and the expirationBlock of empty L1 requets is 0
 
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
