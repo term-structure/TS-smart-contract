@@ -27,6 +27,8 @@ import {Bytes} from "../libraries/Bytes.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Term Structure Rollup Facet Contract
  * @author Term Structure Labs
@@ -198,8 +200,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     function activateEvacuation() external {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
-        uint32 expirationTime = rsl.getL1Request(rsl.getExecutedL1RequestNum()).expirationTime;
 
+        uint32 expirationTime = rsl.getL1Request(rsl.getExecutedL1RequestNum()).expirationTime;
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
             rsl.evacuMode = true;
@@ -208,6 +210,43 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             // solhint-disable-next-line not-rely-on-time
             revert TimeStampIsNotExpired(block.timestamp, expirationTime);
         }
+    }
+
+    function consumeL1RequestInEvacuMode(bytes[] memory consumedTxPubData) external {
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        rsl.requireEvacuMode();
+
+        // the last L1 request cannot be evacuation
+        require(
+            rsl.getL1Request(rsl.getTotalL1RequestNum()).opType != Operations.OpType.EVACUATION,
+            "Evacuate: L1 request is not executed"
+        );
+
+        uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
+        if (executedL1RequestNum + consumedTxPubData.length > rsl.getTotalL1RequestNum())
+            revert ConsumedRequestNumExceedTotalNum(consumedTxPubData.length);
+
+        bytes memory pubData;
+        for (uint32 i; i < consumedTxPubData.length; ++i) {
+            pubData = consumedTxPubData[i];
+            ++executedL1RequestNum;
+            Request memory request = rsl.getL1Request(executedL1RequestNum);
+            bytes32 hashedPubData = keccak256(pubData);
+            if (request.hashedPubData != hashedPubData) revert InvalidConsumedPubData(pubData);
+
+            Operations.OpType opType = Operations.OpType(uint8(pubData[0]));
+            if (opType > type(Operations.OpType).max) revert InvalidOpType(opType);
+
+            if (opType == Operations.OpType.DEPOSIT) {
+                Operations.Deposit memory depositReq = pubData.readDepositPubData();
+                _addPendingBalance(rsl, depositReq.accountId, depositReq.tokenId, depositReq.amount);
+                // solhint-disable-next-line no-empty-blocks
+            } else {
+                // do nothing, others L1 requests are not related to the balance changes
+            }
+        }
+        if (executedL1RequestNum > rsl.getCommittedL1RequestNum()) rsl.committedL1RequestNum = executedL1RequestNum;
+        rsl.executedL1RequestNum = executedL1RequestNum;
     }
 
     /* ============ External View Functions ============ */

@@ -59,6 +59,10 @@ interface IRollupFacet {
     /// @notice Error for underlyingAsset token and base token is not matched
     error TokenIsNotMatched(IERC20 underlyingAsset, IERC20 baseToken);
 
+    error ConsumedRequestNumExceedTotalNum(uint256 consumedRequestNum);
+
+    error InvalidConsumedPubData(bytes pubData);
+
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
     /// @param commitment The commitment of the block
