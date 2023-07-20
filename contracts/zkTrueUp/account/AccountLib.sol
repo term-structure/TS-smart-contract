@@ -151,7 +151,7 @@ library AccountLib {
         uint16 tokenId,
         uint256 amount
     ) internal {
-        s.updateWithdrawalRecord(sender, tokenId, amount);
+        s.removePendingBalance(sender, tokenId, amount);
         emit Withdrawal(sender, accountId, token, tokenId, amount);
     }
 

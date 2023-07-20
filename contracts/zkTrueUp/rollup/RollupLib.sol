@@ -61,12 +61,22 @@ library RollupLib {
         emit L1Request(sender, requestId, opType, pubData, expirationTime);
     }
 
+    /// @notice Add the pending balance of the specified address and token id
+    /// @param s The rollup storage
+    /// @param addr The address to be added
+    /// @param tokenId The token id
+    /// @param l1Amt The amount of the token
+    function addPendingBalance(RollupStorage.Layout storage s, address addr, uint16 tokenId, uint256 l1Amt) internal {
+        bytes22 key = calcPendingBalanceKey(addr, tokenId);
+        s.pendingBalances[key] += l1Amt;
+    }
+
     /// @notice Update pending balance and emit Withdraw event
     /// @param s The rollup storage
     /// @param receiver The address of the receiver
     /// @param tokenId The token id on layer2
     /// @param amount The amount of the token
-    function updateWithdrawalRecord(
+    function removePendingBalance(
         RollupStorage.Layout storage s,
         address receiver,
         uint16 tokenId,

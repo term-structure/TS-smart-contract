@@ -504,9 +504,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         AssetConfig memory assetConfig = tsl.getAssetConfig(tokenId);
         Utils.notZeroAddr(address(assetConfig.token));
 
-        bytes22 key = RollupLib.calcPendingBalanceKey(accountAddr, tokenId);
         uint256 l1Amt = l2Amt.toL1Amt(assetConfig.decimals);
-        rsl.pendingBalances[key] += l1Amt;
+        rsl.addPendingBalance(accountAddr, tokenId, l1Amt);
     }
 
     /// @notice Internal function to update the onchain loan info
@@ -567,7 +566,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param rsl The rollup storage
     /// @param withdrawFee The withdraw fee request
     function _withdrawFee(RollupStorage.Layout storage rsl, Operations.WithdrawFee memory withdrawFee) internal {
-        AssetConfig memory assetConfig = TokenStorage.layout().getAssetConfig(withdrawFee.tokenId);
+        uint16 tokenId = withdrawFee.tokenId;
+        AssetConfig memory assetConfig = TokenStorage.layout().getAssetConfig(tokenId);
         uint256 l1Amt = withdrawFee.amount.toL1Amt(assetConfig.decimals);
         ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
         FundWeight memory fundWeight = ppsl.getFundWeight();
@@ -576,22 +576,19 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         address toAddr = ppsl.getInsuranceAddr();
         Utils.notZeroAddr(toAddr);
         uint256 insuranceAmt = l1Amt.mulDiv(fundWeight.insurance, Config.FUND_WEIGHT_BASE);
-        bytes22 pendingBalanceKey = RollupLib.calcPendingBalanceKey(toAddr, withdrawFee.tokenId);
-        rsl.pendingBalances[pendingBalanceKey] += insuranceAmt;
+        rsl.addPendingBalance(toAddr, tokenId, insuranceAmt);
 
         // vault
         toAddr = ppsl.getVaultAddr();
         Utils.notZeroAddr(toAddr);
         uint256 vaultAmt = l1Amt.mulDiv(fundWeight.vault, Config.FUND_WEIGHT_BASE);
-        pendingBalanceKey = RollupLib.calcPendingBalanceKey(toAddr, withdrawFee.tokenId);
-        rsl.pendingBalances[pendingBalanceKey] += vaultAmt;
+        rsl.addPendingBalance(toAddr, tokenId, vaultAmt);
 
         // treasury
         toAddr = ppsl.getTreasuryAddr();
         Utils.notZeroAddr(toAddr);
         uint256 treasuryAmt = l1Amt - insuranceAmt - vaultAmt;
-        pendingBalanceKey = RollupLib.calcPendingBalanceKey(toAddr, withdrawFee.tokenId);
-        rsl.pendingBalances[pendingBalanceKey] += treasuryAmt;
+        rsl.addPendingBalance(toAddr, tokenId, treasuryAmt);
     }
 
     /// @notice Internal function to evacuate token to L1
