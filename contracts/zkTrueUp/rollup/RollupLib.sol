@@ -71,9 +71,9 @@ library RollupLib {
         s.pendingBalances[key] += l1Amt;
     }
 
-    /// @notice Update pending balance and emit Withdraw event
+    /// @notice Remove the pending balance of the specified address and token id
     /// @param s The rollup storage
-    /// @param receiver The address of the receiver
+    /// @param receiver The address to be removed
     /// @param tokenId The token id on layer2
     /// @param amount The amount of the token
     function removePendingBalance(
