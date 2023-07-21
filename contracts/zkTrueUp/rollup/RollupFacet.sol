@@ -170,6 +170,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
+        //! new
+        // the last executed L1 req == the total L1 req (end of consume),
+        // or the last commit L1 req is evacuation (someone already evacuated)
+        uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
+        require(
+            rsl.getExecutedL1RequestNum() == totalL1RequestNum ||
+                rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION,
+            "Not end of consume or someone already evacuated"
+        );
+
         if (rsl.getStoredBlockHash(rsl.getExecutedBlockNum()) != keccak256(abi.encode(lastExecutedBlock)))
             revert InvalidLastExecutedBlock(lastExecutedBlock);
         if (newBlock.timestamp < lastExecutedBlock.timestamp)
@@ -219,7 +229,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         // the last L1 request cannot be evacuation
         require(
             rsl.getL1Request(rsl.getTotalL1RequestNum()).opType != Operations.OpType.EVACUATION,
-            "Evacuate: L1 request is not executed"
+            "the last L1 request cannot be evacuation"
         );
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
@@ -232,7 +242,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             ++executedL1RequestNum;
             Request memory request = rsl.getL1Request(executedL1RequestNum);
             bytes32 hashedPubData = keccak256(pubData);
-            if (request.hashedPubData != hashedPubData) revert InvalidConsumedPubData(pubData);
+            if (request.hashedPubData != hashedPubData) revert InvalidConsumedPubData(executedL1RequestNum, pubData);
 
             Operations.OpType opType = Operations.OpType(uint8(pubData[0]));
             if (opType > type(Operations.OpType).max) revert InvalidOpType(opType);
@@ -248,6 +258,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (executedL1RequestNum > rsl.getCommittedL1RequestNum()) rsl.committedL1RequestNum = executedL1RequestNum;
         rsl.executedL1RequestNum = executedL1RequestNum;
     }
+
+    function restore() external onlyRole(Config.ADMIN_ROLE) {}
 
     /* ============ External View Functions ============ */
 

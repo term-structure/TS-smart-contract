@@ -61,7 +61,7 @@ interface IRollupFacet {
 
     error ConsumedRequestNumExceedTotalNum(uint256 consumedRequestNum);
 
-    error InvalidConsumedPubData(bytes pubData);
+    error InvalidConsumedPubData(uint64 l1RequestNum, bytes pubData);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
