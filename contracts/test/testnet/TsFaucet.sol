@@ -72,6 +72,7 @@ contract TsFaucet is Ownable {
     }
 
     function batchFreeMint() external {
+        require(_isFreeMint, "Not free mint now");
         for (uint256 i; i < TS_ERC20_NUMBERS; i++) {
             uint8 decimals = TsERC20(tsERC20s[i]).decimals();
             uint256 amount = MINT_AMOUNT * (10 ** decimals);
