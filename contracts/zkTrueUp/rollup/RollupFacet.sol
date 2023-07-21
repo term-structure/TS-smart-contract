@@ -176,7 +176,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         // Commit the new block
         bytes memory publicData = newBlock.publicData;
-        if (publicData.length % Config.CHUNK_BYTES != 0) revert InvalidPubDataLength(publicData.length);
+        if (publicData.length != Config.EVACUATION_BYTES) revert InvalidPubDataLength(publicData.length);
 
         bytes memory commitmentOffset = new bytes(1);
         commitmentOffset[0] = 0x80; // 0b10000000
@@ -316,17 +316,17 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (newBlock.blockNumber != previousBlock.blockNumber + 1) revert InvalidBlockNum(newBlock.blockNumber);
 
         uint256 publicDataLength = newBlock.publicData.length;
-        if (publicDataLength % Config.CHUNK_BYTES != 0) revert InvalidPubDataLength(publicDataLength);
+        if (publicDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(publicDataLength);
 
         uint256 chunkId;
         uint64 requestId = committedL1RequestNum;
         bytes32 processableRollupTxHash = Config.EMPTY_STRING_KECCAK;
         // The commitment offset array is used to store the commitment offset for each chunk
-        bytes memory commitmentOffset = new bytes(publicDataLength / Config.CHUNK_BYTES / Config.BITS_OF_BYTE);
+        bytes memory commitmentOffset = new bytes(publicDataLength / Config.BITS_OF_CHUNK);
 
         for (uint256 i; i < newBlock.chunkIdDeltas.length; ++i) {
             chunkId += newBlock.chunkIdDeltas[i];
-            uint256 offset = chunkId * Config.CHUNK_BYTES;
+            uint256 offset = chunkId * Config.BYTES_OF_CHUNK;
             if (offset >= publicDataLength) revert OffsetGtPubDataLength(offset);
 
             commitmentOffset = _updateCommitmentOffsetForChunk(commitmentOffset, chunkId);

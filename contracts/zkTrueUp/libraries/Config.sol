@@ -50,31 +50,34 @@ library Config {
     bytes32 internal constant EMPTY_STRING_KECCAK = keccak256("");
 
     /// @notice The bytes lengths of a chunk
-    uint8 internal constant CHUNK_BYTES = 12;
+    uint8 internal constant BYTES_OF_CHUNK = 12;
+
+    /// @notice The bits lengths of a chunk
+    uint8 internal constant BITS_OF_CHUNK = BYTES_OF_CHUNK * BITS_OF_BYTE;
 
     /// @notice The bytes lengths of register request
-    uint256 internal constant REGISTER_BYTES = 4 * CHUNK_BYTES;
+    uint256 internal constant REGISTER_BYTES = 4 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of deposit request
-    uint256 internal constant DEPOSIT_BYTES = 2 * CHUNK_BYTES;
+    uint256 internal constant DEPOSIT_BYTES = 2 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of withdraw request
-    uint256 internal constant WITHDRAW_BYTES = 2 * CHUNK_BYTES;
+    uint256 internal constant WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of force withdraw request
-    uint256 internal constant FORCE_WITHDRAW_BYTES = 2 * CHUNK_BYTES;
+    uint256 internal constant FORCE_WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of auctionEnd request
-    uint256 internal constant AUCTION_END_BYTES = 4 * CHUNK_BYTES;
+    uint256 internal constant AUCTION_END_BYTES = 4 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of CreateTsbToken request
-    uint256 internal constant CREATE_TSB_TOKEN_BYTES = 1 * CHUNK_BYTES;
+    uint256 internal constant CREATE_TSB_TOKEN_BYTES = 1 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of WithdrawFee request
-    uint256 internal constant WITHDRAW_FEE_BYTES = 2 * CHUNK_BYTES;
+    uint256 internal constant WITHDRAW_FEE_BYTES = 2 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of Evacuation request
-    uint256 internal constant EVACUATION_BYTES = 2 * CHUNK_BYTES;
+    uint256 internal constant EVACUATION_BYTES = 2 * BYTES_OF_CHUNK;
 
     /// @notice The field modulus of bn254
     uint256 internal constant SCALAR_FIELD_SIZE =

@@ -4,7 +4,7 @@ import fs from "fs";
 import { resolve } from "path";
 import {
   AUCTION_END_BYTES,
-  CHUNK_BYTES,
+  BYTES_OF_CHUNK,
   DEFAULT_ZERO_ADDR,
   ETH_ASSET_CONFIG,
   FORCE_WITHDRAW_BYTES,
@@ -475,7 +475,7 @@ export function getPendingRollupTxHash(commitmentData: any) {
     chunkLen
   );
   for (let i = 0; i < criticalChunks.length; i++) {
-    const startFlag = 2 + 2 * CHUNK_BYTES * criticalChunks[i];
+    const startFlag = 2 + 2 * BYTES_OF_CHUNK * criticalChunks[i];
     const opType = Number(
       "0x" + commitmentData.o_chunk.slice(startFlag, startFlag + 2 * NOOP_BYTES)
     ).toString() as TsTxType;
@@ -611,8 +611,8 @@ export function getRollupTxPubData(testCase: any) {
     const opType = Number(testCase.requests.reqData[i][0]);
     pubData =
       "0x" +
-      oChunk.slice(offset, offset + 2 * bytesOfReq[opType] * CHUNK_BYTES);
-    offset += 2 * bytesOfReq[opType] * CHUNK_BYTES;
+      oChunk.slice(offset, offset + 2 * bytesOfReq[opType] * BYTES_OF_CHUNK);
+    offset += 2 * bytesOfReq[opType] * BYTES_OF_CHUNK;
     rollupTxPubData.push(pubData);
   }
   return rollupTxPubData;
@@ -621,7 +621,7 @@ export function getRollupTxPubData(testCase: any) {
 export function getPendingRollupTxPubData(testCase: any) {
   const pendingRollupTxPubdata = [];
   const chunkLen =
-    (testCase.commitmentData.o_chunk.length - 2) / 2 / CHUNK_BYTES;
+    (testCase.commitmentData.o_chunk.length - 2) / 2 / BYTES_OF_CHUNK;
   const criticalChunks = getCriticalChunks(
     testCase.commitmentData.isCriticalChunk,
     chunkLen
@@ -630,8 +630,8 @@ export function getPendingRollupTxPubData(testCase: any) {
     const opType = Number(
       "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2
         )
     );
     let pubdata;
@@ -639,32 +639,32 @@ export function getPendingRollupTxPubData(testCase: any) {
       pubdata =
         "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * FORCE_WITHDRAW_BYTES
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * FORCE_WITHDRAW_BYTES
         );
       pendingRollupTxPubdata.push(pubdata);
     } else if (opType == Number(TsTxType.WITHDRAW)) {
       pubdata =
         "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * WITHDRAW_BYTES
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * WITHDRAW_BYTES
         );
       pendingRollupTxPubdata.push(pubdata);
     } else if (opType == Number(TsTxType.AUCTION_END)) {
       pubdata =
         "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * AUCTION_END_BYTES
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * AUCTION_END_BYTES
         );
       pendingRollupTxPubdata.push(pubdata);
     } else if (opType == Number(TsTxType.WITHDRAW_FEE)) {
       pubdata =
         "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * WITHDRAW_FEE_BYTES
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * WITHDRAW_FEE_BYTES
         );
       pendingRollupTxPubdata.push(pubdata);
     }
@@ -765,7 +765,7 @@ export function getPubDataOffset(isCriticalChunk: BytesLike) {
   const pubDataOffset = [];
   for (let i = 0; i < isCriticalChunk.length; i++) {
     if (isCriticalChunk[i] == "1") {
-      pubDataOffset.push((Math.floor(i / 2) - 1) * CHUNK_BYTES);
+      pubDataOffset.push((Math.floor(i / 2) - 1) * BYTES_OF_CHUNK);
     }
   }
   return pubDataOffset;
