@@ -60,11 +60,11 @@ library TsbLib {
         return s.tsbTokens[tsbTokenKey];
     }
 
-    /// @notice Internal function to get token key of the tsbToken
+    /// @notice Internal function to calcuate the key of the tsbToken
     /// @param underlyingTokenId The token id of the underlying asset
     /// @param maturityTime The maturity time of the tsbToken
     /// @return tsbTokenKey The key of the tsbTokens
-    function getTsbTokenKey(uint16 underlyingTokenId, uint32 maturityTime) internal pure returns (uint48) {
+    function calcTsbTokenKey(uint16 underlyingTokenId, uint32 maturityTime) internal pure returns (uint48) {
         return (uint48(underlyingTokenId) << 32) | maturityTime;
     }
 }
