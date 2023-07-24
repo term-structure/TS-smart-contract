@@ -73,16 +73,16 @@ library RollupLib {
 
     /// @notice Remove the pending balance of the specified address and token id
     /// @param s The rollup storage
-    /// @param receiver The address to be removed
+    /// @param addr The address to be removed
     /// @param tokenId The token id on layer2
     /// @param amount The amount of the token
     function removePendingBalance(
         RollupStorage.Layout storage s,
-        address receiver,
+        address addr,
         uint16 tokenId,
         uint256 amount
     ) internal {
-        bytes22 key = calcPendingBalanceKey(receiver, tokenId);
+        bytes22 key = calcPendingBalanceKey(addr, tokenId);
         uint256 pendingBalance = s.getPendingBalances(key);
         if (pendingBalance < amount) revert InsufficientPendingBalances(pendingBalance, amount);
         unchecked {

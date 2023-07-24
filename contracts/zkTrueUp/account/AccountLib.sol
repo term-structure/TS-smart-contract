@@ -138,21 +138,21 @@ library AccountLib {
 
     /// @notice Internal function to update withdraw record
     /// @param rsl The rollup storage layout
-    /// @param sender The address of the account on Layer1
+    /// @param addr The address of the account on Layer1
     /// @param accountId The user account id in Layer2
     /// @param token The token to be withdrawn
     /// @param tokenId The token id of the withdraw token
     /// @param amount The withdraw amount
     function updateWithdrawalRecord(
         RollupStorage.Layout storage rsl,
-        address sender,
+        address addr,
         uint32 accountId,
         IERC20 token,
         uint16 tokenId,
         uint256 amount
     ) internal {
-        rsl.removePendingBalance(sender, tokenId, amount);
-        emit Withdrawal(sender, accountId, token, tokenId, amount);
+        rsl.removePendingBalance(addr, tokenId, amount);
+        emit Withdrawal(addr, accountId, token, tokenId, amount);
     }
 
     /// @notice Internal function to get the valid account id
