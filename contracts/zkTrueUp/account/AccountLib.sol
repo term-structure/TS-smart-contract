@@ -67,13 +67,13 @@ library AccountLib {
     );
 
     /// @notice Internal function to add register request
-    /// @param s The rollup storage layout
+    /// @param rsl The rollup storage layout
     /// @param sender The address of the account on Layer1
     /// @param accountId The user account id in Layer2
     /// @param tsPubKeyX The x coordinate of the public key of the account
     /// @param tsPubKeyY The y coordinate of the public key of the account
     function addRegisterReq(
-        RollupStorage.Layout storage s,
+        RollupStorage.Layout storage rsl,
         address sender,
         uint32 accountId,
         uint256 tsPubKeyX,
@@ -83,12 +83,12 @@ library AccountLib {
         bytes20 tsAddr = bytes20(uint160(asl.getPoseidonUnit2().poseidon([tsPubKeyX, tsPubKeyY])));
         Operations.Register memory op = Operations.Register({accountId: accountId, tsAddr: tsAddr});
         bytes memory pubData = Operations.encodeRegisterPubData(op);
-        s.addL1Request(sender, Operations.OpType.REGISTER, pubData);
+        rsl.addL1Request(sender, Operations.OpType.REGISTER, pubData);
         emit Registration(sender, accountId, tsPubKeyX, tsPubKeyY, tsAddr);
     }
 
     /// @notice Internal function to add deposit request
-    /// @param s The rollup storage layout
+    /// @param rsl The rollup storage layout
     /// @param to The address of the account on Layer1
     /// @param accountId The user account id in Layer2
     /// @param token The token to be deposited
@@ -96,7 +96,7 @@ library AccountLib {
     /// @param decimals The decimals of the deposit token
     /// @param amount The deposit amount
     function addDepositReq(
-        RollupStorage.Layout storage s,
+        RollupStorage.Layout storage rsl,
         address to,
         uint32 accountId,
         IERC20 token,
@@ -107,18 +107,18 @@ library AccountLib {
         uint128 l2Amt = amount.toL2Amt(decimals);
         Operations.Deposit memory op = Operations.Deposit({accountId: accountId, tokenId: tokenId, amount: l2Amt});
         bytes memory pubData = Operations.encodeDepositPubData(op);
-        s.addL1Request(to, Operations.OpType.DEPOSIT, pubData);
+        rsl.addL1Request(to, Operations.OpType.DEPOSIT, pubData);
         emit Deposit(to, accountId, token, tokenId, amount);
     }
 
     /// @notice Internal function to add force withdraw request
-    /// @param s The rollup storage layout
+    /// @param rsl The rollup storage layout
     /// @param sender The address of the account on Layer1
     /// @param accountId The user account id in Layer2
     /// @param token The token to be withdrawn
     /// @param tokenId The token id of the force withdraw token
     function addForceWithdrawReq(
-        RollupStorage.Layout storage s,
+        RollupStorage.Layout storage rsl,
         address sender,
         uint32 accountId,
         IERC20 token,
@@ -132,26 +132,26 @@ library AccountLib {
             amount: uint128(0)
         });
         bytes memory pubData = Operations.encodeForceWithdrawPubData(op);
-        s.addL1Request(sender, Operations.OpType.FORCE_WITHDRAW, pubData);
+        rsl.addL1Request(sender, Operations.OpType.FORCE_WITHDRAW, pubData);
         emit ForceWithdrawal(sender, accountId, token, tokenId);
     }
 
     /// @notice Internal function to update withdraw record
-    /// @param s The rollup storage layout
+    /// @param rsl The rollup storage layout
     /// @param sender The address of the account on Layer1
     /// @param accountId The user account id in Layer2
     /// @param token The token to be withdrawn
     /// @param tokenId The token id of the withdraw token
     /// @param amount The withdraw amount
     function updateWithdrawalRecord(
-        RollupStorage.Layout storage s,
+        RollupStorage.Layout storage rsl,
         address sender,
         uint32 accountId,
         IERC20 token,
         uint16 tokenId,
         uint256 amount
     ) internal {
-        s.removePendingBalance(sender, tokenId, amount);
+        rsl.removePendingBalance(sender, tokenId, amount);
         emit Withdrawal(sender, accountId, token, tokenId, amount);
     }
 

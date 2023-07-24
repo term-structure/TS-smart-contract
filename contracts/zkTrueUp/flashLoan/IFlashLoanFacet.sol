@@ -18,7 +18,7 @@ interface IFlashLoanFacet {
     /// @notice Emitted when the flash loan is executed
     /// @param sender The address of the sender
     /// @param receiver The address of the receiver
-    /// @param asset The assets of the flash loan
+    /// @param asset The asset of the flash loan
     /// @param amount The amount of the asset
     /// @param premium The premium of the flash loan
     event FlashLoan(

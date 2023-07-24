@@ -16,7 +16,7 @@ library Config {
 
     /// @notice The health factor threshold
     /// @dev Constant value 1, and the decimals is 3
-    /// @dev If health factor < HEALTH_FACTOR_THRESHOLD, the loan is liquidatable
+    /// @dev If health factor < HEALTH_FACTOR_THRESHOLD, the loan is liquidable
     uint16 internal constant HEALTH_FACTOR_THRESHOLD = 1000;
 
     /// @notice The base of LTV ratio
