@@ -95,8 +95,8 @@ export const main = async () => {
   // add ETH as base token
   baseTokenAddresses[TsTokenId.ETH] = DEFAULT_ETH_ADDRESS;
   baseTokenAddresses[TsTokenId.WBTC] = await tsFaucet.tsERC20s(1);
-  baseTokenAddresses[TsTokenId.USDC] = await tsFaucet.tsERC20s(2);
-  baseTokenAddresses[TsTokenId.USDT] = await tsFaucet.tsERC20s(3);
+  baseTokenAddresses[TsTokenId.USDT] = await tsFaucet.tsERC20s(2);
+  baseTokenAddresses[TsTokenId.USDC] = await tsFaucet.tsERC20s(3);
   baseTokenAddresses[TsTokenId.DAI] = await tsFaucet.tsERC20s(4);
 
   // deploy oracle mock
