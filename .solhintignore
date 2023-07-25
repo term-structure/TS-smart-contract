@@ -7,8 +7,7 @@ docs
 node_modules
 scripts
 typechain-types
-contracts/zkTrueUp/libraries/Verifier.sol
-contracts/zkTrueUp/libraries/EvacuVerifier.sol
+contracts/zkTrueUp/verifier/*
 
 coverage*
 *.js
