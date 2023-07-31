@@ -24,8 +24,14 @@ import {InitialConfig} from "../libraries/InitialConfig.sol";
  * @notice This contract is used to initialize the Term Structure Protocol
  */
 contract ZkTrueUpInit is Ownable, AccessControlInternal {
+    // error for initialized again
     error AlreadyInitialized();
 
+    /**
+     * @notice Initialize function for the Term Structure Protocol
+     * @dev This function is called only once when the protocol is deployed
+     * @param data The encoded data for the initializer
+     */
     function init(bytes calldata data) external {
         (
             address wETHAddr,
