@@ -53,14 +53,15 @@ library Bytes {
     /// @param start The start index of the withdraw data
     /// @return data The withdraw data
     function sliceWithdrawData(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
-        uint256 bytesLength = Config.WITHDRAW_BYTES; // 24 bytes
+        uint256 bytesLength = Config.WITHDRAW_BYTES; // 36 bytes
         _validSliceLength(pubData.length, start, bytesLength);
         bytes memory data = new bytes(bytesLength);
         assembly {
             let slice_curr := add(data, 0x20)
             let array_curr := add(pubData, add(start, 0x20))
-            // mstore 1 times for 24 bytes
+            // mstore 2 times for 36 bytes
             mstore(slice_curr, mload(array_curr))
+            mstore(add(slice_curr, 0x20), mload(add(array_curr, 0x20)))
         }
         return data;
     }
