@@ -191,7 +191,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (publicData.length != Config.EVACUATION_BYTES) revert InvalidPubDataLength(publicData.length);
 
         bytes memory commitmentOffset = new bytes(1);
-        commitmentOffset[0] = 0x80; // 0b10000000
+        commitmentOffset[0] = 0x80; // 0x80 = 0b10000000, the first bit (critical chunk flag) is 1
 
         bytes32 commitment = _createBlockCommitment(lastExecutedBlock, newBlock, commitmentOffset);
 
@@ -214,6 +214,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint32 expirationTime = rsl.getL1Request(rsl.getExecutedL1RequestNum()).expirationTime;
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
+            // ! new
+            // commitedBlockNum = executedBlockNum
+            // verifiedBlockNum = executedBlockNum
+            // commitedL1RequestNum = executedL1RequestNum
             rsl.evacuMode = true;
             emit EvacuationActivation();
         } else {
@@ -255,7 +259,57 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 // do nothing, others L1 requests are not related to the balance changes
             }
         }
-        if (executedL1RequestNum > rsl.getCommittedL1RequestNum()) rsl.committedL1RequestNum = executedL1RequestNum;
+        // ! new
+        // if (executedL1RequestNum > rsl.getCommittedL1RequestNum()) rsl.committedL1RequestNum = executedL1RequestNum;
+        rsl.executedL1RequestNum = executedL1RequestNum;
+        rsl.committedL1RequestNum = executedL1RequestNum;
+    }
+
+    function commitEvacuBlocks(CommitBlock[] memory evacuBlocks) external onlyRole(Config.COMMITTER_ROLE) {
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        rsl.requireEvacuMode();
+        //TODO cannot commit request which is not evacuation
+        // optype != evacuation revert
+        // every chunkIdDeltas == 2 (EVACUATION_BYTES)
+    }
+
+    function executeEvacuBlocks(ExecuteBlock[] memory evacuBlocks) external onlyRole(Config.EXECUTER_ROLE) {
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        rsl.requireEvacuMode();
+
+        uint32 executedBlockNum = rsl.getExecutedBlockNum();
+        if (executedBlockNum + evacuBlocks.length > rsl.getVerifiedBlockNum())
+            revert ExecutedBlockNumExceedProvedNum(executedBlockNum);
+
+        uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
+        for (uint32 i; i < evacuBlocks.length; ++i) {
+            ExecuteBlock memory evacuBlock = evacuBlocks[i];
+            if (
+                keccak256(abi.encode(evacuBlock.storedBlock)) !=
+                rsl.getStoredBlockHash(evacuBlock.storedBlock.blockNumber)
+            ) revert InvalidExecutedBlock(evacuBlock);
+
+            ++executedBlockNum;
+            if (evacuBlock.storedBlock.blockNumber != executedBlockNum)
+                revert InvalidExecutedBlockNum(evacuBlock.storedBlock.blockNumber);
+
+            // _executeOneBlock(rsl, evacuBlock);
+            bytes32 pendingRollupTxHash = Config.EMPTY_STRING_KECCAK;
+            bytes memory pubData = evacuBlock.pendingRollupTxPubData[i];
+            Operations.OpType opType = Operations.OpType(uint8(pubData[0]));
+            if (opType != Operations.OpType.EVACUATION) revert InvalidOpType(opType);
+
+            Operations.Evacuation memory evacuation = pubData.readEvacuationPubdata();
+            rsl.evacuated[evacuation.accountId][evacuation.tokenId] = false;
+
+            pendingRollupTxHash = keccak256(abi.encode(pendingRollupTxHash, pubData));
+            if (pendingRollupTxHash != evacuBlock.storedBlock.pendingRollupTxHash)
+                revert PendingRollupTxHashIsNotMatched(pendingRollupTxHash, evacuBlock.storedBlock.pendingRollupTxHash);
+
+            executedL1RequestNum += evacuBlock.storedBlock.l1RequestNum;
+            emit BlockExecution(evacuBlock.storedBlock.blockNumber);
+        }
+        rsl.executedBlockNum = executedBlockNum;
         rsl.executedL1RequestNum = executedL1RequestNum;
     }
 
