@@ -24,6 +24,8 @@ import {InitialConfig} from "../libraries/InitialConfig.sol";
  * @notice This contract is used to initialize the Term Structure Protocol
  */
 contract ZkTrueUpInit is Ownable, AccessControlInternal {
+    error AlreadyInitialized();
+
     function init(bytes calldata data) external {
         (
             address wETHAddr,
@@ -43,6 +45,8 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
             );
 
         // set roles
+        if (_hasRole(Config.ADMIN_ROLE, msg.sender)) revert AlreadyInitialized();
+
         AccessControlInternal._setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
         AccessControlInternal._grantRole(Config.ADMIN_ROLE, adminAddr);
         AccessControlInternal._grantRole(Config.OPERATOR_ROLE, operatorAddr);
