@@ -62,7 +62,7 @@ library Config {
     uint256 internal constant DEPOSIT_BYTES = 2 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of withdraw request
-    uint256 internal constant WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
+    uint256 internal constant WITHDRAW_BYTES = 3 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of force withdraw request
     uint256 internal constant FORCE_WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
