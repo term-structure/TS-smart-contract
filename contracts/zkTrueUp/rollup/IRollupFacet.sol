@@ -58,10 +58,12 @@ interface IRollupFacet {
     error TimeStampIsNotExpired(uint256 curtimestamp, uint256 expirationTime);
     /// @notice Error for underlyingAsset token and base token is not matched
     error TokenIsNotMatched(IERC20 underlyingAsset, IERC20 baseToken);
-
+    /// @notice Error for consumed request number exceed total request number
     error ConsumedRequestNumExceedTotalNum(uint256 consumedRequestNum);
-
+    /// @notice Error for invalid consumed public data mismatch the data in the request queue
     error InvalidConsumedPubData(uint64 l1RequestNum, bytes pubData);
+    /// @notice Error for invalid chunk id delta when commit evacublock in evacuation mode
+    error InvalidChunkIdDelta(uint256 chunkIdDelta);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
@@ -94,8 +96,11 @@ interface IRollupFacet {
         uint256 amount
     );
 
-    /// @notice Emitted when evacuation is activated
-    event EvacuationActivation();
+    /// @notice Emitted when evacuation mode is activated
+    event EvacuModeActivation();
+
+    /// @notice Emitted when evacuation mode is deactivated
+    event EvacuModeDeactivation();
 
     /// @notice Emit when there is a new loan created
     /// @param loanId The id of the loan

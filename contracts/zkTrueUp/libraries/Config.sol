@@ -55,29 +55,53 @@ library Config {
     /// @notice The bits lengths of a chunk
     uint8 internal constant BITS_OF_CHUNK = BYTES_OF_CHUNK * BITS_OF_BYTE;
 
+    /// @notice The chunk size of a register request
+    uint256 internal constant REGISTER_CHUNK_SIZE = 4;
+
     /// @notice The bytes lengths of register request
-    uint256 internal constant REGISTER_BYTES = 4 * BYTES_OF_CHUNK;
+    uint256 internal constant REGISTER_BYTES = REGISTER_CHUNK_SIZE * BYTES_OF_CHUNK;
+
+    /// @notice The chunk size of a deposit request
+    uint256 internal constant DEPOSIT_CHUNK_SIZE = 2;
 
     /// @notice The bytes lengths of deposit request
-    uint256 internal constant DEPOSIT_BYTES = 2 * BYTES_OF_CHUNK;
+    uint256 internal constant DEPOSIT_BYTES = DEPOSIT_CHUNK_SIZE * BYTES_OF_CHUNK;
+
+    /// @notice The chunk size of a withdraw request
+    uint256 internal constant WITHDRAW_CHUNK_SIZE = 2;
 
     /// @notice The bytes lengths of withdraw request
-    uint256 internal constant WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
+    uint256 internal constant WITHDRAW_BYTES = WITHDRAW_CHUNK_SIZE * BYTES_OF_CHUNK;
+
+    /// @notice The chunk size of a force withdraw request
+    uint256 internal constant FORCE_WITHDRAW_CHUNK_SIZE = 2;
 
     /// @notice The bytes lengths of force withdraw request
-    uint256 internal constant FORCE_WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
+    uint256 internal constant FORCE_WITHDRAW_BYTES = FORCE_WITHDRAW_CHUNK_SIZE * BYTES_OF_CHUNK;
+
+    /// @notice The chunk size of an auction end request
+    uint256 internal constant AUCTION_END_CHUNK_SIZE = 4;
 
     /// @notice The bytes lengths of auctionEnd request
-    uint256 internal constant AUCTION_END_BYTES = 4 * BYTES_OF_CHUNK;
+    uint256 internal constant AUCTION_END_BYTES = AUCTION_END_CHUNK_SIZE * BYTES_OF_CHUNK;
+
+    /// @notice The chunk size of a create tsb token request
+    uint256 internal constant CREATE_TSB_TOKEN_CHUNK_SIZE = 1;
 
     /// @notice The bytes lengths of CreateTsbToken request
-    uint256 internal constant CREATE_TSB_TOKEN_BYTES = 1 * BYTES_OF_CHUNK;
+    uint256 internal constant CREATE_TSB_TOKEN_BYTES = CREATE_TSB_TOKEN_CHUNK_SIZE * BYTES_OF_CHUNK;
+
+    /// @notice The chunk size of a withdraw fee request
+    uint256 internal constant WITHDRAW_FEE_CHUNK_SIZE = 2;
 
     /// @notice The bytes lengths of WithdrawFee request
-    uint256 internal constant WITHDRAW_FEE_BYTES = 2 * BYTES_OF_CHUNK;
+    uint256 internal constant WITHDRAW_FEE_BYTES = WITHDRAW_FEE_CHUNK_SIZE * BYTES_OF_CHUNK;
+
+    /// @notice The chunk size of a evacuation request
+    uint256 internal constant EVACUATION_CHUNK_SIZE = 1;
 
     /// @notice The bytes lengths of Evacuation request
-    uint256 internal constant EVACUATION_BYTES = 2 * BYTES_OF_CHUNK;
+    uint256 internal constant EVACUATION_BYTES = EVACUATION_CHUNK_SIZE * BYTES_OF_CHUNK;
 
     /// @notice The field modulus of bn254
     uint256 internal constant SCALAR_FIELD_SIZE =
