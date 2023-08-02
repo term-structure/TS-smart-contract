@@ -98,7 +98,7 @@ library Config {
     uint256 internal constant WITHDRAW_FEE_BYTES = WITHDRAW_FEE_CHUNK_SIZE * BYTES_OF_CHUNK;
 
     /// @notice The chunk size of a evacuation request
-    uint256 internal constant EVACUATION_CHUNK_SIZE = 1;
+    uint256 internal constant EVACUATION_CHUNK_SIZE = 2;
 
     /// @notice The bytes lengths of Evacuation request
     uint256 internal constant EVACUATION_BYTES = EVACUATION_CHUNK_SIZE * BYTES_OF_CHUNK;

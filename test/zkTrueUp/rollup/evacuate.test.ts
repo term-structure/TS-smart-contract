@@ -13,7 +13,9 @@ import {
   DEFAULT_ETH_ADDRESS,
   EMPTY_HASH,
   MIN_DEPOSIT_AMOUNT,
+  TS_BASE_TOKEN,
   TS_SYSTEM_DECIMALS,
+  TsTokenId,
   TsTxType,
 } from "term-structure-sdk";
 import {
@@ -49,6 +51,7 @@ import {
   StoredBlockStruct,
   VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
+import { toL2Amt } from "../../utils/amountConvertor";
 
 const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-32");
 const evacuationDataPath = resolve(
@@ -318,6 +321,43 @@ describe("Evacuate", function () {
     await diamondRollup.activateEvacuation();
     expect(await diamondRollup.isEvacuMode()).to.equal(true);
 
+    // before consume l1 request
+    const [
+      oldCommittedL1RequestNum,
+      oldExecutedL1RequestNum,
+      oldTotalL1RequestNum,
+    ] = await diamondRollup.getL1RequestNum();
+
+    // collect deposit request public data
+    const user1AccountId = await diamondAcc.getAccountId(user1Addr);
+    const l2Amt = toL2Amt(amount, TS_BASE_TOKEN.ETH);
+    const depositPubData = utils.solidityPack(
+      ["uint8", "uint32", "uint16", "uint128"],
+      [
+        BigNumber.from(TsTxType.DEPOSIT),
+        BigNumber.from(user1AccountId),
+        BigNumber.from(TsTokenId.ETH),
+        l2Amt,
+      ]
+    );
+    const depositPubDataBytes = utils.hexlify(depositPubData);
+
+    // consume l1 request
+    await diamondRollup.consumeL1RequestInEvacuMode([depositPubDataBytes]);
+
+    // after consume l1 request
+    const [
+      newCommittedL1RequestNum,
+      newExecutedL1RequestNum,
+      newTotalL1RequestNum,
+    ] = await diamondRollup.getL1RequestNum();
+
+    // check committed and executed request number
+    expect(newCommittedL1RequestNum.sub(oldCommittedL1RequestNum)).to.be.eq(1);
+    expect(newExecutedL1RequestNum.sub(oldExecutedL1RequestNum)).to.be.eq(1);
+    expect(newCommittedL1RequestNum).to.equal(newExecutedL1RequestNum);
+    expect(oldTotalL1RequestNum).to.equal(newTotalL1RequestNum);
+
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const commitBlock = getCommitBlock(
@@ -334,6 +374,7 @@ describe("Evacuate", function () {
     const token = await ethers.getContractAt("IERC20", tokenAddr);
     const oriBalance = await token.balanceOf(accountAddr);
 
+    // evacuate
     await diamondRollup.evacuate(lastExecutedBlock, commitBlock, proof);
 
     const newBalance = await token.balanceOf(accountAddr);

@@ -267,7 +267,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         bytes memory pubData;
         for (uint32 i; i < consumedTxPubData.length; ++i) {
             pubData = consumedTxPubData[i];
-            ++executedL1RequestNum;
             Request memory request = rsl.getL1Request(executedL1RequestNum);
             bytes32 hashedPubData = keccak256(pubData);
             if (request.hashedPubData != hashedPubData) revert InvalidConsumedPubData(executedL1RequestNum, pubData);
@@ -282,9 +281,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             } else {
                 // do nothing, others L1 requests are not related to the balance changes
             }
+            ++executedL1RequestNum;
         }
         // ! new
-        // if (executedL1RequestNum > rsl.getCommittedL1RequestNum()) rsl.committedL1RequestNum = executedL1RequestNum;
         rsl.committedL1RequestNum = executedL1RequestNum;
         rsl.executedL1RequestNum = executedL1RequestNum;
     }
