@@ -64,6 +64,10 @@ interface IRollupFacet {
     error InvalidConsumedPubData(uint64 l1RequestNum, bytes pubData);
     /// @notice Error for invalid chunk id delta when commit evacublock in evacuation mode
     error InvalidChunkIdDelta(uint256 chunkIdDelta);
+    /// @notice Error for evacuate but haven't consumed all L1 requests
+    error NotConsumedAllL1Requests(uint64 executedL1RequestNum, uint64 totalL1RequestNum);
+    /// @notice Error for consume L1 request but the request is evacuation (already consumed all L1 requests)
+    error LastL1RequestIsEvacuation(uint64 totalL1RequestNum);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block

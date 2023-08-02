@@ -126,14 +126,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
 
-        _executeBlocks(rsl, pendingBlocks, false);
+        _executeBlocks(rsl, pendingBlocks);
     }
 
-    function _executeBlocks(
-        RollupStorage.Layout storage rsl,
-        ExecuteBlock[] memory pendingBlocks,
-        bool isEvacuBlocks
-    ) internal {
+    function _executeBlocks(RollupStorage.Layout storage rsl, ExecuteBlock[] memory pendingBlocks) internal {
         uint32 executedBlockNum = rsl.getExecutedBlockNum();
         if (executedBlockNum + pendingBlocks.length > rsl.getVerifiedBlockNum())
             revert ExecutedBlockNumExceedProvedNum(executedBlockNum);
@@ -150,24 +146,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             if (pendingBlock.storedBlock.blockNumber != executedBlockNum)
                 revert InvalidExecutedBlockNum(pendingBlock.storedBlock.blockNumber);
 
-            if (!isEvacuBlocks) {
-                _executeOneBlock(rsl, pendingBlock);
-            } else {
-                bytes32 pendingRollupTxHash = Config.EMPTY_STRING_KECCAK;
-                bytes memory pubData = pendingBlock.pendingRollupTxPubData[i];
-                Operations.OpType opType = Operations.OpType(uint8(pubData[0]));
-                if (opType != Operations.OpType.EVACUATION) revert InvalidOpType(opType);
+            _executeOneBlock(rsl, pendingBlock);
 
-                Operations.Evacuation memory evacuation = pubData.readEvacuationPubdata();
-                rsl.evacuated[evacuation.accountId][evacuation.tokenId] = false;
-
-                pendingRollupTxHash = keccak256(abi.encode(pendingRollupTxHash, pubData));
-                if (pendingRollupTxHash != pendingBlock.storedBlock.pendingRollupTxHash)
-                    revert PendingRollupTxHashIsNotMatched(
-                        pendingRollupTxHash,
-                        pendingBlock.storedBlock.pendingRollupTxHash
-                    );
-            }
             executedL1RequestNum += pendingBlock.storedBlock.l1RequestNum;
             emit BlockExecution(pendingBlock.storedBlock.blockNumber);
         }
@@ -217,12 +197,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         //! new
         // the last executed L1 req == the total L1 req (end of consume),
         // or the last commit L1 req is evacuation (someone already evacuated)
+        uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
-        require(
-            rsl.getExecutedL1RequestNum() == totalL1RequestNum ||
-                rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION,
-            "Not end of consume or someone already evacuated"
-        );
+        if (
+            executedL1RequestNum != totalL1RequestNum &&
+            rsl.getL1Request(totalL1RequestNum).opType != Operations.OpType.EVACUATION
+        ) revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
 
         if (rsl.getStoredBlockHash(rsl.getExecutedBlockNum()) != keccak256(abi.encode(lastExecutedBlock)))
             revert InvalidLastExecutedBlock(lastExecutedBlock);
@@ -259,7 +239,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         uint32 expirationTime = rsl.getL1Request(executedL1RequestNum).expirationTime;
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
-            // ! new
             uint32 executedBlockNum = rsl.getExecutedBlockNum();
             rsl.committedBlockNum = executedBlockNum;
             rsl.verifiedBlockNum = executedBlockNum;
@@ -277,10 +256,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         rsl.requireEvacuMode();
 
         // the last L1 request cannot be evacuation
-        require(
-            rsl.getL1Request(rsl.getTotalL1RequestNum()).opType != Operations.OpType.EVACUATION,
-            "the last L1 request cannot be evacuation"
-        );
+        uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
+        if (rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION)
+            revert LastL1RequestIsEvacuation(totalL1RequestNum);
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         if (executedL1RequestNum + consumedTxPubData.length > rsl.getTotalL1RequestNum())
@@ -334,7 +312,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
-        _executeBlocks(rsl, evacuBlocks, true);
+        _executeBlocks(rsl, evacuBlocks);
 
         if (rsl.getExecutedL1RequestNum() == rsl.getTotalL1RequestNum()) {
             rsl.evacuMode = false;
@@ -436,14 +414,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @param previousBlock The previous block
     /// @param newBlock The new block to be committed
     /// @param committedL1RequestNum The committed L1 request number
-    /// @param isEvacuBlocks Whether the block is evacu blocks
+    /// @param isEvacuBlock Whether the block is evacu block
     /// @return storedBlock The committed block
     function _commitOneBlock(
         RollupStorage.Layout storage rsl,
         StoredBlock memory previousBlock,
         CommitBlock memory newBlock,
         uint64 committedL1RequestNum,
-        bool isEvacuBlocks
+        bool isEvacuBlock
     ) internal view returns (StoredBlock memory) {
         if (newBlock.timestamp < previousBlock.timestamp)
             revert TimestampLtPrevious(newBlock.timestamp, previousBlock.timestamp);
@@ -466,26 +444,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
             commitmentOffset = _updateCommitmentOffsetForChunk(commitmentOffset, chunkId);
 
-            if (!isEvacuBlocks) {
-                (requestId, processableRollupTxHash) = _processOneRequest(
-                    rsl,
-                    newBlock.publicData,
-                    offset,
-                    requestId,
-                    processableRollupTxHash
-                );
-            } else {
-                // To ensure that every chunk length is equal to evacuation chunk length in commit evacuation block
-                if (chunkIdDelta != Config.EVACUATION_CHUNK_SIZE) revert InvalidChunkIdDelta(chunkIdDelta);
+            // To ensure that every chunk length is equal to evacuation chunk length when commit evacuation block
+            if (isEvacuBlock && chunkIdDelta != Config.EVACUATION_CHUNK_SIZE) revert InvalidChunkIdDelta(chunkIdDelta);
 
-                (requestId, processableRollupTxHash) = _processEvacuRequest(
-                    rsl,
-                    newBlock.publicData,
-                    offset,
-                    requestId,
-                    processableRollupTxHash
-                );
-            }
+            (requestId, processableRollupTxHash) = _processOneRequest(
+                rsl,
+                newBlock.publicData,
+                offset,
+                requestId,
+                processableRollupTxHash
+            );
         }
 
         uint64 processedL1RequestNum = requestId - committedL1RequestNum;
@@ -501,28 +469,28 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             });
     }
 
-    function _processEvacuRequest(
-        RollupStorage.Layout storage rsl,
-        bytes memory pubData,
-        uint256 offset,
-        uint64 requestId,
-        bytes32 processableRollupTxHash
-    ) internal view returns (uint64, bytes32) {
-        Operations.OpType opType = Operations.OpType(uint8(pubData[offset]));
-        if (opType != Operations.OpType.EVACUATION) revert InvalidOpType(opType);
+    // function _processEvacuRequest(
+    //     RollupStorage.Layout storage rsl,
+    //     bytes memory pubData,
+    //     uint256 offset,
+    //     uint64 requestId,
+    //     bytes32 processableRollupTxHash
+    // ) internal view returns (uint64, bytes32) {
+    //     Operations.OpType opType = Operations.OpType(uint8(pubData[offset]));
+    //     if (opType != Operations.OpType.EVACUATION) revert InvalidOpType(opType);
 
-        bytes memory data = pubData.sliceEvacuationData(offset);
-        Operations.Evacuation memory evacuation = data.readEvacuationPubdata();
-        Request memory request = rsl.getL1Request(requestId);
-        request.isEvacuationInL1RequestQueue(evacuation);
+    //     bytes memory data = pubData.sliceEvacuationData(offset);
+    //     Operations.Evacuation memory evacuation = data.readEvacuationPubdata();
+    //     Request memory request = rsl.getL1Request(requestId);
+    //     request.isEvacuationInL1RequestQueue(evacuation);
 
-        // Evacuation is L1 request
-        ++requestId;
-        // Evacuation request is to be executed
-        processableRollupTxHash = keccak256(abi.encode(processableRollupTxHash, data));
+    //     // Evacuation is L1 request
+    //     ++requestId;
+    //     // Evacuation request is to be executed
+    //     processableRollupTxHash = keccak256(abi.encode(processableRollupTxHash, data));
 
-        return (requestId, processableRollupTxHash);
-    }
+    //     return (requestId, processableRollupTxHash);
+    // }
 
     /// @notice Internal function to update the commitment offset for the chunk
     /// @param commitmentOffset The commitment offset
@@ -595,6 +563,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 data = pubData.sliceDepositData(offset);
                 Operations.Deposit memory deposit = data.readDepositPubData();
                 request.isDepositInL1RequestQueue(deposit);
+            } else if (opType == Operations.OpType.EVACUATION) {
+                data = pubData.sliceEvacuationData(offset);
+                Operations.Evacuation memory evacuation = data.readEvacuationPubdata();
+                request.isEvacuationInL1RequestQueue(evacuation);
+                isToBeExecuted = true;
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                 data = pubData.sliceForceWithdrawData(offset);
                 Operations.ForceWithdraw memory forceWithdrawReq = data.readForceWithdrawPubData();
