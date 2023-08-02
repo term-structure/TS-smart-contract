@@ -33,6 +33,7 @@ export const main = async () => {
   const treasuryAddr = getString(process.env.GOERLI_TREASURY_ADDRESS);
   const insuranceAddr = getString(process.env.GOERLI_INSURANCE_ADDRESS);
   const vaultAddr = getString(process.env.GOERLI_VAULT_ADDRESS);
+  const faucetOwner = getString(process.env.GOERLI_FAUCET_OWNER_ADDRESS);
 
   console.log(
     "Deploying contracts with deployer:",
@@ -88,6 +89,8 @@ export const main = async () => {
   const TsFaucet = await ethers.getContractFactory("TsFaucet");
   const tsFaucet = await TsFaucet.connect(deployer).deploy(zkTrueUp.address);
   await tsFaucet.deployed();
+  await tsFaucet.connect(deployer).transferOwnership(faucetOwner);
+
   const baseTokenAddresses: BaseTokenAddresses = {};
   const priceFeeds: PriceFeeds = {};
 
