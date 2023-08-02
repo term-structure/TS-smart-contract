@@ -387,6 +387,36 @@ describe("Evacuate", function () {
     expect(newBalance.sub(oriBalance)).to.be.eq(evacuationAmt);
   });
 
+  it("Fail to evacuate, not consumed all L1 requests", async function () {
+    // register
+    const user1 = accounts[1];
+    const user1Addr = await user1.getAddress();
+    const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
+    await weth.connect(user1).approve(zkTrueUp.address, amount);
+    await diamondAcc
+      .connect(user1)
+      .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
+        value: amount,
+      });
+    // expiration period = 14 days
+    await time.increase(time.duration.days(14));
+    await diamondRollup.activateEvacuation();
+
+    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
+    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const commitBlock = getCommitBlock(
+      lastCommittedBlock,
+      evacuationData[0],
+      true
+    );
+    const proof: ProofStruct = evacuationData[0].callData;
+
+    // evacuate
+    await expect(
+      diamondRollup.evacuate(lastExecutedBlock, commitBlock, proof)
+    ).to.be.revertedWithCustomError(diamondRollup, "NotConsumedAllL1Requests");
+  });
+
   it("Failed to evacuate, not in evacu mode", async function () {
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];

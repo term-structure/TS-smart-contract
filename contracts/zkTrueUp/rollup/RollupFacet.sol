@@ -196,7 +196,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         //! new
         // the last executed L1 req == the total L1 req (end of consume),
-        // or the last commit L1 req is evacuation (someone already evacuated)
+        // or the last commit L1 req is evacuation (end of consume and someone already evacuated)
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
         if (
