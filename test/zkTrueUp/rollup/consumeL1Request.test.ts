@@ -71,7 +71,7 @@ const fixture = async () => {
   return res;
 };
 
-describe("Evacuate", function () {
+describe("Consume L1 Request in EvacuMode", function () {
   let storedBlocks: StoredBlockStruct[] = [];
   const genesisBlock: StoredBlockStruct = {
     blockNumber: BigNumber.from("0"),
@@ -226,9 +226,19 @@ describe("Evacuate", function () {
       });
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    expect(await diamondRollup.isEvacuMode()).to.equal(false);
     await diamondRollup.activateEvacuation();
-    expect(await diamondRollup.isEvacuMode()).to.equal(true);
+
+    // before consume l1 request
+    const [
+      oldCommittedL1RequestNum,
+      oldExecutedL1RequestNum,
+      oldTotalL1RequestNum,
+    ] = await diamondRollup.getL1RequestNum();
+    // before user1 pending balance
+    const beforeUser1EthPendingBalance = await diamondRollup.getPendingBalances(
+      user1Addr,
+      DEFAULT_ETH_ADDRESS
+    );
 
     // collect deposit request public data
     const user1AccountId = await diamondAcc.getAccountId(user1Addr);
@@ -247,77 +257,26 @@ describe("Evacuate", function () {
     // consume l1 request
     await diamondRollup.consumeL1RequestInEvacuMode([depositPubDataBytes]);
 
-    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(
-      lastCommittedBlock,
-      evacuationData[0],
-      true
+    // after consume l1 request
+    const [
+      newCommittedL1RequestNum,
+      newExecutedL1RequestNum,
+      newTotalL1RequestNum,
+    ] = await diamondRollup.getL1RequestNum();
+    // after user1 pending balance
+    const afterUser1EthPendingBalance = await diamondRollup.getPendingBalances(
+      user1Addr,
+      DEFAULT_ETH_ADDRESS
     );
-    const evacuation = readEvacuationPubData(commitBlock.publicData.toString());
-    const proof: ProofStruct = evacuationData[0].callData;
 
-    const accountAddr = await diamondAcc.getAccountAddr(evacuation.accountId);
-    const tokenId = Number(evacuation.tokenId);
-    const tokenAddr = baseTokenAddresses[tokenId];
-    const token = await ethers.getContractAt("IERC20", tokenAddr);
-    const oriBalance = await token.balanceOf(accountAddr);
-
-    // evacuate
-    await diamondRollup.evacuate(lastExecutedBlock, commitBlock, proof);
-
-    const newBalance = await token.balanceOf(accountAddr);
-
-    const tokenDecimals = getDecimals(tokenId);
-    const evacuationAmt = BigNumber.from(evacuation.amount)
-      .mul(BigNumber.from(10).pow(BigNumber.from(tokenDecimals)))
-      .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
-
-    expect(newBalance.sub(oriBalance)).to.be.eq(evacuationAmt);
-  });
-
-  it("Fail to evacuate, not consumed all L1 requests", async function () {
-    // register
-    const user1 = accounts[1];
-    const user1Addr = await user1.getAddress();
-    const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await weth.connect(user1).approve(zkTrueUp.address, amount);
-    await diamondAcc
-      .connect(user1)
-      .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
-        value: amount,
-      });
-    // expiration period = 14 days
-    await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
-
-    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(
-      lastCommittedBlock,
-      evacuationData[0],
-      true
-    );
-    const proof: ProofStruct = evacuationData[0].callData;
-
-    // evacuate
-    await expect(
-      diamondRollup.evacuate(lastExecutedBlock, commitBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "NotConsumedAllL1Requests");
-  });
-
-  it("Failed to evacuate, not in evacu mode", async function () {
-    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(
-      lastCommittedBlock,
-      evacuationData[0],
-      true
-    );
-    const proof: ProofStruct = evacuationData[0].callData;
-
-    await expect(
-      diamondRollup.evacuate(lastExecutedBlock, commitBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "NotEvacuMode");
+    // check committed and executed request number
+    expect(newCommittedL1RequestNum.sub(oldCommittedL1RequestNum)).to.be.eq(1);
+    expect(newExecutedL1RequestNum.sub(oldExecutedL1RequestNum)).to.be.eq(1);
+    expect(newCommittedL1RequestNum).to.equal(newExecutedL1RequestNum);
+    expect(oldTotalL1RequestNum).to.equal(newTotalL1RequestNum);
+    // check user1 pending balance
+    expect(
+      afterUser1EthPendingBalance.sub(beforeUser1EthPendingBalance)
+    ).to.be.eq(amount);
   });
 });

@@ -101,11 +101,11 @@ describe("Activating evacuation", function () {
     let committedBlockNum: number = 0;
     let provedBlockNum: number = 0;
     let executedBlockNum: number = 0;
-    const MOCK_COMMITTED_BLOCK_NUM = 5;
-    const MOCK_EXECUTED_BLOCK_NUM = 3;
+    const COMMITTED_BLOCK_NUM = 5;
+    const EXECUTED_BLOCK_NUM = 3;
 
     // commit and verify 5 blocks and execute 3 blocks
-    for (let i = 0; i < MOCK_COMMITTED_BLOCK_NUM; i++) {
+    for (let i = 0; i < COMMITTED_BLOCK_NUM; i++) {
       const testCase = testData[i];
       committedBlockNum += 1;
       provedBlockNum += 1;
@@ -179,7 +179,7 @@ describe("Activating evacuation", function () {
       });
       await diamondRollup.connect(operator).verifyBlocks(verifyingBlocks);
 
-      if (i < MOCK_EXECUTED_BLOCK_NUM) {
+      if (i < EXECUTED_BLOCK_NUM) {
         // execute block
         const pendingBlocks: ExecuteBlockStruct[] = [];
         const pendingRollupTxPubData = getPendingRollupTxPubData(testCase);
