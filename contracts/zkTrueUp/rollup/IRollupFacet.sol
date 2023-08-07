@@ -149,6 +149,12 @@ interface IRollupFacet {
     /// @return evacuMode The evacuation mode status
     function isEvacuMode() external view returns (bool evacuMode);
 
+    /// @notice Return the specified address and token is evacuated or not
+    /// @param addr The address to be checked
+    /// @param tokenId The id of the token
+    /// @return isEvacuted Return true is the token is evacuated, else return false
+    function isEvacuted(address addr, uint16 tokenId) external view returns (bool);
+
     /// @notice Check whether the register request is in the L1 request queue
     /// @param register The register request
     /// @param requestId The id of the request
