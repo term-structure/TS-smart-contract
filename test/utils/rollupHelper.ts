@@ -60,7 +60,7 @@ export function initTestData(baseDir: string) {
       const callData = JSON.parse(fs.readFileSync(calldataPath, "utf-8"));
       const requests = JSON.parse(fs.readFileSync(reqPath, "utf-8"));
       result.push({
-        index: index,
+        index,
         path: resolve(baseDir, file.name),
         commitmentData,
         callData,
@@ -89,7 +89,7 @@ export function initEvacuationTestData(baseDir: string) {
       const callData = JSON.parse(fs.readFileSync(calldataPath, "utf-8"));
 
       result.push({
-        index: index,
+        index,
         path: resolve(baseDir, file.name),
         commitmentData,
         callData,
@@ -675,20 +675,11 @@ export function getPendingRollupTxPubData(testCase: any) {
 
 export function getCommitBlock(
   lastCommittedBlock: StoredBlockStruct,
-  testCase: any,
-  isEvacuate: boolean
+  testCase: any
 ) {
-  // const chunkLen =
-  //   (testCase.commitmentData.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
-  let chunkLen;
-  if (isEvacuate) {
-    // NOTE: evacuate chunk is 2 chunks for 2 bits and padding it to 1 bytes(8 bits)
-    chunkLen = 8;
-  } else {
-    // NOTE: normal chunk is 1 chunk for 1 bit and padding it to 1 bytes(8 bits)
-    chunkLen =
-      (testCase.commitmentData.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
-  }
+  // NOTE: normal chunk is 1 chunk for 1 bit and padding it to 1 bytes(8 bits)
+  const chunkLen =
+    (testCase.commitmentData.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
   const commitBlock: CommitBlockStruct = {
     blockNumber: BigNumber.from(lastCommittedBlock.blockNumber).add(1),
     newStateRoot: testCase.commitmentData.newStateRoot,

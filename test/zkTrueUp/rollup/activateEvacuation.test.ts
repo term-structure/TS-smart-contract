@@ -157,7 +157,7 @@ describe("Activating evacuation", function () {
       // commit blocks
       const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
       const newBlocks: CommitBlockStruct[] = [];
-      const commitBlock = getCommitBlock(lastCommittedBlock, testCase, false);
+      const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
       newBlocks.push(commitBlock);
       await diamondRollup
         .connect(operator)

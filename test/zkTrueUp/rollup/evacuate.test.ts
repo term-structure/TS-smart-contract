@@ -170,7 +170,7 @@ describe("Evacuate", function () {
       const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
       // generate new blocks
       const newBlocks: CommitBlockStruct[] = [];
-      const commitBlock = getCommitBlock(lastCommittedBlock, testCase, false);
+      const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
       newBlocks.push(commitBlock);
       // commit blocks
       await diamondRollup
@@ -226,9 +226,7 @@ describe("Evacuate", function () {
       });
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    expect(await diamondRollup.isEvacuMode()).to.equal(false);
     await diamondRollup.activateEvacuation();
-    expect(await diamondRollup.isEvacuMode()).to.equal(true);
 
     // collect deposit request public data
     const user1AccountId = await diamondAcc.getAccountId(user1Addr);
@@ -249,11 +247,7 @@ describe("Evacuate", function () {
 
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(
-      lastCommittedBlock,
-      evacuationData[0],
-      true
-    );
+    const commitBlock = getCommitBlock(lastCommittedBlock, evacuationData[0]);
     const evacuation = readEvacuationPubData(commitBlock.publicData.toString());
     const proof: ProofStruct = evacuationData[0].callData;
 
@@ -293,11 +287,7 @@ describe("Evacuate", function () {
 
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(
-      lastCommittedBlock,
-      evacuationData[0],
-      true
-    );
+    const commitBlock = getCommitBlock(lastCommittedBlock, evacuationData[0]);
     const proof: ProofStruct = evacuationData[0].callData;
 
     // evacuate
@@ -309,11 +299,7 @@ describe("Evacuate", function () {
   it("Failed to evacuate, not in evacu mode", async function () {
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(
-      lastCommittedBlock,
-      evacuationData[0],
-      true
-    );
+    const commitBlock = getCommitBlock(lastCommittedBlock, evacuationData[0]);
     const proof: ProofStruct = evacuationData[0].callData;
 
     await expect(

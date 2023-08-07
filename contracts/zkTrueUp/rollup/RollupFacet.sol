@@ -331,6 +331,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /**
      * @inheritdoc IRollupFacet
      */
+    function isEvacuted(address addr, uint16 tokenId) external view returns (bool) {
+        uint32 accountId = AccountStorage.layout().getAccountId(addr);
+        return RollupStorage.layout().isEvacuated(accountId, tokenId);
+    }
+
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function isRegisterInL1RequestQueue(
         Operations.Register memory register,
         uint64 requestId
@@ -427,13 +435,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (newBlock.blockNumber != previousBlock.blockNumber + 1) revert InvalidBlockNum(newBlock.blockNumber);
 
         uint256 publicDataLength = newBlock.publicData.length;
-        if (publicDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(publicDataLength);
+        // console.log("publicDataLength: %s", publicDataLength);
+        // if (publicDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(publicDataLength);
 
         uint256 chunkId;
         uint64 requestId = committedL1RequestNum;
         bytes32 processableRollupTxHash = Config.EMPTY_STRING_KECCAK;
         // The commitment offset array is used to store the commitment offset for each chunk
-        bytes memory commitmentOffset = new bytes(publicDataLength / Config.BITS_OF_CHUNK);
+        // TODO: add comment
+        bytes memory commitmentOffset = new bytes(publicDataLength.ceilDiv(Config.BITS_OF_CHUNK));
 
         for (uint256 i; i < newBlock.chunkIdDeltas.length; ++i) {
             uint16 chunkIdDelta = newBlock.chunkIdDeltas[i];
@@ -444,7 +454,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             commitmentOffset = _updateCommitmentOffsetForChunk(commitmentOffset, chunkId);
 
             // To ensure that every chunk length is equal to evacuation chunk length when commit evacuation block
-            if (isEvacuBlock && chunkIdDelta != Config.EVACUATION_CHUNK_SIZE) revert InvalidChunkIdDelta(chunkIdDelta);
+            // if (isEvacuBlock) {
+            //     if (i == 0) {
+            //         if (chunkIdDelta != 0) revert InvalidChunkIdDelta(chunkIdDelta);
+            //     } else {
+            //         if (chunkIdDelta != Config.EVACUATION_CHUNK_SIZE) revert InvalidChunkIdDelta(chunkIdDelta);
+            //     }
+            // }
+            if (isEvacuBlock && i == 0 && chunkIdDelta != 0) revert InvalidChunkIdDelta(chunkIdDelta);
+            if (isEvacuBlock && i != 0 && chunkIdDelta != Config.EVACUATION_CHUNK_SIZE)
+                revert InvalidChunkIdDelta(chunkIdDelta);
 
             (requestId, processableRollupTxHash) = _processOneRequest(
                 rsl,
