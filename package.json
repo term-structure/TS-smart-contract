@@ -34,6 +34,7 @@
     "test:redeem": "hardhat test test/zkTrueUp/tsb/redeem.test.ts",
     "test:activateEvacuation": "hardhat test test/zkTrueUp/rollup/activateEvacuation.test.ts",
     "test:consume": "hardhat test test/zkTrueUp/rollup/consumeL1Request.test.ts",
+    "test:restore": "hardhat test test/zkTrueUp/rollup/restore.test.ts",
     "test:healthFactor": "hardhat test test/zkTrueUp/loan/healthFactor.test.ts",
     "test:flashLoan": "hardhat test test/zkTrueUp/flashLoan/flashLoan.test.ts",
     "test:collateral": "hardhat test test/zkTrueUp/loan/collateral.test.ts",
