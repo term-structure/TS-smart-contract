@@ -12,7 +12,7 @@ import {
 } from "../../utils/config";
 import { ERC20Mock, OracleMock, WETH9 } from "../../typechain-types";
 import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
-import initStates from "../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+import initStates from "../data/rollupData/zkTrueUp-8-10-8-6-3-3-32/initStates.json";
 import { utils } from "ethers";
 import { safeInitFacet } from "diamond-engraver";
 const circomlibjs = require("circomlibjs");
@@ -136,7 +136,7 @@ export const deployAndInit = async (
       "address",
       "address",
       "bytes32",
-      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address tokenAddr,address priceFeed)",
+      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address token,address priceFeed)",
     ],
     [
       isMainnetForkTesting ? MAINNET_ADDRESS.WETH : weth.address,
@@ -154,7 +154,7 @@ export const deployAndInit = async (
         isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
         decimals: ETH_ASSET_CONFIG.decimals,
         minDepositAmt: ETH_ASSET_CONFIG.minDepositAmt,
-        tokenAddr: ETH_ASSET_CONFIG.tokenAddr,
+        token: ETH_ASSET_CONFIG.tokenAddr,
         priceFeed: priceFeeds[TsTokenId.ETH],
       },
     ]

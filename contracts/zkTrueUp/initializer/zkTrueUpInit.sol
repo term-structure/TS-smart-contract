@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {Ownable} from "@solidstate/contracts/access/ownable/Ownable.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
@@ -10,14 +11,27 @@ import {ProtocolParamsStorage, FundWeight} from "../protocolParams/ProtocolParam
 import {LoanStorage, LiquidationFactor} from "../loan/LoanStorage.sol";
 import {RollupStorage, StoredBlock} from "../rollup/RollupStorage.sol";
 import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
-import {TokenLib} from "../token/TokenLib.sol";
-import {Config, InitConfig} from "../libraries/Config.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
+import {IPoseidonUnit2} from "../interfaces/IPoseidonUnit2.sol";
+import {IVerifier} from "../interfaces/IVerifier.sol";
+import {IPool} from "../interfaces/aaveV3/IPool.sol";
+import {Config} from "../libraries/Config.sol";
+import {InitialConfig} from "../libraries/InitialConfig.sol";
 
 /**
  * @title Zk-TureUp Initializer Contract
- * @notice This contract is used to initialize the zkTrueUp protocol
+ * @author Term Structure Labs
+ * @notice This contract is used to initialize the Term Structure Protocol
  */
 contract ZkTrueUpInit is Ownable, AccessControlInternal {
+    // error for initialized again
+    error AlreadyInitialized();
+
+    /**
+     * @notice Initialize function for the Term Structure Protocol
+     * @dev This function is called only once when the protocol is deployed
+     * @param data The encoded data for the initializer
+     */
     function init(bytes calldata data) external {
         (
             address wETHAddr,
@@ -26,9 +40,9 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
             address evacuVerifierAddr,
             address adminAddr,
             address operatorAddr,
-            address treasuryAddr,
-            address insuranceAddr,
-            address vaultAddr,
+            address payable treasuryAddr,
+            address payable insuranceAddr,
+            address payable vaultAddr,
             bytes32 genesisStateRoot,
             AssetConfig memory ethConfig
         ) = abi.decode(
@@ -37,6 +51,8 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
             );
 
         // set roles
+        if (_hasRole(Config.ADMIN_ROLE, msg.sender)) revert AlreadyInitialized();
+
         AccessControlInternal._setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
         AccessControlInternal._grantRole(Config.ADMIN_ROLE, adminAddr);
         AccessControlInternal._grantRole(Config.OPERATOR_ROLE, operatorAddr);
@@ -51,15 +67,15 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
 
         // init address facet
         AddressStorage.Layout storage addrsl = AddressStorage.layout();
-        addrsl.wETHAddr = wETHAddr;
-        addrsl.poseidonUnit2Addr = poseidonUnit2Addr;
-        addrsl.verifierAddr = verifierAddr;
-        addrsl.evacuVerifierAddr = evacuVerifierAddr;
-        addrsl.aaveV3PoolAddr = Config.AAVE_V3_POOL_ADDRESS;
+        addrsl.wETH = IWETH(wETHAddr);
+        addrsl.poseidonUnit2 = IPoseidonUnit2(poseidonUnit2Addr);
+        addrsl.verifier = IVerifier(verifierAddr);
+        addrsl.evacuVerifier = IVerifier(evacuVerifierAddr);
+        addrsl.aaveV3Pool = IPool(Config.AAVE_V3_POOL_ADDRESS);
 
         // init flashLoan facet
         FlashLoanStorage.Layout storage flsl = FlashLoanStorage.layout();
-        flsl.flashLoanPremium = InitConfig.INIT_FLASH_LOAN_PREMIUM;
+        flsl.flashLoanPremium = InitialConfig.INIT_FLASH_LOAN_PREMIUM;
 
         // init protocolParams facet
         ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
@@ -67,27 +83,27 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
         ppsl.insuranceAddr = insuranceAddr;
         ppsl.vaultAddr = vaultAddr;
         FundWeight memory fundWeight = FundWeight({
-            treasury: InitConfig.INIT_TREASURY_WEIGHT,
-            insurance: InitConfig.INIT_INSURANCE_WEIGHT,
-            vault: InitConfig.INIT_VAULT_WEIGHT
+            treasury: InitialConfig.INIT_TREASURY_WEIGHT,
+            insurance: InitialConfig.INIT_INSURANCE_WEIGHT,
+            vault: InitialConfig.INIT_VAULT_WEIGHT
         });
         ppsl.fundWeight = fundWeight;
 
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();
-        lsl.halfLiquidationThreshold = InitConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
+        lsl.halfLiquidationThreshold = InitialConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
 
         LiquidationFactor memory initLiquidationFactor = LiquidationFactor({
-            ltvThreshold: InitConfig.INIT_LTV_THRESHOLD,
-            liquidatorIncentive: InitConfig.INIT_LIQUIDATOR_INCENTIVE,
-            protocolPenalty: InitConfig.INIT_PROTOCOL_PENALTY
+            ltvThreshold: InitialConfig.INIT_LTV_THRESHOLD,
+            liquidatorIncentive: InitialConfig.INIT_LIQUIDATOR_INCENTIVE,
+            protocolPenalty: InitialConfig.INIT_PROTOCOL_PENALTY
         });
         lsl.liquidationFactor = initLiquidationFactor;
 
         LiquidationFactor memory initStableCoinPairLiquidationFactor = LiquidationFactor({
-            ltvThreshold: InitConfig.INIT_STABLECOIN_PAIR_LTV_THRESHOLD,
-            liquidatorIncentive: InitConfig.INIT_STABLECOIN_PAIR_LIQUIDATOR_INCENTIVE,
-            protocolPenalty: InitConfig.INIT_STABLECOIN_PAIR_PROTOCOL_PENALTY
+            ltvThreshold: InitialConfig.INIT_STABLECOIN_PAIR_LTV_THRESHOLD,
+            liquidatorIncentive: InitialConfig.INIT_STABLECOIN_PAIR_LIQUIDATOR_INCENTIVE,
+            protocolPenalty: InitialConfig.INIT_STABLECOIN_PAIR_PROTOCOL_PENALTY
         });
         lsl.stableCoinPairLiquidationFactor = initStableCoinPairLiquidationFactor;
 
@@ -105,15 +121,17 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
 
         // init token facet
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        uint16 newTokenId = TokenLib.getTokenNum() + 1;
+        // The first token Id is start from 1 in init
+        uint16 newTokenId = tsl.tokenNum + 1;
         tsl.tokenNum = newTokenId;
-        tsl.tokenIds[Config.ETH_ADDRESS] = newTokenId;
+        IERC20 defaultEthToken = IERC20(Config.ETH_ADDRESS);
+        tsl.tokenIds[defaultEthToken] = newTokenId;
         tsl.assetConfigs[newTokenId] = AssetConfig({
             isStableCoin: ethConfig.isStableCoin,
             isTsbToken: ethConfig.isTsbToken,
             decimals: ethConfig.decimals,
             minDepositAmt: ethConfig.minDepositAmt,
-            tokenAddr: Config.ETH_ADDRESS,
+            token: defaultEthToken,
             priceFeed: ethConfig.priceFeed
         });
     }

@@ -2,8 +2,9 @@
 // solhint-disable-next-line
 pragma solidity ^0.8.17;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "../interfaces/ITsbToken.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 /**
   * @title Term Structure Bond Token Contract
@@ -17,9 +18,10 @@ contract TsbToken is ERC20, ITsbToken {
     /**
      * @inheritdoc ITsbToken
      */
-    address public immutable zkTrueUp;
+    /// @notice The address of the ZkTrueUp contract
+    address private immutable _zkTrueUpAddr;
     /// @notice The underlying asset of the TSB token
-    address private immutable _underlyingAsset;
+    IERC20 private immutable _underlyingAsset;
     /// @notice The maturity time of the TSB token
     uint32 private immutable _maturityTime;
 
@@ -31,45 +33,46 @@ contract TsbToken is ERC20, ITsbToken {
     constructor(
         string memory name_,
         string memory symbol_,
-        address underlyingAsset_,
+        IERC20 underlyingAsset_,
         uint32 maturityTime_
     ) ERC20(name_, symbol_) {
-        zkTrueUp = msg.sender;
+        _zkTrueUpAddr = msg.sender;
         _underlyingAsset = underlyingAsset_;
         _maturityTime = maturityTime_;
     }
 
     /// @notice Only ZkTrueUp modifier
     modifier onlyZkTrueUp() {
-        if (_msgSender() != zkTrueUp) revert OnlyZkTrueUp();
+        if (_msgSender() != _zkTrueUpAddr) revert OnlyZkTrueUp();
         _;
     }
 
     /**
      * @inheritdoc ITsbToken
      */
-    function mint(address account, uint256 amount) external onlyZkTrueUp {
-        _mint(account, amount);
+    function mint(address to, uint256 amount) external onlyZkTrueUp {
+        _mint(to, amount);
     }
 
     /**
      * @inheritdoc ITsbToken
      */
-    function burn(address account, uint256 amount) external onlyZkTrueUp {
-        _burn(account, amount);
+    function burn(address from, uint256 amount) external onlyZkTrueUp {
+        _burn(from, amount);
     }
 
     /**
      * @inheritdoc ITsbToken
      */
     function isMatured() external view returns (bool) {
+        // solhint-disable-next-line not-rely-on-time
         return block.timestamp >= uint256(_maturityTime);
     }
 
     /**
      * @inheritdoc ITsbToken
      */
-    function tokenInfo() external view returns (address, uint32) {
+    function tokenInfo() external view returns (IERC20, uint32) {
         return (_underlyingAsset, _maturityTime);
     }
 

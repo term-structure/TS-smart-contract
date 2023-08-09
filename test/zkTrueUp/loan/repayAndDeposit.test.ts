@@ -221,7 +221,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -323,7 +323,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -535,7 +535,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -615,7 +615,7 @@ describe("Repay and deposit", () => {
           .repay(loanId, depositCollateralAmt, repayDebtAmt, true, {
             value: repayDebtAmt,
           })
-      ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
     });
     it("Fail to repay and deposit (general case), health factor under threshold", async () => {
       // before health factor
@@ -828,7 +828,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -924,7 +924,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -1015,7 +1015,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(secondRepayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -1128,7 +1128,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(repayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,
@@ -1222,7 +1222,7 @@ describe("Repay and deposit", () => {
 
       // check event
       await expect(secondRepayAndDepositTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user2Addr,

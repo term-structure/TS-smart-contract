@@ -12,6 +12,7 @@
     "verify": "hardhat verify --network",
     "storage:layout": "hardhat storage-layout",
     "size": "hardhat size-contracts",
+    "deploy:local": "hardhat run scripts/deploy/local.ts",
     "deploy:devnet": "hardhat run scripts/deploy/devnet.ts",
     "deploy:testnet": "hardhat run scripts/deploy/testnet.ts",
     "deploy:mainnet": "hardhat run scripts/deploy/mainnet.ts",
@@ -27,6 +28,7 @@
     "test:deposit": "hardhat test test/zkTrueUp/account/deposit.test.ts",
     "test:withdraw": "hardhat test test/zkTrueUp/account/withdraw.test.ts",
     "test:forceWithdraw": "hardhat test test/zkTrueUp/account/forceWithdraw.test.ts",
+    "test:address": "hardhat test test/zkTrueUp/address/address.test.ts",
     "test:protocolParams": "hardhat test test/zkTrueUp/protocolParams/protocolParams.test.ts",
     "test:tsbToken": "hardhat test test/zkTrueUp/tsb/tsbToken.test.ts",
     "test:redeem": "hardhat test test/zkTrueUp/tsb/redeem.test.ts",
@@ -44,7 +46,7 @@
     "test:oracleMock": "hardhat test test/zkTrueUp/testnet/oracleMock/oracleMock.test.ts",
     "test:tsFaucet": "hardhat test test/zkTrueUp/testnet/tsFaucet/tsFaucet.test.ts",
     "test:roll": "cross-env IS_FORK_MAINNET=true hardhat test test/mainnetFork/zkTrueUp/roll.test.ts",
-    "coverage": "hardhat coverage",
+    "coverage": "hardhat coverage --solcoverjs ./.solcover.js",
     "generate:docs": "hardhat docgen",
     "format": "prettier --write 'contracts/**/*.sol' '**/*.{js,ts}' && eslint --fix '**/*.{js,ts}'",
     "lint": "prettier --check 'contracts/**/*.sol' '**/*.ts' && eslint '**/*.{js,ts}'",
@@ -87,6 +89,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
+    "@chainlink/contracts": "^0.6.1",
     "circomlibjs": "^0.1.7",
     "term-structure-sdk": "^0.1.30"
   }

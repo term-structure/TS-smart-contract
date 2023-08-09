@@ -2,10 +2,10 @@ import { BigNumber, ContractFactory } from "ethers";
 import { LoanStruct } from "../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 
 // { TsTokenId: BaseTokenAddr }
-export type BaseTokenAddresses = { [key: number]: string };
+export type BaseTokenAddresses = { [key: string]: string };
 
 // { TsTokenId: PriceFeed }
-export type PriceFeeds = { [key: number]: string };
+export type PriceFeeds = { [key: string]: string };
 
 // 0 = add, 1 = replace, 2 = remove
 export type DiamondCutAction = 0 | 1 | 2;

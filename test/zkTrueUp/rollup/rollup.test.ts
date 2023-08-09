@@ -4,8 +4,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { resolve } from "path";
 import { EMPTY_HASH, TsTxType } from "term-structure-sdk";
-// import initStates from '../../../data/rollupTestData/phase6-refactor-8-10-8-6-3-3-31/initStates.json';
-import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-32/initStates.json";
 import { FACET_NAMES } from "../../../utils/config";
 import { useFacet } from "../../../utils/useFacet";
 import { deployAndInit } from "../../utils/deployAndInit";
@@ -16,6 +15,7 @@ import {
   ExecuteBlockStruct,
   ProofStruct,
   StoredBlockStruct,
+  VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 import {
   AccountFacet,
@@ -39,10 +39,7 @@ import {
   getStoredBlock,
   initTestData,
 } from "../../utils/rollupHelper";
-// const testDataPath = resolve(
-//   './test/data/rollupTestData/phase6-refactor-8-10-8-6-3-3-31',
-// );
-const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-31");
+const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-32");
 
 const testData = initTestData(testDataPath);
 
@@ -115,7 +112,6 @@ describe("Rollup", function () {
   });
 
   for (let k = 0; k < testData.length; k++) {
-    // for (let k = 0; k < 6; k++) {
     const testCase = testData[k];
     it(`Before rollup for block-${k}`, async function () {
       oriStates = await getStates(
@@ -175,7 +171,7 @@ describe("Rollup", function () {
       const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
       // generate new blocks
       const newBlocks: CommitBlockStruct[] = [];
-      const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
+      const commitBlock = getCommitBlock(lastCommittedBlock, testCase, false);
       newBlocks.push(commitBlock);
       // get state before commit
       const [oriCommittedBlockNum, ,] = await diamondRollup.getBlockNum();
@@ -218,10 +214,14 @@ describe("Rollup", function () {
       const proof: ProofStruct = testCase.callData;
       proofs.push(proof);
 
+      const verifyingBlocks: VerifyBlockStruct[] = [];
+      verifyingBlocks.push({
+        storedBlock: committedBlock,
+        proof: proof,
+      });
+
       const [, oriProvedBlockNum] = await diamondRollup.getBlockNum();
-      await diamondRollup
-        .connect(operator)
-        .verifyBlocks(committedBlocks, proofs);
+      await diamondRollup.connect(operator).verifyBlocks(verifyingBlocks);
 
       const [, newProvedBlockNum] = await diamondRollup.getBlockNum();
       expect(newProvedBlockNum - oriProvedBlockNum).to.be.eq(

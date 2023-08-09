@@ -10,6 +10,7 @@ import {AccessControl} from "@solidstate/contracts/access/access_control/AccessC
  * @notice The core contract of Term Structure Protocol, which implemented by
  *         diamond proxy standard.
  */
+// solhint-disable-next-line no-empty-blocks
 contract ZkTrueUp is SolidStateDiamond, AccessControl {
-
+    // inherit from SolidStateDiamond and AccessControl, no additional logic
 }

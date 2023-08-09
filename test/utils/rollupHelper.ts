@@ -4,14 +4,16 @@ import fs from "fs";
 import { resolve } from "path";
 import {
   AUCTION_END_BYTES,
-  CHUNK_BYTES,
+  BYTES_OF_CHUNK,
   DEFAULT_ZERO_ADDR,
   ETH_ASSET_CONFIG,
   FORCE_WITHDRAW_BYTES,
+  NOOP_BYTES,
   WITHDRAW_BYTES,
   WITHDRAW_FEE_BYTES,
 } from "../../utils/config";
 import {
+  CHUNK_BYTES_SIZE,
   EMPTY_HASH,
   TS_BASE_TOKEN,
   TS_SYSTEM_DECIMALS,
@@ -21,7 +23,7 @@ import {
   CommitBlockStruct,
   ExecuteBlockStruct,
   StoredBlockStruct,
-} from "../../typechain-types/contracts/rollup/IRollupFacet";
+} from "../../typechain-types/contracts/zkTrueUp/rollup/IRollupFacet";
 import {
   AccountState,
   BaseTokenAddresses,
@@ -35,9 +37,9 @@ import {
   TokenFacet,
   TsbFacet,
 } from "../../typechain-types";
-import { AssetConfigStruct } from "../../typechain-types/contracts/token/ITokenFacet";
+import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 import { ethers } from "hardhat";
-import { LoanStruct } from "../../typechain-types/contracts/loan/ILoanFacet";
+import { LoanStruct } from "../../typechain-types/contracts/zkTrueUp/loan/ILoanFacet";
 
 export function initTestData(baseDir: string) {
   const result = [];
@@ -138,10 +140,10 @@ export const getStates = async (
       const tsbTokenConfig: AssetConfigStruct =
         await diamondToken.getAssetConfig(loanPubData.bondTokenId);
       const maturityTime = await diamondTsb.getMaturityTime(
-        tsbTokenConfig.tokenAddr
+        tsbTokenConfig.token
       );
       const baseTokenAddr = await diamondTsb.getUnderlyingAsset(
-        tsbTokenConfig.tokenAddr
+        tsbTokenConfig.token
       );
       const baseTokenId = await diamondToken.getTokenId(baseTokenAddr);
       const loanId = `${accountId}-${loanPubData.collateralTokenId}-${baseTokenId}-${maturityTime}`;
@@ -255,10 +257,10 @@ export const checkStates = async (
         loanPubData.bondTokenId
       );
       const maturityTime = await diamondTsb.getMaturityTime(
-        tsbTokenConfig.tokenAddr
+        tsbTokenConfig.token
       );
       const baseTokenAddr = await diamondTsb.getUnderlyingAsset(
-        tsbTokenConfig.tokenAddr
+        tsbTokenConfig.token
       );
       const debtTokenId = await diamondToken.getTokenId(baseTokenAddr);
       const debtTokenConfig = await diamondToken.getAssetConfig(debtTokenId);
@@ -282,10 +284,6 @@ export const checkStates = async (
         )
         .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
       const loan: LoanStruct = {
-        accountId: accountId,
-        maturityTime: maturityTime,
-        collateralTokenId: loanPubData.collateralTokenId.toNumber(),
-        debtTokenId: debtTokenId,
         debtAmt: debtAmt,
         collateralAmt: collateralAmt,
       };
@@ -329,14 +327,6 @@ export const checkStates = async (
       expect(
         newStates[accountId].pendingBalances[tokenId].sub(
           oriStates[accountId].pendingBalances[tokenId]
-        )
-      ).to.be.eq(amount);
-    }
-    for (const tokenId in deltaStates[accountId].withdrawFees) {
-      const amount = deltaStates[accountId].withdrawFees[tokenId];
-      expect(
-        newStates[accountId].withdrawFees[tokenId].sub(
-          oriStates[accountId].withdrawFees[tokenId]
         )
       ).to.be.eq(amount);
     }
@@ -459,17 +449,14 @@ export const doCreateBondToken = async (
   await diamondTsb
     .connect(operator)
     .createTsbToken(baseTokenId, maturityTime, name, symbol);
-  const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
-    baseTokenId,
-    maturityTime
-  );
+  const tsbTokenAddr = await diamondTsb.getTsbToken(baseTokenId, maturityTime);
 
   const assetConfig: AssetConfigStruct = {
     isStableCoin: baseTokenId <= BigNumber.from("2") ? false : true,
     isTsbToken: true,
     decimals: TS_SYSTEM_DECIMALS,
     minDepositAmt: "0",
-    tokenAddr: tsbTokenAddr,
+    token: tsbTokenAddr,
     priceFeed: DEFAULT_ZERO_ADDR,
   };
   await diamondToken.connect(operator).addToken(assetConfig);
@@ -482,56 +469,78 @@ export const doCreateBondToken = async (
 
 export function getPendingRollupTxHash(commitmentData: any) {
   let pendingRollupTxHash = EMPTY_HASH;
-  const criticalChunks = getCriticalChunks(commitmentData.isCriticalChunk);
+  const chunkLen = (commitmentData.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
+  const criticalChunks = getCriticalChunks(
+    commitmentData.isCriticalChunk,
+    chunkLen
+  );
   for (let i = 0; i < criticalChunks.length; i++) {
+    const startFlag = 2 + 2 * BYTES_OF_CHUNK * criticalChunks[i];
     const opType = Number(
-      "0x" +
-        commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2
-        )
-    );
-    let pubData;
-    if (opType == Number(TsTxType.FORCE_WITHDRAW)) {
-      pubData =
-        "0x" +
-        commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * FORCE_WITHDRAW_BYTES
+      "0x" + commitmentData.o_chunk.slice(startFlag, startFlag + 2 * NOOP_BYTES)
+    ).toString() as TsTxType;
+    switch (opType) {
+      case TsTxType.FORCE_WITHDRAW: {
+        const pubdata =
+          "0x" +
+          commitmentData.o_chunk.slice(
+            startFlag,
+            startFlag + 2 * FORCE_WITHDRAW_BYTES
+          );
+        pendingRollupTxHash = ethers.utils.keccak256(
+          ethers.utils.defaultAbiCoder.encode(
+            ["bytes32", "bytes"],
+            [pendingRollupTxHash, pubdata]
+          )
         );
-      pendingRollupTxHash = utils.keccak256(
-        utils.solidityPack(["bytes32", "bytes"], [pendingRollupTxHash, pubData])
-      );
-    } else if (opType == Number(TsTxType.WITHDRAW)) {
-      pubData =
-        "0x" +
-        commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * WITHDRAW_BYTES
+        break;
+      }
+
+      case TsTxType.WITHDRAW: {
+        const pubdata =
+          "0x" +
+          commitmentData.o_chunk.slice(
+            startFlag,
+            startFlag + 2 * WITHDRAW_BYTES
+          );
+        pendingRollupTxHash = ethers.utils.keccak256(
+          ethers.utils.defaultAbiCoder.encode(
+            ["bytes32", "bytes"],
+            [pendingRollupTxHash, pubdata]
+          )
         );
-      pendingRollupTxHash = utils.keccak256(
-        utils.solidityPack(["bytes32", "bytes"], [pendingRollupTxHash, pubData])
-      );
-    } else if (opType == Number(TsTxType.AUCTION_END)) {
-      pubData =
-        "0x" +
-        commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * AUCTION_END_BYTES
+        break;
+      }
+      case TsTxType.AUCTION_END: {
+        const pubdata =
+          "0x" +
+          commitmentData.o_chunk.slice(
+            startFlag,
+            startFlag + 2 * AUCTION_END_BYTES
+          );
+        pendingRollupTxHash = ethers.utils.keccak256(
+          ethers.utils.defaultAbiCoder.encode(
+            ["bytes32", "bytes"],
+            [pendingRollupTxHash, pubdata]
+          )
         );
-      pendingRollupTxHash = utils.keccak256(
-        utils.solidityPack(["bytes32", "bytes"], [pendingRollupTxHash, pubData])
-      );
-    } else if (opType == Number(TsTxType.WITHDRAW_FEE)) {
-      pubData =
-        "0x" +
-        commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * WITHDRAW_FEE_BYTES
+        break;
+      }
+      case TsTxType.WITHDRAW_FEE: {
+        const pubdata =
+          "0x" +
+          commitmentData.o_chunk.slice(
+            startFlag,
+            startFlag + 2 * WITHDRAW_FEE_BYTES
+          );
+        pendingRollupTxHash = ethers.utils.keccak256(
+          ethers.utils.defaultAbiCoder.encode(
+            ["bytes32", "bytes"],
+            [pendingRollupTxHash, pubdata]
+          )
         );
-      pendingRollupTxHash = utils.keccak256(
-        utils.solidityPack(["bytes32", "bytes"], [pendingRollupTxHash, pubData])
-      );
+        break;
+      }
     }
   }
   return pendingRollupTxHash;
@@ -570,6 +579,7 @@ export const readWithdrawFeePubData = (pubData: string) => {
   };
   return withdrawFeePubData;
 };
+
 export const readEvacuationPubData = (pubData: string) => {
   const pubDataBytes = utils.arrayify(pubData);
   const evacuationPubData = {
@@ -601,80 +611,114 @@ export function getRollupTxPubData(testCase: any) {
     const opType = Number(testCase.requests.reqData[i][0]);
     pubData =
       "0x" +
-      oChunk.slice(offset, offset + 2 * bytesOfReq[opType] * CHUNK_BYTES);
-    offset += 2 * bytesOfReq[opType] * CHUNK_BYTES;
+      oChunk.slice(offset, offset + 2 * bytesOfReq[opType] * BYTES_OF_CHUNK);
+    offset += 2 * bytesOfReq[opType] * BYTES_OF_CHUNK;
     rollupTxPubData.push(pubData);
   }
   return rollupTxPubData;
 }
 
 export function getPendingRollupTxPubData(testCase: any) {
-  const pendingRollupTxPubData = [];
+  const pendingRollupTxPubdata = [];
+  const chunkLen =
+    (testCase.commitmentData.o_chunk.length - 2) / 2 / BYTES_OF_CHUNK;
   const criticalChunks = getCriticalChunks(
-    testCase.commitmentData.isCriticalChunk
+    testCase.commitmentData.isCriticalChunk,
+    chunkLen
   );
   for (let i = 0; i < criticalChunks.length; i++) {
     const opType = Number(
       "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2
         )
     );
-    let pubData;
+    let pubdata;
     if (opType == Number(TsTxType.FORCE_WITHDRAW)) {
-      pubData =
+      pubdata =
         "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * FORCE_WITHDRAW_BYTES
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * FORCE_WITHDRAW_BYTES
         );
-      pendingRollupTxPubData.push(pubData);
+      pendingRollupTxPubdata.push(pubdata);
     } else if (opType == Number(TsTxType.WITHDRAW)) {
-      pubData =
+      pubdata =
         "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * WITHDRAW_BYTES
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * WITHDRAW_BYTES
         );
-      pendingRollupTxPubData.push(pubData);
+      pendingRollupTxPubdata.push(pubdata);
     } else if (opType == Number(TsTxType.AUCTION_END)) {
-      pubData =
+      pubdata =
         "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * AUCTION_END_BYTES
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * AUCTION_END_BYTES
         );
-      pendingRollupTxPubData.push(pubData);
+      pendingRollupTxPubdata.push(pubdata);
     } else if (opType == Number(TsTxType.WITHDRAW_FEE)) {
-      pubData =
+      pubdata =
         "0x" +
         testCase.commitmentData.o_chunk.slice(
-          2 + 2 * CHUNK_BYTES * criticalChunks[i],
-          2 + 2 * CHUNK_BYTES * criticalChunks[i] + 2 * WITHDRAW_FEE_BYTES
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * WITHDRAW_FEE_BYTES
         );
-      pendingRollupTxPubData.push(pubData);
+      pendingRollupTxPubdata.push(pubdata);
     }
   }
 
-  return pendingRollupTxPubData;
+  return pendingRollupTxPubdata;
 }
 
 export function getCommitBlock(
   lastCommittedBlock: StoredBlockStruct,
-  testCase: any
+  testCase: any,
+  isEvacuate: boolean
 ) {
+  // const chunkLen =
+  //   (testCase.commitmentData.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
+  let chunkLen;
+  if (isEvacuate) {
+    // NOTE: evacuate chunk is 2 chunks for 2 bits and padding it to 1 bytes(8 bits)
+    chunkLen = 8;
+  } else {
+    // NOTE: normal chunk is 1 chunk for 1 bit and padding it to 1 bytes(8 bits)
+    chunkLen =
+      (testCase.commitmentData.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
+  }
   const commitBlock: CommitBlockStruct = {
     blockNumber: BigNumber.from(lastCommittedBlock.blockNumber).add(1),
     newStateRoot: testCase.commitmentData.newStateRoot,
     newTsRoot: testCase.commitmentData.newTsRoot,
     publicData: testCase.commitmentData.o_chunk,
-    publicDataOffsets: getPubDataOffset(
-      testCase.commitmentData.isCriticalChunk
+    chunkIdDeltas: getPubDataDeltas(
+      testCase.commitmentData.isCriticalChunk,
+      chunkLen
     ),
     timestamp: testCase.commitmentData.newBlockTimestamp,
   };
   return commitBlock;
+}
+
+export function getPubDataDeltas(isCriticalChunk: BytesLike, chunkLen: number) {
+  const pubDataDeltas = [];
+  let lastChunkId = 0;
+  const binArr = BigInt(isCriticalChunk as string)
+    .toString(2)
+    .padStart(chunkLen, "0")
+    .split("");
+  for (let i = 0; i < binArr.length; i++) {
+    if (binArr[i] == "1") {
+      const chunkId = i;
+      const delta = chunkId - lastChunkId;
+      pubDataDeltas.push(delta);
+      lastChunkId = chunkId;
+    }
+  }
+  return pubDataDeltas;
 }
 
 export function getStoredBlock(commitBlock: CommitBlockStruct, testCase: any) {
@@ -703,11 +747,15 @@ export function getExecuteBlock(
   return executeBlock;
 }
 
-export function getCriticalChunks(isCriticalChunk: string) {
+export function getCriticalChunks(isCriticalChunk: string, chunkLen: number) {
   const criticalChunks = [];
-  for (let i = 0; i < isCriticalChunk.length; i++) {
-    if (isCriticalChunk[i] == "1") {
-      criticalChunks.push(Math.floor((i - 2) / 2));
+  const binArr = BigInt(isCriticalChunk as string)
+    .toString(2)
+    .padStart(chunkLen, "0")
+    .split("");
+  for (let i = 0; i < binArr.length; i++) {
+    if (binArr[i] == "1") {
+      criticalChunks.push(i);
     }
   }
   return criticalChunks;
@@ -717,7 +765,7 @@ export function getPubDataOffset(isCriticalChunk: BytesLike) {
   const pubDataOffset = [];
   for (let i = 0; i < isCriticalChunk.length; i++) {
     if (isCriticalChunk[i] == "1") {
-      pubDataOffset.push((Math.floor(i / 2) - 1) * 12);
+      pubDataOffset.push((Math.floor(i / 2) - 1) * BYTES_OF_CHUNK);
     }
   }
   return pubDataOffset;

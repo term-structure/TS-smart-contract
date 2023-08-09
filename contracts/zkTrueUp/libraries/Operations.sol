@@ -5,9 +5,10 @@ pragma solidity ^0.8.17;
 import {Bytes} from "./Bytes.sol";
 
 /**
-  * @title Term Structure Operations Library
-  * @notice This library is used to define the operation type and the operation data structure,
-            used in the rollup circuit
+ * @title Operations Library
+ * @author Term Structure Labs
+ * @notice Library for define the operation type and the operation data structure,
+ *         used in the rollup circuit
  */
 library Operations {
     /// @notice circuit operation type
@@ -33,22 +34,12 @@ library Operations {
         ADMIN_CANCEL_ORDER,
         USER_CANCEL_ORDER,
         INCREASE_EPOCH,
-        CREATE_TS_BOND_TOKEN,
+        CREATE_TSB_TOKEN,
         REDEEM,
         WITHDRAW_FEE,
         EVACUATION,
         SET_ADMIN_TS_ADDR
     }
-
-    /// @notice Custom error for reading public data
-    error ReadRegisterPubDataError();
-    error ReadDepositPubDataError();
-    error ReadForceWithdrawPubDataError();
-    error ReadWithdrawPubDataError();
-    error ReadAuctionEndPubDataError();
-    error ReadCreateTsbTokenPubDataError();
-    error ReadWithdrawFeePubDataError();
-    error ReadEvacuationPubDataError();
 
     /// @notice Byte length definition
     uint8 internal constant OP_TYPE_BYTES = 1;
@@ -125,21 +116,21 @@ library Operations {
     /// @notice Return the bytes of register object
     /// @param register The register object
     /// @return buf The bytes of register object
-    function encodeRegisterPubData(Register memory register) internal pure returns (bytes memory) {
+    function encodeRegisterPubData(Register memory register) internal pure returns (bytes memory buf) {
         return abi.encodePacked(uint8(OpType.REGISTER), register.accountId, register.tsAddr);
     }
 
     /// @notice Return the bytes of deposit object
     /// @param deposit The deposit object
     /// @return buf The bytes of deposit object
-    function encodeDepositPubData(Deposit memory deposit) internal pure returns (bytes memory) {
+    function encodeDepositPubData(Deposit memory deposit) internal pure returns (bytes memory buf) {
         return abi.encodePacked(uint8(OpType.DEPOSIT), deposit.accountId, deposit.tokenId, deposit.amount);
     }
 
     /// @notice Return the bytes of force withdraw object
     /// @param forceWithdraw The force withdraw object
     /// @return buf The bytes of force withdraw object
-    function encodeForceWithdrawPubData(ForceWithdraw memory forceWithdraw) internal pure returns (bytes memory) {
+    function encodeForceWithdrawPubData(ForceWithdraw memory forceWithdraw) internal pure returns (bytes memory buf) {
         return
             abi.encodePacked(uint8(OpType.FORCE_WITHDRAW), forceWithdraw.accountId, forceWithdraw.tokenId, uint128(0));
     }
@@ -147,7 +138,7 @@ library Operations {
     /// @notice Return the bytes of evacuation object
     /// @param evacuation The force evacuation object
     /// @return buf The bytes of force evacuation object
-    function encodeEvacuationPubData(Evacuation memory evacuation) internal pure returns (bytes memory) {
+    function encodeEvacuationPubData(Evacuation memory evacuation) internal pure returns (bytes memory buf) {
         return abi.encodePacked(uint8(OpType.EVACUATION), evacuation.accountId, evacuation.tokenId, evacuation.amount);
     }
 
@@ -155,7 +146,10 @@ library Operations {
     /// @param op The register request
     /// @param hashedPubData The hashedPubData of register request
     /// @return isExisted Return true if exists, else return false
-    function isRegisterHashedPubDataMatched(Register memory op, bytes32 hashedPubData) internal pure returns (bool) {
+    function isRegisterHashedPubDataMatched(
+        Register memory op,
+        bytes32 hashedPubData
+    ) internal pure returns (bool isExisted) {
         return keccak256(encodeRegisterPubData(op)) == hashedPubData;
     }
 
@@ -163,7 +157,10 @@ library Operations {
     /// @param op The deposit request
     /// @param hashedPubData The hashedPubData of deposit request
     /// @return isExisted Return true if exists, else return false
-    function isDepositHashedPubDataMatched(Deposit memory op, bytes32 hashedPubData) internal pure returns (bool) {
+    function isDepositHashedPubDataMatched(
+        Deposit memory op,
+        bytes32 hashedPubData
+    ) internal pure returns (bool isExisted) {
         return keccak256(encodeDepositPubData(op)) == hashedPubData;
     }
 
@@ -174,7 +171,7 @@ library Operations {
     function isForceWithdrawHashedPubDataMatched(
         ForceWithdraw memory op,
         bytes32 hashedPubData
-    ) internal pure returns (bool) {
+    ) internal pure returns (bool isExisted) {
         return keccak256(encodeForceWithdrawPubData(op)) == hashedPubData;
     }
 
@@ -185,7 +182,7 @@ library Operations {
     function isEvacuationHashedPubDataMatched(
         Evacuation memory op,
         bytes32 hashedPubData
-    ) internal pure returns (bool) {
+    ) internal pure returns (bool isExisted) {
         return keccak256(encodeEvacuationPubData(op)) == hashedPubData;
     }
 
@@ -194,83 +191,59 @@ library Operations {
         @dev Read public data from bytes
      */
 
-    function readRegisterPubData(bytes memory data) internal pure returns (Register memory) {
+    function readRegisterPubData(bytes memory data) internal pure returns (Register memory register) {
         uint256 offset = OP_TYPE_BYTES;
-        Register memory register;
         (offset, register.accountId) = Bytes.readUInt32(data, offset);
-        (offset, register.tsAddr) = Bytes.readBytes20(data, offset);
-        if (offset != REGISTER_PUBDATA_BYTES) revert ReadRegisterPubDataError();
-        return register;
+        (, register.tsAddr) = Bytes.readBytes20(data, offset);
     }
 
-    function readDepositPubData(bytes memory data) internal pure returns (Deposit memory) {
+    function readDepositPubData(bytes memory data) internal pure returns (Deposit memory deposit) {
         uint256 offset = OP_TYPE_BYTES;
-        Deposit memory deposit;
         (offset, deposit.accountId) = Bytes.readUInt32(data, offset);
         (offset, deposit.tokenId) = Bytes.readUInt16(data, offset);
-        (offset, deposit.amount) = Bytes.readUInt128(data, offset);
-        if (offset != DEPOSIT_PUBDATA_BYTES) revert ReadDepositPubDataError();
-        return deposit;
+        (, deposit.amount) = Bytes.readUInt128(data, offset);
     }
 
-    function readWithdrawPubData(bytes memory data) internal pure returns (Withdraw memory) {
+    function readWithdrawPubData(bytes memory data) internal pure returns (Withdraw memory withdraw) {
         uint256 offset = OP_TYPE_BYTES;
-        Withdraw memory withdraw;
         (offset, withdraw.accountId) = Bytes.readUInt32(data, offset);
         (offset, withdraw.tokenId) = Bytes.readUInt16(data, offset);
-        (offset, withdraw.amount) = Bytes.readUInt128(data, offset);
-        if (offset != WITHDRAW_PUBDATA_BYTES) revert ReadWithdrawPubDataError();
-        return withdraw;
+        (, withdraw.amount) = Bytes.readUInt128(data, offset);
     }
 
-    function readForceWithdrawPubData(bytes memory data) internal pure returns (ForceWithdraw memory) {
+    function readForceWithdrawPubData(bytes memory data) internal pure returns (ForceWithdraw memory forceWithdraw) {
         uint256 offset = OP_TYPE_BYTES;
-        ForceWithdraw memory forceWithdraw;
         (offset, forceWithdraw.accountId) = Bytes.readUInt32(data, offset);
         (offset, forceWithdraw.tokenId) = Bytes.readUInt16(data, offset);
-        (offset, forceWithdraw.amount) = Bytes.readUInt128(data, offset);
-        if (offset != FORCE_WITHDRAW_PUBDATA_BYTES) revert ReadForceWithdrawPubDataError();
-        return forceWithdraw;
+        (, forceWithdraw.amount) = Bytes.readUInt128(data, offset);
     }
 
-    function readAuctionEndPubData(bytes memory data) internal pure returns (AuctionEnd memory) {
+    function readAuctionEndPubData(bytes memory data) internal pure returns (AuctionEnd memory auctionEnd) {
         uint256 offset = OP_TYPE_BYTES;
-        AuctionEnd memory auctionEnd;
         (offset, auctionEnd.accountId) = Bytes.readUInt32(data, offset);
         (offset, auctionEnd.collateralTokenId) = Bytes.readUInt16(data, offset);
         (offset, auctionEnd.collateralAmt) = Bytes.readUInt128(data, offset);
         (offset, auctionEnd.tsbTokenId) = Bytes.readUInt16(data, offset);
-        (offset, auctionEnd.debtAmt) = Bytes.readUInt128(data, offset);
-        if (offset != AUCTION_END_PUBDATA_BYTES) revert ReadAuctionEndPubDataError();
-        return auctionEnd;
+        (, auctionEnd.debtAmt) = Bytes.readUInt128(data, offset);
     }
 
-    function readCreateTsbTokenPubData(bytes memory data) internal pure returns (CreateTsbToken memory) {
+    function readCreateTsbTokenPubData(bytes memory data) internal pure returns (CreateTsbToken memory createTsbToken) {
         uint256 offset = OP_TYPE_BYTES;
-        CreateTsbToken memory createTsbToken;
         (offset, createTsbToken.maturityTime) = Bytes.readUInt32(data, offset);
         (offset, createTsbToken.baseTokenId) = Bytes.readUInt16(data, offset);
-        (offset, createTsbToken.tsbTokenId) = Bytes.readUInt16(data, offset);
-        if (offset != CREATE_TS_BOND_TOKEN_PUBDATA_BYTES) revert ReadCreateTsbTokenPubDataError();
-        return createTsbToken;
+        (, createTsbToken.tsbTokenId) = Bytes.readUInt16(data, offset);
     }
 
-    function readWithdrawFeePubdata(bytes memory data) internal pure returns (WithdrawFee memory) {
+    function readWithdrawFeePubdata(bytes memory data) internal pure returns (WithdrawFee memory withdrawFee) {
         uint256 offset = OP_TYPE_BYTES;
-        WithdrawFee memory withdrawFee;
         (offset, withdrawFee.tokenId) = Bytes.readUInt16(data, offset);
-        (offset, withdrawFee.amount) = Bytes.readUInt128(data, offset);
-        if (offset != WITHDRAW_FEE_PUBDATA_BYTES) revert ReadWithdrawFeePubDataError();
-        return withdrawFee;
+        (, withdrawFee.amount) = Bytes.readUInt128(data, offset);
     }
 
-    function readEvacuationPubdata(bytes memory data) internal pure returns (Evacuation memory) {
+    function readEvacuationPubdata(bytes memory data) internal pure returns (Evacuation memory evacuation) {
         uint256 offset = OP_TYPE_BYTES;
-        Evacuation memory evacuation;
         (offset, evacuation.accountId) = Bytes.readUInt32(data, offset);
         (offset, evacuation.tokenId) = Bytes.readUInt16(data, offset);
-        (offset, evacuation.amount) = Bytes.readUInt128(data, offset);
-        if (offset != EVACUATION_PUBDATA_BYTES) revert ReadEvacuationPubDataError();
-        return evacuation;
+        (, evacuation.amount) = Bytes.readUInt128(data, offset);
     }
 }

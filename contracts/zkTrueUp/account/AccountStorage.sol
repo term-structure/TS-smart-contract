@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 /**
  * @title Term Structure Account Storage
+ * @author Term Structure Labs
  */
 library AccountStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Account")) - 1);
@@ -16,10 +17,12 @@ library AccountStorage {
         mapping(uint32 => address) accountAddresses;
     }
 
-    function layout() internal pure returns (Layout storage l) {
+    function layout() internal pure returns (Layout storage s) {
         bytes32 slot = STORAGE_SLOT;
+
+        // solhint-disable-next-line no-inline-assembly
         assembly {
-            l.slot := slot
+            s.slot := slot
         }
     }
 }

@@ -93,6 +93,47 @@ describe("Health factor", () => {
   });
 
   describe("Update loan mock", () => {
+    it("Success to get loan id, and resolve loan id", async () => {
+      const loanData = loanDataJSON[0];
+
+      // tsb ETH
+      const tsbTokenData = tsbTokensJSON[loanData.debtTokenId];
+      await createAndWhiteListTsbToken(
+        diamondToken,
+        diamondTsb,
+        operator,
+        tsbTokenData
+      );
+
+      // test update loan
+      const loan: LoanData = {
+        accountId: 0,
+        tsbTokenId: loanData.tsbTokenId,
+        collateralTokenId: loanData.collateralTokenId,
+        collateralAmt: BigNumber.from(loanData.collateralAmt),
+        debtAmt: BigNumber.from(loanData.debtAmt),
+      };
+
+      // update test loan data
+      const updateLoanTx = await diamondRollupMock
+        .connect(operator)
+        .updateLoanMock(loan);
+      await updateLoanTx.wait();
+
+      // get loan id
+      const loanId = await diamondLoan.getLoanId(
+        loan.accountId,
+        BigNumber.from(tsbTokenData.maturity),
+        loanData.debtTokenId,
+        loan.collateralTokenId
+      );
+      const [accountId, maturityTime, debtTokenId, collateralTokenId] =
+        await diamondLoan.resolveLoanId(loanId);
+      expect(accountId).to.equal(loan.accountId);
+      expect(maturityTime).to.equal(BigNumber.from(tsbTokenData.maturity));
+      expect(debtTokenId).to.equal(loanData.debtTokenId);
+      expect(collateralTokenId).to.equal(loanData.collateralTokenId);
+    });
     it("Fail to get health factor, loan is not exist", async () => {
       const loanData = loanDataJSON[0];
       // tsb ETH
@@ -309,9 +350,6 @@ describe("Health factor", () => {
           .withArgs(
             loanId,
             loan.accountId,
-            BigNumber.from(tsbTokenData.maturity),
-            collateralToken.tokenAddr,
-            debtToken.tokenAddr,
             BigNumber.from(collateralAmt),
             BigNumber.from(debtAmt)
           );
@@ -429,9 +467,6 @@ describe("Health factor", () => {
           .withArgs(
             loanId,
             loan.accountId,
-            BigNumber.from(tsbTokenData.maturity),
-            collateralToken.tokenAddr,
-            debtToken.tokenAddr,
             BigNumber.from(collateralAmt),
             BigNumber.from(debtAmt)
           );

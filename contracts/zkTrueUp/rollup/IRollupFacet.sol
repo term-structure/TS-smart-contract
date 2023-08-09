@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {RollupStorage, CommitBlock, StoredBlock, ExecuteBlock, Proof, L1Request} from "./RollupStorage.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {RollupStorage, Proof, CommitBlock, StoredBlock, VerifyBlock, ExecuteBlock, Request} from "./RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 
 /**
  * @title Term Structure Rollup Facet Interface
+ * @author Term Structure Labs
  */
 interface IRollupFacet {
     /// @notice Error for invalid last committed block
@@ -25,7 +27,7 @@ interface IRollupFacet {
     /// @notice Error for invalid block number
     error InvalidBlockNum(uint32 newBlockNum);
     /// @notice Error for request is not existed
-    error RequestIsNotExisted(L1Request request);
+    error RequestIsNotExisted(Request request);
     /// @notice Error for invalid invalid public data length
     error InvalidPubDataLength(uint256 pubDataLength);
     /// @notice Error for offset is greater than public data length
@@ -34,10 +36,8 @@ interface IRollupFacet {
     error InvalidOffset(uint256 offset);
     /// @notice Error for offset is already set
     error OffsetIsSet(uint256 chunkId);
-    /// @notice Error for base token address is not matched
-    error BaseTokenAddrIsNotMatched();
     /// @notice Error for maturity time is not matched
-    error MaturityTimeIsNotMatched();
+    error MaturityTimeIsNotMatched(uint32 tsbTokenMaturityTime, uint32 createTsbReqMaturityTime);
     /// @notice Error for invalid op type
     error InvalidOpType(Operations.OpType opType);
     /// @notice Error for inconsistent commitment
@@ -51,55 +51,56 @@ interface IRollupFacet {
     /// @notice Error for redeem with invalid tsb token address
     error InvalidTsbTokenAddr(address invalidTokenAddr);
     /// @notice Error for pending rollup tx hash is not matched
-    error PendingRollupTxHashIsNotMatched();
+    error PendingRollupTxHashIsNotMatched(bytes32 pendingRollupTxHash, bytes32 executeBlockPendingRollupTxHash);
     /// @notice Error for the specified accountId and tokenId is already evacuated
     error Evacuated(uint32 accountId, uint16 tokenId);
-    /// @notice The system is not in evacuation mode
-    error NotEvacuMode();
+    /// @notice Error for activate evacuation mode, but the timestamp is not expired
+    error TimeStampIsNotExpired(uint256 curtimestamp, uint256 expirationTime);
+    /// @notice Error for underlyingAsset token and base token is not matched
+    error TokenIsNotMatched(IERC20 underlyingAsset, IERC20 baseToken);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
     /// @param commitment The commitment of the block
-    event BlockCommitted(uint32 blockNumber, bytes32 commitment);
+    event BlockCommit(uint32 indexed blockNumber, bytes32 indexed commitment);
 
     /// @notice Emit when there is a new block verified
     /// @param blockNumber The number of the verified block
-    event BlockVerified(uint32 blockNumber);
+    event BlockVerification(uint32 indexed blockNumber);
 
     /// @notice Emit when there is a new block executed
     /// @param blockNumber The number of the executed block
-    event BlockExecuted(uint32 blockNumber);
+    event BlockExecution(uint32 indexed blockNumber);
 
     /// @notice Emit when there is a new block reverted
     /// @param blockNumber The number of the reverted block
-    event BlockReverted(uint32 blockNumber);
+    event BlockRevert(uint32 indexed blockNumber);
 
     /// @notice Emit when there is an evacuation
     /// @param accountAddr The address of the account
     /// @param accountId The id of the account
-    /// @param tokenAddr The address of the token
+    /// @param token The token to be evacuated
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
-    event Evacuation(address indexed accountAddr, uint32 accountId, address tokenAddr, uint16 tokenId, uint128 amount);
+    event Evacuation(
+        address indexed accountAddr,
+        uint32 indexed accountId,
+        IERC20 token,
+        uint16 tokenId,
+        uint256 amount
+    );
 
     /// @notice Emitted when evacuation is activated
-    /// @param evacuationBlock The block number when evacuation is activated
-    event EvacuationActivated(uint256 indexed evacuationBlock);
+    event EvacuationActivation();
 
     /// @notice Emit when there is a new loan created
     /// @param loanId The id of the loan
     /// @param accountId The account id of the loan owner
-    /// @param maturityTime The maturity time of the loan
-    /// @param collateralTokenAddr The address of the collateral token
-    /// @param debtTokenAddr The address of the debt token
     /// @param addedCollateralAmt  The added collateral amount of the loan
     /// @param addedDebtAmt The added debt amount of the loan
     event UpdateLoan(
         bytes12 indexed loanId,
         uint32 indexed accountId,
-        uint32 maturityTime,
-        address collateralTokenAddr,
-        address debtTokenAddr,
         uint128 addedCollateralAmt,
         uint128 addedDebtAmt
     );
@@ -110,15 +111,15 @@ interface IRollupFacet {
     function commitBlocks(StoredBlock memory lastCommittedBlock, CommitBlock[] memory newBlocks) external;
 
     /// @notice Verify blocks
-    /// @param committedBlocks The committed blocks to be verified
-    /// @param proof The proof of the committed blocks
-    function verifyBlocks(StoredBlock[] memory committedBlocks, Proof[] memory proof) external;
+    /// @param verifyingBlocks The committed blocks to be verified and proofs
+    function verifyBlocks(VerifyBlock[] memory verifyingBlocks) external;
 
     /// @notice Execute blocks
     /// @param pendingBlocks The pending blocks to be executed
     function executeBlocks(ExecuteBlock[] memory pendingBlocks) external;
 
     /// @notice Revert blocks
+    /// @dev This function is only used for revert the unexecuted blocks
     /// @param revertedBlocks The blocks to be reverted
     function revertBlocks(StoredBlock[] memory revertedBlocks) external;
 
@@ -164,8 +165,8 @@ interface IRollupFacet {
 
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
-    /// @return l1Request The request of the specified id
-    function getL1Request(uint64 requestId) external view returns (L1Request memory l1Request);
+    /// @return request The request of the specified id
+    function getL1Request(uint64 requestId) external view returns (Request memory request);
 
     /// @notice Return the L1 request number
     /// @return committedL1RequestNum The number of committed L1 requests
@@ -192,7 +193,7 @@ interface IRollupFacet {
 
     /// @notice Return the pending balance of the specified account and token
     /// @param accountAddr The address of the account
-    /// @param tokenAddr The address of the token
+    /// @param token The token to be checked
     /// @return pendingBalance The pending balance of the specified account and token
-    function getPendingBalances(address accountAddr, address tokenAddr) external view returns (uint128 pendingBalance);
+    function getPendingBalances(address accountAddr, IERC20 token) external view returns (uint256 pendingBalance);
 }

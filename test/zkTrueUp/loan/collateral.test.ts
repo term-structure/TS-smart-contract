@@ -194,7 +194,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(addCollateralTx)
-        .to.emit(diamondLoan, "AddCollateral")
+        .to.emit(diamondLoan, "CollateralAdded")
         .withArgs(loanId, user1Addr, DEFAULT_ETH_ADDRESS, amount);
 
       // convert amount to 8 decimals for loan data
@@ -258,7 +258,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(addCollateralTx)
-        .to.emit(diamondLoan, "AddCollateral")
+        .to.emit(diamondLoan, "CollateralAdded")
         .withArgs(loanId, user2Addr, DEFAULT_ETH_ADDRESS, amount);
 
       // convert amount to 8 decimals for loan data
@@ -319,7 +319,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(removeCollateralTx)
-        .to.emit(diamondLoan, "RemoveCollateral")
+        .to.emit(diamondLoan, "CollateralRemoved")
         .withArgs(loanId, user1Addr, DEFAULT_ETH_ADDRESS, amount);
 
       // convert amount to 8 decimals for loan data
@@ -356,7 +356,7 @@ describe("Collateral", () => {
       // check revert
       await expect(
         diamondLoan.connect(user2).removeCollateral(loanId, amount)
-      ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
     });
 
     it("Fail to remove collateral (ETH case), health factor under threshold", async () => {
@@ -503,7 +503,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(addCollateralTx)
-        .to.emit(diamondLoan, "AddCollateral")
+        .to.emit(diamondLoan, "CollateralAdded")
         .withArgs(loanId, user2Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data
@@ -565,7 +565,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(addCollateralTx)
-        .to.emit(diamondLoan, "AddCollateral")
+        .to.emit(diamondLoan, "CollateralAdded")
         .withArgs(loanId, user1Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data
@@ -622,7 +622,7 @@ describe("Collateral", () => {
 
       // check event
       await expect(removeCollateralTx)
-        .to.emit(diamondLoan, "RemoveCollateral")
+        .to.emit(diamondLoan, "CollateralRemoved")
         .withArgs(loanId, user2Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data
@@ -661,7 +661,7 @@ describe("Collateral", () => {
       // check revert
       await expect(
         diamondLoan.connect(user1).removeCollateral(loanId, amount)
-      ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
     });
 
     it("Fail to remove collateral (stable coin pair), health factor under threshold", async () => {

@@ -1,10 +1,14 @@
 import { Wallet, utils } from "ethers";
 import { ethers } from "hardhat";
-import { deployBaseTokens } from "../../utils/deploy/deployBaseTokens";
 import { deployFacets } from "../../utils/deploy/deployFacets";
-import { FacetInfo, getString } from "../../utils/type";
+import {
+  BaseTokenAddresses,
+  FacetInfo,
+  PriceFeeds,
+  getString,
+} from "../../utils/type";
 import { cutFacets } from "../../utils/cutFacets";
-import { TsTokenId } from "term-structure-sdk";
+import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
 import {
   BASE_TOKEN_ASSET_CONFIG,
   DEFAULT_GENESIS_STATE_ROOT,
@@ -13,6 +17,7 @@ import {
   INIT_FUNCTION_NAME,
 } from "../../utils/config";
 import { safeInitFacet } from "diamond-engraver";
+import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
@@ -28,17 +33,11 @@ export const main = async () => {
   const treasuryAddr = getString(process.env.GOERLI_TREASURY_ADDRESS);
   const insuranceAddr = getString(process.env.GOERLI_INSURANCE_ADDRESS);
   const vaultAddr = getString(process.env.GOERLI_VAULT_ADDRESS);
+  const faucetOwner = getString(process.env.GOERLI_FAUCET_OWNER_ADDRESS);
 
   console.log(
     "Deploying contracts with deployer:",
     await deployer.getAddress()
-  );
-
-  // Deploy base tokens for test
-  console.log("Deploying base tokens...");
-  const { baseTokenAddresses, priceFeeds } = await deployBaseTokens(
-    deployer,
-    BASE_TOKEN_ASSET_CONFIG
   );
 
   // Deploy WETH
@@ -85,6 +84,32 @@ export const main = async () => {
   const zkTrueUpInit = await ZkTrueUpInit.connect(deployer).deploy();
   await zkTrueUpInit.deployed();
 
+  // Deploy faucet and base tokens for test
+  console.log("Deploying TsFaucet and base tokens...");
+  const TsFaucet = await ethers.getContractFactory("TsFaucet");
+  const tsFaucet = await TsFaucet.connect(deployer).deploy(zkTrueUp.address);
+  await tsFaucet.deployed();
+  await tsFaucet.connect(deployer).transferOwnership(faucetOwner);
+
+  const baseTokenAddresses: BaseTokenAddresses = {};
+  const priceFeeds: PriceFeeds = {};
+
+  // add ETH as base token
+  baseTokenAddresses[TsTokenId.ETH] = DEFAULT_ETH_ADDRESS;
+  baseTokenAddresses[TsTokenId.WBTC] = await tsFaucet.tsERC20s(1);
+  baseTokenAddresses[TsTokenId.USDT] = await tsFaucet.tsERC20s(2);
+  baseTokenAddresses[TsTokenId.USDC] = await tsFaucet.tsERC20s(3);
+  baseTokenAddresses[TsTokenId.DAI] = await tsFaucet.tsERC20s(4);
+
+  // deploy oracle mock
+  console.log("Deploying OracleMock...");
+  const OracleMock = await ethers.getContractFactory("OracleMock");
+  for (const tokenId of Object.keys(baseTokenAddresses)) {
+    const oracleMock = await OracleMock.connect(deployer).deploy();
+    await oracleMock.deployed();
+    priceFeeds[tokenId] = oracleMock.address;
+  }
+
   // cut facets
   console.log("Cutting facets...");
   const facetInfos: FacetInfo[] = Object.keys(facets).map((facetName) => {
@@ -111,7 +136,7 @@ export const main = async () => {
       "address",
       "address",
       "bytes32",
-      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address tokenAddr,address priceFeed)",
+      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address token,address priceFeed)",
     ],
     [
       weth.address,
@@ -129,9 +154,9 @@ export const main = async () => {
         isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
         decimals: ETH_ASSET_CONFIG.decimals,
         minDepositAmt: ETH_ASSET_CONFIG.minDepositAmt,
-        tokenAddr: ETH_ASSET_CONFIG.tokenAddr,
+        token: ETH_ASSET_CONFIG.tokenAddr,
         priceFeed: priceFeeds[TsTokenId.ETH],
-      },
+      } as AssetConfigStruct,
     ]
   );
 
@@ -157,6 +182,7 @@ export const main = async () => {
       `with price feed ${priceFeeds[token.tokenId]}`
     );
   }
+  console.log("TsFaucet address:", tsFaucet.address);
   console.log("WETH address:", weth.address);
   console.log("PoseidonUnit2 address:", poseidonUnit2Contract.address);
   console.log("Verifier address:", verifier.address);

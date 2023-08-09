@@ -2,25 +2,17 @@
 // solhint-disable-next-line
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 /**
  * @title WETH interface
  * @author Term Structure Labs
  * @notice Interface for WETH contract
  */
-interface IWETH {
+interface IWETH is IERC20 {
+    /// @notice Deposit ETH to get WETH
     function deposit() external payable;
 
+    /// @notice Withdraw WETH to get ETH
     function withdraw(uint256) external;
-
-    function approve(address guy, uint256 wad) external returns (bool);
-
-    function transferFrom(
-        address src,
-        address dst,
-        uint256 wad
-    ) external returns (bool);
-
-    function balanceOf(address guy) external returns (uint256);
-
-    function mint(address to, uint256 amount) external;
 }

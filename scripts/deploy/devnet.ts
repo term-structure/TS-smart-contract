@@ -1,10 +1,14 @@
 import { Wallet, utils } from "ethers";
 import { ethers } from "hardhat";
-import { deployBaseTokens } from "../../utils/deploy/deployBaseTokens";
 import { deployFacets } from "../../utils/deploy/deployFacets";
-import { FacetInfo } from "../../utils/type";
+import {
+  BaseTokenAddresses,
+  FacetInfo,
+  PriceFeeds,
+  getString,
+} from "../../utils/type";
 import { cutFacets } from "../../utils/cutFacets";
-import { TsTokenId } from "term-structure-sdk";
+import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
 import {
   BASE_TOKEN_ASSET_CONFIG,
   DEFAULT_GENESIS_STATE_ROOT,
@@ -13,51 +17,27 @@ import {
   INIT_FUNCTION_NAME,
 } from "../../utils/config";
 import { safeInitFacet } from "diamond-engraver";
+import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
 export const main = async () => {
   const provider = new ethers.providers.JsonRpcProvider(
-    process.env.DEVNET_RPC_URL || "http://localhost:8545"
+    process.env.DEVNET_RPC_URL
   );
 
-  const node = utils.HDNode.fromMnemonic(
-    process.env.DEVNET_MNEMONIC ||
-      "test test test test test test test test test test test junk"
-  );
-
-  const wallets = [];
-  for (let i = 0; i < 1000; i++) {
-    // eslint-disable-next-line quotes
-    const path = "m/44'/60'/0'/0/" + i;
-    const wallet = node.derivePath(path);
-    wallets.push(wallet);
-  }
-
-  const operatorAddr =
-    process.env.DEVNET_OPERATOR_ADDRESS || wallets[3].address;
-
-  const deployerPrivKey =
-    process.env.DEVNET_DEPLOYER_PRIVATE_KEY || wallets[4].privateKey;
+  const operatorAddr = getString(process.env.DEVNET_OPERATOR_ADDRESS);
+  const deployerPrivKey = getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY);
   const deployer = new Wallet(deployerPrivKey, provider);
 
-  const adminAddr = process.env.DEVNET_ADMIN_ADDRESS || wallets[5].address;
-  const treasuryAddr =
-    process.env.DEVNET_TREASURY_ADDRESS || wallets[6].address;
-  const insuranceAddr =
-    process.env.DEVNET_INSURANCE_ADDRESS || wallets[7].address;
-  const vaultAddr = process.env.DEVNET_VAULT_ADDRESS || wallets[8].address;
+  const adminAddr = getString(process.env.DEVNET_ADMIN_ADDRESS);
+  const treasuryAddr = getString(process.env.DEVNET_TREASURY_ADDRESS);
+  const insuranceAddr = getString(process.env.DEVNET_INSURANCE_ADDRESS);
+  const vaultAddr = getString(process.env.DEVNET_VAULT_ADDRESS);
 
   console.log(
     "Deploying contracts with deployer:",
     await deployer.getAddress()
-  );
-
-  // Deploy base tokens for test
-  console.log("Deploying base tokens...");
-  const { baseTokenAddresses, priceFeeds } = await deployBaseTokens(
-    deployer,
-    BASE_TOKEN_ASSET_CONFIG
   );
 
   // Deploy WETH
@@ -104,6 +84,30 @@ export const main = async () => {
   const zkTrueUpInit = await ZkTrueUpInit.connect(deployer).deploy();
   await zkTrueUpInit.deployed();
 
+  // Deploy faucet and base tokens for test
+  console.log("Deploying TsFaucet and base tokens...");
+  const TsFaucet = await ethers.getContractFactory("TsFaucet");
+  const tsFaucet = await TsFaucet.connect(deployer).deploy(zkTrueUp.address);
+  await tsFaucet.deployed();
+  const baseTokenAddresses: BaseTokenAddresses = {};
+  const priceFeeds: PriceFeeds = {};
+
+  // add ETH as base token
+  baseTokenAddresses[TsTokenId.ETH] = DEFAULT_ETH_ADDRESS;
+  baseTokenAddresses[TsTokenId.WBTC] = await tsFaucet.tsERC20s(1);
+  baseTokenAddresses[TsTokenId.USDT] = await tsFaucet.tsERC20s(2);
+  baseTokenAddresses[TsTokenId.USDC] = await tsFaucet.tsERC20s(3);
+  baseTokenAddresses[TsTokenId.DAI] = await tsFaucet.tsERC20s(4);
+
+  // deploy oracle mock
+  console.log("Deploying OracleMock...");
+  const OracleMock = await ethers.getContractFactory("OracleMock");
+  for (const tokenId of Object.keys(baseTokenAddresses)) {
+    const oracleMock = await OracleMock.connect(deployer).deploy();
+    await oracleMock.deployed();
+    priceFeeds[tokenId] = oracleMock.address;
+  }
+
   // cut facets
   console.log("Cutting facets...");
   const facetInfos: FacetInfo[] = Object.keys(facets).map((facetName) => {
@@ -130,7 +134,7 @@ export const main = async () => {
       "address",
       "address",
       "bytes32",
-      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address tokenAddr,address priceFeed)",
+      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address token,address priceFeed)",
     ],
     [
       weth.address,
@@ -148,9 +152,9 @@ export const main = async () => {
         isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
         decimals: ETH_ASSET_CONFIG.decimals,
         minDepositAmt: ETH_ASSET_CONFIG.minDepositAmt,
-        tokenAddr: ETH_ASSET_CONFIG.tokenAddr,
+        token: ETH_ASSET_CONFIG.tokenAddr,
         priceFeed: priceFeeds[TsTokenId.ETH],
-      },
+      } as AssetConfigStruct,
     ]
   );
 
@@ -176,6 +180,7 @@ export const main = async () => {
       `with price feed ${priceFeeds[token.tokenId]}`
     );
   }
+  console.log("TsFaucet address:", tsFaucet.address);
   console.log("WETH address:", weth.address);
   console.log("PoseidonUnit2 address:", poseidonUnit2Contract.address);
   console.log("Verifier address:", verifier.address);

@@ -10,6 +10,7 @@ import {
   INIT_FUNCTION_NAME,
 } from "../../utils/config";
 import { safeInitFacet } from "diamond-engraver";
+import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
@@ -95,7 +96,7 @@ export const main = async () => {
       "address",
       "address",
       "bytes32",
-      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address tokenAddr,address priceFeed)",
+      "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address token,address priceFeed)",
     ],
     [
       process.env.MAINNET_WETH_ADDRESS,
@@ -113,9 +114,9 @@ export const main = async () => {
         isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
         decimals: ETH_ASSET_CONFIG.decimals,
         minDepositAmt: ETH_ASSET_CONFIG.minDepositAmt,
-        tokenAddr: ETH_ASSET_CONFIG.tokenAddr,
+        token: ETH_ASSET_CONFIG.tokenAddr,
         priceFeed: process.env.MAINNET_ETH_PRICE_FEED_ADDRESS,
-      },
+      } as AssetConfigStruct,
     ]
   );
 

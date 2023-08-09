@@ -30,25 +30,24 @@ contract FlashLoanToLiquidation is IFlashLoanReceiver {
 
     function executeOperation(
         address sender,
-        address[] calldata assets,
-        uint128[] calldata amounts,
-        uint128[] calldata premiums,
+        IERC20[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] calldata premiums,
         bytes calldata data
-    ) external override returns (bool) {
-        Loan memory loan = loanFacet.getLoan(_loanId);
-        address collateralToken = tokenFacet.getAssetConfig(loan.collateralTokenId).tokenAddr;
+    ) external {
+        (, , , uint16 collateralTokenId) = loanFacet.resolveLoanId(_loanId);
+        IERC20 collateralToken = tokenFacet.getAssetConfig(collateralTokenId).token;
         (, , uint128 maxRepayAmt) = loanFacet.getLiquidationInfo(_loanId);
         (uint128 liquidatorRewardAmt, ) = loanFacet.liquidate(_loanId, maxRepayAmt);
-        if (collateralToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+        if (address(collateralToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             (bool success, ) = _liquidator.call{value: liquidatorRewardAmt}("");
-            return success;
+            require(success, "FlashLoanToLiquidation: ETH transfer failed");
         } else {
             IERC20(collateralToken).transfer(_liquidator, liquidatorRewardAmt);
-            return true;
         }
     }
 
-    function flashLoanCall(address[] calldata assets, uint128[] calldata amounts) external {
+    function flashLoanCall(IERC20[] calldata assets, uint256[] calldata amounts) external {
         for (uint256 i = 0; i < assets.length; i++) {
             IERC20(assets[i]).approve(_zkTrueUpAddr, MAX_UINT_256);
         }

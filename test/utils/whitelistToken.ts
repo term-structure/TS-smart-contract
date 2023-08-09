@@ -24,7 +24,7 @@ export async function whiteListBaseTokens(
       isTsbToken: false,
       decimals: decimals,
       minDepositAmt: minDepositAmt,
-      tokenAddr: addr,
+      token: addr,
       priceFeed: priceFeed,
     };
 
@@ -51,7 +51,7 @@ export const createAndWhiteListTsbToken = async (
   const addr = createTsbTokenReceipt.events?.[0].args?.[0];
 
   // whitelist tsb token
-  const tsbTokenAddr = await diamondTsb.getTsbTokenAddr(
+  const tsbTokenAddr = await diamondTsb.getTsbToken(
     underlyingTokenId,
     maturity
   );
@@ -64,7 +64,7 @@ export const createAndWhiteListTsbToken = async (
     isTsbToken: true,
     decimals: await tsbToken.decimals(),
     minDepositAmt: tsbTokenData.minDepositAmt,
-    tokenAddr: tsbTokenAddr,
+    token: tsbTokenAddr,
     priceFeed: DEFAULT_ZERO_ADDR,
   };
   await diamondToken.connect(operator).addToken(assetConfig);

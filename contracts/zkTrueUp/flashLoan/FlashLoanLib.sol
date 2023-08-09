@@ -5,11 +5,12 @@ import {FlashLoanStorage} from "./FlashLoanStorage.sol";
 
 /**
  * @title Term Structure Flash Loan Library
+ * @author Term Structure Labs
  */
 library FlashLoanLib {
     /// @notice Internal function to return the flash loan premium
     /// @return flashLoanPremium The flash loan premium
-    function getFlashLoanPremium() internal view returns (uint16) {
-        return FlashLoanStorage.layout().flashLoanPremium;
+    function getFlashLoanPremium(FlashLoanStorage.Layout storage s) internal view returns (uint16) {
+        return s.flashLoanPremium;
     }
 }

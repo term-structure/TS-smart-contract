@@ -1,7 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Signer, utils } from "ethers";
+import { BigNumber, Signer, Wallet, utils } from "ethers";
 import { BaseTokenAddresses } from "../../../utils/type";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
@@ -22,6 +22,7 @@ import {
   MIN_DEPOSIT_AMOUNT,
   TS_BASE_TOKEN,
   TsTokenId,
+  getTsRollupSignerFromWallet,
 } from "term-structure-sdk";
 
 const fixture = async () => {
@@ -71,8 +72,6 @@ describe("Register", function () {
   });
 
   describe("Register with ERC20", function () {
-    const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
-
     beforeEach(async () => {
       const amount = utils.parseUnits(
         MIN_DEPOSIT_AMOUNT.USDT.toString(),
@@ -94,6 +93,18 @@ describe("Register", function () {
         MIN_DEPOSIT_AMOUNT.USDT.toString(),
         TS_BASE_TOKEN.USDT.decimals
       );
+
+      const chainId = Number((await user1.getChainId()).toString());
+      const tsSigner = await getTsRollupSignerFromWallet(
+        chainId,
+        diamondAcc.address,
+        user1 as Wallet
+      );
+      const tsPubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
+
       await diamondAcc
         .connect(user1)
         .register(tsPubKey.X, tsPubKey.Y, usdt.address, amount);
@@ -120,7 +131,10 @@ describe("Register", function () {
       const l2TokenAddr = await diamondToken.getTokenId(usdt.address);
       const register = {
         accountId: accountId,
-        tsAddr: genTsAddr(tsPubKey.X, tsPubKey.Y),
+        tsAddr: genTsAddr(
+          BigNumber.from(tsPubKey.X),
+          BigNumber.from(tsPubKey.Y)
+        ),
       };
       const [, , totalL1RequestNum] = await diamondRollup.getL1RequestNum();
       let requestId = totalL1RequestNum.sub(2);
@@ -150,6 +164,17 @@ describe("Register", function () {
 
       const invalidAddr = ethers.Wallet.createRandom().address;
 
+      const chainId = Number((await user1.getChainId()).toString());
+      const tsSigner = await getTsRollupSignerFromWallet(
+        chainId,
+        diamondAcc.address,
+        user1 as Wallet
+      );
+      const tsPubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
+
       await usdt.connect(user1).approve(zkTrueUp.address, amount);
       await expect(
         diamondAcc
@@ -168,6 +193,17 @@ describe("Register", function () {
       // invalid amount
       const invalidAmt = amount.sub(1);
 
+      const chainId = Number((await user1.getChainId()).toString());
+      const tsSigner = await getTsRollupSignerFromWallet(
+        chainId,
+        diamondAcc.address,
+        user1 as Wallet
+      );
+      const tsPubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
+
       await expect(
         diamondAcc
           .connect(user1)
@@ -184,8 +220,18 @@ describe("Register", function () {
       const [, , beforeTotalPendingRequests] =
         await diamondRollup.getL1RequestNum();
 
+      const chainId = Number((await user1.getChainId()).toString());
+      const tsSigner = await getTsRollupSignerFromWallet(
+        chainId,
+        diamondAcc.address,
+        user1 as Wallet
+      );
+      const tsPubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
+
       // call register
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
       const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
       // await weth.connect(user1).approve(zkTrueUp.address, amount);
       await diamondAcc
@@ -213,7 +259,10 @@ describe("Register", function () {
       const l2TokenAddr = await diamondToken.getTokenId(DEFAULT_ETH_ADDRESS);
       const register = {
         accountId: accountId,
-        tsAddr: genTsAddr(tsPubKey.X, tsPubKey.Y),
+        tsAddr: genTsAddr(
+          BigNumber.from(tsPubKey.X),
+          BigNumber.from(tsPubKey.Y)
+        ),
       };
       const [, , totalL1RequestNum] = await diamondRollup.getL1RequestNum();
       let requestId = totalL1RequestNum.sub(2);
@@ -240,7 +289,16 @@ describe("Register", function () {
 
     it("Failed to register, the deposit amount less than the minimum deposit amount", async function () {
       // call register
-      const tsPubKey = { X: BigNumber.from("3"), Y: BigNumber.from("4") };
+      const chainId = Number((await user1.getChainId()).toString());
+      const tsSigner = await getTsRollupSignerFromWallet(
+        chainId,
+        diamondAcc.address,
+        user1 as Wallet
+      );
+      const tsPubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
       const amount = utils.parseEther((MIN_DEPOSIT_AMOUNT.ETH / 2).toString());
       expect(
         diamondAcc

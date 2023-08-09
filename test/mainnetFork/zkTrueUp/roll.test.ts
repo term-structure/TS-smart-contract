@@ -32,10 +32,10 @@ import {
   STABLECOIN_PAIR_LIQUIDATION_FACTOR,
   TS_BASE_TOKEN,
   TsTokenId,
+  getTsRollupSigner,
 } from "term-structure-sdk";
 import { MAINNET_ADDRESS } from "../../../utils/config";
 import { useChainlink } from "../../../utils/useChainlink";
-import { getRandomUint256 } from "../../utils/helper";
 import { LiquidationFactorStruct } from "../../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 
 //! use RollupMock instead of RollupFacet for testing
@@ -106,7 +106,7 @@ describe("Roll to Aave", () => {
       "contracts/test/aaveV3/IPoolDataProvider.sol:IPoolDataProvider",
       MAINNET_ADDRESS.AAVE_V3_POOL_DATA_PROVIDER
     );
-    await diamondLoan.connect(admin).setIsActivatedRoll(true);
+    await diamondLoan.connect(admin).setActivatedRoller(true);
   });
 
   describe("Roll to Aave (general case)", () => {
@@ -179,7 +179,7 @@ describe("Roll to Aave", () => {
 
       await expect(
         diamondLoan.connect(user2).rollToAave(loanId, collateralAmt, debtAmt)
-      ).to.be.revertedWithCustomError(diamondLoan, "SenderIsNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
     });
     it("Fail roll to Aave, roll function is not activated", async () => {
       const debtAmt = toL1Amt(
@@ -191,7 +191,7 @@ describe("Roll to Aave", () => {
         TS_BASE_TOKEN.ETH
       );
 
-      await diamondLoan.connect(admin).setIsActivatedRoll(false);
+      await diamondLoan.connect(admin).setActivatedRoller(false);
 
       await expect(
         diamondLoan.connect(user2).rollToAave(loanId, collateralAmt, debtAmt)
@@ -348,7 +348,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -515,7 +515,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -698,7 +698,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           user1Addr,
@@ -831,8 +831,13 @@ describe("Roll to Aave", () => {
           .connect(impersonatedSigner)
           .approve(diamondAcc.address, registerAmt2)
       ).wait();
-      // register user2 for loan owner
-      const pubKey = { X: getRandomUint256(), Y: getRandomUint256() };
+      // register impersonatedSigner for loan owner
+      const tsSigner = getTsRollupSigner("0x1234567890");
+      const pubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
+
       await (
         await diamondAcc
           .connect(impersonatedSigner)
@@ -953,7 +958,12 @@ describe("Roll to Aave", () => {
           .approve(diamondAcc.address, registerAmt2)
       ).wait();
       // register impersonatedSigner for loan owner
-      const pubKey = { X: getRandomUint256(), Y: getRandomUint256() };
+      const tsSigner = getTsRollupSigner("0x1234567890");
+      const pubKey = {
+        X: tsSigner.tsPubKey[0].toString(),
+        Y: tsSigner.tsPubKey[1].toString(),
+      };
+
       await (
         await diamondAcc
           .connect(impersonatedSigner)
@@ -1096,7 +1106,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           impersonatedSignerAddr,
@@ -1249,7 +1259,7 @@ describe("Roll to Aave", () => {
 
       // check event
       await expect(rollToAaveTx)
-        .to.emit(diamondLoan, "Repay")
+        .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
           impersonatedSignerAddr,

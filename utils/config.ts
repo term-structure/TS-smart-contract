@@ -109,16 +109,18 @@ export const DEFAULT_GENESIS_STATE_ROOT =
 
 export const MAX_LTV_RATIO = 1000; // 100%
 
-export const CHUNK_BYTES = 12;
+export const BYTES_OF_CHUNK = 12;
 
-export const REGISTER_BYTES = 4 * CHUNK_BYTES;
+export const NOOP_BYTES = 1;
 
-export const DEPOSIT_BYTES = 2 * CHUNK_BYTES;
+export const REGISTER_BYTES = 4 * BYTES_OF_CHUNK;
 
-export const WITHDRAW_BYTES = 2 * CHUNK_BYTES;
+export const DEPOSIT_BYTES = 2 * BYTES_OF_CHUNK;
 
-export const FORCE_WITHDRAW_BYTES = 2 * CHUNK_BYTES;
+export const WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
 
-export const AUCTION_END_BYTES = 4 * CHUNK_BYTES;
+export const FORCE_WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
 
-export const WITHDRAW_FEE_BYTES = 2 * CHUNK_BYTES;
+export const AUCTION_END_BYTES = 4 * BYTES_OF_CHUNK;
+
+export const WITHDRAW_FEE_BYTES = 2 * BYTES_OF_CHUNK;

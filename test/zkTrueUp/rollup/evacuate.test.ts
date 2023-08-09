@@ -1,4 +1,4 @@
-import { loadFixture, mine } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { BigNumber, utils, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
@@ -7,7 +7,7 @@ import { useFacet } from "../../../utils/useFacet";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { FACET_NAMES } from "../../../utils/config";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
-import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-31/initStates.json";
+import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-32/initStates.json";
 import { AccountState, BaseTokenAddresses } from "../../../utils/type";
 import {
   DEFAULT_ETH_ADDRESS,
@@ -47,10 +47,13 @@ import {
   ExecuteBlockStruct,
   ProofStruct,
   StoredBlockStruct,
+  VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 
-const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-31");
-const evacuationDataPath = resolve("./test/data/rollupData/evacuation");
+const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-32");
+const evacuationDataPath = resolve(
+  "./test/data/rollupData/zkTrueUp-evacuation-8-10-8-6-3-3-32"
+);
 const testData = initTestData(testDataPath);
 const evacuationData = initEvacuationTestData(evacuationDataPath);
 
@@ -184,7 +187,7 @@ describe("Evacuate", function () {
       const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
       // generate new blocks
       const newBlocks: CommitBlockStruct[] = [];
-      const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
+      const commitBlock = getCommitBlock(lastCommittedBlock, testCase, false);
       newBlocks.push(commitBlock);
       // get state before commit
       const [oriCommittedBlockNum, ,] = await diamondRollup.getBlockNum();
@@ -226,10 +229,14 @@ describe("Evacuate", function () {
       const proof: ProofStruct = testCase.callData;
       proofs.push(proof);
 
+      const verifyingBlocks: VerifyBlockStruct[] = [];
+      verifyingBlocks.push({
+        storedBlock: committedBlock,
+        proof: proof,
+      });
+
       const [, oriProvedBlockNum] = await diamondRollup.getBlockNum();
-      await diamondRollup
-        .connect(operator)
-        .verifyBlocks(committedBlocks, proofs);
+      await diamondRollup.connect(operator).verifyBlocks(verifyingBlocks);
 
       const [, newProvedBlockNum] = await diamondRollup.getBlockNum();
       expect(newProvedBlockNum - oriProvedBlockNum).to.be.eq(
@@ -294,7 +301,7 @@ describe("Evacuate", function () {
     }
   });
 
-  it("Success to activate evacuation", async function () {
+  it("Success to evacuate", async function () {
     // register
     const user1 = accounts[1];
     const user1Addr = await user1.getAddress();
@@ -305,25 +312,26 @@ describe("Evacuate", function () {
       .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
         value: amount,
       });
-    // expirationBlock = 14 days / 15 seconds (for one block) = 80640
-    await mine(80639);
+    // expiration period = 14 days
+    await time.increase(time.duration.days(14));
     expect(await diamondRollup.isEvacuMode()).to.equal(false);
     await diamondRollup.activateEvacuation();
     expect(await diamondRollup.isEvacuMode()).to.equal(true);
 
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(lastCommittedBlock, evacuationData[0]);
+    const commitBlock = getCommitBlock(
+      lastCommittedBlock,
+      evacuationData[0],
+      true
+    );
     const evacuation = readEvacuationPubData(commitBlock.publicData.toString());
     const proof: ProofStruct = evacuationData[0].callData;
 
     const accountAddr = await diamondAcc.getAccountAddr(evacuation.accountId);
     const tokenId = Number(evacuation.tokenId);
     const tokenAddr = baseTokenAddresses[tokenId];
-    const token = await ethers.getContractAt(
-      "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
-      tokenAddr
-    );
+    const token = await ethers.getContractAt("IERC20", tokenAddr);
     const oriBalance = await token.balanceOf(accountAddr);
 
     await diamondRollup.evacuate(lastExecutedBlock, commitBlock, proof);
@@ -338,10 +346,14 @@ describe("Evacuate", function () {
     expect(newBalance.sub(oriBalance)).to.be.eq(evacuationAmt);
   });
 
-  it("Failed to activate evacuation", async function () {
+  it("Failed to evacuate, not in evacu mode", async function () {
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const commitBlock = getCommitBlock(lastCommittedBlock, evacuationData[0]);
+    const commitBlock = getCommitBlock(
+      lastCommittedBlock,
+      evacuationData[0],
+      true
+    );
     const proof: ProofStruct = evacuationData[0].callData;
 
     await expect(

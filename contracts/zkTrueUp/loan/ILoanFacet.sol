@@ -1,35 +1,37 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LiquidationFactor, Loan} from "./LoanStorage.sol";
 
 /**
  * @title Term Structure Loan Facet Interface
+ * @author Term Structure Labs
  */
 interface ILoanFacet {
     /// @notice Error for setting invalid liquidation factor
-    error InvalidLiquidationFactor();
+    error InvalidLiquidationFactor(LiquidationFactor liquidationFactor);
     /// @notice Error for liquidate the loan which is safe
     error LoanIsSafe(uint256 healthFactor, uint32 maturityTime);
     /// @notice Error for liquidate the loan with invalid repay amount
     error RepayAmtExceedsMaxRepayAmt(uint128 repayAmt, uint128 maxRepayAmt);
     /// @notice Error for supply to Aave with string reason
-    error SupplyToAaveFailedLogString(address collateralTokenAddr, uint128 collateralAmt, string reason);
+    error SupplyToAaveFailedLogString(IERC20 collateralToken, uint128 collateralAmt, string reason);
     /// @notice Error for supply to Aave with bytes reason
-    error SupplyToAaveFailedLogBytes(address collateralTokenAddr, uint128 collateralAmt, bytes reason);
+    error SupplyToAaveFailedLogBytes(IERC20 collateralToken, uint128 collateralAmt, bytes reason);
     /// @notice Error for borrow from Aave with string reason
     error BorrowFromAaveFailedLogString(
-        address collateralTokenAddr,
+        IERC20 collateralToken,
         uint128 collateralAmt,
-        address debtTokenAddr,
+        IERC20 debtToken,
         uint128 debtAmt,
         string reason
     );
     /// @notice Error for borrow from Aave with bytes reason
     error BorrowFromAaveFailedLogBytes(
-        address collateralTokenAddr,
+        IERC20 collateralToken,
         uint128 collateralAmt,
-        address debtTokenAddr,
+        IERC20 debtToken,
         uint128 debtAmt,
         bytes reason
     );
@@ -39,40 +41,40 @@ interface ILoanFacet {
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenAddr The address of the collateral token
+    /// @param collateralToken The collateral token to add
     /// @param addedCollateralAmt The amount of the added collateral
-    event AddCollateral(
+    event CollateralAdded(
         bytes12 indexed loanId,
         address indexed sender,
-        address collateralTokenAddr,
+        IERC20 collateralToken,
         uint128 addedCollateralAmt
     );
 
     /// @notice Emitted when borrower remove collateral
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenAddr The address of the collateral token
+    /// @param collateralToken The collateral token to remove
     /// @param removedCollateralAmt The amount of the removed collateral
-    event RemoveCollateral(
+    event CollateralRemoved(
         bytes12 indexed loanId,
         address indexed sender,
-        address collateralTokenAddr,
+        IERC20 collateralToken,
         uint128 removedCollateralAmt
     );
 
     /// @notice Emitted when the borrower repay the loan
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenAddr The address of the collateral token
-    /// @param debtTokenAddr The address of the debt token
+    /// @param collateralToken The collateral token to be taken
+    /// @param debtToken The debt token to be repaid
     /// @param removedCollateralAmt The amount of the removed collateral
     /// @param removedDebtAmt The amount of the removed debt
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
-    event Repay(
+    event Repayment(
         bytes12 indexed loanId,
         address indexed sender,
-        address collateralTokenAddr,
-        address debtTokenAddr,
+        IERC20 collateralToken,
+        IERC20 debtToken,
         uint128 removedCollateralAmt,
         uint128 removedDebtAmt,
         bool repayAndDeposit
@@ -81,15 +83,15 @@ interface ILoanFacet {
     /// @notice Emitted when the loan is rolled to Aave
     /// @param loanId The id of the loan
     /// @param sender The address of the sender
-    /// @param collateralTokenAddr The address of the collateral token
-    /// @param debtTokenAddr The address of the debt token
+    /// @param supplyToken The token to be supplied to Aave
+    /// @param borrowToken The token to be borrowed from Aave
     /// @param collateralAmt The amount of the collateral
     /// @param debtAmt The amount of the debt
     event RollToAave(
         bytes12 indexed loanId,
         address indexed sender,
-        address collateralTokenAddr,
-        address debtTokenAddr,
+        IERC20 supplyToken,
+        IERC20 borrowToken,
         uint128 collateralAmt,
         uint128 debtAmt
     );
@@ -97,13 +99,13 @@ interface ILoanFacet {
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
     /// @param liquidator The address of the liquidator
-    /// @param collateralTokenAddr The address of the collateral token
+    /// @param collateralToken The collateral token to be taken
     /// @param liquidatorReward The reward of the liquidator
     /// @param protocolPenalty The penalty of the protocol
     event Liquidation(
         bytes12 indexed loanId,
         address indexed liquidator,
-        address collateralTokenAddr,
+        IERC20 collateralToken,
         uint128 liquidatorReward,
         uint128 protocolPenalty
     );
@@ -123,7 +125,7 @@ interface ILoanFacet {
 
     /// @notice Emitted when the roll activation is set
     /// @param isActivatedRoll Whether the roll activation is set
-    event SetIsActivatedRoll(bool isActivatedRoll);
+    event SetActivatedRoller(bool isActivatedRoll);
 
     /// @notice Add collateral to the loan
     /// @param loanId The id of the loan
@@ -159,6 +161,8 @@ interface ILoanFacet {
     ) external payable returns (uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt);
 
     /// @notice Set the half liquidation threshold
+    /// @dev The half liquidation threshold is the threshold of the liquidation price (USD),
+    ///      the initial value 1e4 i.e. 10000 USD
     /// @param halfLiquidationThreshold The half liquidation threshold
     function setHalfLiquidationThreshold(uint16 halfLiquidationThreshold) external;
 
@@ -168,8 +172,8 @@ interface ILoanFacet {
     function setLiquidationFactor(LiquidationFactor memory liquidationFactor, bool isStableCoinPair) external;
 
     /// @notice Set the roll function activation
-    /// @param isActivatedRoll The roll function activation
-    function setIsActivatedRoll(bool isActivatedRoll) external;
+    /// @param isActivated The roll function activation
+    function setActivatedRoller(bool isActivated) external;
 
     /// @notice Return the health factor of the loan
     /// @param loanId The id of the loan
@@ -177,6 +181,7 @@ interface ILoanFacet {
     function getHealthFactor(bytes12 loanId) external view returns (uint256 healthFactor);
 
     /// @notice Return the half liquidation threshold
+    /// @dev The halfLiquidationThreshold is the threshold of the liquidation price (USD), i.e. 1e4 = 10000 USD
     /// @return halfLiquidationThreshold The half liquidation threshold
     function getHalfLiquidationThreshold() external view returns (uint16 halfLiquidationThreshold);
 
@@ -186,6 +191,24 @@ interface ILoanFacet {
     function getLiquidationFactor(
         bool isStableCoinPair
     ) external view returns (LiquidationFactor memory liquidationFactor);
+
+    /// @notice Return the loan by the loan id
+    /// @param loanId The id of the loan
+    /// @return loan The loan
+    function getLoan(bytes12 loanId) external view returns (Loan memory loan);
+
+    /// @notice Return the liquidation info of the loan
+    /// @param loanId The id of the loan
+    /// @return _isLiquidable Whether the loan is liquidable
+    /// @return debtToken The debt token of the loan
+    /// @return maxRepayAmt The maximum amount of the debt to be repaid
+    function getLiquidationInfo(
+        bytes12 loanId
+    ) external view returns (bool _isLiquidable, IERC20 debtToken, uint128 maxRepayAmt);
+
+    /// @notice Check if the roll function is activated
+    /// @return isActivate If the roll function is activated
+    function isActivatedRoller() external view returns (bool isActivate);
 
     /// @notice Return the loan id by the loan info
     /// @param accountId The id of the account
@@ -200,21 +223,13 @@ interface ILoanFacet {
         uint16 collateralTokenId
     ) external pure returns (bytes12 loanId);
 
-    /// @notice Return the loan by the loan id
-    /// @param loanId The id of the loan
-    /// @return loan The loan
-    function getLoan(bytes12 loanId) external view returns (Loan memory loan);
-
-    /// @notice Return the liquidation info of the loan
-    /// @param loanId The id of the loan
-    /// @return _isLiquidable Whether the loan is liquidable
-    /// @return debtTokenAddr The address of the debt token
-    /// @return maxRepayAmt The maximum amount of the debt to be repaid
-    function getLiquidationInfo(
+    /// @notice Resolve the loan id
+    /// @param loanId The loan id
+    /// @return accountId The account id
+    /// @return maturityTime The maturity time
+    /// @return debtTokenId The debt token id
+    /// @return collateralTokenId The collateral token id
+    function resolveLoanId(
         bytes12 loanId
-    ) external view returns (bool _isLiquidable, address debtTokenAddr, uint128 maxRepayAmt);
-
-    /// @notice Check if the roll function is activated
-    /// @return True if the roll function is activated
-    function isActivatedRoll() external view returns (bool);
+    ) external pure returns (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId);
 }
