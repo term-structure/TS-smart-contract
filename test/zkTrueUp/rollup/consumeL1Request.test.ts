@@ -350,6 +350,8 @@ describe("Consume L1 Request in EvacuMode", function () {
     );
     const beforeUser2UsdcPendingBalance =
       await diamondRollup.getPendingBalances(user2Addr, usdc.address);
+    // before account state
+    const beforeUser2AccountId = await diamondAcc.getAccountId(user2Addr);
 
     // collect user1 deposit request public data
     const user1AccountId = await diamondAcc.getAccountId(user1Addr);
@@ -433,6 +435,8 @@ describe("Consume L1 Request in EvacuMode", function () {
       user2Addr,
       usdc.address
     );
+    // after account state
+    const afterUser2AccountId = await diamondAcc.getAccountId(user2Addr);
 
     // check committed and executed request number
     expect(newCommittedL1RequestNum.sub(oldCommittedL1RequestNum)).to.be.eq(4);
@@ -446,6 +450,8 @@ describe("Consume L1 Request in EvacuMode", function () {
     expect(
       afterUser2UsdcPendingBalance.sub(beforeUser2UsdcPendingBalance)
     ).to.be.eq(user2RegisterAmt);
+    // check account state
+    expect(afterUser2AccountId).to.be.eq(0);
   });
 
   it("Fail to consume L1 request, not in evacuation mode", async function () {

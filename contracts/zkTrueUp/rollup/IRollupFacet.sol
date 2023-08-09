@@ -136,14 +136,31 @@ interface IRollupFacet {
     /// @param revertedBlocks The blocks to be reverted
     function revertBlocks(StoredBlock[] memory revertedBlocks) external;
 
+    /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
+    function activateEvacuation() external;
+
+    /// @notice Consume the L1 non-executed requests in the evacuation mode
+    /// @param consumedTxPubData The public data of the non-executed L1 requests which in the request queue
+    function consumeL1RequestInEvacuMode(bytes[] memory consumedTxPubData) external;
+
     /// @notice Evacuate the funds of a specified user and token in the evacuMode
     /// @param lastExecutedBlock The last executed block
     /// @param newBlock The new block to be committed with the evacuation operation
     /// @param proof The proof of the new block
     function evacuate(StoredBlock memory lastExecutedBlock, CommitBlock memory newBlock, Proof memory proof) external;
 
-    /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
-    function activateEvacuation() external;
+    /// @notice Commit evacuation blocks
+    /// @param lastCommittedBlock The last committed block
+    /// @param evacuBlocks The evacuation blocks to be committed
+    function commitEvacuBlocks(StoredBlock memory lastCommittedBlock, CommitBlock[] memory evacuBlocks) external;
+
+    /// @notice Verify evacuation blocks
+    /// @param evacuBlocks The evacuation blocks to be verified and proofs
+    function verifyEvacuBlocks(VerifyBlock[] memory evacuBlocks) external;
+
+    /// @notice Execute evacuation blocks
+    /// @param evacuBlocks The evacuation blocks to be executed
+    function executeEvacuBlocks(ExecuteBlock[] memory evacuBlocks) external;
 
     /// @notice Return the evacuation mode is activated or not
     /// @return evacuMode The evacuation mode status

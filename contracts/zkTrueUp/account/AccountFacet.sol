@@ -142,7 +142,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
         asl.accountIds[sender] = accountId;
         asl.accountAddresses[accountId] = sender;
-        asl.accountNum++;
+        asl.accountNum += 1;
         AccountLib.addRegisterReq(rsl, sender, accountId, tsPubKeyX, tsPubKeyY);
         return accountId;
     }
