@@ -215,19 +215,18 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             revert TimestampLtPrevious(newBlock.timestamp, lastExecutedBlock.timestamp);
         if (newBlock.blockNumber != lastExecutedBlock.blockNumber + 1) revert InvalidBlockNum(newBlock.blockNumber);
 
-        // Commit the new block
         bytes memory publicData = newBlock.publicData;
-        if (publicData.length != Config.EVACUATION_BYTES) revert InvalidPubDataLength(publicData.length);
+        // evacuation public data length is 2 chunks
+        if (publicData.length != Config.BYTES_OF_TWO_CHUNKS) revert InvalidPubDataLength(publicData.length);
 
         bytes memory commitmentOffset = new bytes(1);
         commitmentOffset[0] = 0x80; // 0x80 = 0b10000000, the first bit (critical chunk flag) is 1
 
         bytes32 commitment = _createBlockCommitment(lastExecutedBlock, newBlock, commitmentOffset);
 
-        // Verify the new block
         _verifyOneBlock(commitment, proof, true);
 
-        Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(newBlock.publicData);
+        Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(publicData);
         _evacuate(rsl, evacuation);
     }
 
@@ -479,7 +478,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         bytes memory pubData,
         uint256 evacuationRequestNum
     ) internal pure returns (bytes memory) {
-        uint256 validBytesNum = evacuationRequestNum * Config.EVACUATION_BYTES;
+        uint256 validBytesNum = evacuationRequestNum * Config.BYTES_OF_TWO_CHUNKS; // evacuation request is 2 chunks
         // TODO: use assembly to optimize
         for (uint256 i = validBytesNum; i < pubData.length; ++i) {
             pubData[i] = 0x00;
@@ -550,16 +549,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         // non L1 request
         if (opType == Operations.OpType.WITHDRAW) {
-            data = pubData.sliceWithdrawData(offset);
+            data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.AUCTION_END) {
-            data = pubData.sliceAuctionEndData(offset);
+            data = pubData.sliceFourChunksBytes(offset); // 4 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.WITHDRAW_FEE) {
-            data = pubData.sliceWithdrawFeeData(offset);
+            data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.CREATE_TSB_TOKEN) {
-            data = pubData.sliceCreateTsbTokenData(offset);
+            data = pubData.sliceOneChunkBytes(offset); // 1 chunk
             Operations.CreateTsbToken memory createTsbTokenReq = data.readCreateTsbTokenPubData();
             TokenStorage.Layout storage tsl = TokenStorage.layout();
             AssetConfig memory tokenConfig = tsl.getAssetConfig(createTsbTokenReq.tsbTokenId);
@@ -574,20 +573,20 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             isL1Request = true;
             Request memory request = rsl.getL1Request(requestId);
             if (opType == Operations.OpType.REGISTER) {
-                data = pubData.sliceRegisterData(offset);
+                data = pubData.sliceFourChunksBytes(offset); // 4 chunks
                 Operations.Register memory register = data.readRegisterPubData();
                 request.isRegisterInL1RequestQueue(register);
             } else if (opType == Operations.OpType.DEPOSIT) {
-                data = pubData.sliceDepositData(offset);
+                data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
                 Operations.Deposit memory deposit = data.readDepositPubData();
                 request.isDepositInL1RequestQueue(deposit);
             } else if (opType == Operations.OpType.EVACUATION) {
-                data = pubData.sliceEvacuationData(offset);
+                data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
                 Operations.Evacuation memory evacuation = data.readEvacuationPubdata();
                 request.isEvacuationInL1RequestQueue(evacuation);
                 isToBeExecuted = true;
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
-                data = pubData.sliceForceWithdrawData(offset);
+                data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
                 Operations.ForceWithdraw memory forceWithdrawReq = data.readForceWithdrawPubData();
                 request.isForceWithdrawInL1RequestQueue(forceWithdrawReq);
                 isToBeExecuted = true;
