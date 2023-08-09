@@ -496,7 +496,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         bool isExecutedL1RequestNumEqTotalL1RequestNum = executedL1RequestNum == totalL1RequestNum;
         /// the last L1 req is evacuation (end of consume and someone already evacuated)
         bool isLastL1RequestEvacuation = rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION;
-        if (isExecutedL1RequestNumEqTotalL1RequestNum && isLastL1RequestEvacuation)
+        if (!isExecutedL1RequestNumEqTotalL1RequestNum && !isLastL1RequestEvacuation)
             revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
     }
 
@@ -830,6 +830,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     }
 
     /// @notice Internal function create the commitment of the new block
+    /// @dev    newTsRoot is packed in commitment for data availablity and will be proved in the circuit
     /// @param previousBlock The previous block
     /// @param newBlock The new block to be committed
     /// @param commitmentOffset The offset of the commitment
@@ -839,7 +840,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         CommitBlock memory newBlock,
         bytes memory commitmentOffset
     ) internal pure returns (bytes32) {
-        // newTsRoot is packed in commitment for data availablity and will be proved in the circuit
         return
             sha256(
                 abi.encodePacked(
