@@ -433,7 +433,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         if (publicDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(publicDataLength);
 
         uint256 chunkIdDeltaLength = newBlock.chunkIdDeltas.length;
-        if (isEvacuBlock) newBlock.publicData = _validEvacuBlockPubData(newBlock.publicData, chunkIdDeltaLength);
+        if (isEvacuBlock) _requireValidEvacuBlockPubData(chunkIdDeltaLength, newBlock.publicData);
 
         // The commitment offset array is used to store the commitment offset for each chunk
         bytes memory commitmentOffset = new bytes(publicDataLength / Config.BITS_OF_CHUNK);
@@ -474,16 +474,39 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             });
     }
 
-    function _validEvacuBlockPubData(
-        bytes memory pubData,
-        uint256 evacuationRequestNum
-    ) internal pure returns (bytes memory) {
+    /// @notice Internal function to check whether the evacuation block pubdata is valid
+    /// @dev The evacuation block only includes the evacuation request,
+    ///      so the pubdata length should be evacuation request number * 2 chunks
+    ///      and remaining pubdata should be padded with 0 bytes and have no other values
+    /// @param evacuationRequestNum The number of evacuation requests
+    /// @param pubData The public data of the block
+    function _requireValidEvacuBlockPubData(uint256 evacuationRequestNum, bytes memory pubData) internal pure {
         uint256 validBytesNum = evacuationRequestNum * Config.BYTES_OF_TWO_CHUNKS; // evacuation request is 2 chunks
-        // TODO: use assembly to optimize
-        for (uint256 i = validBytesNum; i < pubData.length; ++i) {
-            pubData[i] = 0x00;
+        bytes4 errorSelector = InvalidEvacuBlockPubData.selector;
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            let pubDataLength := mload(pubData)
+            let curr := add(validBytesNum, add(pubData, 0x20))
+            let end := add(pubData, add(0x20, pubDataLength))
+
+            // solhint-disable-next-line no-empty-blocks
+            for {
+
+            } lt(curr, end) {
+                curr := add(curr, 0x20)
+            } {
+                let data := mload(curr)
+
+                // if data is not zero, revert
+                if data {
+                    let ptr := mload(0x40)
+                    mstore(ptr, errorSelector)
+                    mstore(add(ptr, 0x04), evacuationRequestNum)
+                    revert(ptr, 0x24)
+                }
+            }
         }
-        return pubData;
     }
 
     /// @notice Internal function to check whether the all non-executed L1 requests are consumed
@@ -492,8 +515,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
         /// the last executed L1 req == the total L1 req (end of consume),
-        bool isExecutedL1RequestNumEqTotalL1RequestNum = executedL1RequestNum == totalL1RequestNum;
         /// the last L1 req is evacuation (end of consume and someone already evacuated)
+        bool isExecutedL1RequestNumEqTotalL1RequestNum = executedL1RequestNum == totalL1RequestNum;
         bool isLastL1RequestEvacuation = rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION;
         if (!isExecutedL1RequestNumEqTotalL1RequestNum && !isLastL1RequestEvacuation)
             revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
