@@ -435,7 +435,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         uint256 chunkIdDeltaLength = newBlock.chunkIdDeltas.length;
         if (isEvacuBlock) _requireValidEvacuBlockPubData(chunkIdDeltaLength, newBlock.publicData);
 
-        // The commitment offset array is used to store the commitment offset for each chunk
+        /// The commitment offset array is used to store the commitment offset for each chunk
         bytes memory commitmentOffset = new bytes(publicDataLength / Config.BITS_OF_CHUNK);
 
         uint256 chunkId;
@@ -447,9 +447,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             uint256 offset = chunkId * Config.BYTES_OF_CHUNK;
             if (offset >= publicDataLength) revert OffsetGtPubDataLength(offset);
 
-            commitmentOffset = _updateCommitmentOffsetForChunk(commitmentOffset, chunkId);
-
-            // To ensure that every chunk length is equal to evacuation chunk length when commit evacuation block
+            //TODO: move out of loop
             if (isEvacuBlock) _requireValidEvacuBlockChunkIdDelta(delta, i);
 
             (requestId, processableRollupTxHash) = _processOneRequest(
@@ -459,6 +457,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 requestId,
                 processableRollupTxHash
             );
+
+            commitmentOffset = _updateCommitmentOffsetForChunk(commitmentOffset, chunkId);
         }
 
         uint64 processedL1RequestNum = requestId - committedL1RequestNum;
