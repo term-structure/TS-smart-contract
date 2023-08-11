@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { resolve } from "path";
 import { EMPTY_HASH, TsTxType } from "term-structure-sdk";
-import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-32/initStates.json";
+import initStates from "../../data/rollupData/local-block-230808/initStates.json";
 import { FACET_NAMES } from "../../../utils/config";
 import { useFacet } from "../../../utils/useFacet";
 import { deployAndInit } from "../../utils/deployAndInit";
@@ -39,7 +39,7 @@ import {
   getStoredBlock,
   initTestData,
 } from "../../utils/rollupHelper";
-const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-32");
+const testDataPath = resolve("./test/data/rollupData/local-block-230808");
 
 const testData = initTestData(testDataPath);
 
@@ -72,9 +72,9 @@ describe("Rollup", function () {
     timestamp: BigNumber.from("0"),
   };
   let accounts: Signer[];
-  let committedBlockNum: number = 0;
-  let provedBlockNum: number = 0;
-  let executedBlockNum: number = 0;
+  let committedBlockNum = 0;
+  let provedBlockNum = 0;
+  let executedBlockNum = 0;
   let operator: Signer;
   let zkTrueUp: ZkTrueUp;
   let diamondAcc: AccountFacet;
@@ -113,7 +113,7 @@ describe("Rollup", function () {
 
   for (let k = 0; k < testData.length; k++) {
     const testCase = testData[k];
-    it(`Before rollup for block-${k}`, async function () {
+    it(`Before rollup for block-${k + 1}`, async function () {
       oriStates = await getStates(
         accounts,
         baseTokenAddresses,
@@ -124,8 +124,9 @@ describe("Rollup", function () {
         diamondTsb,
         testCase
       );
-      for (let i = 0; i < testCase.requests.reqData.length; i++) {
-        const reqType = testCase.requests.reqData[i][0];
+      for (let i = 0; i < testCase.reqDataList.length; i++) {
+        const reqData = testCase.reqDataList[i];
+        const reqType = testCase.reqDataList[i][0];
         if (reqType == TsTxType.REGISTER.toString()) {
           await doRegister(
             accounts,
@@ -136,7 +137,7 @@ describe("Rollup", function () {
           );
         } else if (reqType == TsTxType.DEPOSIT.toString()) {
           if (i > 0) {
-            if (Number(testCase.requests.reqData[i - 1][0]) == 1) {
+            if (Number(testCase.reqDataList[i - 1][0]) == 1) {
               continue;
             }
           }

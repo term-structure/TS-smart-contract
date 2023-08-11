@@ -56,7 +56,7 @@ library Config {
     uint8 internal constant BITS_OF_CHUNK = BYTES_OF_CHUNK * BITS_OF_BYTE;
 
     /// @notice The bytes lengths of register request
-    uint256 internal constant REGISTER_BYTES = 4 * BYTES_OF_CHUNK;
+    uint256 internal constant REGISTER_BYTES = 3 * BYTES_OF_CHUNK;
 
     /// @notice The bytes lengths of deposit request
     uint256 internal constant DEPOSIT_BYTES = 2 * BYTES_OF_CHUNK;
