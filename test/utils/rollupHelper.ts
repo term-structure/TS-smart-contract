@@ -418,7 +418,7 @@ export const doRegister = async (
   testCase: TestDataItem,
   requestId: number
 ) => {
-  const accountId = Number(testCase.reqDataList[requestId][7]);
+  const accountId = Number(testCase.reqDataList[requestId][9]);
   const signer = accounts[accountId];
   const signerAddr = await signer.getAddress();
   const [tsPubKeyX, tsPubKeyY] = testCase.tsPubKeyList[requestId];
@@ -461,7 +461,7 @@ export const doDeposit = async (
   testCase: TestDataItem,
   requestId: number
 ) => {
-  const accountId = Number(testCase.reqDataList[requestId][7]);
+  const accountId = Number(testCase.reqDataList[requestId][9]);
   const signer = accounts[accountId];
   const signerAddr = await signer.getAddress();
   const tokenId = Number(testCase.reqDataList[requestId][2]);
@@ -490,7 +490,7 @@ export const doForceWithdraw = async (
   testCase: TestDataItem,
   requestId: number
 ) => {
-  const accountId = Number(testCase.reqDataList[requestId][7]);
+  const accountId = Number(testCase.reqDataList[requestId][9]);
   const signer = accounts[accountId];
   const tokenId = Number(testCase.reqDataList[requestId][2]);
   const tokenAddr = baseTokenAddresses[tokenId];
@@ -505,7 +505,7 @@ export const doCreateBondToken = async (
   requestId: number
 ) => {
   const baseTokenId = BigNumber.from(testCase.reqDataList[requestId][2]).sub(5);
-  const maturityTime = BigNumber.from(testCase.reqDataList[requestId][8]);
+  const maturityTime = BigNumber.from(testCase.reqDataList[requestId][10]);
   const name = "TslToken";
   const symbol = "TSL";
 
