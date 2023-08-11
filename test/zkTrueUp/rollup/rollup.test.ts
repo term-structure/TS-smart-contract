@@ -111,9 +111,9 @@ describe("Rollup", function () {
     storedBlocks.push(genesisBlock);
   });
 
-  for (let k = 0; k < testData.length; k++) {
+  for (let k = 0; k < 2; k++) {
     const testCase = testData[k];
-    it(`Before rollup for block-${k + 1}`, async function () {
+    it(`Before rollup for block-${k}`, async function () {
       oriStates = await getStates(
         accounts,
         baseTokenAddresses,

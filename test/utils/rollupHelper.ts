@@ -746,10 +746,8 @@ export function getCommitBlock(
     // NOTE: normal chunk is 1 chunk for 1 bit and padding it to 1 bytes(8 bits)
     chunkLen = (testCase.commitBlock.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
   }
-  const chunkIdDeltas = getPubDataDeltas(
-    testCase.commitBlock.isCriticalChunk,
-    chunkLen
-  );
+  const chunkIdDeltas = testCase.commitBlock.chunkIdDeltas;
+
   const commitBlock: CommitBlockStruct = {
     blockNumber: BigNumber.from(lastCommittedBlock.blockNumber).add(1),
     newStateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
