@@ -34,6 +34,8 @@ import "hardhat/console.sol";
  * @author Term Structure Labs
  * @notice The RollupFacet contract is used to manage the functions abount zk-rollup
  */
+import "hardhat/console.sol";
+
 contract RollupFacet is IRollupFacet, AccessControlInternal {
     using AccountLib for AccountStorage.Layout;
     using AddressLib for AddressStorage.Layout;
