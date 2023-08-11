@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {RollupStorage, L1Request} from "./RollupStorage.sol";
+import {RollupStorage, Request} from "./RollupStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Operations} from "../libraries/Operations.sol";
 
 /**
  * @title Term Structure Rollup Library
+ * @author Term Structure Labs
  */
 library RollupLib {
     using RollupLib for RollupStorage.Layout;
@@ -15,6 +16,8 @@ library RollupLib {
     error InsufficientPendingBalances(uint256 pendingBalance, uint256 withdrawAmt);
     /// @notice Error for trying to do transactions when evacuation mode is activated
     error EvacuModeActivated();
+    /// @notice Error for the system is not in evacuation mode
+    error NotEvacuMode();
     /// @notice Error for operation type is not matched
     error OpTypeIsNotMatched(Operations.OpType requestOpType, Operations.OpType expectedOpType);
 
@@ -25,7 +28,7 @@ library RollupLib {
     /// @param opType The operation type of the request
     /// @param pubData The public data of the request
     /// @param expirationTime The expiration time of the request
-    event NewL1Request(
+    event L1Request(
         address indexed sender,
         uint64 requestId,
         Operations.OpType opType,
@@ -47,29 +50,39 @@ library RollupLib {
     ) internal {
         // solhint-disable-next-line not-rely-on-time
         uint32 expirationTime = uint32(block.timestamp + Config.EXPIRATION_PERIOD);
-        uint64 nextL1RequestId = s.totalL1RequestNum;
+        uint64 requestId = s.totalL1RequestNum;
         bytes32 hashedPubData = keccak256(pubData);
-        s.l1RequestQueue[nextL1RequestId] = L1Request({
+        s.l1RequestQueue[requestId] = Request({
             hashedPubData: hashedPubData,
             expirationTime: expirationTime,
             opType: opType
         });
         s.totalL1RequestNum++;
-        emit NewL1Request(sender, nextL1RequestId, opType, pubData, expirationTime);
+        emit L1Request(sender, requestId, opType, pubData, expirationTime);
     }
 
-    /// @notice Update pending balance and emit Withdraw event
+    /// @notice Add the pending balance of the specified address and token id
     /// @param s The rollup storage
-    /// @param receiver The address of the receiver
+    /// @param addr The address to be added
+    /// @param tokenId The token id
+    /// @param l1Amt The amount of the token
+    function addPendingBalance(RollupStorage.Layout storage s, address addr, uint16 tokenId, uint256 l1Amt) internal {
+        bytes22 key = calcPendingBalanceKey(addr, tokenId);
+        s.pendingBalances[key] += l1Amt;
+    }
+
+    /// @notice Remove the pending balance of the specified address and token id
+    /// @param s The rollup storage
+    /// @param addr The address to be removed
     /// @param tokenId The token id on layer2
     /// @param amount The amount of the token
-    function updateWithdrawalRecord(
+    function removePendingBalance(
         RollupStorage.Layout storage s,
-        address receiver,
+        address addr,
         uint16 tokenId,
         uint256 amount
     ) internal {
-        bytes22 key = calcPendingBalanceKey(receiver, tokenId);
+        bytes22 key = calcPendingBalanceKey(addr, tokenId);
         uint256 pendingBalance = s.getPendingBalances(key);
         if (pendingBalance < amount) revert InsufficientPendingBalances(pendingBalance, amount);
         unchecked {
@@ -81,6 +94,12 @@ library RollupLib {
     /// @param s The rollup storage
     function requireActive(RollupStorage.Layout storage s) internal view {
         if (s.isEvacuMode()) revert EvacuModeActivated();
+    }
+
+    /// @notice Internal function to check if the contract is in the evacuMode
+    /// @param s The rollup storage
+    function requireEvacuMode(RollupStorage.Layout storage s) internal view {
+        if (!s.isEvacuMode()) revert NotEvacuMode();
     }
 
     /// @notice Internal function to get evacuation mode status
@@ -107,7 +126,7 @@ library RollupLib {
     /// @param s The rollup storage
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id
-    function getL1Request(RollupStorage.Layout storage s, uint64 requestId) internal view returns (L1Request memory) {
+    function getL1Request(RollupStorage.Layout storage s, uint64 requestId) internal view returns (Request memory) {
         return s.l1RequestQueue[requestId];
     }
 
@@ -186,7 +205,7 @@ library RollupLib {
     /// @param register The register request
     /// @return bool if the register request is in the L1 request queue
     function isRegisterInL1RequestQueue(
-        L1Request memory request,
+        Request memory request,
         Operations.Register memory register
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.REGISTER);
@@ -199,7 +218,7 @@ library RollupLib {
     /// @param deposit The deposit request
     /// @return bool if the deposit request is in the L1 request queue
     function isDepositInL1RequestQueue(
-        L1Request memory request,
+        Request memory request,
         Operations.Deposit memory deposit
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.DEPOSIT);
@@ -212,7 +231,7 @@ library RollupLib {
     /// @param forceWithdraw The force withdraw request
     /// @return bool if the force withdraw request is in the L1 request queue
     function isForceWithdrawInL1RequestQueue(
-        L1Request memory request,
+        Request memory request,
         Operations.ForceWithdraw memory forceWithdraw
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.FORCE_WITHDRAW);
@@ -225,7 +244,7 @@ library RollupLib {
     /// @param evacuation The evacuation request
     /// @return bool if the evacuation request is in the L1 request queue
     function isEvacuationInL1RequestQueue(
-        L1Request memory request,
+        Request memory request,
         Operations.Evacuation memory evacuation
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.EVACUATION);

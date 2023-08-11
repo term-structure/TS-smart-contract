@@ -9,6 +9,7 @@ import {Config} from "../libraries/Config.sol";
 
 /**
  * @title Term Structure Token Library
+ * @author Term Structure Labs
  */
 library TokenLib {
     using AddressLib for AddressStorage.Layout;

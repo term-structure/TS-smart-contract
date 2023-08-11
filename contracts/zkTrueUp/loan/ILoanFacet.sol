@@ -6,6 +6,7 @@ import {LiquidationFactor, Loan} from "./LoanStorage.sol";
 
 /**
  * @title Term Structure Loan Facet Interface
+ * @author Term Structure Labs
  */
 interface ILoanFacet {
     /// @notice Error for setting invalid liquidation factor
@@ -124,7 +125,7 @@ interface ILoanFacet {
 
     /// @notice Emitted when the roll activation is set
     /// @param isActivatedRoll Whether the roll activation is set
-    event SetIsActivatedRoller(bool isActivatedRoll);
+    event SetActivatedRoller(bool isActivatedRoll);
 
     /// @notice Add collateral to the loan
     /// @param loanId The id of the loan
@@ -160,6 +161,8 @@ interface ILoanFacet {
     ) external payable returns (uint128 liquidatorRewardAmt, uint128 protocolPenaltyAmt);
 
     /// @notice Set the half liquidation threshold
+    /// @dev The half liquidation threshold is the threshold of the liquidation price (USD),
+    ///      the initial value 1e4 i.e. 10000 USD
     /// @param halfLiquidationThreshold The half liquidation threshold
     function setHalfLiquidationThreshold(uint16 halfLiquidationThreshold) external;
 
@@ -170,7 +173,7 @@ interface ILoanFacet {
 
     /// @notice Set the roll function activation
     /// @param isActivated The roll function activation
-    function setIsActivatedRoller(bool isActivated) external;
+    function setActivatedRoller(bool isActivated) external;
 
     /// @notice Return the health factor of the loan
     /// @param loanId The id of the loan
@@ -178,6 +181,7 @@ interface ILoanFacet {
     function getHealthFactor(bytes12 loanId) external view returns (uint256 healthFactor);
 
     /// @notice Return the half liquidation threshold
+    /// @dev The halfLiquidationThreshold is the threshold of the liquidation price (USD), i.e. 1e4 = 10000 USD
     /// @return halfLiquidationThreshold The half liquidation threshold
     function getHalfLiquidationThreshold() external view returns (uint16 halfLiquidationThreshold);
 

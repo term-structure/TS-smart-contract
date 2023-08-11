@@ -1,10 +1,14 @@
 import { Wallet, utils } from "ethers";
 import { ethers } from "hardhat";
-import { deployBaseTokens } from "../../utils/deploy/deployBaseTokens";
 import { deployFacets } from "../../utils/deploy/deployFacets";
-import { FacetInfo, getString } from "../../utils/type";
+import {
+  BaseTokenAddresses,
+  FacetInfo,
+  PriceFeeds,
+  getString,
+} from "../../utils/type";
 import { cutFacets } from "../../utils/cutFacets";
-import { TsTokenId } from "term-structure-sdk";
+import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
 import {
   BASE_TOKEN_ASSET_CONFIG,
   DEFAULT_GENESIS_STATE_ROOT,
@@ -22,18 +26,6 @@ export const main = async () => {
     process.env.DEVNET_RPC_URL
   );
 
-  const node = utils.HDNode.fromMnemonic(
-    getString(process.env.DEVNET_MNEMONIC)
-  );
-
-  const wallets = [];
-  for (let i = 0; i < 1000; i++) {
-    // eslint-disable-next-line quotes
-    const path = "m/44'/60'/0'/0/" + i;
-    const wallet = node.derivePath(path);
-    wallets.push(wallet);
-  }
-
   const operatorAddr = getString(process.env.DEVNET_OPERATOR_ADDRESS);
   const deployerPrivKey = getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY);
   const deployer = new Wallet(deployerPrivKey, provider);
@@ -46,13 +38,6 @@ export const main = async () => {
   console.log(
     "Deploying contracts with deployer:",
     await deployer.getAddress()
-  );
-
-  // Deploy base tokens for test
-  console.log("Deploying base tokens...");
-  const { baseTokenAddresses, priceFeeds } = await deployBaseTokens(
-    deployer,
-    BASE_TOKEN_ASSET_CONFIG
   );
 
   // Deploy WETH
@@ -98,6 +83,30 @@ export const main = async () => {
   const ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
   const zkTrueUpInit = await ZkTrueUpInit.connect(deployer).deploy();
   await zkTrueUpInit.deployed();
+
+  // Deploy faucet and base tokens for test
+  console.log("Deploying TsFaucet and base tokens...");
+  const TsFaucet = await ethers.getContractFactory("TsFaucet");
+  const tsFaucet = await TsFaucet.connect(deployer).deploy(zkTrueUp.address);
+  await tsFaucet.deployed();
+  const baseTokenAddresses: BaseTokenAddresses = {};
+  const priceFeeds: PriceFeeds = {};
+
+  // add ETH as base token
+  baseTokenAddresses[TsTokenId.ETH] = DEFAULT_ETH_ADDRESS;
+  baseTokenAddresses[TsTokenId.WBTC] = await tsFaucet.tsERC20s(1);
+  baseTokenAddresses[TsTokenId.USDT] = await tsFaucet.tsERC20s(2);
+  baseTokenAddresses[TsTokenId.USDC] = await tsFaucet.tsERC20s(3);
+  baseTokenAddresses[TsTokenId.DAI] = await tsFaucet.tsERC20s(4);
+
+  // deploy oracle mock
+  console.log("Deploying OracleMock...");
+  const OracleMock = await ethers.getContractFactory("OracleMock");
+  for (const tokenId of Object.keys(baseTokenAddresses)) {
+    const oracleMock = await OracleMock.connect(deployer).deploy();
+    await oracleMock.deployed();
+    priceFeeds[tokenId] = oracleMock.address;
+  }
 
   // cut facets
   console.log("Cutting facets...");
@@ -171,6 +180,7 @@ export const main = async () => {
       `with price feed ${priceFeeds[token.tokenId]}`
     );
   }
+  console.log("TsFaucet address:", tsFaucet.address);
   console.log("WETH address:", weth.address);
   console.log("PoseidonUnit2 address:", poseidonUnit2Contract.address);
   console.log("Verifier address:", verifier.address);

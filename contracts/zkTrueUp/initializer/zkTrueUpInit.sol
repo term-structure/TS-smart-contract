@@ -20,9 +20,18 @@ import {InitialConfig} from "../libraries/InitialConfig.sol";
 
 /**
  * @title Zk-TureUp Initializer Contract
- * @notice This contract is used to initialize the zkTrueUp protocol
+ * @author Term Structure Labs
+ * @notice This contract is used to initialize the Term Structure Protocol
  */
 contract ZkTrueUpInit is Ownable, AccessControlInternal {
+    // error for initialized again
+    error AlreadyInitialized();
+
+    /**
+     * @notice Initialize function for the Term Structure Protocol
+     * @dev This function is called only once when the protocol is deployed
+     * @param data The encoded data for the initializer
+     */
     function init(bytes calldata data) external {
         (
             address wETHAddr,
@@ -42,6 +51,8 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
             );
 
         // set roles
+        if (_hasRole(Config.ADMIN_ROLE, msg.sender)) revert AlreadyInitialized();
+
         AccessControlInternal._setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
         AccessControlInternal._grantRole(Config.ADMIN_ROLE, adminAddr);
         AccessControlInternal._grantRole(Config.OPERATOR_ROLE, operatorAddr);

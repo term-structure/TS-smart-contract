@@ -8,6 +8,7 @@ import {IPool} from "../interfaces/aaveV3/IPool.sol";
 
 /**
  * @title Term Structure Address Facet Interface
+ * @author Term Structure Labs
  */
 interface IAddressFacet {
     /// @notice Emitted when the new verifier contract is set

@@ -44,7 +44,7 @@ struct ExecuteBlock {
 }
 
 /// @dev The priority request needs to be executed before the expirationBlock, or the system will enter the evacuation mode
-struct L1Request {
+struct Request {
     Operations.OpType opType;
     uint32 expirationTime;
     bytes32 hashedPubData;
@@ -52,6 +52,7 @@ struct L1Request {
 
 /**
  * @title Term Structure Rollup Storage
+ * @author Term Structure Labs
  */
 library RollupStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Rollup")) - 1);
@@ -72,7 +73,7 @@ library RollupStorage {
         /// @notice The total number of L1 requests including pending ones
         uint64 totalL1RequestNum;
         /// @notice L1 request queue
-        mapping(uint64 => L1Request) l1RequestQueue;
+        mapping(uint64 => Request) l1RequestQueue;
         /// @notice pending balances for withdrawal
         mapping(bytes22 => uint256) pendingBalances;
         /// @notice Stored hashed StoredBlock for some block number

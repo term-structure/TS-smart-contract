@@ -27,7 +27,7 @@ contract TsbMock is TsbFacet {
         if (address(underlyingAsset) == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
 
         TsbStorage.Layout storage tsbsl = TsbStorage.layout();
-        uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
+        uint48 tsbTokenKey = TsbLib.calcTsbTokenKey(underlyingTokenId, maturityTime);
         ITsbToken tsbToken = tsbsl.getTsbToken(tsbTokenKey);
         if (address(tsbToken) != address(0)) revert TsbTokenIsExist(tsbToken);
 

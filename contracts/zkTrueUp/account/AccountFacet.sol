@@ -19,6 +19,9 @@ import {BabyJubJub, Point} from "../libraries/BabyJubJub.sol";
 
 /**
  * @title Term Structure Account Facet Contract
+ * @author Term Structure Labs
+ * @notice The AccountFacet is a contract to manages accounts in Term Structure Protocol,
+ *         including many I.O. operations such as register, deposit, withdraw, forceWithdraw, etc.
  */
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
     using AccountLib for AccountStorage.Layout;
@@ -83,13 +86,15 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      */
     function forceWithdraw(IERC20 token) external {
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        rsl.requireActive();
+
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getValidAccount(msg.sender);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         (uint16 tokenId, ) = tsl.getValidToken(token);
 
-        RollupStorage.Layout storage rsl = RollupStorage.layout();
         AccountLib.addForceWithdrawReq(rsl, msg.sender, accountId, token, tokenId);
     }
 
@@ -137,7 +142,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
         asl.accountIds[sender] = accountId;
         asl.accountAddresses[accountId] = sender;
-        asl.accountNum++;
+        asl.accountNum += 1;
         AccountLib.addRegisterReq(rsl, sender, accountId, tsPubKeyX, tsPubKeyY);
         return accountId;
     }

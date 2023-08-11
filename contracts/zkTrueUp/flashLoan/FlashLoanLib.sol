@@ -5,6 +5,7 @@ import {FlashLoanStorage} from "./FlashLoanStorage.sol";
 
 /**
  * @title Term Structure Flash Loan Library
+ * @author Term Structure Labs
  */
 library FlashLoanLib {
     /// @notice Internal function to return the flash loan premium

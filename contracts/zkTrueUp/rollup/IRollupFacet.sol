@@ -2,11 +2,12 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {RollupStorage, Proof, CommitBlock, StoredBlock, VerifyBlock, ExecuteBlock, L1Request} from "./RollupStorage.sol";
+import {RollupStorage, Proof, CommitBlock, StoredBlock, VerifyBlock, ExecuteBlock, Request} from "./RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 
 /**
  * @title Term Structure Rollup Facet Interface
+ * @author Term Structure Labs
  */
 interface IRollupFacet {
     /// @notice Error for invalid last committed block
@@ -26,7 +27,7 @@ interface IRollupFacet {
     /// @notice Error for invalid block number
     error InvalidBlockNum(uint32 newBlockNum);
     /// @notice Error for request is not existed
-    error RequestIsNotExisted(L1Request request);
+    error RequestIsNotExisted(Request request);
     /// @notice Error for invalid invalid public data length
     error InvalidPubDataLength(uint256 pubDataLength);
     /// @notice Error for offset is greater than public data length
@@ -53,12 +54,22 @@ interface IRollupFacet {
     error PendingRollupTxHashIsNotMatched(bytes32 pendingRollupTxHash, bytes32 executeBlockPendingRollupTxHash);
     /// @notice Error for the specified accountId and tokenId is already evacuated
     error Evacuated(uint32 accountId, uint16 tokenId);
-    /// @notice Error for the system is not in evacuation mode
-    error NotEvacuMode();
     /// @notice Error for activate evacuation mode, but the timestamp is not expired
     error TimeStampIsNotExpired(uint256 curtimestamp, uint256 expirationTime);
     /// @notice Error for underlyingAsset token and base token is not matched
     error TokenIsNotMatched(IERC20 underlyingAsset, IERC20 baseToken);
+    /// @notice Error for consumed request number exceed total request number
+    error ConsumedRequestNumExceedTotalNum(uint256 consumedRequestNum);
+    /// @notice Error for invalid consumed public data mismatch the data in the request queue
+    error InvalidConsumedPubData(uint64 l1RequestNum, bytes pubData);
+    /// @notice Error for invalid chunk id delta when commit evacublock in evacuation mode
+    error InvalidChunkIdDelta(uint256 chunkIdDelta);
+    /// @notice Error for evacuate but haven't consumed all L1 requests
+    error NotConsumedAllL1Requests(uint64 executedL1RequestNum, uint64 totalL1RequestNum);
+    /// @notice Error for consume L1 request but the request is evacuation (already consumed all L1 requests)
+    error LastL1RequestIsEvacuation(uint64 totalL1RequestNum);
+    /// @notice Error for invalid public data when commit evacublock in evacuation mode
+    error InvalidEvacuBlockPubData(uint256 evacuationRequestNum);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
@@ -91,8 +102,11 @@ interface IRollupFacet {
         uint256 amount
     );
 
-    /// @notice Emitted when evacuation is activated
-    event EvacuationActivation();
+    /// @notice Emitted when evacuation mode is activated
+    event EvacuModeActivation();
+
+    /// @notice Emitted when evacuation mode is deactivated
+    event EvacuModeDeactivation();
 
     /// @notice Emit when there is a new loan created
     /// @param loanId The id of the loan
@@ -120,8 +134,16 @@ interface IRollupFacet {
     function executeBlocks(ExecuteBlock[] memory pendingBlocks) external;
 
     /// @notice Revert blocks
+    /// @dev This function is only used for revert the unexecuted blocks
     /// @param revertedBlocks The blocks to be reverted
     function revertBlocks(StoredBlock[] memory revertedBlocks) external;
+
+    /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
+    function activateEvacuation() external;
+
+    /// @notice Consume the L1 non-executed requests in the evacuation mode
+    /// @param consumedTxPubData The public data of the non-executed L1 requests which in the request queue
+    function consumeL1RequestInEvacuMode(bytes[] memory consumedTxPubData) external;
 
     /// @notice Evacuate the funds of a specified user and token in the evacuMode
     /// @param lastExecutedBlock The last executed block
@@ -129,12 +151,28 @@ interface IRollupFacet {
     /// @param proof The proof of the new block
     function evacuate(StoredBlock memory lastExecutedBlock, CommitBlock memory newBlock, Proof memory proof) external;
 
-    /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
-    function activateEvacuation() external;
+    /// @notice Commit evacuation blocks
+    /// @param lastCommittedBlock The last committed block
+    /// @param evacuBlocks The evacuation blocks to be committed
+    function commitEvacuBlocks(StoredBlock memory lastCommittedBlock, CommitBlock[] memory evacuBlocks) external;
+
+    /// @notice Verify evacuation blocks
+    /// @param evacuBlocks The evacuation blocks to be verified and proofs
+    function verifyEvacuBlocks(VerifyBlock[] memory evacuBlocks) external;
+
+    /// @notice Execute evacuation blocks
+    /// @param evacuBlocks The evacuation blocks to be executed
+    function executeEvacuBlocks(ExecuteBlock[] memory evacuBlocks) external;
 
     /// @notice Return the evacuation mode is activated or not
     /// @return evacuMode The evacuation mode status
     function isEvacuMode() external view returns (bool evacuMode);
+
+    /// @notice Return the specified address and token is evacuated or not
+    /// @param addr The address to be checked
+    /// @param tokenId The id of the token
+    /// @return isEvacuted Return true is the token is evacuated, else return false
+    function isEvacuted(address addr, uint16 tokenId) external view returns (bool);
 
     /// @notice Check whether the register request is in the L1 request queue
     /// @param register The register request
@@ -165,8 +203,8 @@ interface IRollupFacet {
 
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
-    /// @return l1Request The request of the specified id
-    function getL1Request(uint64 requestId) external view returns (L1Request memory l1Request);
+    /// @return request The request of the specified id
+    function getL1Request(uint64 requestId) external view returns (Request memory request);
 
     /// @notice Return the L1 request number
     /// @return committedL1RequestNum The number of committed L1 requests

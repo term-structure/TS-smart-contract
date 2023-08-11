@@ -6,6 +6,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Term Structure FlashLoan Receiver interface
+ * @author Term Structure Labs
+ * @notice Interface for flash loan receiver contract to execute operation
  */
 interface IFlashLoanReceiver {
     /// @notice Execute operation to be called in flash loan function

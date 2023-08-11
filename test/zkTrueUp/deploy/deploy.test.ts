@@ -231,6 +231,143 @@ describe("Deploy", () => {
     ).to.be.revertedWithCustomError(ZkTrueUpMock, "Ownable__NotOwner");
   });
 
+  it("Failed to deploy and init again, already initialized", async function () {
+    // account diamond cut
+    await safeAddFacet(
+      deployer,
+      provider,
+      zkTrueUpMock,
+      accountFacet.address,
+      AccountFacet
+    );
+
+    // address diamond cut
+    await safeAddFacet(
+      deployer,
+      provider,
+      zkTrueUpMock,
+      addressFacet.address,
+      AddressFacet
+    );
+
+    // flashLoan facet diamond cut
+    await safeAddFacet(
+      deployer,
+      provider,
+      zkTrueUpMock,
+      flashLoanFacet.address,
+      FlashLoanFacet
+    );
+
+    // protocolParams diamond cut
+    await safeAddFacet(
+      deployer,
+      provider,
+      zkTrueUpMock,
+      protocolParamsFacet.address,
+      ProtocolParamsFacet
+    );
+
+    // loan diamond cut
+    await safeAddFacet(
+      deployer,
+      provider,
+      zkTrueUpMock,
+      loanFacet.address,
+      LoanFacet
+    );
+
+    // rollup diamond cut
+    await safeAddFacet(
+      deployer,
+      provider,
+      zkTrueUpMock,
+      rollupFacet.address,
+      RollupFacet
+    );
+
+    // token diamond cut
+    await safeAddFacet(
+      deployer,
+      provider,
+      zkTrueUpMock,
+      tokenFacet.address,
+      TokenFacet
+    );
+
+    // tsb diamond cut
+    await safeAddFacet(
+      deployer,
+      provider,
+      zkTrueUpMock,
+      tsbFacet.address,
+      TsbFacet
+    );
+
+    const initData = ethers.utils.defaultAbiCoder.encode(
+      [
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "address",
+        "bytes32",
+        "tuple(bool isStableCoin,bool isTsbToken,uint8 decimals,uint256 minDepositAmt,address tokenAddr,address priceFeed)",
+      ],
+      [
+        weth.address,
+        poseidonUnit2Contract.address,
+        verifier.address,
+        evacuVerifier.address,
+        admin.address,
+        operator.address,
+        treasury.address,
+        insurance.address,
+        vault.address,
+        genesisStateRoot ?? DEFAULT_GENESIS_STATE_ROOT,
+        {
+          isStableCoin: ETH_ASSET_CONFIG.isStableCoin,
+          isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
+          decimals: ETH_ASSET_CONFIG.decimals,
+          minDepositAmt: ETH_ASSET_CONFIG.minDepositAmt,
+          tokenAddr: ETH_ASSET_CONFIG.tokenAddr,
+          priceFeed: ETH_ASSET_CONFIG.priceFeed,
+        },
+      ]
+    );
+
+    // init diamond cut to initialize the diamond
+    const onlyCall = true;
+    await safeInitFacet(
+      deployer,
+      provider,
+      zkTrueUpMock,
+      zkTrueUpInit.address,
+      ZkTrueUpInit,
+      INIT_FUNCTION_NAME,
+      initData,
+      onlyCall
+    );
+
+    // check fail to init again
+    await expect(
+      safeInitFacet(
+        admin,
+        provider,
+        zkTrueUpMock,
+        zkTrueUpInit.address,
+        ZkTrueUpInit,
+        INIT_FUNCTION_NAME,
+        initData,
+        onlyCall
+      )
+    ).to.be.revertedWithCustomError(ZkTrueUpInit, "AlreadyInitialized");
+  });
+
   it("Success to deploy", async function () {
     const zkTrueUpMockAddr = zkTrueUpMock.address;
     const diamondZkTrueUpMock = (await useFacet(

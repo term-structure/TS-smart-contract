@@ -9,6 +9,7 @@ import {IPool} from "../interfaces/aaveV3/IPool.sol";
 
 /**
  * @title Term Structure Address Library
+ * @author Term Structure Labs
  */
 library AddressLib {
     /// @notice Internal function to return the wETH contract

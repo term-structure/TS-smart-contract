@@ -248,7 +248,7 @@ describe("TsbFactory", () => {
       const isStableCoin = true;
       const setStableCoinTx = await diamondToken
         .connect(admin)
-        .setIsStableCoin(DEFAULT_ETH_ADDRESS, isStableCoin);
+        .setStableCoin(DEFAULT_ETH_ADDRESS, isStableCoin);
       await setStableCoinTx.wait();
 
       const tokenId = await diamondToken.getTokenId(DEFAULT_ETH_ADDRESS);
@@ -261,7 +261,7 @@ describe("TsbFactory", () => {
       await expect(
         diamondToken
           .connect(user1)
-          .setIsStableCoin(DEFAULT_ETH_ADDRESS, isStableCoin)
+          .setStableCoin(DEFAULT_ETH_ADDRESS, isStableCoin)
       ).to.be.reverted;
     });
   });

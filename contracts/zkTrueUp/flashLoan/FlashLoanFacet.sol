@@ -17,6 +17,8 @@ import {Config} from "../libraries/Config.sol";
 
 /**
  * @title Term Structure Flash Loan Facet Contract
+ * @author Term Structure Labs
+ * @notice The flashLoan facet is used to flash loan tokens from Term Structure Protocol
  */
 contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
     using Math for uint256;

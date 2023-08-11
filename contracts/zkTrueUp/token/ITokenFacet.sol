@@ -8,6 +8,7 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 /**
  * @title Term Structure Token Facet Interface
+ * @author Term Structure Labs
  */
 interface ITokenFacet {
     /// @notice Error for whitelist token which is already whitelisted
@@ -23,7 +24,7 @@ interface ITokenFacet {
     /// @notice Emitted when the isStableCoin status of a token is set
     /// @param token The token to be set
     /// @param isStableCoin Whether the token is a stable coin
-    event SetIsStableCoin(IERC20 indexed token, bool indexed isStableCoin);
+    event SetStableCoin(IERC20 indexed token, bool indexed isStableCoin);
 
     /// @notice Emitted when the price feed of a token is set
     /// @param token The token to be set
@@ -70,7 +71,7 @@ interface ITokenFacet {
     /// @notice Set the isStableCoin status of a token
     /// @param token The token to be set
     /// @param isStableCoin Whether the token is a stable coin
-    function setIsStableCoin(IERC20 token, bool isStableCoin) external;
+    function setStableCoin(IERC20 token, bool isStableCoin) external;
 
     /// @notice Set the minimum deposit amount of a token
     /// @param token The token to be set

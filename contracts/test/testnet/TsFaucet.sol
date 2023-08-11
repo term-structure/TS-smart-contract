@@ -5,6 +5,12 @@ pragma solidity ^0.8.17;
 import "./TsERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+struct TokenMetadata {
+    string name;
+    string symbol;
+    uint8 decimals;
+}
+
 /// @title TsFaucet contract
 /// @author Term Structure Labs
 contract TsFaucet is Ownable {
@@ -13,50 +19,38 @@ contract TsFaucet is Ownable {
     uint8 internal constant TS_ERC20_NUMBERS = 5; // ETH WBTC USDT USDC DAI
     uint16 internal constant MINT_AMOUNT = 1000;
 
-    string internal constant WETH_NAME = "Wrapped Ether";
-    string internal constant WETH_SYMBOL = "WETH";
-    uint8 internal constant WETH_DECIMALS = 18;
-    string internal constant WBTC_NAME = "Wrapped Bitcoin";
-    string internal constant WBTC_SYMBOL = "WBTC";
-    uint8 internal constant WBTC_DECIMALS = 8;
-    string internal constant USDT_NAME = "Tether USD";
-    string internal constant USDT_SYMBOL = "USDT";
-    uint8 internal constant USDT_DECIMALS = 6;
-    string internal constant USDC_NAME = "USD Coin";
-    string internal constant USDC_SYMBOL = "USDC";
-    uint8 internal constant USDC_DECIMALS = 6;
-    string internal constant DAI_NAME = "Dai Stablecoin";
-    string internal constant DAI_SYMBOL = "DAI";
-    uint8 internal constant DAI_DECIMALS = 18;
+    TokenMetadata internal _weth = TokenMetadata("Wrapped Ether", "WETH", 18);
+    TokenMetadata internal _wbtc = TokenMetadata("Wrapped Bitcoin", "WBTC", 8);
+    TokenMetadata internal _usdt = TokenMetadata("Tether USD", "USDT", 6);
+    TokenMetadata internal _usdc = TokenMetadata("USD Coin", "USDC", 6);
+    TokenMetadata internal _dai = TokenMetadata("Dai Stablecoin", "DAI", 18);
 
+    bool internal _isFreeMint;
     address[TS_ERC20_NUMBERS] public tsERC20s;
     mapping(address => bool) public isMinted;
 
-    event TsERC20Created(address indexed tokenAddress);
+    event TsERC20Created(address indexed tokenAddr);
 
     event BatchMint(address indexed to);
 
-    event DevMint(address indexed to, address indexed tokenAddress, uint256 amount);
+    event DevMint(address indexed to, address indexed tokenAddr, uint256 amount);
 
-    struct TokenInfo {
-        string name;
-        string symbol;
-        uint8 decimals;
-    }
+    event SetFreeMint(bool indexed isFreeMint);
 
-    constructor(bytes memory data) {
-        address _zkTrueUpAddr = abi.decode(data, (address));
+    constructor(address _zkTrueUpAddr) {
         zkTrueUp = _zkTrueUpAddr;
 
-        tsERC20s[0] = _createTsERC20(TokenInfo(WETH_NAME, WETH_SYMBOL, WETH_DECIMALS));
-        tsERC20s[1] = _createTsERC20(TokenInfo(WBTC_NAME, WBTC_SYMBOL, WBTC_DECIMALS));
-        tsERC20s[2] = _createTsERC20(TokenInfo(USDT_NAME, USDT_SYMBOL, USDT_DECIMALS));
-        tsERC20s[3] = _createTsERC20(TokenInfo(USDC_NAME, USDC_SYMBOL, USDC_DECIMALS));
-        tsERC20s[4] = _createTsERC20(TokenInfo(DAI_NAME, DAI_SYMBOL, DAI_DECIMALS));
+        tsERC20s[0] = _createTsERC20(_weth);
+        tsERC20s[1] = _createTsERC20(_wbtc);
+        tsERC20s[2] = _createTsERC20(_usdt);
+        tsERC20s[3] = _createTsERC20(_usdc);
+        tsERC20s[4] = _createTsERC20(_dai);
     }
 
-    function _createTsERC20(TokenInfo memory tokenInfo) internal returns (address) {
-        address tsERC20Addr = address(new TsERC20(zkTrueUp, tokenInfo.name, tokenInfo.symbol, tokenInfo.decimals));
+    function _createTsERC20(TokenMetadata memory tokenMetadata) internal returns (address) {
+        address tsERC20Addr = address(
+            new TsERC20(zkTrueUp, tokenMetadata.name, tokenMetadata.symbol, tokenMetadata.decimals)
+        );
         emit TsERC20Created(tsERC20Addr);
         return tsERC20Addr;
     }
@@ -75,5 +69,20 @@ contract TsFaucet is Ownable {
     function devMint(address _to, address _tokenAddr, uint256 _amount) external onlyOwner {
         TsERC20(_tokenAddr).mint(_to, _amount);
         emit DevMint(_to, _tokenAddr, _amount);
+    }
+
+    function batchFreeMint() external {
+        require(_isFreeMint, "Not free mint now");
+        for (uint256 i; i < TS_ERC20_NUMBERS; i++) {
+            uint8 decimals = TsERC20(tsERC20s[i]).decimals();
+            uint256 amount = MINT_AMOUNT * (10 ** decimals);
+            TsERC20(tsERC20s[i]).mint(msg.sender, amount);
+        }
+        emit BatchMint(msg.sender);
+    }
+
+    function setFreeMint(bool isFreeMint) external onlyOwner {
+        _isFreeMint = isFreeMint;
+        emit SetFreeMint(isFreeMint);
     }
 }

@@ -13,6 +13,8 @@ import {Utils} from "../libraries/Utils.sol";
 
 /**
  * @title Term Structure Token Facet Contract
+ * @author Term Structure Labs
+ * @notice The TokenFacet contract is used to manage the tokens which interact with the Term Structure Protocol.
  */
 contract TokenFacet is AccessControlInternal, ITokenFacet {
     using TokenLib for TokenStorage.Layout;
@@ -67,11 +69,11 @@ contract TokenFacet is AccessControlInternal, ITokenFacet {
     /**
      * @inheritdoc ITokenFacet
      */
-    function setIsStableCoin(IERC20 token, bool isStableCoin) external onlyRole(Config.ADMIN_ROLE) {
+    function setStableCoin(IERC20 token, bool isStableCoin) external onlyRole(Config.ADMIN_ROLE) {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         uint16 tokenId = tsl.getValidTokenId(token);
         tsl.assetConfigs[tokenId].isStableCoin = isStableCoin;
-        emit SetIsStableCoin(token, isStableCoin);
+        emit SetStableCoin(token, isStableCoin);
     }
 
     /**

@@ -5,6 +5,7 @@ import {ProtocolParamsStorage, FundWeight} from "./ProtocolParamsStorage.sol";
 
 /**
  * @title Term Structure Protocol Params Library
+ * @author Term Structure Labs
  */
 library ProtocolParamsLib {
     /// @notice Internal function to return the address of treasury

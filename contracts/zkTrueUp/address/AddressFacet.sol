@@ -14,6 +14,8 @@ import {Config} from "../libraries/Config.sol";
 
 /**
  * @title Term Structure Address Facet Contract
+ * @author Term Structure Labs
+ * @notice The AddressFacet contract is used to store the addresses which interact with the Term Structure Protocol.
  */
 contract AddressFacet is IAddressFacet, AccessControlInternal {
     using AddressLib for AddressStorage.Layout;

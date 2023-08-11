@@ -21,6 +21,7 @@ struct FundWeight {
 
 /**
  * @title Term Structure Protocol Params Storage
+ * @author Term Structure Labs
  */
 library ProtocolParamsStorage {
     bytes32 internal constant STORAGE_SLOT =

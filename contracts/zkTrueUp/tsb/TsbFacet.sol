@@ -50,7 +50,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         if (address(underlyingAsset) == address(0)) revert UnderlyingAssetIsNotExist(underlyingTokenId);
 
         TsbStorage.Layout storage tsbsl = TsbStorage.layout();
-        uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturityTime);
+        uint48 tsbTokenKey = TsbLib.calcTsbTokenKey(underlyingTokenId, maturityTime);
         ITsbToken tsbToken = tsbsl.getTsbToken(tsbTokenKey);
         if (address(tsbToken) != address(0)) revert TsbTokenIsExist(tsbToken);
 
@@ -68,6 +68,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ITsbFacet
      * @dev TSB token can be redeemed only after maturity
+     * @dev TSB token decimals is 8 and should be converted to underlying asset decimals when 1:1 redeem
      */
     function redeem(ITsbToken tsbToken, uint128 amount, bool redeemAndDeposit) external nonReentrant {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
@@ -81,6 +82,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         emit Redemption(msg.sender, tsbToken, underlyingAsset, amount, redeemAndDeposit);
 
         (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = tsl.getValidToken(underlyingAsset);
+        // 1:1 redeem to underlying asset
         uint128 underlyingAssetAmt = SafeCast.toUint128(amount.toL1Amt(underlyingAssetConfig.decimals));
 
         if (redeemAndDeposit) {
@@ -106,7 +108,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ITsbFacet
      */
     function getTsbToken(uint16 underlyingTokenId, uint32 maturity) external view returns (ITsbToken) {
-        uint48 tsbTokenKey = TsbLib.getTsbTokenKey(underlyingTokenId, maturity);
+        uint48 tsbTokenKey = TsbLib.calcTsbTokenKey(underlyingTokenId, maturity);
         return TsbStorage.layout().getTsbToken(tsbTokenKey);
     }
 

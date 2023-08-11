@@ -11,7 +11,9 @@ import {AddressLib} from "../address/AddressLib.sol";
 import {Config} from "../libraries/Config.sol";
 
 /**
- * @title Term Structure Utils Library
+ * @title Utils Library
+ * @author Term Structure Labs
+ * @notice Utility functions for zkTrueUp
  */
 library Utils {
     using Math for *;
