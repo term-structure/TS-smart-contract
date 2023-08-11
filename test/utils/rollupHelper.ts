@@ -91,7 +91,7 @@ export function initTestData(baseDir: string): TestDataItem[] {
       const index = file.name.split(".")[0];
       const name = file.name.replace(".commitBlock.json", "");
       const commitBlockPath = resolve(baseDir, file.name);
-      const calldataRawPath = resolve(baseDir, `${name}.calldata-raw.json`);
+      const calldataRawPath = resolve(baseDir, `${name}.calldata.json`);
       const inputKeyPath = resolve(baseDir, `${name}.inputs-key.json`);
       const inputKeyData = JSON.parse(fs.readFileSync(inputKeyPath, "utf-8"));
       const inputPath = resolve(baseDir, `${name}.inputs.json`);
@@ -766,19 +766,14 @@ export function getPubDataDeltas(isCriticalChunk: string, chunkLen: number) {
   let lastChunkId = 0;
   const arr = isCriticalChunk.replace("0x", "").split("");
   let cur = arr.splice(0, 2);
-  let byteCount = 0;
+  let chunkId = 0;
   while (cur.length > 0) {
-    const num = Number("0x" + cur.join(""));
-    for (let index = 0; index < 8; index++) {
-      const bits = 2 ** index;
-      if (num & bits) {
-        const currentBitIndex = byteCount * 8 + index;
-        pubDataDeltas.push(currentBitIndex - lastChunkId);
-        lastChunkId = currentBitIndex;
-      }
+    if (cur[1] === "1") {
+      pubDataDeltas.push(chunkId - lastChunkId);
+      lastChunkId = chunkId;
     }
     cur = arr.splice(0, 2);
-    byteCount += 1;
+    chunkId += 1;
   }
   return pubDataDeltas;
 }

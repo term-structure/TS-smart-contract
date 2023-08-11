@@ -27,6 +27,8 @@ import {Bytes} from "../libraries/Bytes.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Term Structure Rollup Facet Contract
  * @author Term Structure Labs
@@ -311,8 +313,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         CommitBlock memory newBlock,
         uint64 committedL1RequestNum
     ) internal view returns (StoredBlock memory) {
-        if (newBlock.timestamp < previousBlock.timestamp)
-            revert TimestampLtPrevious(newBlock.timestamp, previousBlock.timestamp);
+        // if (newBlock.timestamp < previousBlock.timestamp)
+        //     revert TimestampLtPrevious(newBlock.timestamp, previousBlock.timestamp);
         if (newBlock.blockNumber != previousBlock.blockNumber + 1) revert InvalidBlockNum(newBlock.blockNumber);
 
         uint256 publicDataLength = newBlock.publicData.length;
