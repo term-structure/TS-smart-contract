@@ -535,6 +535,7 @@ export function getPendingRollupTxHash(commitBlock: CommitBlockType) {
     commitBlock.isCriticalChunk,
     chunkLen
   );
+  console.log({ criticalChunks });
   for (let i = 0; i < criticalChunks.length; i++) {
     const startFlag = 2 + 2 * BYTES_OF_CHUNK * criticalChunks[i];
     const opType = Number(
@@ -561,12 +562,14 @@ export function getPendingRollupTxHash(commitBlock: CommitBlockType) {
         const pubdata =
           "0x" +
           commitBlock.o_chunk.slice(startFlag, startFlag + 2 * WITHDRAW_BYTES);
+        console.log({ pendingRollupTxHash, pubdata });
         pendingRollupTxHash = ethers.utils.keccak256(
           ethers.utils.defaultAbiCoder.encode(
             ["bytes32", "bytes"],
             [pendingRollupTxHash, pubdata]
           )
         );
+        console.log({ pendingRollupTxHash });
         break;
       }
       case TsTxType.AUCTION_END: {
@@ -818,6 +821,7 @@ export function getStoredBlock(
   });
   const l1RequestNum = getL1RequestNum(testCase.reqDataList);
   const pendingRollupTxHash = getPendingRollupTxHash(testCase.commitBlock);
+  // const pendingRollupTxHash = testCase.commitBlock.pendingRollupTxHash;
   const storedBlock: StoredBlockStruct = {
     blockNumber: commitBlock.blockNumber,
     l1RequestNum: l1RequestNum,
@@ -842,15 +846,17 @@ export function getExecuteBlock(
 
 export function getCriticalChunks(isCriticalChunk: string, chunkLen: number) {
   const criticalChunks = [];
-  const binArr = BigInt(isCriticalChunk as string)
-    .toString(2)
-    .padStart(chunkLen, "0")
-    .split("");
-  for (let i = 0; i < binArr.length; i++) {
-    if (binArr[i] == "1") {
+  const binArr = isCriticalChunk.replace("0x", "").split("");
+  let cur = binArr.splice(0, 2);
+  let i = 0;
+  while (cur.length > 0) {
+    if (cur[1] === "1") {
       criticalChunks.push(i);
     }
+    cur = binArr.splice(0, 2);
+    i++;
   }
+
   return criticalChunks;
 }
 
