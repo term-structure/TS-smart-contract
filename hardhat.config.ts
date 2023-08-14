@@ -78,7 +78,7 @@ const config: HardhatUserConfig = {
         mnemonic,
       },
       allowUnlimitedContractSize: true,
-      initialDate: new Date("2021-08-01T00:00:00.000Z").toISOString(),
+      initialDate: new Date("2022-08-01T00:00:00.000Z").toISOString(),
       forking: getBoolean(process.env.IS_FORK_MAINNET, false)
         ? { url: getString(process.env.MAINNET_RPC_URL), blockNumber: 17426510 }
         : undefined,

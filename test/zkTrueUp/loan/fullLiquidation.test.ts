@@ -1,3 +1,4 @@
+const helpers = require("@nomicfoundation/hardhat-network-helpers");
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
@@ -1733,6 +1734,8 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       // repay 50% debt value
       const repayAmt = maxRepayAmt.div(2);
       // liquidate
+
+      await helpers.time.increaseTo(1672416000); // maturity time
       const liquidateTx = await diamondLoan
         .connect(liquidator)
         .liquidate(loanId, repayAmt);
@@ -1884,6 +1887,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
 
       const [, , repayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // liquidate
+      await helpers.time.increaseTo(1672416000); // maturity time
       const liquidateTx = await diamondLoan
         .connect(liquidator)
         .liquidate(loanId, repayAmt);
@@ -2118,6 +2122,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const [, , maxRepayAmt] = await diamondLoan.getLiquidationInfo(loanId);
       // repay 75% of debt value
       const repayAmt = maxRepayAmt.div(4).mul(3);
+      await helpers.time.increaseTo(1672416000); // maturity time
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)
@@ -2261,6 +2266,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       const beforeTreasuryUsdtBalance = await usdt.balanceOf(treasuryAddr);
 
       const [, , repayAmt] = await diamondLoan.getLiquidationInfo(loanId);
+      await helpers.time.increaseTo(1672416000); // maturity time
       // liquidate
       const liquidateTx = await diamondLoan
         .connect(liquidator)

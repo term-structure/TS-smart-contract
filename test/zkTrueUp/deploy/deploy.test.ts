@@ -43,7 +43,8 @@ import {
   INIT_FUNCTION_NAME,
 } from "../../../utils/config";
 const genesisStateRoot = initStates.stateRoot;
-import circomlibjs from "circomlibjs";
+// import circomlibjs from "circomlibjs";
+const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
 describe("Deploy", () => {

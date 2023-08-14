@@ -140,8 +140,8 @@ describe("Evacuate", function () {
         testCase
       );
       // before rollup
-      for (let i = 0; i < testCase.requests.reqData.length; i++) {
-        const reqType = testCase.requests.reqData[i][0];
+      for (let i = 0; i < testCase.reqDataList.length; i++) {
+        const reqType = testCase.reqDataList[i][0];
         if (reqType == TsTxType.REGISTER.toString()) {
           await doRegister(
             accounts,
@@ -152,7 +152,7 @@ describe("Evacuate", function () {
           );
         } else if (reqType == TsTxType.DEPOSIT.toString()) {
           if (i > 0) {
-            if (Number(testCase.requests.reqData[i - 1][0]) == 1) {
+            if (Number(testCase.reqDataList[i - 1][0]) == 1) {
               continue;
             }
           }

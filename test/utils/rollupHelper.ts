@@ -736,16 +736,10 @@ export function getCommitBlock(
   testCase: TestDataItem,
   isEvacuate: boolean
 ) {
-  // const chunkLen =
-  //   (testCase.commitBlock.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
-  let chunkLen;
-  if (isEvacuate) {
-    // NOTE: evacuate chunk is 2 chunks for 2 bits and padding it to 1 bytes(8 bits)
-    chunkLen = 8;
-  } else {
-    // NOTE: normal chunk is 1 chunk for 1 bit and padding it to 1 bytes(8 bits)
-    chunkLen = (testCase.commitBlock.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
-  }
+  // NOTE: normal chunk is 1 chunk for 1 bit and padding it to 1 bytes(8 bits)
+  const chunkLen =
+    (testCase.commitBlock.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
+
   const chunkIdDeltas = testCase.commitBlock.chunkIdDeltas;
 
   const commitBlock: CommitBlockStruct = {
