@@ -1,5 +1,5 @@
 {
-  "currentTime": "1690923100",
+  "currentTime": "1690968846",
   "state": [
     {
       "feeRootFlow": "10513365737043861540308533400291461490832889850874758037005112636083201167928",
@@ -404,7 +404,7 @@
       ],
       "nullifierTreeId": "0",
       "nullifierElemId": "0",
-      "matchedTime": "1690923100"
+      "matchedTime": "1690968840"
     },
     {
       "req": [
@@ -727,7 +727,7 @@
       ],
       "nullifierTreeId": "0",
       "nullifierElemId": "0",
-      "matchedTime": "1690923100"
+      "matchedTime": "1690968840"
     },
     {
       "req": [
@@ -1050,7 +1050,7 @@
       ],
       "nullifierTreeId": "0",
       "nullifierElemId": "0",
-      "matchedTime": "1690923100"
+      "matchedTime": "1690968840"
     },
     {
       "req": [
@@ -1373,7 +1373,7 @@
       ],
       "nullifierTreeId": "0",
       "nullifierElemId": "0",
-      "matchedTime": "1690923100"
+      "matchedTime": "1690968840"
     }
   ],
   "isCriticalChunk": [

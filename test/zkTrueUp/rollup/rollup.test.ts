@@ -111,7 +111,7 @@ describe("Rollup", function () {
     storedBlocks.push(genesisBlock);
   });
 
-  for (let k = 0; k < 6; k++) {
+  for (let k = 0; k < testData.length; k++) {
     const testCase = testData[k];
     it(`Before rollup for block-${k}`, async function () {
       oriStates = await getStates(

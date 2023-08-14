@@ -32,9 +32,9 @@
     0,
     3
   ],
-  "commitment": "0xef8bf72e59695ae764222de3d0c226de895e4d33555925c3f2d7edfc1f2f8593",
-  "commitmentForCircuit": "0x2dfabd62d4a2da4082e11709cabcc569e88eac116e73637ee35017ac5f2f858f",
+  "commitment": "0x3dbefcce8844ffad6c391ac90d8f124da5c7f7bc62a19baa28bf8bd6424ec33b",
+  "commitmentForCircuit": "0x0d5aae5ba7135f83b3e8d5128c0db9f07d940f73e8e82b18e4dd9642524ec33a",
   "l1RequestNum": "2",
   "pendingRollupTxHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-  "timestamp": "1690801026"
+  "timestamp": "1690968841"
 }

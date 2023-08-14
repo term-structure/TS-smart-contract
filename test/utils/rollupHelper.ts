@@ -535,7 +535,6 @@ export function getPendingRollupTxHash(commitBlock: CommitBlockType) {
     commitBlock.isCriticalChunk,
     chunkLen
   );
-  console.log({ criticalChunks });
   for (let i = 0; i < criticalChunks.length; i++) {
     const startFlag = 2 + 2 * BYTES_OF_CHUNK * criticalChunks[i];
     const opType = Number(
@@ -562,14 +561,12 @@ export function getPendingRollupTxHash(commitBlock: CommitBlockType) {
         const pubdata =
           "0x" +
           commitBlock.o_chunk.slice(startFlag, startFlag + 2 * WITHDRAW_BYTES);
-        console.log({ pendingRollupTxHash, pubdata });
         pendingRollupTxHash = ethers.utils.keccak256(
           ethers.utils.defaultAbiCoder.encode(
             ["bytes32", "bytes"],
             [pendingRollupTxHash, pubdata]
           )
         );
-        console.log({ pendingRollupTxHash });
         break;
       }
       case TsTxType.AUCTION_END: {
@@ -885,14 +882,6 @@ export function stateToCommitmentHash({
   commitmentOffset: string;
   newBlockTimestamp: string;
 }) {
-  // console.log({
-  //   oriStateRoot,
-  //   newStateRoot,
-  //   newTsRoot,
-  //   newBlockTimestamp,
-  //   commitmentOffset,
-  //   pubdata,
-  // })
   const commitmentMsg = utils.solidityPack(
     ["bytes32", "bytes32", "bytes32", "uint256", "bytes", "bytes"],
     [
@@ -905,13 +894,6 @@ export function stateToCommitmentHash({
     ]
   );
   const commitmentHash = utils.sha256(commitmentMsg);
-
-  // const commitment = toHex(
-  //   BigInt(
-  //     '0b' + BigInt(commitmentHash).toString(2).padStart(256, '0').slice(3),
-  //   ),
-  // );
-
   return commitmentHash;
 }
 
