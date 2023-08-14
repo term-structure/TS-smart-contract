@@ -7,7 +7,6 @@ import { useFacet } from "../../../utils/useFacet";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { FACET_NAMES } from "../../../utils/config";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
-import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-32/initStates.json";
 import { BaseTokenAddresses } from "../../../utils/type";
 import {
   DEFAULT_ETH_ADDRESS,
@@ -47,8 +46,8 @@ import {
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 import { toL2Amt } from "../../utils/amountConvertor";
 import { genTsAddr } from "../../utils/helper";
-
-const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-32");
+import initStates from "../../data/rollupData/local-block-230808/initStates.json";
+const testDataPath = resolve("./test/data/rollupData/local-block-230808");
 const testData = initTestData(testDataPath);
 
 const fixture = async () => {
@@ -119,8 +118,8 @@ describe("Consume L1 Request in EvacuMode", function () {
     for (let k = 0; k < EXECUTE_BLOCK_NUMBER; k++) {
       const testCase = testData[k];
       // before rollup
-      for (let i = 0; i < testCase.requests.reqData.length; i++) {
-        const reqType = testCase.requests.reqData[i][0];
+      for (let i = 0; i < testCase.reqDataList.length; i++) {
+        const reqType = testCase.reqDataList[i][0];
         if (reqType == TsTxType.REGISTER.toString()) {
           await doRegister(
             accounts,
@@ -131,7 +130,7 @@ describe("Consume L1 Request in EvacuMode", function () {
           );
         } else if (reqType == TsTxType.DEPOSIT.toString()) {
           if (i > 0) {
-            if (Number(testCase.requests.reqData[i - 1][0]) == 1) {
+            if (Number(testCase.reqDataList[i - 1][0]) == 1) {
               continue;
             }
           }
@@ -281,8 +280,8 @@ describe("Consume L1 Request in EvacuMode", function () {
   it("Success to consume all L1 requests in multiple batch", async function () {
     const user1 = accounts[1];
     const user1Addr = await user1.getAddress();
-    const user2 = accounts[2];
-    const user2Addr = await user2.getAddress();
+    const newUser = accounts[3];
+    const newUserAddr = await newUser.getAddress();
 
     await weth
       .connect(user1)
@@ -293,12 +292,15 @@ describe("Consume L1 Request in EvacuMode", function () {
       baseTokenAddresses[TsTokenId.USDC]
     )) as ERC20Mock;
     await usdc
-      .connect(user2)
-      .mint(user2Addr, utils.parseUnits("10000", TS_BASE_TOKEN.USDC.decimals));
+      .connect(newUser)
+      .mint(
+        newUserAddr,
+        utils.parseUnits("10000", TS_BASE_TOKEN.USDC.decimals)
+      );
 
     // approve usdc to zkTrueUp
     await usdc
-      .connect(user2)
+      .connect(newUser)
       .approve(zkTrueUp.address, ethers.constants.MaxUint256);
 
     // Add 4 L1 requests after last committed request
@@ -313,25 +315,25 @@ describe("Consume L1 Request in EvacuMode", function () {
     // 2. user1 force withdraw
     await diamondAcc.connect(user1).forceWithdraw(DEFAULT_ETH_ADDRESS);
 
-    // 3. user2 register (register request + deposit request)
-    // 4. user2 deposit
+    // 3. new user register (register request + deposit request)
+    // 4. new user deposit
     const chainId = Number((await user1.getChainId()).toString());
     const tsSigner = await getTsRollupSignerFromWallet(
       chainId,
       diamondAcc.address,
-      user2 as Wallet
+      newUser as Wallet
     );
     const tsPubKey = {
       X: tsSigner.tsPubKey[0].toString(),
       Y: tsSigner.tsPubKey[1].toString(),
     };
-    const user2RegisterAmt = utils.parseUnits(
+    const newUserRegisterAmt = utils.parseUnits(
       MIN_DEPOSIT_AMOUNT.USDC.toString(),
       TS_BASE_TOKEN.USDC.decimals
     );
     await diamondAcc
-      .connect(user2)
-      .register(tsPubKey.X, tsPubKey.Y, usdc.address, user2RegisterAmt);
+      .connect(newUser)
+      .register(tsPubKey.X, tsPubKey.Y, usdc.address, newUserRegisterAmt);
 
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
@@ -348,10 +350,10 @@ describe("Consume L1 Request in EvacuMode", function () {
       user1Addr,
       DEFAULT_ETH_ADDRESS
     );
-    const beforeUser2UsdcPendingBalance =
-      await diamondRollup.getPendingBalances(user2Addr, usdc.address);
+    const beforeNewUserUsdcPendingBalance =
+      await diamondRollup.getPendingBalances(newUserAddr, usdc.address);
     // before account state
-    const beforeUser2AccountId = await diamondAcc.getAccountId(user2Addr);
+    const beforeNewUserAccountId = await diamondAcc.getAccountId(newUserAddr);
 
     // collect user1 deposit request public data
     const user1AccountId = await diamondAcc.getAccountId(user1Addr);
@@ -381,34 +383,34 @@ describe("Consume L1 Request in EvacuMode", function () {
       user1ForceWithdrawPubData
     );
 
-    // collect user2 register request public data
-    const user2AccountId = await diamondAcc.getAccountId(user2Addr);
+    // collect new user register request public data
+    const newUserAccountId = await diamondAcc.getAccountId(newUserAddr);
     const tsAddr = genTsAddr(
       BigNumber.from(tsPubKey.X),
       BigNumber.from(tsPubKey.Y)
     );
-    const user2RegisterPubData = utils.solidityPack(
+    const newUserRegisterPubData = utils.solidityPack(
       ["uint8", "uint32", "bytes20"],
       [
         BigNumber.from(TsTxType.REGISTER),
-        BigNumber.from(user2AccountId),
+        BigNumber.from(newUserAccountId),
         tsAddr,
       ]
     );
-    const user2RegisterPubDataBytes = utils.hexlify(user2RegisterPubData);
+    const newUserRegisterPubDataBytes = utils.hexlify(newUserRegisterPubData);
 
-    // collect user2 deposit request public data
-    const user2DepositL2Amt = toL2Amt(user2RegisterAmt, TS_BASE_TOKEN.USDC);
-    const user2DepositPubData = utils.solidityPack(
+    // collect new user deposit request public data
+    const newUserDepositL2Amt = toL2Amt(newUserRegisterAmt, TS_BASE_TOKEN.USDC);
+    const newUserDepositPubData = utils.solidityPack(
       ["uint8", "uint32", "uint16", "uint128"],
       [
         BigNumber.from(TsTxType.DEPOSIT),
-        BigNumber.from(user2AccountId),
+        BigNumber.from(newUserAccountId),
         BigNumber.from(TsTokenId.USDC),
-        user2DepositL2Amt,
+        newUserDepositL2Amt,
       ]
     );
-    const user2DepositPubDataBytes = utils.hexlify(user2DepositPubData);
+    const newUserDepositPubDataBytes = utils.hexlify(newUserDepositPubData);
 
     // consume all l1 requests in two batches
     await diamondRollup.consumeL1RequestInEvacuMode([
@@ -416,8 +418,8 @@ describe("Consume L1 Request in EvacuMode", function () {
       user1ForceWithdrawPubDataBytes,
     ]);
     await diamondRollup.consumeL1RequestInEvacuMode([
-      user2RegisterPubDataBytes,
-      user2DepositPubDataBytes,
+      newUserRegisterPubDataBytes,
+      newUserDepositPubDataBytes,
     ]);
 
     // after consume all l1 requests
@@ -431,12 +433,10 @@ describe("Consume L1 Request in EvacuMode", function () {
       user1Addr,
       DEFAULT_ETH_ADDRESS
     );
-    const afterUser2UsdcPendingBalance = await diamondRollup.getPendingBalances(
-      user2Addr,
-      usdc.address
-    );
+    const afterNewUserUsdcPendingBalance =
+      await diamondRollup.getPendingBalances(newUserAddr, usdc.address);
     // after account state
-    const afterUser2AccountId = await diamondAcc.getAccountId(user2Addr);
+    const afterNewUserAccountId = await diamondAcc.getAccountId(newUserAddr);
 
     // check committed and executed request number
     expect(newCommittedL1RequestNum.sub(oldCommittedL1RequestNum)).to.be.eq(4);
@@ -448,10 +448,10 @@ describe("Consume L1 Request in EvacuMode", function () {
       afterUser1EthPendingBalance.sub(beforeUser1EthPendingBalance)
     ).to.be.eq(user1DepositAmt);
     expect(
-      afterUser2UsdcPendingBalance.sub(beforeUser2UsdcPendingBalance)
-    ).to.be.eq(user2RegisterAmt);
+      afterNewUserUsdcPendingBalance.sub(beforeNewUserUsdcPendingBalance)
+    ).to.be.eq(newUserRegisterAmt);
     // check account state
-    expect(afterUser2AccountId).to.be.eq(0);
+    expect(afterNewUserAccountId).to.be.eq(0);
   });
 
   it("Fail to consume L1 request, not in evacuation mode", async function () {

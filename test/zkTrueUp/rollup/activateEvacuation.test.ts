@@ -40,8 +40,8 @@ import {
   StoredBlockStruct,
   VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/IRollupFacet";
-import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-32/initStates.json";
-const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-32");
+import initStates from "../../data/rollupData/local-block-230808/initStates.json";
+const testDataPath = resolve("./test/data/rollupData/local-block-230808");
 const testData = initTestData(testDataPath);
 
 const fixture = async () => {
@@ -112,8 +112,9 @@ describe("Activating evacuation", function () {
       executedBlockNum += 1;
 
       // do some L1 requests from test case
-      for (let i = 0; i < testCase.requests.reqData.length; i++) {
-        const reqType = testCase.requests.reqData[i][0];
+      for (let i = 0; i < testCase.reqDataList.length; i++) {
+        const reqType = testCase.reqDataList[i][0];
+        console.log("reqType: ", reqType);
         if (reqType == TsTxType.REGISTER.toString()) {
           await doRegister(
             accounts,
@@ -124,7 +125,7 @@ describe("Activating evacuation", function () {
           );
         } else if (reqType == TsTxType.DEPOSIT.toString()) {
           if (i > 0) {
-            if (Number(testCase.requests.reqData[i - 1][0]) == 1) {
+            if (Number(testCase.reqDataList[i - 1][0]) == 1) {
               continue;
             }
           }
@@ -234,7 +235,7 @@ describe("Activating evacuation", function () {
     expect(newVerifiedBlockNum).to.equal(oldExecutedBlockNum);
     expect(newExecutedBlockNum).to.equal(oldExecutedBlockNum);
     // check the committed L1 request num is rollbacked to executed L1 request num
-    expect(oldCommittedL1RequestNum.sub(newCommittedL1RequestNum)).to.equal(5);
+    expect(oldCommittedL1RequestNum.sub(newCommittedL1RequestNum)).to.equal(4);
     expect(newCommittedL1RequestNum).to.equal(oldExecutedL1RequestNum);
     expect(newExecutedL1RequestNum).to.equal(oldExecutedL1RequestNum);
     expect(newTotalL1RequestNum).to.equal(oldTotalL1RequestNum);

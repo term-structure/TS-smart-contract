@@ -572,7 +572,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         // non L1 request
         if (opType == Operations.OpType.WITHDRAW) {
-            data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
+            data = pubData.sliceThreeChunksBytes(offset); // 3 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.AUCTION_END) {
             data = pubData.sliceFourChunksBytes(offset); // 4 chunks
@@ -596,7 +596,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             isL1Request = true;
             Request memory request = rsl.getL1Request(requestId);
             if (opType == Operations.OpType.REGISTER) {
-                data = pubData.sliceFourChunksBytes(offset); // 4 chunks
+                data = pubData.sliceThreeChunksBytes(offset); // 3 chunks
                 Operations.Register memory register = data.readRegisterPubData();
                 request.isRegisterInL1RequestQueue(register);
             } else if (opType == Operations.OpType.DEPOSIT) {

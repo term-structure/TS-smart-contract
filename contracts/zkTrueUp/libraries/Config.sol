@@ -58,6 +58,9 @@ library Config {
     /// @notice The bytes lengths of two chunks
     uint8 internal constant BYTES_OF_TWO_CHUNKS = 2 * BYTES_OF_CHUNK;
 
+    /// @notice The bytes lengths of three chunks
+    uint8 internal constant BYTES_OF_THREE_CHUNKS = 3 * BYTES_OF_CHUNK;
+
     /// @notice The bytes lengths of four chunks
     uint8 internal constant BYTES_OF_FOUR_CHUNKS = 4 * BYTES_OF_CHUNK;
 
