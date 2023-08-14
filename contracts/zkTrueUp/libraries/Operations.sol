@@ -161,7 +161,7 @@ library Operations {
         uint256 offset = Config.BYTES_OF_OP_TYPE;
         (offset, withdraw.accountId) = Bytes.readUInt32(data, offset);
         (offset, withdraw.tokenId) = Bytes.readUInt16(data, offset);
-        (offset, withdraw.amount) = Bytes.readUInt128(data, offset);
+        (, withdraw.amount) = Bytes.readUInt128(data, offset);
     }
 
     function readForceWithdrawPubData(bytes memory data) internal pure returns (ForceWithdraw memory forceWithdraw) {
