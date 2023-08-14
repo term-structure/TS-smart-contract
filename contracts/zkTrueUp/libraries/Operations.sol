@@ -58,6 +58,8 @@ library Operations {
         uint32 accountId;
         uint16 tokenId;
         uint128 amount;
+        uint16 feeTokenId;
+        uint128 feeAmt;
     }
 
     struct ForceWithdraw {
@@ -159,7 +161,7 @@ library Operations {
         uint256 offset = Config.BYTES_OF_OP_TYPE;
         (offset, withdraw.accountId) = Bytes.readUInt32(data, offset);
         (offset, withdraw.tokenId) = Bytes.readUInt16(data, offset);
-        (, withdraw.amount) = Bytes.readUInt128(data, offset);
+        (offset, withdraw.amount) = Bytes.readUInt128(data, offset);
     }
 
     function readForceWithdrawPubData(bytes memory data) internal pure returns (ForceWithdraw memory forceWithdraw) {
