@@ -114,7 +114,6 @@ describe("Activating evacuation", function () {
       // do some L1 requests from test case
       for (let i = 0; i < testCase.reqDataList.length; i++) {
         const reqType = testCase.reqDataList[i][0];
-        console.log("reqType: ", reqType);
         if (reqType == TsTxType.REGISTER.toString()) {
           await doRegister(
             accounts,
