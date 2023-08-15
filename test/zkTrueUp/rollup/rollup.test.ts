@@ -151,7 +151,7 @@ describe("Rollup", function () {
         } else if (reqType == TsTxType.FORCE_WITHDRAW.toString()) {
           await doForceWithdraw(
             accounts,
-            baseTokenAddresses,
+            diamondToken,
             diamondAcc,
             testCase,
             i

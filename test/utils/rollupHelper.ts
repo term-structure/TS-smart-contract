@@ -42,6 +42,7 @@ import {
 import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 import { ethers } from "hardhat";
 import { LoanStruct } from "../../typechain-types/contracts/zkTrueUp/loan/ILoanFacet";
+import { diamond } from "../../typechain-types/@solidstate/contracts/proxy";
 
 export type RootInfo = {
   txId: string;
@@ -227,12 +228,13 @@ export const getStates = async (
     }
   }
   const states: { [key: number]: AccountState } = {};
-
   for (const accountId in collections) {
     const collection: Collection = collections[accountId];
-
     for (const tokenId of collection.withdrawTokenIds) {
-      const tokenAddr = baseTokenAddresses[tokenId];
+      // const tokenAddr = baseTokenAddresses[tokenId];
+      const tokenAddr = await (
+        await diamondToken.getAssetConfig(tokenId)
+      ).token;
       const sender = accounts[accountId];
       const pendingBalance = await diamondRollup.getPendingBalances(
         await sender.getAddress(),
@@ -243,7 +245,6 @@ export const getStates = async (
       }
       states[accountId].pendingBalances[tokenId] = pendingBalance;
     }
-
     for (const tokenId of collection.withdrawFeeTokenIds) {
       const tokenAddr = baseTokenAddresses[tokenId];
       const token = await ethers.getContractAt(
@@ -267,7 +268,6 @@ export const getStates = async (
         .add(vaultAmt)
         .add(insuranceAmt);
     }
-
     for (const id of collection.loanIds) {
       const [accountId, collateralTokenId, baseTokenId, maturityTime] =
         id.split("-");
@@ -302,7 +302,9 @@ export const checkStates = async (
     if (reqType == TsTxType.WITHDRAW || reqType == TsTxType.FORCE_WITHDRAW) {
       const accountId = Number(testCase.reqDataList[i][1]);
       const tokenId = Number(testCase.reqDataList[i][2]);
-      const tokenDecimals = getDecimals(tokenId);
+      // const tokenDecimals = getDecimals(tokenId);
+      const tokenDecimals = (await diamondToken.getAssetConfig(tokenId))
+        .decimals;
       const amount = BigNumber.from(testCase.reqDataList[i][3])
         .mul(BigNumber.from(10).pow(tokenDecimals))
         .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
@@ -485,7 +487,7 @@ export const doDeposit = async (
 };
 export const doForceWithdraw = async (
   accounts: Signer[],
-  baseTokenAddresses: BaseTokenAddresses,
+  diamondToken: TokenFacet,
   diamondAcc: AccountFacet,
   testCase: TestDataItem,
   requestId: number
@@ -493,7 +495,7 @@ export const doForceWithdraw = async (
   const accountId = Number(testCase.reqDataList[requestId][9]);
   const signer = accounts[accountId];
   const tokenId = Number(testCase.reqDataList[requestId][2]);
-  const tokenAddr = baseTokenAddresses[tokenId];
+  const tokenAddr = await (await diamondToken.getAssetConfig(tokenId)).token;
 
   await diamondAcc.connect(signer).forceWithdraw(tokenAddr);
 };
