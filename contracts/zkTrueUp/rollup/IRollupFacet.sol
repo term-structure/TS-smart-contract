@@ -108,6 +108,13 @@ interface IRollupFacet {
     /// @notice Emitted when evacuation mode is deactivated
     event EvacuModeDeactivation();
 
+    /// @notice Emit when there is a new L1 request consumed
+    /// @dev Consumed number is the number of the executed L1 request - 1
+    /// @param executedL1RequestNum The number of the executed L1 request
+    /// @param opType The type of the L1 request
+    /// @param pubData The public data of the L1 request
+    event L1RequestConsumed(uint64 executedL1RequestNum, Operations.OpType opType, bytes pubData);
+
     /// @notice Emit when there is a new loan created
     /// @param loanId The id of the loan
     /// @param accountId The account id of the loan owner

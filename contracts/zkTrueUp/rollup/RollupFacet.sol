@@ -125,7 +125,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.requireActive();
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
-        uint32 expirationTime = rsl.getL1Request(executedL1RequestNum).expirationTime;
+        uint64 lastExecutedL1RequestNum = executedL1RequestNum - 1;
+        uint32 expirationTime = rsl.getL1Request(lastExecutedL1RequestNum).expirationTime;
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
             /// Roll back state
@@ -151,12 +152,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.requireEvacuMode();
 
         ///  the last L1 request cannot be evacuation which means all L1 requests have been consumed and start to evacuate
-        uint64 lastL1RequestNum = rsl.getTotalL1RequestNum() - 1;
+        uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
+        uint64 lastL1RequestNum = totalL1RequestNum - 1;
         if (rsl.getL1Request(lastL1RequestNum).opType == Operations.OpType.EVACUATION)
             revert LastL1RequestIsEvacuation(lastL1RequestNum);
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
-        if (executedL1RequestNum + consumedTxPubData.length > rsl.getTotalL1RequestNum())
+        if (executedL1RequestNum + consumedTxPubData.length > totalL1RequestNum)
             revert ConsumedRequestNumExceedTotalNum(consumedTxPubData.length);
 
         bytes memory pubData;
@@ -189,6 +191,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 // do nothing, others L1 requests have no storage changes
             }
             ++executedL1RequestNum;
+            emit L1RequestConsumed(executedL1RequestNum, opType, pubData);
         }
         rsl.committedL1RequestNum = executedL1RequestNum;
         rsl.executedL1RequestNum = executedL1RequestNum;
@@ -219,6 +222,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         // evacuation public data length is 2 chunks
         if (publicData.length != Config.BYTES_OF_TWO_CHUNKS) revert InvalidPubDataLength(publicData.length);
 
+        //TODO: add comment
         bytes memory commitmentOffset = new bytes(1);
         commitmentOffset[0] = 0x80; // 0x80 = 0b10000000, the first bit (critical chunk flag) is 1
 
@@ -649,12 +653,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Internal function to verify one block
     /// @param commitment The commitment of the block
     /// @param proof The proof of the block
-    function _verifyOneBlock(bytes32 commitment, Proof memory proof, bool isEvacuationBlock) internal view {
+    /// @param isEvacuBlock Whether the block is evacu block
+    function _verifyOneBlock(bytes32 commitment, Proof memory proof, bool isEvacuBlock) internal view {
         if (proof.commitment[0] != uint256(commitment) % Config.SCALAR_FIELD_SIZE)
             revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
 
         AddressStorage.Layout storage asl = AddressStorage.layout();
-        IVerifier verifier = isEvacuationBlock ? asl.getEvacuVerifier() : asl.getVerifier();
+        IVerifier verifier = isEvacuBlock ? asl.getEvacuVerifier() : asl.getVerifier();
 
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
