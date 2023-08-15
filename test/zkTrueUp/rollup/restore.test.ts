@@ -33,9 +33,7 @@
 //   getExecuteBlock,
 //   getPendingRollupTxPubData,
 //   getStoredBlock,
-//   initEvacuationTestData,
 //   initTestData,
-//   readEvacuationPubData,
 // } from "../../utils/rollupHelper";
 // import {
 //   CommitBlockStruct,
@@ -47,9 +45,10 @@
 // import { toL2Amt } from "../../utils/amountConvertor";
 // import initStates from "../../data/rollupData/local-block-230808/initStates.json";
 // const testDataPath = resolve("./test/data/rollupData/local-block-230808");
-// const evacuationDataPath = resolve("./test/data/rollupData/local-block-230808");
 // const testData = initTestData(testDataPath);
-// import case01 from "../../data/rollupData/evacuateData/case01.json";
+// import _case01 from "../../data/rollupData/evacuateData/case01.json";
+// import _case02 from "../../data/rollupData/evacuateData/case02.json";
+// import _case03 from "../../data/rollupData/evacuateData/case03.json";
 
 // const fixture = async () => {
 //   const res = await deployAndInit(FACET_NAMES);
@@ -91,6 +90,9 @@
 //   let diamondTsb: TsbFacet;
 //   let diamondToken: TokenFacet;
 //   let baseTokenAddresses: BaseTokenAddresses;
+//   let case01: typeof _case01;
+//   let case02: typeof _case02;
+//   let case03: typeof _case03;
 
 //   // simulate the situation before restore protocol
 //   // 1. over 14 days since the last block executed
@@ -99,6 +101,9 @@
 //   // 4. user evacuate
 //   beforeEach(async function () {
 //     const res = await loadFixture(fixture);
+//     case01 = JSON.parse(JSON.stringify(_case01));
+//     case02 = JSON.parse(JSON.stringify(_case02));
+//     case03 = JSON.parse(JSON.stringify(_case03));
 //     storedBlocks = [];
 //     storedBlocks.push(genesisBlock);
 //     committedBlockNum = 1;
@@ -117,9 +122,9 @@
 //     diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
 //     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
 //     baseTokenAddresses = res.baseTokenAddresses;
-//     const EXECUTE_BLOCK_NUMBER = 3;
+//     const EXECUTE_BLOCK_NUMBER = 4;
 
-//     // commit, verify, execute 3 blocks for test
+//     // commit, verify, execute 4 blocks for test
 //     for (let k = 0; k < EXECUTE_BLOCK_NUMBER; k++) {
 //       const testCase = testData[k];
 //       // before rollup
@@ -243,19 +248,22 @@
 //     // consume l1 request
 //     await diamondRollup.consumeL1RequestInEvacuMode([depositPubDataBytes]);
 
-//     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
 //     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-//     const commitBlock = getCommitBlock(lastCommittedBlock, evacuationData[0]);
-//     const proof: ProofStruct = evacuationData[0].callData;
+//     const evacuBlock1 = case01.newBlock;
+//     const evacuBlock2 = case02.newBlock;
+//     const evacuBlock3 = case03.newBlock;
+//     const proof1: ProofStruct = case01.proof as ProofStruct;
+//     const proof2: ProofStruct = case02.proof as ProofStruct;
+//     const proof3: ProofStruct = case03.proof as ProofStruct;
 
 //     // evacuate
-//     await diamondRollup.evacuate(lastExecutedBlock, commitBlock, proof);
+//     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock1, proof1);
+//     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock2, proof2);
+//     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock3, proof3);
 //   });
 
 //   it("Success to restore protocol", async function () {
 //     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
-//     const evacuateCase = evacuationData[0];
-//     const commitBlock = getCommitBlock(lastCommittedBlock, evacuateCase);
 
 //     await diamondRollup
 //       .connect(operator)

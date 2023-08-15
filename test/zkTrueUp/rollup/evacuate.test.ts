@@ -43,13 +43,13 @@ import {
   StoredBlockStruct,
   VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
+import { toL1Amt, toL2Amt } from "../../utils/amountConvertor";
 import initStates from "../../data/rollupData/local-block-230808/initStates.json";
 const testDataPath = resolve("./test/data/rollupData/local-block-230808");
 const testData = initTestData(testDataPath);
 import _case01 from "../../data/rollupData/evacuateData/case01.json";
 import _case02 from "../../data/rollupData/evacuateData/case02.json";
 import _case03 from "../../data/rollupData/evacuateData/case03.json";
-import { toL1Amt, toL2Amt } from "../../utils/amountConvertor";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -118,9 +118,9 @@ describe("Evacuate", function () {
       zkTrueUpAddr
     )) as RollupFacet;
     baseTokenAddresses = res.baseTokenAddresses;
+    const EXECUTE_BLOCK_NUMBER = 21;
 
-    // rollup 4 blocks
-    for (let k = 0; k < 4; k++) {
+    for (let k = 0; k < EXECUTE_BLOCK_NUMBER; k++) {
       const testCase = testData[k];
       // before rollup
       for (let i = 0; i < testCase.reqDataList.length; i++) {

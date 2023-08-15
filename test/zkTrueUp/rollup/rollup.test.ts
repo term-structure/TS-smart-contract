@@ -113,7 +113,7 @@ describe("Rollup", function () {
 
   for (let k = 0; k < testData.length; k++) {
     const testCase = testData[k];
-    it(`Before rollup for block-${k}`, async function () {
+    it(`Before rollup for block-${k + 1}`, async function () {
       oriStates = await getStates(
         accounts,
         baseTokenAddresses,
@@ -167,7 +167,7 @@ describe("Rollup", function () {
         }
       }
     });
-    it(`Commit for block-${k}`, async function () {
+    it(`Commit for block-${k + 1}`, async function () {
       // get last committed block
       const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
       // generate new blocks
@@ -206,7 +206,7 @@ describe("Rollup", function () {
       committedBlockNum += newBlocks.length;
     });
 
-    it(`Verify for block-${k}`, async function () {
+    it(`Verify for block-${k + 1}`, async function () {
       const committedBlocks: StoredBlockStruct[] = [];
       const committedBlock = storedBlocks[provedBlockNum];
       committedBlocks.push(committedBlock);
@@ -232,7 +232,7 @@ describe("Rollup", function () {
       provedBlockNum += committedBlocks.length;
     });
 
-    it(`Execute for block-${k}`, async function () {
+    it(`Execute for block-${k + 1}`, async function () {
       const pendingBlocks: ExecuteBlockStruct[] = [];
       const pendingRollupTxPubData = getPendingRollupTxPubData(testCase);
       const executeBlock = getExecuteBlock(
@@ -267,7 +267,7 @@ describe("Rollup", function () {
       executedBlockNum += pendingBlocks.length;
     });
 
-    it(`After rollup for block-${k}`, async function () {
+    it(`After rollup for block-${k + 1}`, async function () {
       const newStates = await getStates(
         accounts,
         baseTokenAddresses,

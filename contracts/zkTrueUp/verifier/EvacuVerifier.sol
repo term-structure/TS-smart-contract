@@ -18,13 +18,13 @@
     along with snarkJS. If not, see <https://www.gnu.org/licenses/>.
 */
 
-/**
- * @title Verifier contract
- * @author Term Structure Labs
- * @notice Verifier contract for the proof verification of the Term Structure Protocol
- */
 pragma solidity ^0.8.17;
 
+/**
+ * @title EvacuVerifier contract
+ * @author Term Structure Labs
+ * @notice Verifier contract for the Evacuation circuit
+ */
 contract EvacuVerifier {
     // Scalar field size
     uint256 constant r = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
