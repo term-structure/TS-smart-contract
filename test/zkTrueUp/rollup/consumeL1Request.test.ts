@@ -208,7 +208,7 @@ describe("Consume L1 Request in EvacuMode", function () {
     }
   });
 
-  it("Success to consume  L1 request", async function () {
+  it("Success to consume L1 request", async function () {
     const user1 = accounts[1];
     const user1Addr = await user1.getAddress();
     await weth

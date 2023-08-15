@@ -151,9 +151,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.requireEvacuMode();
 
         ///  the last L1 request cannot be evacuation which means all L1 requests have been consumed and start to evacuate
-        uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
-        if (rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION)
-            revert LastL1RequestIsEvacuation(totalL1RequestNum);
+        uint64 lastL1RequestNum = rsl.getTotalL1RequestNum() - 1;
+        if (rsl.getL1Request(lastL1RequestNum).opType == Operations.OpType.EVACUATION)
+            revert LastL1RequestIsEvacuation(lastL1RequestNum);
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         if (executedL1RequestNum + consumedTxPubData.length > rsl.getTotalL1RequestNum())
@@ -514,10 +514,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _requireConsumedAllNonExecutedReq(RollupStorage.Layout storage rsl) internal view {
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
+        uint64 lastL1RequestNum = totalL1RequestNum - 1;
         /// the last executed L1 req == the total L1 req (end of consume),
         /// the last L1 req is evacuation (end of consume and someone already evacuated)
         bool isExecutedL1RequestNumEqTotalL1RequestNum = executedL1RequestNum == totalL1RequestNum;
-        bool isLastL1RequestEvacuation = rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION;
+        bool isLastL1RequestEvacuation = rsl.getL1Request(lastL1RequestNum).opType == Operations.OpType.EVACUATION;
         if (!isExecutedL1RequestNumEqTotalL1RequestNum && !isLastL1RequestEvacuation)
             revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
     }
@@ -664,7 +665,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _executeBlocks(RollupStorage.Layout storage rsl, ExecuteBlock[] memory pendingBlocks) internal {
         uint32 executedBlockNum = rsl.getExecutedBlockNum();
         if (executedBlockNum + pendingBlocks.length > rsl.getVerifiedBlockNum())
-            revert ExecutedBlockNumExceedProvedNum(executedBlockNum);
+            revert ExecutedBlockNumExceedProvedNum(pendingBlocks.length);
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         for (uint32 i; i < pendingBlocks.length; ++i) {

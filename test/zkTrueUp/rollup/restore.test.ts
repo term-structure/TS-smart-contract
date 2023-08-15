@@ -7,7 +7,6 @@
 // import { deployAndInit } from "../../utils/deployAndInit";
 // import { FACET_NAMES } from "../../../utils/config";
 // import { whiteListBaseTokens } from "../../utils/whitelistToken";
-// import initStates from "../../data/rollupData/zkTrueUp-8-10-8-6-3-3-32/initStates.json";
 // import { BaseTokenAddresses } from "../../../utils/type";
 // import {
 //   DEFAULT_ETH_ADDRESS,
@@ -46,13 +45,11 @@
 //   VerifyBlockStruct,
 // } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 // import { toL2Amt } from "../../utils/amountConvertor";
-
-// const testDataPath = resolve("./test/data/rollupData/zkTrueUp-8-10-8-6-3-3-32");
-// const evacuationDataPath = resolve(
-//   "./test/data/rollupData/zkTrueUp-evacuation-8-10-8-6-3-3-32"
-// );
+// import initStates from "../../data/rollupData/local-block-230808/initStates.json";
+// const testDataPath = resolve("./test/data/rollupData/local-block-230808");
+// const evacuationDataPath = resolve("./test/data/rollupData/local-block-230808");
 // const testData = initTestData(testDataPath);
-// const evacuationData = initEvacuationTestData(evacuationDataPath);
+// import case01 from "../../data/rollupData/evacuateData/case01.json";
 
 // const fixture = async () => {
 //   const res = await deployAndInit(FACET_NAMES);
@@ -126,8 +123,8 @@
 //     for (let k = 0; k < EXECUTE_BLOCK_NUMBER; k++) {
 //       const testCase = testData[k];
 //       // before rollup
-//       for (let i = 0; i < testCase.requests.reqData.length; i++) {
-//         const reqType = testCase.requests.reqData[i][0];
+//       for (let i = 0; i < testCase.reqDataList.length; i++) {
+//         const reqType = testCase.reqDataList[i][0];
 //         if (reqType == TsTxType.REGISTER.toString()) {
 //           await doRegister(
 //             accounts,
@@ -138,11 +135,10 @@
 //           );
 //         } else if (reqType == TsTxType.DEPOSIT.toString()) {
 //           if (i > 0) {
-//             if (Number(testCase.requests.reqData[i - 1][0]) == 1) {
+//             if (Number(testCase.reqDataList[i - 1][0]) == 1) {
 //               continue;
 //             }
 //           }
-
 //           await doDeposit(
 //             accounts,
 //             baseTokenAddresses,

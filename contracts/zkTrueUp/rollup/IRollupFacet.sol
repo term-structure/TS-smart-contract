@@ -21,7 +21,7 @@ interface IRollupFacet {
     /// @notice Error for verified block number exceed committed block number
     error VerifiedBlockNumExceedCommittedNum(uint32 verifiedBlockNum);
     /// @notice Error for executed block number exceed proved block number
-    error ExecutedBlockNumExceedProvedNum(uint32 executedBlockNum);
+    error ExecutedBlockNumExceedProvedNum(uint256 pendingBlockNum);
     /// @notice Error for new block timestamp is less than previous block timestamp
     error TimestampLtPrevious(uint256 newBlockTimestamp, uint256 previousBlockTimestamp);
     /// @notice Error for invalid block number

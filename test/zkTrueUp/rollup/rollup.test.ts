@@ -105,10 +105,10 @@ describe("Rollup", function () {
     diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
     baseTokenAddresses = res.baseTokenAddresses;
-    committedBlockNum += 1;
-    provedBlockNum += 1;
-    executedBlockNum += 1;
     storedBlocks.push(genesisBlock);
+    committedBlockNum = 1;
+    provedBlockNum = 1;
+    executedBlockNum = 1;
   });
 
   for (let k = 0; k < testData.length; k++) {

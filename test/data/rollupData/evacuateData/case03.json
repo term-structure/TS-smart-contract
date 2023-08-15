@@ -1,0 +1,41 @@
+{
+  "lastExecutedBlock": {
+    "blockNumber": "4",
+    "l1RequestNum": "4",
+    "pendingRollupTxHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+    "commitment": "0xc194b331fe77909cf6c943dead5f5fe31fe49df45a2891c60037a35fecc60dad",
+    "stateRoot": "0x176b894ca27658402f87874d530fe9b1dbbb669b2f9bf5805230c5a4e9968cdc",
+    "timestamp": "1690968843"
+  },
+  "newBlock": {
+    "blockNumber": "5",
+    "newStateRoot": "0x176b894ca27658402f87874d530fe9b1dbbb669b2f9bf5805230c5a4e9968cdc",
+    "newTsRoot": "0x2d9173f694016966a878315846d397c8134bbd7b41f9088432e58322d14fe318",
+    "timestamp": "1690968846",
+    "chunkIdDeltas": [0],
+    "publicData": "0x18000000030002000000000000000000002d79883d200000"
+  },
+  "proof": {
+    "a": [
+      "0x0eb425c3e183c26f190ad937a9f0f80e012b840a2809252ed99a80a167f3d2a4",
+      "0x0ce49c65103426cc3802fdfb747882e15ae8dfc0e58f1698877ae4eae7cee10b"
+    ],
+    "b": [
+      [
+        "0x2facc785afbb35b100747f49445af10de6405cf37bd3effa094f1430280c2ed5",
+        "0x216c6404d285de770a0a6d07472101feede1cbfe78de14b0ae9314a6bd4e62cf"
+      ],
+      [
+        "0x300b72bc607d777ae9b1bbf874044389d52b594c3611679f90627de068725b51",
+        "0x06a5ded7977ae7c9f83e7fc589a360762f3d680bda0b99dc0355eb186f6ba77f"
+      ]
+    ],
+    "c": [
+      "0x1d60f003357ae05c373ad2553ec72ea57f253aed54f2d2f25586ae803c3234e1",
+      "0x25a73e3b483e7156c023f321abe5adee3f0f6422579309d7a8af247c74387406"
+    ],
+    "commitment": [
+      "0x0affa1b4e44f32962ee2b479f05ebf3094b31f4e8093d5477841a6bcd1045efd"
+    ]
+  }
+}
