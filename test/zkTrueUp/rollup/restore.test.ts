@@ -131,7 +131,6 @@ describe("Restore protocol", function () {
     const EXECUTE_BLOCK_NUMBER = 21;
 
     const blocks = await diamondRollup.getBlockNum();
-    console.log("blocks", blocks);
 
     for (let k = 0; k < EXECUTE_BLOCK_NUMBER; k++) {
       const testCase = testData[k];
@@ -275,6 +274,11 @@ describe("Restore protocol", function () {
     verifyingBlocks.push({
       storedBlock: committedBlock,
       proof: proof,
+    });
+
+    console.log({
+      commitBlock,
+      committedBlock,
     });
 
     await diamondRollup.connect(operator).verifyEvacuBlocks(verifyingBlocks);
