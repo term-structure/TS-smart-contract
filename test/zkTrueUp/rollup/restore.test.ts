@@ -83,9 +83,9 @@ describe("Restore protocol", function () {
     timestamp: BigNumber.from("0"),
   };
   let accounts: Signer[];
-  let committedBlockNum: number = 0;
-  let provedBlockNum: number = 0;
-  let executedBlockNum: number = 0;
+  let committedBlockNum = 0;
+  let provedBlockNum = 0;
+  let executedBlockNum = 0;
   let operator: Signer;
   let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
@@ -277,42 +277,18 @@ describe("Restore protocol", function () {
     });
 
     console.log({
-      commitBlock,
+      lastCommittedBlock,
+      newBlocks,
       committedBlock,
+      // commitBlock,
     });
 
     await diamondRollup.connect(operator).verifyEvacuBlocks(verifyingBlocks);
     provedBlockNum += committedBlocks.length;
 
-    // await diamondRollup
-    //   .connect(operator)
-    //   .commitEvacuBlocks(lastCommittedBlock, [commitBlock]);
+    // execute blocks
+    // const evacuBlocks = storedBlocks.slice(executedBlockNum);
+    // await diamondRollup.connect(operator).executeEvacuBlocks(newBlocks);
 
-    // const storedBlock = getStoredBlock(commitBlock, evacuateCase);
-    // storedBlocks.push(storedBlock);
-    // // update state
-    // committedBlockNum += 1;
-
-    // const committedBlocks: StoredBlockStruct[] = [];
-    // const committedBlock = storedBlocks[provedBlockNum];
-    // console.log({
-    //   committedBlock,
-    //   provedBlockNum,
-    // });
-    // committedBlocks.push(committedBlock);
-
-    // const proofs: ProofStruct[] = [];
-    // const proof: ProofStruct = evacuateCase.callData;
-    // proofs.push(proof);
-
-    // const verifyingBlocks: VerifyBlockStruct[] = [];
-    // verifyingBlocks.push({
-    //   storedBlock: committedBlock,
-    //   proof: proof,
-    // });
-
-    // console.log("verifyingBlocks", verifyingBlocks);
-
-    // await diamondRollup.connect(operator).verifyEvacuBlocks(verifyingBlocks);
   });
 });

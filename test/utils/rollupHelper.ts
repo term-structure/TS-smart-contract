@@ -7,6 +7,7 @@ import {
   BYTES_OF_CHUNK,
   DEFAULT_ZERO_ADDR,
   ETH_ASSET_CONFIG,
+  EVACUATION_BYTES,
   FORCE_WITHDRAW_BYTES,
   NOOP_BYTES,
   WITHDRAW_BYTES,
@@ -18,7 +19,6 @@ import {
   TS_BASE_TOKEN,
   TS_SYSTEM_DECIMALS,
   TsTxType,
-  uint8ArrayToHexString,
 } from "term-structure-sdk";
 import {
   CommitBlockStruct,
@@ -542,65 +542,37 @@ export function getPendingRollupTxHash(commitBlock: CommitBlockType) {
     const opType = Number(
       "0x" + commitBlock.o_chunk.slice(startFlag, startFlag + 2 * NOOP_BYTES)
     ).toString() as TsTxType;
+    let endFlag = 0;
     switch (opType) {
       case TsTxType.FORCE_WITHDRAW: {
-        const pubdata =
-          "0x" +
-          commitBlock.o_chunk.slice(
-            startFlag,
-            startFlag + 2 * FORCE_WITHDRAW_BYTES
-          );
-        pendingRollupTxHash = ethers.utils.keccak256(
-          ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "bytes"],
-            [pendingRollupTxHash, pubdata]
-          )
-        );
+        endFlag = startFlag + 2 * FORCE_WITHDRAW_BYTES;
         break;
       }
-
       case TsTxType.WITHDRAW: {
-        const pubdata =
-          "0x" +
-          commitBlock.o_chunk.slice(startFlag, startFlag + 2 * WITHDRAW_BYTES);
-        pendingRollupTxHash = ethers.utils.keccak256(
-          ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "bytes"],
-            [pendingRollupTxHash, pubdata]
-          )
-        );
+        endFlag = startFlag + 2 * WITHDRAW_BYTES;
         break;
       }
       case TsTxType.AUCTION_END: {
-        const pubdata =
-          "0x" +
-          commitBlock.o_chunk.slice(
-            startFlag,
-            startFlag + 2 * AUCTION_END_BYTES
-          );
-        pendingRollupTxHash = ethers.utils.keccak256(
-          ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "bytes"],
-            [pendingRollupTxHash, pubdata]
-          )
-        );
+        endFlag = startFlag + 2 * AUCTION_END_BYTES;
         break;
       }
       case TsTxType.WITHDRAW_FEE: {
-        const pubdata =
-          "0x" +
-          commitBlock.o_chunk.slice(
-            startFlag,
-            startFlag + 2 * WITHDRAW_FEE_BYTES
-          );
-        pendingRollupTxHash = ethers.utils.keccak256(
-          ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "bytes"],
-            [pendingRollupTxHash, pubdata]
-          )
-        );
+        endFlag = startFlag + 2 * WITHDRAW_FEE_BYTES;
         break;
       }
+      case TsTxType.EVACUATION: {
+        endFlag = startFlag + 2 * EVACUATION_BYTES;
+        break;
+      }
+    }
+    if (endFlag !== 0) {
+      const pubdata = "0x" + commitBlock.o_chunk.slice(startFlag, endFlag);
+      pendingRollupTxHash = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(
+          ["bytes32", "bytes"],
+          [pendingRollupTxHash, pubdata]
+        )
+      );
     }
   }
   return pendingRollupTxHash;
@@ -808,12 +780,11 @@ export function getStoredBlock(
     commitmentOffset: utils.hexlify(commitmentOffset),
     newBlockTimestamp: testCase.commitBlock.timestamp,
   });
-  const l1RequestNum = getL1RequestNum(testCase.reqDataList);
   const pendingRollupTxHash = getPendingRollupTxHash(testCase.commitBlock);
   // const pendingRollupTxHash = testCase.commitBlock.pendingRollupTxHash;
   const storedBlock: StoredBlockStruct = {
     blockNumber: commitBlock.blockNumber,
-    l1RequestNum: l1RequestNum,
+    l1RequestNum: testCase.commitBlock.l1RequestNum,
     pendingRollupTxHash: pendingRollupTxHash,
     commitment: commitmentHash,
     stateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
@@ -887,20 +858,6 @@ export function stateToCommitmentHash({
   );
   const commitmentHash = utils.sha256(commitmentMsg);
   return commitmentHash;
-}
-
-export function getL1RequestNum(reqData: any) {
-  let requestNum = 0;
-  for (let i = 0; i < reqData.length; i++) {
-    if (
-      reqData[i][0] == TsTxType.REGISTER ||
-      reqData[i][0] == TsTxType.DEPOSIT ||
-      reqData[i][0] == TsTxType.FORCE_WITHDRAW
-    ) {
-      requestNum++;
-    }
-  }
-  return requestNum;
 }
 
 export async function actionDispatcher(
