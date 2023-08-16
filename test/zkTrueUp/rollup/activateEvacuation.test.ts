@@ -23,6 +23,7 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import {
+  actionDispatcher,
   doCreateBondToken,
   doDeposit,
   doForceWithdraw,
@@ -114,44 +115,17 @@ describe("Activating evacuation", function () {
       // do some L1 requests from test case
       for (let i = 0; i < testCase.reqDataList.length; i++) {
         const reqType = testCase.reqDataList[i][0];
-        if (reqType == TsTxType.REGISTER.toString()) {
-          await doRegister(
-            accounts,
-            baseTokenAddresses,
-            diamondAcc,
-            testCase,
-            i
-          );
-        } else if (reqType == TsTxType.DEPOSIT.toString()) {
-          if (i > 0) {
-            if (Number(testCase.reqDataList[i - 1][0]) == 1) {
-              continue;
-            }
-          }
-          await doDeposit(
-            accounts,
-            baseTokenAddresses,
-            diamondAcc,
-            testCase,
-            i
-          );
-        } else if (reqType == TsTxType.FORCE_WITHDRAW.toString()) {
-          await doForceWithdraw(
-            accounts,
-            baseTokenAddresses,
-            diamondAcc,
-            testCase,
-            i
-          );
-        } else if (reqType == TsTxType.CREATE_TSB_TOKEN.toString()) {
-          await doCreateBondToken(
-            operator,
-            diamondToken,
-            diamondTsb,
-            testCase,
-            i
-          );
-        }
+        await actionDispatcher(
+          reqType,
+          operator,
+          accounts,
+          baseTokenAddresses,
+          testCase,
+          i,
+          diamondAcc,
+          diamondToken,
+          diamondTsb
+        );
       }
 
       // commit blocks

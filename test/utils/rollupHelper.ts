@@ -902,3 +902,54 @@ export function getL1RequestNum(reqData: any) {
   }
   return requestNum;
 }
+
+export async function actionDispatcher(
+  reqType: string,
+  operator: Signer,
+  accounts: Signer[],
+  baseTokenAddresses: BaseTokenAddresses,
+  testCase: TestDataItem,
+  requestId: number,
+  diamondAcc: AccountFacet,
+  diamondToken: TokenFacet,
+  diamondTsb: TsbFacet
+) {
+  if (reqType == TsTxType.REGISTER.toString()) {
+    await doRegister(
+      accounts,
+      baseTokenAddresses,
+      diamondAcc,
+      testCase,
+      requestId
+    );
+  } else if (reqType == TsTxType.DEPOSIT.toString()) {
+    if (requestId > 0) {
+      if (Number(testCase.reqDataList[requestId - 1][0]) == 1) {
+        return;
+      }
+    }
+    await doDeposit(
+      accounts,
+      baseTokenAddresses,
+      diamondAcc,
+      testCase,
+      requestId
+    );
+  } else if (reqType == TsTxType.FORCE_WITHDRAW.toString()) {
+    await doForceWithdraw(
+      accounts,
+      diamondToken,
+      diamondAcc,
+      testCase,
+      requestId
+    );
+  } else if (reqType == TsTxType.CREATE_TSB_TOKEN.toString()) {
+    await doCreateBondToken(
+      operator,
+      diamondToken,
+      diamondTsb,
+      testCase,
+      requestId
+    );
+  }
+}
