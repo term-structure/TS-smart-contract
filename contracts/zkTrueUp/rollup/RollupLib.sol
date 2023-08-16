@@ -50,14 +50,15 @@ library RollupLib {
     ) internal {
         // solhint-disable-next-line not-rely-on-time
         uint32 expirationTime = uint32(block.timestamp + Config.EXPIRATION_PERIOD);
-        uint64 requestId = s.totalL1RequestNum;
+        uint64 requestId = ++s.totalL1RequestNum;
         bytes32 hashedPubData = keccak256(pubData);
         s.l1RequestQueue[requestId] = Request({
             hashedPubData: hashedPubData,
             expirationTime: expirationTime,
             opType: opType
         });
-        s.totalL1RequestNum++;
+        //TODO: remove
+        // s.totalL1RequestNum++;
         emit L1Request(sender, requestId, opType, pubData, expirationTime);
     }
 

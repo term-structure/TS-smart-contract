@@ -28,6 +28,8 @@ import {Bytes} from "../libraries/Bytes.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Term Structure Rollup Facet Contract
  * @author Term Structure Labs
@@ -125,8 +127,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.requireActive();
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
-        uint64 lastExecutedL1RequestNum = executedL1RequestNum - 1;
-        uint32 expirationTime = rsl.getL1Request(lastExecutedL1RequestNum).expirationTime;
+        uint32 expirationTime = rsl.getL1Request(executedL1RequestNum).expirationTime;
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
             /// Roll back state
@@ -153,9 +154,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         ///  the last L1 request cannot be evacuation which means all L1 requests have been consumed and start to evacuate
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
-        uint64 lastL1RequestNum = totalL1RequestNum - 1;
-        if (rsl.getL1Request(lastL1RequestNum).opType == Operations.OpType.EVACUATION)
-            revert LastL1RequestIsEvacuation(lastL1RequestNum);
+        if (rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION)
+            revert LastL1RequestIsEvacuation(totalL1RequestNum);
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         if (executedL1RequestNum + consumedTxPubData.length > totalL1RequestNum)
@@ -184,8 +184,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 AccountStorage.Layout storage asl = AccountStorage.layout();
                 address registerAddr = asl.accountAddresses[registerReq.accountId];
                 asl.accountIds[registerAddr] = 0;
-                // asl.accountAddresses[registerReq.accountId] = address(0);
-                // asl.accountNum -= 1;
                 // solhint-disable-next-line no-empty-blocks
             } else {
                 // do nothing, others L1 requests have no storage changes
@@ -518,11 +516,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _requireConsumedAllNonExecutedReq(RollupStorage.Layout storage rsl) internal view {
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
-        uint64 lastL1RequestNum = totalL1RequestNum - 1;
+        console.log("executedL1RequestNum: %s", executedL1RequestNum);
+        console.log("totalL1RequestNum: %s", totalL1RequestNum);
         /// the last executed L1 req == the total L1 req (end of consume),
         /// the last L1 req is evacuation (end of consume and someone already evacuated)
         bool isExecutedL1RequestNumEqTotalL1RequestNum = executedL1RequestNum == totalL1RequestNum;
-        bool isLastL1RequestEvacuation = rsl.getL1Request(lastL1RequestNum).opType == Operations.OpType.EVACUATION;
+        bool isLastL1RequestEvacuation = rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION;
+        console.log(uint8(rsl.getL1Request(totalL1RequestNum).opType));
+        console.log("isExecutedL1RequestNumEqTotalL1RequestNum: %s", isExecutedL1RequestNumEqTotalL1RequestNum);
+        console.log("isLastL1RequestEvacuation: %s", isLastL1RequestEvacuation);
         if (!isExecutedL1RequestNumEqTotalL1RequestNum && !isLastL1RequestEvacuation)
             revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
     }
@@ -636,7 +638,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _verifyBlocks(RollupStorage.Layout storage rsl, VerifyBlock[] memory verifyingBlocks) internal {
         uint32 verifiedBlockNum = rsl.getVerifiedBlockNum();
         if (verifiedBlockNum + verifyingBlocks.length > rsl.getCommittedBlockNum())
-            revert VerifiedBlockNumExceedCommittedNum(verifiedBlockNum);
+            revert VerifiedBlockNumExceedCommittedNum(verifyingBlocks.length);
 
         for (uint256 i; i < verifyingBlocks.length; ++i) {
             ++verifiedBlockNum;

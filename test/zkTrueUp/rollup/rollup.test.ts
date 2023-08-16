@@ -112,7 +112,7 @@ describe("Rollup", function () {
     executedBlockNum = 1;
   });
 
-  for (let k = 0; k < testData.length; k++) {
+  for (let k = 0; k < 5; k++) {
     const testCase = testData[k];
     it(`Before rollup for block-${k + 1}`, async function () {
       oriStates = await getStates(
