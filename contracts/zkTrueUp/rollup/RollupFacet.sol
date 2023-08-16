@@ -127,7 +127,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.requireActive();
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
-        uint32 expirationTime = rsl.getL1Request(executedL1RequestNum).expirationTime;
+        uint64 lastExecutedL1RequestId = executedL1RequestNum - 1;
+        uint32 expirationTime = rsl.getL1Request(lastExecutedL1RequestId).expirationTime;
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
             /// Roll back state
@@ -154,7 +155,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         ///  the last L1 request cannot be evacuation which means all L1 requests have been consumed and start to evacuate
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
-        if (rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION)
+        uint64 lastL1RequestId = totalL1RequestNum - 1;
+        if (rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION)
             revert LastL1RequestIsEvacuation(totalL1RequestNum);
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
@@ -516,15 +518,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _requireConsumedAllNonExecutedReq(RollupStorage.Layout storage rsl) internal view {
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
-        console.log("executedL1RequestNum: %s", executedL1RequestNum);
-        console.log("totalL1RequestNum: %s", totalL1RequestNum);
+        //TODO: refactor
+        uint64 lastL1RequestId = totalL1RequestNum - 1;
         /// the last executed L1 req == the total L1 req (end of consume),
         /// the last L1 req is evacuation (end of consume and someone already evacuated)
         bool isExecutedL1RequestNumEqTotalL1RequestNum = executedL1RequestNum == totalL1RequestNum;
-        bool isLastL1RequestEvacuation = rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION;
-        console.log(uint8(rsl.getL1Request(totalL1RequestNum).opType));
-        console.log("isExecutedL1RequestNumEqTotalL1RequestNum: %s", isExecutedL1RequestNumEqTotalL1RequestNum);
-        console.log("isLastL1RequestEvacuation: %s", isLastL1RequestEvacuation);
+        bool isLastL1RequestEvacuation = rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION;
         if (!isExecutedL1RequestNumEqTotalL1RequestNum && !isLastL1RequestEvacuation)
             revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
     }

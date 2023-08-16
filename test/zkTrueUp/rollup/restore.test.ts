@@ -247,16 +247,25 @@ describe("Restore protocol", function () {
   });
 
   it("Success to restore protocol", async function () {
+    // generate new blocks
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
-    const commitBlock = getCommitBlock(lastCommittedBlock, restoreData[0]);
     const newBlocks: CommitBlockStruct[] = [];
+    const commitBlock = getCommitBlock(lastCommittedBlock, restoreData[0]);
     newBlocks.push(commitBlock);
+
     // commit blocks
     await diamondRollup
       .connect(operator)
       .commitEvacuBlocks(lastCommittedBlock, newBlocks);
-
     const storedBlock = getStoredBlock(commitBlock, restoreData[0]);
+    storedBlocks.push(storedBlock);
+    // update state
+    committedBlockNum += newBlocks.length;
+
+    // verify blocks
+    const committedBlocks: StoredBlockStruct[] = [];
+    const committedBlock = storedBlocks[provedBlockNum];
+    committedBlocks.push(committedBlock);
 
     const proofs: ProofStruct[] = [];
     const proof: ProofStruct = restoreData[0].callData;
@@ -264,16 +273,12 @@ describe("Restore protocol", function () {
 
     const verifyingBlocks: VerifyBlockStruct[] = [];
     verifyingBlocks.push({
-      storedBlock: storedBlock,
+      storedBlock: committedBlock,
       proof: proof,
     });
 
-    console.log({
-      storedBlock,
-      verifyingBlocks,
-    });
-
     await diamondRollup.connect(operator).verifyEvacuBlocks(verifyingBlocks);
+    provedBlockNum += committedBlocks.length;
 
     // await diamondRollup
     //   .connect(operator)
