@@ -3,8 +3,8 @@
   "stateRoot": "0x29c17f3184596e93ad2fb052d9a36de542da6b086dc06638e2c17da3cf43fc6e",
   "tsRoot": "0x0ae60080dffa2763ec2e693ad1c3dbafe19cdc8e057a0c951abeb037dff2d998",
   "l1RequestNum": "1",
-  "pendingRollupTxHash": "0x81e1a142f119bd1a443e311277a84ac02277b89da06b5a5e04ca608fba3cbc53",
-  "commitment": "0x342363421f8d806b1c087b190118f4d1c3ff58a573134717af4d93ff0fe9578f",
+  "pendingRollupTxHash": "0xd630df9922ab8678678c70d0827320d61f68decc0aa36b8b399130c7aa435c55",
+  "commitment": "0x0a95c4de9a8834cc8f263851adb37bf64c0c10be881d99991eb8f03a62356dae",
   "timestamp": "1691560700",
   "endTxId": "88"
 }

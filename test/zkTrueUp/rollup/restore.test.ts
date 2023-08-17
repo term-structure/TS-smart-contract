@@ -154,13 +154,28 @@ describe("Restore protocol", function () {
       const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
       // generate new blocks
       const newBlocks: CommitBlockStruct[] = [];
-      const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
+      const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
+      const commitBlock: CommitBlockStruct = {
+        blockNumber,
+        newStateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
+        newTsRoot: testCase.commitBlock.newFlowInfo.tsRoot,
+        publicData: testCase.commitBlock.o_chunk,
+        chunkIdDeltas: testCase.commitBlock.chunkIdDeltas,
+        timestamp: testCase.commitBlock.timestamp,
+      };
       newBlocks.push(commitBlock);
       // commit blocks
       await diamondRollup
         .connect(operator)
         .commitBlocks(lastCommittedBlock, newBlocks);
-      const storedBlock = getStoredBlock(commitBlock, testCase);
+      const storedBlock: StoredBlockStruct = {
+        blockNumber,
+        l1RequestNum: testCase.commitBlock.l1RequestNum,
+        pendingRollupTxHash: testCase.commitBlock.pendingRollupTxHash,
+        commitment: testCase.commitBlock.commitment,
+        stateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
+        timestamp: testCase.commitBlock.timestamp,
+      };
       storedBlocks.push(storedBlock);
       // update state
       committedBlockNum += newBlocks.length;
@@ -249,14 +264,30 @@ describe("Restore protocol", function () {
     // generate new blocks
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const newBlocks: CommitBlockStruct[] = [];
-    const commitBlock = getCommitBlock(lastCommittedBlock, restoreData[0]);
+    const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
+    const commitBlock: CommitBlockStruct = {
+      blockNumber,
+      newStateRoot: restoreData[0].commitBlock.newFlowInfo.stateRoot,
+      newTsRoot: restoreData[0].commitBlock.newFlowInfo.tsRoot,
+      publicData: restoreData[0].commitBlock.o_chunk,
+      chunkIdDeltas: restoreData[0].commitBlock.chunkIdDeltas,
+      timestamp: restoreData[0].commitBlock.timestamp,
+    };
     newBlocks.push(commitBlock);
 
     // commit blocks
     await diamondRollup
       .connect(operator)
       .commitEvacuBlocks(lastCommittedBlock, newBlocks);
-    const storedBlock = getStoredBlock(commitBlock, restoreData[0]);
+    const storedBlock = {
+      blockNumber,
+      l1RequestNum: restoreData[0].commitBlock.l1RequestNum,
+      pendingRollupTxHash: restoreData[0].commitBlock.pendingRollupTxHash,
+      commitment: restoreData[0].commitBlock.commitment,
+      stateRoot: restoreData[0].commitBlock.newFlowInfo.stateRoot,
+      timestamp: restoreData[0].commitBlock.timestamp,
+    };
+
     storedBlocks.push(storedBlock);
     // update state
     committedBlockNum += newBlocks.length;
@@ -276,19 +307,11 @@ describe("Restore protocol", function () {
       proof: proof,
     });
 
-    console.log({
-      lastCommittedBlock,
-      newBlocks,
-      committedBlock,
-      // commitBlock,
-    });
-
     await diamondRollup.connect(operator).verifyEvacuBlocks(verifyingBlocks);
     provedBlockNum += committedBlocks.length;
 
     // execute blocks
     // const evacuBlocks = storedBlocks.slice(executedBlockNum);
     // await diamondRollup.connect(operator).executeEvacuBlocks(newBlocks);
-
   });
 });

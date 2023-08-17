@@ -710,8 +710,6 @@ export function getCommitBlock(
   testCase: TestDataItem
 ) {
   // NOTE: normal chunk is 1 chunk for 1 bit and padding it to 1 bytes(8 bits)
-  const chunkLen =
-    (testCase.commitBlock.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
   const commitBlock: CommitBlockStruct = {
     blockNumber: BigNumber.from(lastCommittedBlock.blockNumber).add(1),
     newStateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
@@ -744,51 +742,13 @@ export function getStoredBlock(
   commitBlock: CommitBlockStruct,
   testCase: TestDataItem
 ) {
-  const publicData = utils.solidityPack(
-    ["bytes", "bytes"],
-    [testCase.commitBlock.isCriticalChunk, testCase.commitBlock.o_chunk]
-  );
-  const publicDataLength = (testCase.commitBlock.o_chunk.length - 2) / 2;
-  const BITS_OF_BYTE = 8;
-  const BYTES_OF_CHUNK = 12;
-  const BITS_OF_CHUNK = BYTES_OF_CHUNK * BITS_OF_BYTE;
-  const LAST_INDEX_OF_BYTE = BITS_OF_BYTE - 1;
-  const commitmentOffset: Uint8Array = new Uint8Array(
-    publicDataLength / BITS_OF_CHUNK
-  );
-  const chunkIdDeltas: number[] = commitBlock.chunkIdDeltas.map((v) =>
-    Number(v)
-  ); // Initialize with actual values if any.
-  let chunkId = 0;
-  for (let i = 0; i < chunkIdDeltas.length; i++) {
-    chunkId += chunkIdDeltas[i];
-    const chunkIndex: number = Math.floor(chunkId / BITS_OF_BYTE);
-    const processingCommitmentOffset: number = commitmentOffset[chunkIndex];
-    const bitwiseMask: number =
-      1 << (LAST_INDEX_OF_BYTE - (chunkId % BITS_OF_BYTE));
-    if ((processingCommitmentOffset & bitwiseMask) !== 0) {
-      throw new Error(`OffsetIsSet: ${chunkId}`);
-    }
-    commitmentOffset[chunkIndex] = processingCommitmentOffset | bitwiseMask;
-  }
-
-  const commitmentHash = stateToCommitmentHash({
-    oriStateRoot: testCase.commitBlock.oriFlowInfo.stateRoot,
-    newStateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
-    newTsRoot: testCase.commitBlock.newFlowInfo.tsRoot,
-    pubdata: testCase.commitBlock.publicData,
-    commitmentOffset: utils.hexlify(commitmentOffset),
-    newBlockTimestamp: testCase.commitBlock.timestamp,
-  });
-  const pendingRollupTxHash = getPendingRollupTxHash(testCase.commitBlock);
-  // const pendingRollupTxHash = testCase.commitBlock.pendingRollupTxHash;
   const storedBlock: StoredBlockStruct = {
     blockNumber: commitBlock.blockNumber,
     l1RequestNum: testCase.commitBlock.l1RequestNum,
-    pendingRollupTxHash: pendingRollupTxHash,
-    commitment: commitmentHash,
+    pendingRollupTxHash: testCase.commitBlock.pendingRollupTxHash,
+    commitment: testCase.commitBlock.commitment,
     stateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
-    timestamp: commitBlock.timestamp,
+    timestamp: testCase.commitBlock.timestamp,
   };
   return storedBlock;
 }
