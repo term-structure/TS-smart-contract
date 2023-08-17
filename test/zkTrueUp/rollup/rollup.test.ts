@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { resolve } from "path";
 import { EMPTY_HASH, TsTxType } from "term-structure-sdk";
-import initStates from "../../data/rollupData/local-block-230808/initStates.json";
+import initStates from "../../data/rollupData/rollup/initStates.json";
 import { FACET_NAMES } from "../../../utils/config";
 import { useFacet } from "../../../utils/useFacet";
 import { deployAndInit } from "../../utils/deployAndInit";
@@ -40,7 +40,7 @@ import {
   getStoredBlock,
   initTestData,
 } from "../../utils/rollupHelper";
-const testDataPath = resolve("./test/data/rollupData/local-block-230808");
+const testDataPath = resolve("./test/data/rollupData/rollup");
 
 const testData = initTestData(testDataPath);
 

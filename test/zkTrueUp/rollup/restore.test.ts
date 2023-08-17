@@ -44,15 +44,15 @@ import {
   VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 import { toL2Amt } from "../../utils/amountConvertor";
-import initStates from "../../data/rollupData/local-block-230808/initStates.json";
-const testDataPath = resolve("./test/data/rollupData/local-block-230808");
+import initStates from "../../data/rollupData/rollup/initStates.json";
+const testDataPath = resolve("./test/data/rollupData/rollup");
 const testData = initTestData(testDataPath);
 const restoreDataPath = resolve("./test/data/rollupData/restoreData");
 const restoreData = initTestData(restoreDataPath);
-import _case01 from "../../data/rollupData/evacuateData/case01.json";
-import _case02 from "../../data/rollupData/evacuateData/case02.json";
-import _case03 from "../../data/rollupData/evacuateData/case03.json";
-import _case04 from "../../data/rollupData/evacuateData/case04.json";
+import _case01 from "../../data/rollupData/evacuate/case01.json";
+import _case02 from "../../data/rollupData/evacuate/case02.json";
+import _case03 from "../../data/rollupData/evacuate/case03.json";
+import _case04 from "../../data/rollupData/evacuate/case04.json";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);

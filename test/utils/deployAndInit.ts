@@ -12,7 +12,7 @@ import {
 } from "../../utils/config";
 import { ERC20Mock, OracleMock, WETH9 } from "../../typechain-types";
 import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
-import initStates from "../data/rollupData/local-block-230808/initStates.json";
+import initStates from "../data/rollupData/rollup/initStates.json";
 import { utils } from "ethers";
 import { safeInitFacet } from "diamond-engraver";
 const circomlibjs = require("circomlibjs");

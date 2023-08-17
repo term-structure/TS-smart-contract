@@ -47,8 +47,8 @@ import {
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 import { toL2Amt } from "../../utils/amountConvertor";
 import { genTsAddr } from "../../utils/helper";
-import initStates from "../../data/rollupData/local-block-230808/initStates.json";
-const testDataPath = resolve("./test/data/rollupData/local-block-230808");
+import initStates from "../../data/rollupData/rollup/initStates.json";
+const testDataPath = resolve("./test/data/rollupData/rollup");
 const testData = initTestData(testDataPath);
 
 const fixture = async () => {
