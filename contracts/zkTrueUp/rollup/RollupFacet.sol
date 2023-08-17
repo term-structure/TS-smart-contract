@@ -437,7 +437,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         if (publicDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(publicDataLength);
 
         uint256 chunkIdDeltaLength = newBlock.chunkIdDeltas.length;
-        if (isEvacuBlock) _requireValidEvacuBlockPubData(chunkIdDeltaLength, newBlock.publicData);
+        if (isEvacuBlock) {
+            _requireValidEvacuBlockChunkIdDelta(newBlock.chunkIdDeltas);
+            _requireValidEvacuBlockPubData(chunkIdDeltaLength, newBlock.publicData);
+        }
 
         /// The commitment offset array is used to store the commitment offset for each chunk
         bytes memory commitmentOffset = new bytes(publicDataLength / Config.BITS_OF_CHUNK);
@@ -450,9 +453,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             chunkId += delta;
             uint256 offset = chunkId * Config.BYTES_OF_CHUNK;
             if (offset >= publicDataLength) revert OffsetGtPubDataLength(offset);
-
-            //TODO: move out of loop
-            if (isEvacuBlock) _requireValidEvacuBlockChunkIdDelta(delta, i);
 
             (requestId, processableRollupTxHash) = _processOneRequest(
                 rsl,
@@ -476,6 +476,18 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 stateRoot: newBlock.newStateRoot,
                 timestamp: newBlock.timestamp
             });
+    }
+
+    /// @notice Internal function to check whether the chunk id delta is valid when commit evacuation block
+    /// @dev The evacuation block only includes the evacuation request or noop,
+    ///      so the first chunk id delta should be 0 and the remaining chunk id delta should be evacuation chunk size
+    /// @param chunkIdDeltas The chunk id delta array
+    function _requireValidEvacuBlockChunkIdDelta(uint16[] memory chunkIdDeltas) internal pure {
+        uint256 chunkIdDeltaLength = chunkIdDeltas.length;
+        if (chunkIdDeltaLength != 0 && chunkIdDeltas[0] != 0) revert InvalidChunkIdDelta(chunkIdDeltas);
+        for (uint256 i = 1; i < chunkIdDeltaLength; ++i) {
+            if (chunkIdDeltas[i] != Config.EVACUATION_CHUNK_SIZE) revert InvalidChunkIdDelta(chunkIdDeltas);
+        }
     }
 
     /// @notice Internal function to check whether the evacuation block pubdata is valid
@@ -528,16 +540,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
     }
 
-    /// @notice Internal function to check whether the chunk id delta is valid when commit evacuation block
-    /// @param delta The chunk id delta
-    /// @param idx The index of chunk id delta
-    function _requireValidEvacuBlockChunkIdDelta(uint16 delta, uint256 idx) internal pure {
-        bool firstChunkIdDeltaIsNotZero = idx == 0 && delta != 0;
-        bool nonFirstChunkIdDeltaIsNotEvacuationChunkSize = idx != 0 && delta != Config.EVACUATION_CHUNK_SIZE;
-        if (firstChunkIdDeltaIsNotZero || nonFirstChunkIdDeltaIsNotEvacuationChunkSize)
-            revert InvalidChunkIdDelta(delta);
-    }
-
     /// @notice Internal function to update the commitment offset for the chunk
     /// @param commitmentOffset The commitment offset
     /// @param chunkId The chunk id
@@ -546,6 +548,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         bytes memory commitmentOffset,
         uint256 chunkId
     ) internal pure returns (bytes memory) {
+        //TODO: refactor to optimized and add comment
         uint256 chunkIndex = chunkId / Config.BITS_OF_BYTE;
         uint8 processingCommitmentOffset = uint8(commitmentOffset[chunkIndex]);
         uint8 bitwiseMask = uint8(1 << (Config.LAST_INDEX_OF_BYTE - (chunkId % Config.BITS_OF_BYTE)));
