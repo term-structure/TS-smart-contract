@@ -355,6 +355,11 @@ describe("Evacuate", function () {
     expect(afterUser3WbtcBalance.sub(beforeUser3WbtcBalance)).to.be.eq(
       evacuation3Amt
     );
+
+    // check is evacuated
+    expect(await diamondRollup.isEvacuted(account1Addr, token1Id)).to.be.true;
+    expect(await diamondRollup.isEvacuted(account2Addr, token2Id)).to.be.true;
+    expect(await diamondRollup.isEvacuted(account3Addr, token3Id)).to.be.true;
   });
 
   it("Failed to evacuate, not in evacu mode", async function () {
