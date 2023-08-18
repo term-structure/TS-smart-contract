@@ -41,7 +41,6 @@ import {
   initTestData,
 } from "../../utils/rollupHelper";
 const testDataPath = resolve("./test/data/rollupData/rollup");
-
 const testData = initTestData(testDataPath);
 
 const fixture = async () => {

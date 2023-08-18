@@ -64,22 +64,23 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
     /**
      * @inheritdoc IAccountFacet
-     * @dev Only registered accounts can withdraw
-     * @dev The token cannot be TSB token
+     * @dev Withdrawal is not only for registered accounts but also for accounts
+     *      that have registered but de-registered by consume L1 request in evacuation mode
      */
-    function withdraw(IERC20 token, uint256 amount) external virtual nonReentrant {
+    function withdraw(IERC20 token, uint256 amount, uint32 accountId) external virtual nonReentrant {
         AccountStorage.Layout storage asl = AccountStorage.layout();
-        uint32 accountId = asl.getValidAccount(msg.sender);
+        address accountAddr = asl.getAccountAddr(accountId);
+        if (accountAddr != msg.sender) revert AccountAddrIsNotSender(accountAddr, msg.sender);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        AccountLib.updateWithdrawalRecord(rsl, msg.sender, accountId, token, tokenId, amount);
+        AccountLib.updateWithdrawalRecord(rsl, accountAddr, accountId, token, tokenId, amount);
 
         assetConfig.isTsbToken
-            ? TsbLib.mintTsbToken(ITsbToken(address(token)), msg.sender, amount)
-            : Utils.transfer(token, payable(msg.sender), amount);
+            ? TsbLib.mintTsbToken(ITsbToken(address(token)), accountAddr, amount)
+            : Utils.transfer(token, payable(accountAddr), amount);
     }
 
     /**
