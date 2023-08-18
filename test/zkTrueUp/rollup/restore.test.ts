@@ -261,57 +261,154 @@ describe("Restore protocol", function () {
   });
 
   it("Success to restore protocol", async function () {
+    // before state
+    const [
+      beforeCommittedBlockNum,
+      beforeVerifiedBlockNum,
+      beforeExecutedBlockNum,
+    ] = await diamondRollup.getBlockNum();
+    const [
+      beforeCommittedL1RequestNum,
+      beforeExecutedL1RequestNum,
+      beforeTotalL1RequestNum,
+    ] = await diamondRollup.getL1RequestNum();
+
     // generate new blocks
+    const restoreBlock1Data = restoreData[0];
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
-    const newBlocks: CommitBlockStruct[] = [];
     const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
     const commitBlock: CommitBlockStruct = {
       blockNumber,
-      newStateRoot: restoreData[0].commitBlock.newFlowInfo.stateRoot,
-      newTsRoot: restoreData[0].commitBlock.newFlowInfo.tsRoot,
-      publicData: restoreData[0].commitBlock.o_chunk,
-      chunkIdDeltas: restoreData[0].commitBlock.chunkIdDeltas,
-      timestamp: restoreData[0].commitBlock.timestamp,
+      newStateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
+      newTsRoot: restoreBlock1Data.commitBlock.newFlowInfo.tsRoot,
+      publicData: restoreBlock1Data.commitBlock.o_chunk,
+      chunkIdDeltas: restoreBlock1Data.commitBlock.chunkIdDeltas,
+      timestamp: restoreBlock1Data.commitBlock.timestamp,
     };
-    newBlocks.push(commitBlock);
 
-    // commit blocks
+    // commit evacu blocks
     await diamondRollup
       .connect(operator)
-      .commitEvacuBlocks(lastCommittedBlock, newBlocks);
+      .commitEvacuBlocks(lastCommittedBlock, [commitBlock]);
     const storedBlock = {
       blockNumber,
-      l1RequestNum: restoreData[0].commitBlock.l1RequestNum,
-      pendingRollupTxHash: restoreData[0].commitBlock.pendingRollupTxHash,
-      commitment: restoreData[0].commitBlock.commitment,
-      stateRoot: restoreData[0].commitBlock.newFlowInfo.stateRoot,
-      timestamp: restoreData[0].commitBlock.timestamp,
+      l1RequestNum: restoreBlock1Data.commitBlock.l1RequestNum,
+      pendingRollupTxHash: restoreBlock1Data.commitBlock.pendingRollupTxHash,
+      commitment: restoreBlock1Data.commitBlock.commitment,
+      stateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
+      timestamp: restoreBlock1Data.commitBlock.timestamp,
     };
 
     storedBlocks.push(storedBlock);
-    // update state
-    committedBlockNum += newBlocks.length;
+    committedBlockNum += 1;
 
-    // verify blocks
+    // verify evacu blocks
     const committedBlocks: StoredBlockStruct[] = [];
     const committedBlock = storedBlocks[provedBlockNum];
     committedBlocks.push(committedBlock);
 
-    const proofs: ProofStruct[] = [];
-    const proof: ProofStruct = restoreData[0].callData;
-    proofs.push(proof);
+    const proof: ProofStruct = restoreBlock1Data.callData;
 
-    const verifyingBlocks: VerifyBlockStruct[] = [];
-    verifyingBlocks.push({
+    const verifyingBlock: VerifyBlockStruct = {
       storedBlock: committedBlock,
       proof: proof,
-    });
+    };
 
-    await diamondRollup.connect(operator).verifyEvacuBlocks(verifyingBlocks);
-    provedBlockNum += committedBlocks.length;
+    await diamondRollup.connect(operator).verifyEvacuBlocks([verifyingBlock]);
+    provedBlockNum += 1;
 
-    // execute blocks
-    // const evacuBlocks = storedBlocks.slice(executedBlockNum);
-    // await diamondRollup.connect(operator).executeEvacuBlocks(newBlocks);
+    const pendingRollupTxPubData = getPendingRollupTxPubData(restoreBlock1Data);
+    const executeBlock = getExecuteBlock(
+      storedBlocks[executedBlockNum],
+      pendingRollupTxPubData
+    );
+
+    // execute evacu blocks
+    await diamondRollup.connect(operator).executeEvacuBlocks([executeBlock]);
+    executedBlockNum += 1;
+
+    // generate new blocks
+    const restoreBlock2Data = restoreData[1];
+    const lastCommittedBlock2 = storedBlocks[committedBlockNum - 1];
+    const blockNumber2 = BigNumber.from(lastCommittedBlock2.blockNumber).add(1);
+    const commitBlock2: CommitBlockStruct = {
+      blockNumber: blockNumber2,
+      newStateRoot: restoreBlock2Data.commitBlock.newFlowInfo.stateRoot,
+      newTsRoot: restoreBlock2Data.commitBlock.newFlowInfo.tsRoot,
+      publicData: restoreBlock2Data.commitBlock.o_chunk,
+      chunkIdDeltas: restoreBlock2Data.commitBlock.chunkIdDeltas,
+      timestamp: restoreBlock2Data.commitBlock.timestamp,
+    };
+
+    // commit evacu blocks
+    await diamondRollup
+      .connect(operator)
+      .commitEvacuBlocks(lastCommittedBlock2, [commitBlock2]);
+    const storedBlock2 = {
+      blockNumber: blockNumber2,
+      l1RequestNum: restoreBlock2Data.commitBlock.l1RequestNum,
+      pendingRollupTxHash: restoreBlock2Data.commitBlock.pendingRollupTxHash,
+      commitment: restoreBlock2Data.commitBlock.commitment,
+      stateRoot: restoreBlock2Data.commitBlock.newFlowInfo.stateRoot,
+      timestamp: restoreBlock2Data.commitBlock.timestamp,
+    };
+
+    storedBlocks.push(storedBlock2);
+    committedBlockNum += 1;
+
+    // verify evacu blocks
+    const committedBlock2 = storedBlocks[provedBlockNum];
+    const proof2: ProofStruct = restoreBlock2Data.callData;
+    const verifyingBlock2: VerifyBlockStruct = {
+      storedBlock: committedBlock2,
+      proof: proof2,
+    };
+
+    await diamondRollup.connect(operator).verifyEvacuBlocks([verifyingBlock2]);
+    provedBlockNum += 1;
+
+    const pendingRollupTxPubData2 =
+      getPendingRollupTxPubData(restoreBlock2Data);
+    const executeBlock2 = getExecuteBlock(
+      storedBlocks[executedBlockNum],
+      pendingRollupTxPubData2
+    );
+
+    // execute evacu blocks
+    const execuateEvacuBlock2Tx = await diamondRollup
+      .connect(operator)
+      .executeEvacuBlocks([executeBlock2]);
+    executedBlockNum += 1;
+
+    // after state
+    const [
+      afterCommittedBlockNum,
+      afterVerifiedBlockNum,
+      afterExecutedBlockNum,
+    ] = await diamondRollup.getBlockNum();
+    const [
+      afterCommittedL1RequestNum,
+      afterExecutedL1RequestNum,
+      afterTotalL1RequestNum,
+    ] = await diamondRollup.getL1RequestNum();
+
+    // check event
+    await expect(execuateEvacuBlock2Tx).to.emit(
+      diamondRollup,
+      "EvacuModeDeactivation"
+    );
+
+    // check state
+    expect(await diamondRollup.isEvacuMode()).to.be.false;
+    expect(afterCommittedBlockNum - beforeCommittedBlockNum).to.equal(2);
+    expect(afterVerifiedBlockNum - beforeVerifiedBlockNum).to.equal(2);
+    expect(afterExecutedBlockNum - beforeExecutedBlockNum).to.equal(2);
+    expect(
+      afterCommittedL1RequestNum.sub(beforeCommittedL1RequestNum)
+    ).to.equal(4);
+    expect(afterExecutedL1RequestNum.sub(beforeExecutedL1RequestNum)).to.equal(
+      4
+    );
+    expect(afterTotalL1RequestNum).to.equal(beforeTotalL1RequestNum);
   });
 });

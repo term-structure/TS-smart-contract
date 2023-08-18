@@ -699,6 +699,14 @@ export function getPendingRollupTxPubData(testCase: TestDataItem) {
           2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * WITHDRAW_FEE_BYTES
         );
       pendingRollupTxPubdata.push(pubdata);
+    } else if (opType == Number(TsTxType.EVACUATION)) {
+      pubdata =
+        "0x" +
+        testCase.commitBlock.o_chunk.slice(
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * EVACUATION_BYTES
+        );
+      pendingRollupTxPubdata.push(pubdata);
     }
   }
 

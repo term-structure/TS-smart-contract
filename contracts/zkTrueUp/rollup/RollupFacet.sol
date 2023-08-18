@@ -673,11 +673,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param pendingBlocks The pending blocks
     function _executeBlocks(RollupStorage.Layout storage rsl, ExecuteBlock[] memory pendingBlocks) internal {
         uint32 executedBlockNum = rsl.getExecutedBlockNum();
-        if (executedBlockNum + pendingBlocks.length > rsl.getVerifiedBlockNum())
-            revert ExecutedBlockNumExceedProvedNum(pendingBlocks.length);
+        uint256 pendingBlocksLength = pendingBlocks.length;
+        if (executedBlockNum + pendingBlocksLength > rsl.getVerifiedBlockNum())
+            revert ExecutedBlockNumExceedProvedNum(pendingBlocksLength);
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
-        for (uint32 i; i < pendingBlocks.length; ++i) {
+        for (uint32 i; i < pendingBlocksLength; ++i) {
             ExecuteBlock memory pendingBlock = pendingBlocks[i];
             if (
                 keccak256(abi.encode(pendingBlock.storedBlock)) !=
