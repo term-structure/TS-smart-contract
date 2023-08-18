@@ -360,6 +360,25 @@ describe("Evacuate", function () {
     expect(await diamondRollup.isEvacuted(account1Addr, token1Id)).to.be.true;
     expect(await diamondRollup.isEvacuted(account2Addr, token2Id)).to.be.true;
     expect(await diamondRollup.isEvacuted(account3Addr, token3Id)).to.be.true;
+    // check evacuation request in L1 request queue
+    expect(
+      await diamondRollup.isEvacuationInL1RequestQueue(
+        evacuation1,
+        beforeTotalL1RequestNum
+      )
+    ).to.be.true;
+    expect(
+      await diamondRollup.isEvacuationInL1RequestQueue(
+        evacuation2,
+        beforeTotalL1RequestNum.add(1)
+      )
+    ).to.be.true;
+    expect(
+      await diamondRollup.isEvacuationInL1RequestQueue(
+        evacuation3,
+        beforeTotalL1RequestNum.add(2)
+      )
+    ).to.be.true;
   });
 
   it("Failed to evacuate, not in evacu mode", async function () {

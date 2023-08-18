@@ -208,6 +208,15 @@ interface IRollupFacet {
         uint64 requestId
     ) external view returns (bool isExisted);
 
+    /// @notice Check whether the evacuation request is in the L1 request queue
+    /// @param evacuation The evacuation request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isEvacuationInL1RequestQueue(
+        Operations.Evacuation memory evacuation,
+        uint64 requestId
+    ) external view returns (bool isExisted);
+
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id

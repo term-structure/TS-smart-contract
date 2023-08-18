@@ -327,6 +327,10 @@ describe("Restore protocol", function () {
     await diamondRollup.connect(operator).executeEvacuBlocks([executeBlock]);
     executedBlockNum += 1;
 
+    // check state
+    // have not executed all evacuation request so the protocol is still in evacu mode
+    expect(await diamondRollup.isEvacuMode()).to.be.true;
+
     // generate new blocks
     const restoreBlock2Data = restoreData[1];
     const lastCommittedBlock2 = storedBlocks[committedBlockNum - 1];

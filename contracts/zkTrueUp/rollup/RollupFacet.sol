@@ -337,6 +337,19 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc IRollupFacet
      */
+    function isEvacuationInL1RequestQueue(
+        Operations.Evacuation memory evacuation,
+        uint64 requestId
+    ) external view returns (bool) {
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
+        Request memory request = rsl.getL1Request(requestId);
+        return request.isEvacuationInL1RequestQueue(evacuation);
+    }
+
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function getL1Request(uint64 requestId) external view returns (Request memory) {
         return RollupStorage.layout().getL1Request(requestId);
     }
