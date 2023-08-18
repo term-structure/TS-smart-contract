@@ -652,10 +652,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param verifyingBlocks The verifying blocks
     function _verifyBlocks(RollupStorage.Layout storage rsl, VerifyBlock[] memory verifyingBlocks) internal {
         uint32 verifiedBlockNum = rsl.getVerifiedBlockNum();
-        if (verifiedBlockNum + verifyingBlocks.length > rsl.getCommittedBlockNum())
-            revert VerifiedBlockNumExceedCommittedNum(verifyingBlocks.length);
+        uint256 verifyingBlocksLength = verifyingBlocks.length;
+        if (verifiedBlockNum + verifyingBlocksLength > rsl.getCommittedBlockNum())
+            revert VerifiedBlockNumExceedCommittedNum(verifyingBlocksLength);
 
-        for (uint256 i; i < verifyingBlocks.length; ++i) {
+        for (uint256 i; i < verifyingBlocksLength; ++i) {
             ++verifiedBlockNum;
             VerifyBlock memory verifyingBlock = verifyingBlocks[i];
             if (rsl.getStoredBlockHash(verifiedBlockNum) != keccak256(abi.encode(verifyingBlock.storedBlock)))
