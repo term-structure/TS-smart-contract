@@ -243,6 +243,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
+        _requireConsumedAllNonExecutedReq(rsl);
         _commitBlocks(rsl, lastCommittedBlock, evacuBlocks, true);
     }
 
@@ -253,6 +254,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
+        _requireConsumedAllNonExecutedReq(rsl);
         _verifyBlocks(rsl, evacuBlocks);
     }
 
@@ -264,6 +266,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
+        _requireConsumedAllNonExecutedReq(rsl);
         _executeBlocks(rsl, evacuBlocks);
 
         /// If executed L1 requests number == total L1 requests number
