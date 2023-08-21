@@ -10,22 +10,12 @@ import {Operations} from "../libraries/Operations.sol";
  * @author Term Structure Labs
  */
 interface IRollupFacet {
-    /// @notice Error for invalid last committed block
-    error InvalidLastCommittedBlock(StoredBlock lastCommittedBlock);
-    /// @notice Error for invalid last executed block
-    error InvalidLastExecutedBlock(StoredBlock lastExecutedBlock);
     /// @notice Error for committed request number exceed total request number
     error CommittedRequestNumExceedTotalNum(uint64 committedL1RequestNum);
-    /// @notice Error for invalid committed block
-    error InvalidCommittedBlock(StoredBlock committedBlocks);
     /// @notice Error for verified block number exceed committed block number
     error VerifiedBlockNumExceedCommittedNum(uint256 verifyingBlockNum);
     /// @notice Error for executed block number exceed proved block number
     error ExecutedBlockNumExceedProvedNum(uint256 pendingBlockNum);
-    /// @notice Error for new block timestamp is less than previous block timestamp
-    error TimestampLtPrevious(uint256 newBlockTimestamp, uint256 previousBlockTimestamp);
-    /// @notice Error for invalid block number
-    error InvalidBlockNum(uint32 newBlockNum);
     /// @notice Error for request is not existed
     error RequestIsNotExisted(Request request);
     /// @notice Error for invalid invalid public data length
@@ -44,8 +34,6 @@ interface IRollupFacet {
     error CommitmentInconsistant(uint256 proofCommitment, uint256 committedBlockcommitment);
     /// @notice Error for invalid proof
     error InvalidProof(Proof proof);
-    /// @notice Error for executed block
-    error InvalidExecutedBlock(ExecuteBlock executeBlock);
     /// @notice Error for invalid executed block number
     error InvalidExecutedBlockNum(uint32 executedBlockNum);
     /// @notice Error for redeem with invalid tsb token address
@@ -55,7 +43,7 @@ interface IRollupFacet {
     /// @notice Error for the specified accountId and tokenId is already evacuated
     error Evacuated(uint32 accountId, uint16 tokenId);
     /// @notice Error for activate evacuation mode, but the timestamp is not expired
-    error TimeStampIsNotExpired(uint256 curtimestamp, uint256 expirationTime);
+    error TimeStampIsNotExpired(uint256 curTimestamp, uint256 expirationTime);
     /// @notice Error for underlyingAsset token and base token is not matched
     error TokenIsNotMatched(IERC20 underlyingAsset, IERC20 baseToken);
     /// @notice Error for consumed request number exceed total request number

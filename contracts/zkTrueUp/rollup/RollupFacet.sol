@@ -99,8 +99,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         for (uint32 i; i < revertBlockNum; ++i) {
             StoredBlock memory revertedBlock = revertedBlocks[i];
-            if (rsl.getStoredBlockHash(committedBlockNum) != keccak256(abi.encode(revertedBlock)))
-                revert InvalidLastCommittedBlock(revertedBlock);
+            rsl.requireBlockHashIsEq(committedBlockNum, revertedBlock);
 
             delete rsl.storedBlockHashes[committedBlockNum];
             --committedBlockNum;
@@ -211,12 +210,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.requireEvacuMode();
 
         _requireConsumedAllNonExecutedReq(rsl);
-
-        if (rsl.getStoredBlockHash(rsl.getExecutedBlockNum()) != keccak256(abi.encode(lastExecutedBlock)))
-            revert InvalidLastExecutedBlock(lastExecutedBlock);
-        if (newBlock.timestamp < lastExecutedBlock.timestamp)
-            revert TimestampLtPrevious(newBlock.timestamp, lastExecutedBlock.timestamp);
-        if (newBlock.blockNumber != lastExecutedBlock.blockNumber + 1) revert InvalidBlockNum(newBlock.blockNumber);
+        rsl.requireBlockHashIsEq(rsl.getExecutedBlockNum(), lastExecutedBlock);
+        newBlock.blockNumber.requireValidBlockNum(lastExecutedBlock.blockNumber);
+        newBlock.timestamp.requireValidBlockTimestamp(lastExecutedBlock.timestamp);
 
         bytes memory publicData = newBlock.publicData;
         // evacuation public data length is 2 chunks
@@ -399,8 +395,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         CommitBlock[] memory newBlocks,
         bool isEvacuBlocks
     ) internal {
-        if (rsl.getStoredBlockHash(rsl.getCommittedBlockNum()) != keccak256(abi.encode(lastCommittedBlock)))
-            revert InvalidLastCommittedBlock(lastCommittedBlock);
+        rsl.requireBlockHashIsEq(rsl.getCommittedBlockNum(), lastCommittedBlock);
 
         uint64 committedL1RequestNum = rsl.getCommittedL1RequestNum();
         for (uint32 i; i < newBlocks.length; ++i) {
@@ -437,9 +432,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         uint64 committedL1RequestNum,
         bool isEvacuBlock
     ) internal view returns (StoredBlock memory) {
-        if (newBlock.timestamp < previousBlock.timestamp)
-            revert TimestampLtPrevious(newBlock.timestamp, previousBlock.timestamp);
-        if (newBlock.blockNumber != previousBlock.blockNumber + 1) revert InvalidBlockNum(newBlock.blockNumber);
+        newBlock.blockNumber.requireValidBlockNum(previousBlock.blockNumber);
+        newBlock.timestamp.requireValidBlockTimestamp(previousBlock.timestamp);
 
         /// Two assertions below are equivalent to:
         /// 1. assert(publicDataLength % Config.BYTES_OF_CHUNK == 0)
@@ -659,8 +653,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         for (uint256 i; i < verifyingBlocksLength; ++i) {
             ++verifiedBlockNum;
             VerifyBlock memory verifyingBlock = verifyingBlocks[i];
-            if (rsl.getStoredBlockHash(verifiedBlockNum) != keccak256(abi.encode(verifyingBlock.storedBlock)))
-                revert InvalidCommittedBlock(verifyingBlock.storedBlock);
+            rsl.requireBlockHashIsEq(verifiedBlockNum, verifyingBlock.storedBlock);
 
             _verifyOneBlock(verifyingBlock.storedBlock.commitment, verifyingBlock.proof, false);
             emit BlockVerification(verifyingBlock.storedBlock.blockNumber);
@@ -694,10 +687,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         for (uint32 i; i < pendingBlocksLength; ++i) {
             ExecuteBlock memory pendingBlock = pendingBlocks[i];
-            if (
-                keccak256(abi.encode(pendingBlock.storedBlock)) !=
-                rsl.getStoredBlockHash(pendingBlock.storedBlock.blockNumber)
-            ) revert InvalidExecutedBlock(pendingBlock);
+            rsl.requireBlockHashIsEq(pendingBlock.storedBlock.blockNumber, pendingBlock.storedBlock);
 
             ++executedBlockNum;
             if (pendingBlock.storedBlock.blockNumber != executedBlockNum)

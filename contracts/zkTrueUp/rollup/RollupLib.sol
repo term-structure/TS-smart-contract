@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {RollupStorage, Request} from "./RollupStorage.sol";
+import {RollupStorage, Request, StoredBlock} from "./RollupStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Operations} from "../libraries/Operations.sol";
 
@@ -20,6 +20,12 @@ library RollupLib {
     error NotEvacuMode();
     /// @notice Error for operation type is not matched
     error OpTypeIsNotMatched(Operations.OpType requestOpType, Operations.OpType expectedOpType);
+    /// @notice Error for block hash is not equal
+    error BlockHashIsNotEq(uint32 blockNum, StoredBlock storedBlock);
+    /// @notice Error for invalid block number
+    error InvalidBlockNum(uint32 newBlockNum, uint32 lastBlockNum);
+    /// @notice Error for block timestamp is not valid
+    error InvalidBlockTimestamp(uint256 newBlockTimestamp, uint256 lastBlockTimestamp);
 
     /// @notice Emit when there is a new priority request added
     /// @dev The L1 request needs to be executed before the expiration block or the system will enter the evacuation mode
@@ -200,6 +206,19 @@ library RollupLib {
         return requestId >= curRequestNum;
     }
 
+    /// @notice Internal function to check whether the block hash is equal to the stored block hash
+    /// @param rsl The rollup storage
+    /// @param blockNum The block number
+    /// @param storedBlock The stored block will be checked
+    function requireBlockHashIsEq(
+        RollupStorage.Layout storage rsl,
+        uint32 blockNum,
+        StoredBlock memory storedBlock
+    ) internal view {
+        if (rsl.getStoredBlockHash(blockNum) != keccak256(abi.encode(storedBlock)))
+            revert BlockHashIsNotEq(blockNum, storedBlock);
+    }
+
     /// @notice Internal function to check whether the register request is in the L1 request queue
     /// @param request The L1 request
     /// @param register The register request
@@ -257,6 +276,20 @@ library RollupLib {
     /// @param expectedOpType The expected operation type
     function requireMatchedOpType(Operations.OpType opType, Operations.OpType expectedOpType) internal pure {
         if (opType != expectedOpType) revert OpTypeIsNotMatched(opType, expectedOpType);
+    }
+
+    /// @notice Internal function to check whether the new block number is valid
+    /// @param newBlockNum The new block number
+    /// @param lastBlockNum The last block number
+    function requireValidBlockNum(uint32 newBlockNum, uint32 lastBlockNum) internal pure {
+        if (newBlockNum != lastBlockNum + 1) revert InvalidBlockNum(newBlockNum, lastBlockNum);
+    }
+
+    /// @notice Internal function to check whether the new block timestamp is valid
+    /// @param newBlockTimestamp The new block timestamp
+    /// @param lastBlockTimestamp The last block timestamp
+    function requireValidBlockTimestamp(uint256 newBlockTimestamp, uint256 lastBlockTimestamp) internal pure {
+        if (newBlockTimestamp < lastBlockTimestamp) revert InvalidBlockTimestamp(newBlockTimestamp, lastBlockTimestamp);
     }
 
     /// @notice Internal function to calculate the pending balance key
