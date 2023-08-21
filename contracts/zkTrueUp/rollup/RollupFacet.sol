@@ -184,7 +184,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 Operations.Register memory registerReq = pubData.readRegisterPubData();
                 AccountStorage.Layout storage asl = AccountStorage.layout();
                 address registerAddr = asl.accountAddresses[registerReq.accountId];
-                asl.accountIds[registerAddr] = 0;
+                delete asl.accountIds[registerAddr];
                 // solhint-disable-next-line no-empty-blocks
             } else {
                 // do nothing, others L1 requests have no storage changes
@@ -210,6 +210,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.requireEvacuMode();
 
         _requireConsumedAllNonExecutedReq(rsl);
+
         rsl.requireBlockHashIsEq(rsl.getExecutedBlockNum(), lastExecutedBlock);
         newBlock.blockNumber.requireValidBlockNum(lastExecutedBlock.blockNumber);
         newBlock.timestamp.requireValidBlockTimestamp(lastExecutedBlock.timestamp);

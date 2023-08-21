@@ -207,15 +207,15 @@ library RollupLib {
     }
 
     /// @notice Internal function to check whether the block hash is equal to the stored block hash
-    /// @param rsl The rollup storage
+    /// @param s The rollup storage
     /// @param blockNum The block number
     /// @param storedBlock The stored block will be checked
     function requireBlockHashIsEq(
-        RollupStorage.Layout storage rsl,
+        RollupStorage.Layout storage s,
         uint32 blockNum,
         StoredBlock memory storedBlock
     ) internal view {
-        if (rsl.getStoredBlockHash(blockNum) != keccak256(abi.encode(storedBlock)))
+        if (s.getStoredBlockHash(blockNum) != keccak256(abi.encode(storedBlock)))
             revert BlockHashIsNotEq(blockNum, storedBlock);
     }
 

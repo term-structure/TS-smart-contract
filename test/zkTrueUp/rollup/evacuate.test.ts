@@ -426,7 +426,7 @@ describe("Evacuate", function () {
 
     await expect(
       diamondRollup.evacuate(invalidLastExecutedBlock, evacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "InvalidBlockNum");
+    ).to.be.revertedWithCustomError(diamondRollup, "BlockHashIsNotEq");
   });
 
   it("Failed to evacuate, invalid block timestamp", async function () {
