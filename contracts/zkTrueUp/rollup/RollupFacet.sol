@@ -219,11 +219,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         // evacuation public data length is 2 chunks
         if (publicData.length != Config.BYTES_OF_TWO_CHUNKS) revert InvalidPubDataLength(publicData.length);
 
-        //TODO: add comment
-        bytes memory commitmentOffset = new bytes(1);
-        commitmentOffset[0] = 0x80; // 0x80 = 0b10000000, the first bit (critical chunk flag) is 1
-
-        bytes32 commitment = _createBlockCommitment(lastExecutedBlock, newBlock, commitmentOffset);
+        bytes32 commitment = _createBlockCommitment(lastExecutedBlock, newBlock, Config.EVACUATION_COMMITMENT_OFFSET);
 
         _verifyOneBlock(commitment, proof, true);
 

@@ -70,6 +70,10 @@ library Config {
     /// @notice The chunk size of a evacuation request
     uint256 internal constant EVACUATION_CHUNK_SIZE = 2;
 
+    /// @notice The evacuation commitment offset
+    /// @dev 0x80 = 0b10000000 in binary, the first bit (critical chunk flag) is 1
+    bytes internal constant EVACUATION_COMMITMENT_OFFSET = hex"80";
+
     /// @notice The field modulus of bn254
     uint256 internal constant SCALAR_FIELD_SIZE =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
