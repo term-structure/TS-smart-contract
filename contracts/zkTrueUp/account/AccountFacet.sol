@@ -41,8 +41,6 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         tsl.requireBaseToken(token);
 
-        if (!BabyJubJub.isOnCurve(Point({x: tsPubKeyX, y: tsPubKeyY}))) revert InvalidTsPublicKey(tsPubKeyX, tsPubKeyY);
-
         uint32 accountId = _register(rsl, msg.sender, tsPubKeyX, tsPubKeyY);
         _deposit(rsl, tsl, msg.sender, msg.sender, accountId, token, amount);
     }
@@ -136,6 +134,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         uint256 tsPubKeyX,
         uint256 tsPubKeyY
     ) internal returns (uint32) {
+        if (!BabyJubJub.isOnCurve(Point({x: tsPubKeyX, y: tsPubKeyY}))) revert InvalidTsPublicKey(tsPubKeyX, tsPubKeyY);
+
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getAccountNum();
         if (accountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT) revert AccountNumExceedLimit(accountId);
