@@ -16,14 +16,10 @@ interface IRollupFacet {
     error VerifiedBlockNumExceedCommittedNum(uint256 verifyingBlockNum);
     /// @notice Error for executed block number exceed proved block number
     error ExecutedBlockNumExceedProvedNum(uint256 pendingBlockNum);
-    /// @notice Error for request is not existed
-    error RequestIsNotExisted(Request request);
     /// @notice Error for invalid invalid public data length
     error InvalidPubDataLength(uint256 pubDataLength);
     /// @notice Error for offset is greater than public data length
     error OffsetGtPubDataLength(uint256 offset);
-    /// @notice Error for invalid offset
-    error InvalidOffset(uint256 offset);
     /// @notice Error for offset is already set
     error OffsetIsSet(uint256 chunkId);
     /// @notice Error for maturity time is not matched
