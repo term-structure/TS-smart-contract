@@ -24,8 +24,10 @@ library RollupLib {
     error BlockHashIsNotEq(uint32 blockNum, StoredBlock storedBlock);
     /// @notice Error for invalid block number
     error InvalidBlockNum(uint32 newBlockNum, uint32 lastBlockNum);
-    /// @notice Error for block timestamp is not valid
-    error InvalidBlockTimestamp(uint256 newBlockTimestamp, uint256 lastBlockTimestamp);
+    /// @notice Error for new block timestamp is less than last block timestamp
+    error TimestampLtPreviousBlock(uint256 newBlockTimestamp, uint256 lastBlockTimestamp);
+    /// @notice Error for block timestamp is not in the valid range
+    error InvalidBlockTimestamp(uint256 l2BlockTimestamp, uint256 l1BlockTimestamp);
 
     /// @notice Emit when there is a new priority request added
     /// @dev The L1 request needs to be executed before the expiration block or the system will enter the evacuation mode
@@ -223,13 +225,15 @@ library RollupLib {
     /// @param newBlockTimestamp The new block timestamp
     /// @param lastBlockTimestamp The last block timestamp
     function requireValidBlockTimestamp(uint256 newBlockTimestamp, uint256 lastBlockTimestamp) internal view {
+        if (newBlockTimestamp < lastBlockTimestamp)
+            revert TimestampLtPreviousBlock(newBlockTimestamp, lastBlockTimestamp);
         if (
-            newBlockTimestamp < lastBlockTimestamp ||
             // solhint-disable-next-line not-rely-on-time
             newBlockTimestamp < block.timestamp - Config.COMMIT_BLOCK_TIMESTAMP_MAX_TOLERANCE ||
             // solhint-disable-next-line not-rely-on-time
             newBlockTimestamp > block.timestamp + Config.COMMIT_BLOCK_TIMESTAMP_MAX_DEVIATION
-        ) revert InvalidBlockTimestamp(newBlockTimestamp, lastBlockTimestamp);
+            // solhint-disable-next-line not-rely-on-time
+        ) revert InvalidBlockTimestamp(newBlockTimestamp, block.timestamp);
     }
 
     /// @notice Internal function to check whether the register request is in the L1 request queue
