@@ -231,8 +231,11 @@ describe("Ts Bond", () => {
         await weth.connect(operator).transfer(zkTrueUp.address, amount)
       ).wait();
       // withdraw tsb token
+      const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await (
-        await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, amount)
+        await diamondAccMock
+          .connect(user1)
+          .withdraw(tsbTokenAddr, amount, user1Id)
       ).wait(); //! ignore _updateWithdrawalRecord in AccountMock
     });
     it("Success to get balanceOf", async () => {

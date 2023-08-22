@@ -58,6 +58,8 @@ library Operations {
         uint32 accountId;
         uint16 tokenId;
         uint128 amount;
+        uint16 feeTokenId;
+        uint128 feeAmt;
     }
 
     struct ForceWithdraw {

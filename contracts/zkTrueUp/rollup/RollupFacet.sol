@@ -97,8 +97,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         for (uint32 i; i < revertBlockNum; ++i) {
             StoredBlock memory revertedBlock = revertedBlocks[i];
-            if (rsl.getStoredBlockHash(committedBlockNum) != keccak256(abi.encode(revertedBlock)))
-                revert InvalidLastCommittedBlock(revertedBlock);
+            rsl.requireBlockHashIsEq(committedBlockNum, revertedBlock);
 
             delete rsl.storedBlockHashes[committedBlockNum];
             --committedBlockNum;
@@ -125,7 +124,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.requireActive();
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
-        uint32 expirationTime = rsl.getL1Request(executedL1RequestNum).expirationTime;
+        uint64 lastExecutedL1RequestId = executedL1RequestNum - 1;
+        uint32 expirationTime = rsl.getL1Request(lastExecutedL1RequestId).expirationTime;
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
             /// Roll back state
@@ -152,11 +152,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         ///  the last L1 request cannot be evacuation which means all L1 requests have been consumed and start to evacuate
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
-        if (rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION)
+        uint64 lastL1RequestId = totalL1RequestNum - 1;
+        if (rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION)
             revert LastL1RequestIsEvacuation(totalL1RequestNum);
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
-        if (executedL1RequestNum + consumedTxPubData.length > rsl.getTotalL1RequestNum())
+        if (executedL1RequestNum + consumedTxPubData.length > totalL1RequestNum)
             revert ConsumedRequestNumExceedTotalNum(consumedTxPubData.length);
 
         bytes memory pubData;
@@ -181,14 +182,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 Operations.Register memory registerReq = pubData.readRegisterPubData();
                 AccountStorage.Layout storage asl = AccountStorage.layout();
                 address registerAddr = asl.accountAddresses[registerReq.accountId];
-                asl.accountIds[registerAddr] = 0;
-                // asl.accountAddresses[registerReq.accountId] = address(0);
-                // asl.accountNum -= 1;
+                delete asl.accountIds[registerAddr];
                 // solhint-disable-next-line no-empty-blocks
             } else {
                 // do nothing, others L1 requests have no storage changes
             }
             ++executedL1RequestNum;
+            emit L1RequestConsumed(executedL1RequestNum, opType, pubData);
         }
         rsl.committedL1RequestNum = executedL1RequestNum;
         rsl.executedL1RequestNum = executedL1RequestNum;
@@ -209,20 +209,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         _requireConsumedAllNonExecutedReq(rsl);
 
-        if (rsl.getStoredBlockHash(rsl.getExecutedBlockNum()) != keccak256(abi.encode(lastExecutedBlock)))
-            revert InvalidLastExecutedBlock(lastExecutedBlock);
-        if (newBlock.timestamp < lastExecutedBlock.timestamp)
-            revert TimestampLtPrevious(newBlock.timestamp, lastExecutedBlock.timestamp);
-        if (newBlock.blockNumber != lastExecutedBlock.blockNumber + 1) revert InvalidBlockNum(newBlock.blockNumber);
+        rsl.requireBlockHashIsEq(rsl.getExecutedBlockNum(), lastExecutedBlock);
+        newBlock.blockNumber.requireValidBlockNum(lastExecutedBlock.blockNumber);
+        newBlock.timestamp.requireValidBlockTimestamp(lastExecutedBlock.timestamp);
 
         bytes memory publicData = newBlock.publicData;
         // evacuation public data length is 2 chunks
         if (publicData.length != Config.BYTES_OF_TWO_CHUNKS) revert InvalidPubDataLength(publicData.length);
 
-        bytes memory commitmentOffset = new bytes(1);
-        commitmentOffset[0] = 0x80; // 0x80 = 0b10000000, the first bit (critical chunk flag) is 1
-
-        bytes32 commitment = _createBlockCommitment(lastExecutedBlock, newBlock, commitmentOffset);
+        bytes32 commitment = _createBlockCommitment(lastExecutedBlock, newBlock, Config.EVACUATION_COMMITMENT_OFFSET);
 
         _verifyOneBlock(commitment, proof, true);
 
@@ -242,6 +237,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
+        _requireConsumedAllNonExecutedReq(rsl);
         _commitBlocks(rsl, lastCommittedBlock, evacuBlocks, true);
     }
 
@@ -252,6 +248,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
+        _requireConsumedAllNonExecutedReq(rsl);
         _verifyBlocks(rsl, evacuBlocks);
     }
 
@@ -263,6 +260,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
+        _requireConsumedAllNonExecutedReq(rsl);
         _executeBlocks(rsl, evacuBlocks);
 
         /// If executed L1 requests number == total L1 requests number
@@ -333,6 +331,19 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc IRollupFacet
      */
+    function isEvacuationInL1RequestQueue(
+        Operations.Evacuation memory evacuation,
+        uint64 requestId
+    ) external view returns (bool) {
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
+        Request memory request = rsl.getL1Request(requestId);
+        return request.isEvacuationInL1RequestQueue(evacuation);
+    }
+
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function getL1Request(uint64 requestId) external view returns (Request memory) {
         return RollupStorage.layout().getL1Request(requestId);
     }
@@ -382,8 +393,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         CommitBlock[] memory newBlocks,
         bool isEvacuBlocks
     ) internal {
-        if (rsl.getStoredBlockHash(rsl.getCommittedBlockNum()) != keccak256(abi.encode(lastCommittedBlock)))
-            revert InvalidLastCommittedBlock(lastCommittedBlock);
+        rsl.requireBlockHashIsEq(rsl.getCommittedBlockNum(), lastCommittedBlock);
 
         uint64 committedL1RequestNum = rsl.getCommittedL1RequestNum();
         for (uint32 i; i < newBlocks.length; ++i) {
@@ -420,9 +430,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         uint64 committedL1RequestNum,
         bool isEvacuBlock
     ) internal view returns (StoredBlock memory) {
-        if (newBlock.timestamp < previousBlock.timestamp)
-            revert TimestampLtPrevious(newBlock.timestamp, previousBlock.timestamp);
-        if (newBlock.blockNumber != previousBlock.blockNumber + 1) revert InvalidBlockNum(newBlock.blockNumber);
+        newBlock.blockNumber.requireValidBlockNum(previousBlock.blockNumber);
+        newBlock.timestamp.requireValidBlockTimestamp(previousBlock.timestamp);
 
         /// Two assertions below are equivalent to:
         /// 1. assert(publicDataLength % Config.BYTES_OF_CHUNK == 0)
@@ -433,7 +442,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         if (publicDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(publicDataLength);
 
         uint256 chunkIdDeltaLength = newBlock.chunkIdDeltas.length;
-        if (isEvacuBlock) _requireValidEvacuBlockPubData(chunkIdDeltaLength, newBlock.publicData);
+        if (isEvacuBlock) {
+            _requireValidEvacuBlockChunkIdDelta(newBlock.chunkIdDeltas);
+            _requireValidEvacuBlockPubData(chunkIdDeltaLength, newBlock.publicData);
+        }
 
         /// The commitment offset array is used to store the commitment offset for each chunk
         bytes memory commitmentOffset = new bytes(publicDataLength / Config.BITS_OF_CHUNK);
@@ -446,9 +458,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             chunkId += delta;
             uint256 offset = chunkId * Config.BYTES_OF_CHUNK;
             if (offset >= publicDataLength) revert OffsetGtPubDataLength(offset);
-
-            //TODO: move out of loop
-            if (isEvacuBlock) _requireValidEvacuBlockChunkIdDelta(delta, i);
 
             (requestId, processableRollupTxHash) = _processOneRequest(
                 rsl,
@@ -472,6 +481,18 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 stateRoot: newBlock.newStateRoot,
                 timestamp: newBlock.timestamp
             });
+    }
+
+    /// @notice Internal function to check whether the chunk id delta is valid when commit evacuation block
+    /// @dev The evacuation block only includes the evacuation request or noop,
+    ///      so the first chunk id delta should be 0 and the remaining chunk id delta should be evacuation chunk size
+    /// @param chunkIdDeltas The chunk id delta array
+    function _requireValidEvacuBlockChunkIdDelta(uint16[] memory chunkIdDeltas) internal pure {
+        uint256 chunkIdDeltaLength = chunkIdDeltas.length;
+        if (chunkIdDeltaLength != 0 && chunkIdDeltas[0] != 0) revert InvalidChunkIdDelta(chunkIdDeltas);
+        for (uint256 i = 1; i < chunkIdDeltaLength; ++i) {
+            if (chunkIdDeltas[i] != Config.EVACUATION_CHUNK_SIZE) revert InvalidChunkIdDelta(chunkIdDeltas);
+        }
     }
 
     /// @notice Internal function to check whether the evacuation block pubdata is valid
@@ -514,22 +535,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _requireConsumedAllNonExecutedReq(RollupStorage.Layout storage rsl) internal view {
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
+        //TODO: refactor
+        uint64 lastL1RequestId = totalL1RequestNum - 1;
         /// the last executed L1 req == the total L1 req (end of consume),
         /// the last L1 req is evacuation (end of consume and someone already evacuated)
         bool isExecutedL1RequestNumEqTotalL1RequestNum = executedL1RequestNum == totalL1RequestNum;
-        bool isLastL1RequestEvacuation = rsl.getL1Request(totalL1RequestNum).opType == Operations.OpType.EVACUATION;
+        bool isLastL1RequestEvacuation = rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION;
         if (!isExecutedL1RequestNumEqTotalL1RequestNum && !isLastL1RequestEvacuation)
             revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
-    }
-
-    /// @notice Internal function to check whether the chunk id delta is valid when commit evacuation block
-    /// @param delta The chunk id delta
-    /// @param idx The index of chunk id delta
-    function _requireValidEvacuBlockChunkIdDelta(uint16 delta, uint256 idx) internal pure {
-        bool firstChunkIdDeltaIsNotZero = idx == 0 && delta != 0;
-        bool nonFirstChunkIdDeltaIsNotEvacuationChunkSize = idx != 0 && delta != Config.EVACUATION_CHUNK_SIZE;
-        if (firstChunkIdDeltaIsNotZero || nonFirstChunkIdDeltaIsNotEvacuationChunkSize)
-            revert InvalidChunkIdDelta(delta);
     }
 
     /// @notice Internal function to update the commitment offset for the chunk
@@ -540,6 +553,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         bytes memory commitmentOffset,
         uint256 chunkId
     ) internal pure returns (bytes memory) {
+        //TODO: refactor to optimized and add comment
         uint256 chunkIndex = chunkId / Config.BITS_OF_BYTE;
         uint8 processingCommitmentOffset = uint8(commitmentOffset[chunkIndex]);
         uint8 bitwiseMask = uint8(1 << (Config.LAST_INDEX_OF_BYTE - (chunkId % Config.BITS_OF_BYTE)));
@@ -572,7 +586,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         // non L1 request
         if (opType == Operations.OpType.WITHDRAW) {
-            data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
+            data = pubData.sliceThreeChunksBytes(offset); // 3 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.AUCTION_END) {
             data = pubData.sliceFourChunksBytes(offset); // 4 chunks
@@ -596,7 +610,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             isL1Request = true;
             Request memory request = rsl.getL1Request(requestId);
             if (opType == Operations.OpType.REGISTER) {
-                data = pubData.sliceFourChunksBytes(offset); // 4 chunks
+                data = pubData.sliceThreeChunksBytes(offset); // 3 chunks
                 Operations.Register memory register = data.readRegisterPubData();
                 request.isRegisterInL1RequestQueue(register);
             } else if (opType == Operations.OpType.DEPOSIT) {
@@ -630,14 +644,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param verifyingBlocks The verifying blocks
     function _verifyBlocks(RollupStorage.Layout storage rsl, VerifyBlock[] memory verifyingBlocks) internal {
         uint32 verifiedBlockNum = rsl.getVerifiedBlockNum();
-        if (verifiedBlockNum + verifyingBlocks.length > rsl.getCommittedBlockNum())
-            revert VerifiedBlockNumExceedCommittedNum(verifiedBlockNum);
+        uint256 verifyingBlocksLength = verifyingBlocks.length;
+        if (verifiedBlockNum + verifyingBlocksLength > rsl.getCommittedBlockNum())
+            revert VerifiedBlockNumExceedCommittedNum(verifyingBlocksLength);
 
-        for (uint256 i; i < verifyingBlocks.length; ++i) {
+        for (uint256 i; i < verifyingBlocksLength; ++i) {
             ++verifiedBlockNum;
             VerifyBlock memory verifyingBlock = verifyingBlocks[i];
-            if (rsl.getStoredBlockHash(verifiedBlockNum) != keccak256(abi.encode(verifyingBlock.storedBlock)))
-                revert InvalidCommittedBlock(verifyingBlock.storedBlock);
+            rsl.requireBlockHashIsEq(verifiedBlockNum, verifyingBlock.storedBlock);
 
             _verifyOneBlock(verifyingBlock.storedBlock.commitment, verifyingBlock.proof, false);
             emit BlockVerification(verifyingBlock.storedBlock.blockNumber);
@@ -648,12 +662,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Internal function to verify one block
     /// @param commitment The commitment of the block
     /// @param proof The proof of the block
-    function _verifyOneBlock(bytes32 commitment, Proof memory proof, bool isEvacuationBlock) internal view {
+    /// @param isEvacuBlock Whether the block is evacu block
+    function _verifyOneBlock(bytes32 commitment, Proof memory proof, bool isEvacuBlock) internal view {
         if (proof.commitment[0] != uint256(commitment) % Config.SCALAR_FIELD_SIZE)
             revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
 
         AddressStorage.Layout storage asl = AddressStorage.layout();
-        IVerifier verifier = isEvacuationBlock ? asl.getEvacuVerifier() : asl.getVerifier();
+        IVerifier verifier = isEvacuBlock ? asl.getEvacuVerifier() : asl.getVerifier();
 
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
@@ -663,16 +678,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param pendingBlocks The pending blocks
     function _executeBlocks(RollupStorage.Layout storage rsl, ExecuteBlock[] memory pendingBlocks) internal {
         uint32 executedBlockNum = rsl.getExecutedBlockNum();
-        if (executedBlockNum + pendingBlocks.length > rsl.getVerifiedBlockNum())
-            revert ExecutedBlockNumExceedProvedNum(executedBlockNum);
+        uint256 pendingBlocksLength = pendingBlocks.length;
+        if (executedBlockNum + pendingBlocksLength > rsl.getVerifiedBlockNum())
+            revert ExecutedBlockNumExceedProvedNum(pendingBlocksLength);
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
-        for (uint32 i; i < pendingBlocks.length; ++i) {
+        for (uint32 i; i < pendingBlocksLength; ++i) {
             ExecuteBlock memory pendingBlock = pendingBlocks[i];
-            if (
-                keccak256(abi.encode(pendingBlock.storedBlock)) !=
-                rsl.getStoredBlockHash(pendingBlock.storedBlock.blockNumber)
-            ) revert InvalidExecutedBlock(pendingBlock);
+            rsl.requireBlockHashIsEq(pendingBlock.storedBlock.blockNumber, pendingBlock.storedBlock);
 
             ++executedBlockNum;
             if (pendingBlock.storedBlock.blockNumber != executedBlockNum)

@@ -113,14 +113,16 @@ export const BYTES_OF_CHUNK = 12;
 
 export const NOOP_BYTES = 1;
 
-export const REGISTER_BYTES = 4 * BYTES_OF_CHUNK;
+export const REGISTER_BYTES = 3 * BYTES_OF_CHUNK;
 
 export const DEPOSIT_BYTES = 2 * BYTES_OF_CHUNK;
 
-export const WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
+export const WITHDRAW_BYTES = 3 * BYTES_OF_CHUNK;
 
 export const FORCE_WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
 
 export const AUCTION_END_BYTES = 4 * BYTES_OF_CHUNK;
 
 export const WITHDRAW_FEE_BYTES = 2 * BYTES_OF_CHUNK;
+
+export const EVACUATION_BYTES = 2 * BYTES_OF_CHUNK;
