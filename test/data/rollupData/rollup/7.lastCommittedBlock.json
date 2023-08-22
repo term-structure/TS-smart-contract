@@ -4,7 +4,7 @@
   "tsRoot": "0x08e49a37655c01875c62c14baf1e84aa8d65d8e7b4e094d38a8de5fea28ab85f",
   "l1RequestNum": "0",
   "pendingRollupTxHash": "0x113282cac47e97765ab2de32824e6dfc858adab247b324be49a66c9ca7ae8d7d",
-  "commitment": "0xaa39d8dbb308264c91fe808a865041b55af726f1db72ef6e0811fc9ce43a8311",
-  "timestamp": "1690968844",
+  "commitment": "0x590bd3d349e7291193ee069eb584225d1ebfcf505ce4e92a47d808dc8abb7060",
+  "timestamp": "1690972000",
   "endTxId": "24"
 }

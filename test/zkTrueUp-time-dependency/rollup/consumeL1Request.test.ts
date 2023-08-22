@@ -28,10 +28,6 @@ import {
 } from "../../../typechain-types";
 import {
   actionDispatcher,
-  doCreateBondToken,
-  doDeposit,
-  doForceWithdraw,
-  doRegister,
   getCommitBlock,
   getExecuteBlock,
   getPendingRollupTxPubData,
@@ -140,6 +136,10 @@ describe("Consume L1 Request in EvacuMode", function () {
       const newBlocks: CommitBlockStruct[] = [];
       const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
       newBlocks.push(commitBlock);
+
+      // mock timestamp to test case timestamp
+      await time.increaseTo(Number(commitBlock.timestamp));
+
       // commit blocks
       await diamondRollup
         .connect(operator)

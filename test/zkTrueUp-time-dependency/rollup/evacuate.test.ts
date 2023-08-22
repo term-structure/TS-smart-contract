@@ -26,10 +26,6 @@ import {
 } from "../../../typechain-types";
 import {
   actionDispatcher,
-  doCreateBondToken,
-  doDeposit,
-  doForceWithdraw,
-  doRegister,
   getCommitBlock,
   getExecuteBlock,
   getPendingRollupTxPubData,
@@ -145,6 +141,10 @@ describe("Evacuate", function () {
       const newBlocks: CommitBlockStruct[] = [];
       const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
       newBlocks.push(commitBlock);
+
+      // mock timestamp to test case timestamp
+      time.increaseTo(Number(commitBlock.timestamp));
+
       // commit blocks
       await diamondRollup
         .connect(operator)
@@ -280,16 +280,19 @@ describe("Evacuate", function () {
     const beforeUser3WbtcBalance = await token3.balanceOf(account3Addr);
 
     // test 3 user evacuate
+    time.increaseTo(Number(evacuBlock1.timestamp));
     const evacuateTx1 = await diamondRollup.evacuate(
       lastExecutedBlock,
       evacuBlock1,
       proof1
     );
+    time.increaseTo(Number(evacuBlock1.timestamp));
     const evacuateTx2 = await diamondRollup.evacuate(
       lastExecutedBlock,
       evacuBlock2,
       proof2
     );
+    time.increaseTo(Number(evacuBlock1.timestamp));
     const evacuateTx3 = await diamondRollup.evacuate(
       lastExecutedBlock,
       evacuBlock3,
@@ -441,7 +444,7 @@ describe("Evacuate", function () {
 
     await expect(
       diamondRollup.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "InvalidBlockTimestamp");
+    ).to.be.revertedWithCustomError(diamondRollup, "TimestampLtPreviousBlock");
   });
 
   it("Failed to evacuate, invalid block number", async function () {
@@ -469,6 +472,7 @@ describe("Evacuate", function () {
     invalidEvacuBlock.publicData = "0x012345";
     const proof: ProofStruct = case01.proof as ProofStruct;
 
+    await time.increaseTo(Number(invalidEvacuBlock.timestamp));
     await expect(
       diamondRollup.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
     ).to.be.revertedWithCustomError(diamondRollup, "InvalidPubDataLength");
@@ -484,6 +488,7 @@ describe("Evacuate", function () {
     const invalidProof: ProofStruct = case01.proof as ProofStruct;
     invalidProof.commitment = [BigNumber.from("0x123456")];
 
+    await time.increaseTo(Number(evacuBlock.timestamp));
     await expect(
       diamondRollup.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
     ).to.be.revertedWithCustomError(diamondRollup, "CommitmentInconsistant");
@@ -499,6 +504,7 @@ describe("Evacuate", function () {
     const invalidProof: ProofStruct = case01.proof as ProofStruct;
     invalidProof.a[0] = BigNumber.from("0x123456");
 
+    await time.increaseTo(Number(evacuBlock.timestamp));
     await expect(
       diamondRollup.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
     ).to.be.revertedWithCustomError(diamondRollup, "InvalidProof");
@@ -512,6 +518,8 @@ describe("Evacuate", function () {
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const evacuBlock = case01.newBlock;
     const proof: ProofStruct = case01.proof as ProofStruct;
+
+    await time.increaseTo(Number(evacuBlock.timestamp));
     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock, proof);
     // evacuate again
     await expect(

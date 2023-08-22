@@ -8,12 +8,7 @@ import { deployAndInit } from "../../utils/deployAndInit";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import { useFacet } from "../../../utils/useFacet";
 import { FACET_NAMES } from "../../../utils/config";
-import {
-  EMPTY_HASH,
-  MIN_DEPOSIT_AMOUNT,
-  TsTokenId,
-  TsTxType,
-} from "term-structure-sdk";
+import { EMPTY_HASH, MIN_DEPOSIT_AMOUNT, TsTokenId } from "term-structure-sdk";
 import { register } from "../../utils/register";
 import {
   AccountFacet,
@@ -24,10 +19,6 @@ import {
 } from "../../../typechain-types";
 import {
   actionDispatcher,
-  doCreateBondToken,
-  doDeposit,
-  doForceWithdraw,
-  doRegister,
   getCommitBlock,
   getExecuteBlock,
   getPendingRollupTxPubData,
@@ -106,8 +97,8 @@ describe("Activating evacuation", function () {
     const EXECUTED_BLOCK_NUM = 3;
 
     // commit and verify 5 blocks and execute 3 blocks
-    for (let i = 0; i < COMMITTED_BLOCK_NUM; i++) {
-      const testCase = testData[i];
+    for (let k = 0; k < COMMITTED_BLOCK_NUM; k++) {
+      const testCase = testData[k];
       committedBlockNum += 1;
       provedBlockNum += 1;
       executedBlockNum += 1;
@@ -133,6 +124,10 @@ describe("Activating evacuation", function () {
       const newBlocks: CommitBlockStruct[] = [];
       const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
       newBlocks.push(commitBlock);
+
+      // mock timestamp to test case timestamp
+      await time.increaseTo(Number(commitBlock.timestamp));
+
       await diamondRollup
         .connect(operator)
         .commitBlocks(lastCommittedBlock, newBlocks);
@@ -153,7 +148,7 @@ describe("Activating evacuation", function () {
       });
       await diamondRollup.connect(operator).verifyBlocks(verifyingBlocks);
 
-      if (i < EXECUTED_BLOCK_NUM) {
+      if (k < EXECUTED_BLOCK_NUM) {
         // execute block
         const pendingBlocks: ExecuteBlockStruct[] = [];
         const pendingRollupTxPubData = getPendingRollupTxPubData(testCase);

@@ -31,9 +31,9 @@
   "chunkIdDeltas": [
     0
   ],
-  "commitment": "0x0a95c4de9a8834cc8f263851adb37bf64c0c10be881d99991eb8f03a62356dae",
-  "commitmentForCircuit": "0x0a95c4de9a8834cc8f263851adb37bf64c0c10be881d99991eb8f03a62356dae",
+  "commitment": "0x52f8273c6c364ef93a8378f8a15d1b96688bf9c4c983193f96fc217ff2f804e0",
+  "commitmentForCircuit": "0x2293d8c98b04aecf823333421fdbc3394058117c4fc9a8ae531a2bec02f804df",
   "l1RequestNum": "1",
   "pendingRollupTxHash": "0xd630df9922ab8678678c70d0827320d61f68decc0aa36b8b399130c7aa435c55",
-  "timestamp": "1691560700"
+  "timestamp": "1693290000"
 }

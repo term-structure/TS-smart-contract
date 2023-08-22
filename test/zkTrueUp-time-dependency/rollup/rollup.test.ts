@@ -1,9 +1,9 @@
 import { BigNumber, utils, Signer } from "ethers";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { resolve } from "path";
-import { EMPTY_HASH, TsTxType } from "term-structure-sdk";
+import { EMPTY_HASH } from "term-structure-sdk";
 import initStates from "../../data/rollupData/rollup/initStates.json";
 import { FACET_NAMES } from "../../../utils/config";
 import { useFacet } from "../../../utils/useFacet";
@@ -29,10 +29,6 @@ import {
 import {
   actionDispatcher,
   checkStates,
-  doCreateBondToken,
-  doDeposit,
-  doForceWithdraw,
-  doRegister,
   getCommitBlock,
   getExecuteBlock,
   getPendingRollupTxPubData,
@@ -150,6 +146,10 @@ describe("Rollup", function () {
       const [oriCommittedBlockNum, ,] = await diamondRollup.getBlockNum();
       const [oriCommittedL1RequestNum, ,] =
         await diamondRollup.getL1RequestNum();
+
+      // mock timestamp to test case timestamp
+      await time.increaseTo(Number(commitBlock.timestamp));
+
       // commit blocks
       await diamondRollup
         .connect(operator)

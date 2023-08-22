@@ -26,14 +26,8 @@ import {
 } from "../../../typechain-types";
 import {
   actionDispatcher,
-  doCreateBondToken,
-  doDeposit,
-  doForceWithdraw,
-  doRegister,
-  getCommitBlock,
   getExecuteBlock,
   getPendingRollupTxPubData,
-  getStoredBlock,
   initTestData,
 } from "../../utils/rollupHelper";
 import {
@@ -130,8 +124,6 @@ describe("Restore protocol", function () {
     baseTokenAddresses = res.baseTokenAddresses;
     const EXECUTE_BLOCK_NUMBER = 21;
 
-    const blocks = await diamondRollup.getBlockNum();
-
     for (let k = 0; k < EXECUTE_BLOCK_NUMBER; k++) {
       const testCase = testData[k];
       // before rollup
@@ -164,6 +156,10 @@ describe("Restore protocol", function () {
         timestamp: testCase.commitBlock.timestamp,
       };
       newBlocks.push(commitBlock);
+
+      // mock timestamp to test case timestamp
+      await time.increaseTo(Number(commitBlock.timestamp));
+
       // commit blocks
       await diamondRollup
         .connect(operator)
@@ -254,6 +250,7 @@ describe("Restore protocol", function () {
     const proof4: ProofStruct = case04.proof as ProofStruct;
 
     // evacuate
+    await time.increaseTo(Number(evacuBlock1.timestamp));
     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock1, proof1);
     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock2, proof2);
     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock3, proof3);
@@ -287,6 +284,7 @@ describe("Restore protocol", function () {
     };
 
     // commit evacu blocks
+    await time.increaseTo(Number(commitBlock.timestamp));
     await diamondRollup
       .connect(operator)
       .commitEvacuBlocks(lastCommittedBlock, [commitBlock]);
@@ -345,6 +343,7 @@ describe("Restore protocol", function () {
     };
 
     // commit evacu blocks
+    await time.increaseTo(Number(commitBlock2.timestamp));
     await diamondRollup
       .connect(operator)
       .commitEvacuBlocks(lastCommittedBlock2, [commitBlock2]);
