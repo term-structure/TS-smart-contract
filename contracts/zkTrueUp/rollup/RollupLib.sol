@@ -219,6 +219,19 @@ library RollupLib {
             revert BlockHashIsNotEq(blockNum, storedBlock);
     }
 
+    /// @notice Internal function to check whether the new block timestamp is valid
+    /// @param newBlockTimestamp The new block timestamp
+    /// @param lastBlockTimestamp The last block timestamp
+    function requireValidBlockTimestamp(uint256 newBlockTimestamp, uint256 lastBlockTimestamp) internal view {
+        if (
+            newBlockTimestamp < lastBlockTimestamp ||
+            // solhint-disable-next-line not-rely-on-time
+            newBlockTimestamp < block.timestamp - Config.COMMIT_BLOCK_TIMESTAMP_MAX_TOLERANCE ||
+            // solhint-disable-next-line not-rely-on-time
+            newBlockTimestamp > block.timestamp + Config.COMMIT_BLOCK_TIMESTAMP_MAX_DEVIATION
+        ) revert InvalidBlockTimestamp(newBlockTimestamp, lastBlockTimestamp);
+    }
+
     /// @notice Internal function to check whether the register request is in the L1 request queue
     /// @param request The L1 request
     /// @param register The register request
@@ -283,13 +296,6 @@ library RollupLib {
     /// @param lastBlockNum The last block number
     function requireValidBlockNum(uint32 newBlockNum, uint32 lastBlockNum) internal pure {
         if (newBlockNum != lastBlockNum + 1) revert InvalidBlockNum(newBlockNum, lastBlockNum);
-    }
-
-    /// @notice Internal function to check whether the new block timestamp is valid
-    /// @param newBlockTimestamp The new block timestamp
-    /// @param lastBlockTimestamp The last block timestamp
-    function requireValidBlockTimestamp(uint256 newBlockTimestamp, uint256 lastBlockTimestamp) internal pure {
-        if (newBlockTimestamp < lastBlockTimestamp) revert InvalidBlockTimestamp(newBlockTimestamp, lastBlockTimestamp);
     }
 
     /// @notice Internal function to calculate the pending balance key

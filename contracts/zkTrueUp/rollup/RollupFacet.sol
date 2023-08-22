@@ -28,8 +28,6 @@ import {Bytes} from "../libraries/Bytes.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title Term Structure Rollup Facet Contract
  * @author Term Structure Labs

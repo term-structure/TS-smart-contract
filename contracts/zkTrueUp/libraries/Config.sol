@@ -74,6 +74,14 @@ library Config {
     /// @dev 0x80 = 0b10000000 in binary, the first bit (critical chunk flag) is 1
     bytes internal constant EVACUATION_COMMITMENT_OFFSET = hex"80";
 
+    /// @notice The max tolerance between the L2 block timestamp and the L1 block timestamp
+    ///         i.e. the block created on L2 must be commit to L1 within 1 day
+    uint256 internal constant COMMIT_BLOCK_TIMESTAMP_MAX_TOLERANCE = 1 days;
+
+    /// @notice The max deviation between the L2 block timestamp and the L1 block timestamp
+    ///         i.e. the L2 block timestamp cannot greater than the L1 block timestamp + 15 minutes
+    uint256 internal constant COMMIT_BLOCK_TIMESTAMP_MAX_DEVIATION = 15 minutes;
+
     /// @notice The field modulus of bn254
     uint256 internal constant SCALAR_FIELD_SIZE =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
