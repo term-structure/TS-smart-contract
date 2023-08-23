@@ -79,10 +79,10 @@ interface IRollupFacet {
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
     event Evacuation(
-        address indexed accountAddr,
+        address accountAddr,
         uint32 indexed accountId,
         IERC20 token,
-        uint16 tokenId,
+        uint16 indexed tokenId,
         uint256 amount
     );
 

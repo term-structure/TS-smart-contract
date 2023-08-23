@@ -114,10 +114,6 @@ interface ILoanFacet {
     /// @param halfLiquidationThreshold The half liquidation threshold
     event SetHalfLiquidationThreshold(uint16 indexed halfLiquidationThreshold);
 
-    /// @notice Emitted when the flash loan premium is set
-    /// @param flashLoanPremium The flash loan premium
-    event SetFlashLoanPremium(uint16 indexed flashLoanPremium);
-
     /// @notice Emitted when the liquidation factor is set
     /// @param liquidationFactor The liquidation factor
     /// @param isStableCoinPair Whether the liquidation factor is for stablecoin pair
