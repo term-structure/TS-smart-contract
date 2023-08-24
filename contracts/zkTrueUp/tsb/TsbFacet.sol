@@ -82,7 +82,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         emit Redemption(msg.sender, tsbToken, underlyingAsset, amount, redeemAndDeposit);
 
         (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = tsl.getValidToken(underlyingAsset);
-        // 1:1 redeem to underlying asset
+        // convert amount by decimals to 1:1 redeem underlying asset
         uint128 underlyingAssetAmt = SafeCast.toUint128(amount.toL1Amt(underlyingAssetConfig.decimals));
 
         if (redeemAndDeposit) {

@@ -217,7 +217,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         // evacuation public data length is 2 chunks
         if (publicData.length != Config.BYTES_OF_TWO_CHUNKS) revert InvalidPubDataLength(publicData.length);
 
-        bytes32 commitment = _createBlockCommitment(lastExecutedBlock, newBlock, Config.EVACUATION_COMMITMENT_OFFSET);
+        bytes32 commitment = _calcBlockCommitment(lastExecutedBlock, newBlock, Config.EVACUATION_COMMITMENT_OFFSET);
 
         _verifyOneBlock(commitment, proof, true);
 
@@ -471,7 +471,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         }
 
         uint64 processedL1RequestNum = requestId - committedL1RequestNum;
-        bytes32 commitment = _createBlockCommitment(previousBlock, newBlock, commitmentOffset);
+        bytes32 commitment = _calcBlockCommitment(previousBlock, newBlock, commitmentOffset);
         return
             StoredBlock({
                 blockNumber: newBlock.blockNumber,
@@ -535,7 +535,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _requireConsumedAllNonExecutedReq(RollupStorage.Layout storage rsl) internal view {
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
-        //TODO: refactor
         uint64 lastL1RequestId = totalL1RequestNum - 1;
         /// the last executed L1 req == the total L1 req (end of consume),
         /// the last L1 req is evacuation (end of consume and someone already evacuated)
@@ -864,13 +863,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         emit Evacuation(receiver, accountId, token, tokenId, l1Amt);
     }
 
-    /// @notice Internal function create the commitment of the new block
+    /// @notice Internal function calculate the commitment of the new block
     /// @dev    newTsRoot is packed in commitment for data availablity and will be proved in the circuit
     /// @param previousBlock The previous block
     /// @param newBlock The new block to be committed
     /// @param commitmentOffset The offset of the commitment
     /// @return commitment The commitment of the new block
-    function _createBlockCommitment(
+    function _calcBlockCommitment(
         StoredBlock memory previousBlock,
         CommitBlock memory newBlock,
         bytes memory commitmentOffset
