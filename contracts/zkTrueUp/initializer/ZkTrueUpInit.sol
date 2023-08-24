@@ -50,9 +50,10 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
                 (address, address, address, address, address, address, address, address, address, bytes32, AssetConfig)
             );
 
-        // set roles
+        // check if already initialized to prevent re-initialize
         if (_hasRole(Config.ADMIN_ROLE, msg.sender)) revert AlreadyInitialized();
 
+        // set roles
         AccessControlInternal._setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
         AccessControlInternal._grantRole(Config.ADMIN_ROLE, adminAddr);
         AccessControlInternal._grantRole(Config.OPERATOR_ROLE, operatorAddr);
