@@ -552,13 +552,20 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         bytes memory commitmentOffset,
         uint256 chunkId
     ) internal pure returns (bytes memory) {
-        //TODO: refactor to optimized and add comment
-        uint256 chunkIndex = chunkId / Config.BITS_OF_BYTE;
-        uint8 processingCommitmentOffset = uint8(commitmentOffset[chunkIndex]);
+        // calc the chunk group index
+        uint256 chunkGroupIdx = chunkId / Config.BITS_OF_BYTE;
+
+        // get the processing commitment offset by chunk group index
+        uint8 processingCommitmentOffset = uint8(commitmentOffset[chunkGroupIdx]);
+
+        // calc the bitwise mask for target chunk id
+        // (chunkId % Config.BITS_OF_BYTE): which bit in the group
+        // LAST_INDEX_OF_BYTE - (chunkId % Config.BITS_OF_BYTE): big endian to little endian
         uint8 bitwiseMask = uint8(1 << (Config.LAST_INDEX_OF_BYTE - (chunkId % Config.BITS_OF_BYTE)));
         if (processingCommitmentOffset & bitwiseMask != 0) revert OffsetIsSet(chunkId);
 
-        commitmentOffset[chunkIndex] = bytes1(processingCommitmentOffset | bitwiseMask);
+        // set commitment offset to 1 for target chunk id
+        commitmentOffset[chunkGroupIdx] = bytes1(processingCommitmentOffset | bitwiseMask);
         return commitmentOffset;
     }
 
