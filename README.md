@@ -16,6 +16,8 @@ npm run build
 
 Run all the test cases:
 
+1. Create `.env` file based on `.env.example` and set `MAINNET_RPC_URL` for mainnet fork testing
+
 ```bash
 npm run test
 ```
@@ -30,20 +32,21 @@ npm run test
 npm run start
 ```
 
-2. Deploy Term Structure protocol on dev
+2. Deploy Term Structure protocol on local
+
+```bash
+npm run deploy:local
+```
+
+### Devnet/Testnet/Mainnet
+
+1. Create `.env` file based on `.env.example` and set all `devnet/testnet/mainnet config`
+
+2. Set network config in `hardhat.config.ts`
+3. Deploy to devnet/testnet/mainnet
 
 ```bash
 npm run deploy:devnet
-```
-
-### Testnet/Mainnet
-
-1. Create `.env` file based on `.env.example` and set all `testnet/mainnet config`
-
-2. Set network config in `hardhat.config.ts`
-3. Deploy to testnet/mainnet
-
-```bash
 npm run deploy:testnet
 npm run deploy:mainnet
 ```
