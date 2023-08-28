@@ -51,15 +51,15 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
             );
 
         // check if already initialized to prevent re-initialize
-        if (_hasRole(Config.ADMIN_ROLE, msg.sender)) revert AlreadyInitialized();
+        if (_getRoleAdmin(Config.ADMIN_ROLE) != bytes32(0)) revert AlreadyInitialized();
 
         // set roles
-        AccessControlInternal._setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
-        AccessControlInternal._grantRole(Config.ADMIN_ROLE, adminAddr);
-        AccessControlInternal._grantRole(Config.OPERATOR_ROLE, operatorAddr);
-        AccessControlInternal._grantRole(Config.COMMITTER_ROLE, operatorAddr);
-        AccessControlInternal._grantRole(Config.VERIFIER_ROLE, operatorAddr);
-        AccessControlInternal._grantRole(Config.EXECUTER_ROLE, operatorAddr);
+        _setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
+        _grantRole(Config.ADMIN_ROLE, adminAddr);
+        _grantRole(Config.OPERATOR_ROLE, operatorAddr);
+        _grantRole(Config.COMMITTER_ROLE, operatorAddr);
+        _grantRole(Config.VERIFIER_ROLE, operatorAddr);
+        _grantRole(Config.EXECUTER_ROLE, operatorAddr);
         transferOwnership(adminAddr);
 
         // init account facet
