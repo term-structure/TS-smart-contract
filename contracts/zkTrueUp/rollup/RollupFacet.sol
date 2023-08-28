@@ -112,8 +112,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
     /**
      * @inheritdoc IRollupFacet
-     * @dev The evacuation mode will be activated when the current block number
-     *      is greater than the expiration block number of the first pending L1 request
+     * @dev The evacuation mode will be activated when the current block timestamp
+     *      is greater than the expiration block timestamp of the last executed L1 request
      * @dev When the evacuation mode is activated, the block state will be rolled back to the last executed block
      *      and the request state will be rolled back to the last executed request
      * @dev The remaining non-executed L1 requests will be consumed by the consumeL1RequestInEvacuMode function
@@ -150,9 +150,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
-        ///  the last L1 request cannot be evacuation which means all L1 requests have been consumed and start to evacuate
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
         uint64 lastL1RequestId = totalL1RequestNum - 1;
+        ///  the last L1 request cannot be evacuation because it would means all L1 requests have been consumed and start to evacuate
         if (rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION)
             revert LastL1RequestIsEvacuation(totalL1RequestNum);
 
