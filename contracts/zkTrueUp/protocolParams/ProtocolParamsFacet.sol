@@ -6,7 +6,7 @@ import {AccessControlInternal} from "@solidstate/contracts/access/access_control
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {ProtocolParamsStorage, FundWeight, ProtocolFeeRecipient} from "./ProtocolParamsStorage.sol";
 import {IProtocolParamsFacet} from "./IProtocolParamsFacet.sol";
-import {TokenStorage} from "../token/TokenStorage.sol";
+import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {ProtocolParamsLib} from "./ProtocolParamsLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
@@ -34,7 +34,7 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
         uint256 amount
     ) external onlyRole(Config.ADMIN_ROLE) {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        uint16 tokenId = tsl.getValidTokenId(token);
+        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
 
         ProtocolParamsStorage.Layout storage ppsl = ProtocolParamsStorage.layout();
         address payable receiverAddr;
@@ -50,7 +50,8 @@ contract ProtocolParamsFacet is IProtocolParamsFacet, AccessControlInternal {
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.removePendingBalance(receiverAddr, tokenId, amount);
-        Utils.transfer(token, receiverAddr, amount);
+        Utils.tokenTransfer(token, receiverAddr, amount, assetConfig.isTsbToken);
+
         emit ProtocolFeeWithdrawn(receiverAddr, token, amount);
     }
 

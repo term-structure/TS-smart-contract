@@ -866,7 +866,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.addL1Request(receiver, Operations.OpType.EVACUATION, pubData);
 
         uint256 l1Amt = evacuation.amount.toL1Amt(assetConfig.decimals);
-        Utils.transfer(token, payable(receiver), l1Amt);
+        Utils.tokenTransfer(token, payable(receiver), l1Amt, assetConfig.isTsbToken);
+
         emit Evacuation(receiver, accountId, token, tokenId, l1Amt);
     }
 

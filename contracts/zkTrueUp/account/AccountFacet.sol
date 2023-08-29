@@ -76,9 +76,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         AccountLib.updateWithdrawalRecord(rsl, accountAddr, accountId, token, tokenId, amount);
 
-        assetConfig.isTsbToken
-            ? TsbLib.mintTsbToken(ITsbToken(address(token)), accountAddr, amount)
-            : Utils.transfer(token, payable(accountAddr), amount);
+        Utils.tokenTransfer(token, payable(accountAddr), amount, assetConfig.isTsbToken);
     }
 
     /**
@@ -167,10 +165,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     ) internal {
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
         TokenLib.validDepositAmt(amount, assetConfig.minDepositAmt);
-        assetConfig.isTsbToken
-            ? TsbLib.burnTsbToken(ITsbToken(address(token)), to, amount)
-            : Utils.transferFrom(token, depositor, amount, msg.value);
 
+        Utils.tokenTransferFrom(token, depositor, amount, msg.value, assetConfig.isTsbToken);
         AccountLib.addDepositReq(rsl, to, accountId, token, tokenId, assetConfig.decimals, amount);
     }
 }
