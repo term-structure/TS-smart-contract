@@ -28,8 +28,7 @@ contract AccountMock is AccountFacet {
         (uint16 tokenId, AssetConfig memory assetConfig) = TokenStorage.layout().getValidToken(token);
         // RollupLib.removePendingBalance(msg.sender, tokenId, amount); //! ignore for test
         emit Withdraw(msg.sender, accountId, assetConfig.token, tokenId, amount);
-        assetConfig.isTsbToken
-            ? TsbLib.mintTsbToken(ITsbToken(address(token)), msg.sender, amount)
-            : Utils.transfer(token, payable(msg.sender), amount);
+
+        Utils.tokenTransfer(token, payable(accountAddr), amount, assetConfig.isTsbToken);
     }
 }

@@ -8,6 +8,8 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {AddressLib} from "../address/AddressLib.sol";
+import {TsbLib} from "../tsb/TsbLib.sol";
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 
 /**
@@ -30,6 +32,29 @@ library Utils {
     error InvalidPrice(int256 price);
     /// @notice Error for transferFrom amount inconsistent when transferFrom non-standard ERC20
     error AmountInconsistent(uint256 amount, uint256 transferredAmt);
+
+    /// @notice Internal token transfer function to handle the case of Tsb Token or Base Token
+    ///         if the token is Tsb Token, then mint Tsb Token to receiver, otherwise transfer the token to receiver
+    /// @param token The token to be transferred
+    /// @param to The address of receiver
+    /// @param amount The amount of the token
+    /// @param isTsbToken The flag to indicate whether the token is Tsb Token
+    function tokenTransfer(IERC20 token, address payable to, uint256 amount, bool isTsbToken) internal {
+        isTsbToken ? TsbLib.mintTsbToken(ITsbToken(address(token)), to, amount) : transfer(token, to, amount);
+    }
+
+    /// @notice Internal token transferFrom function to handle the case of Tsb Token or Base Token
+    ///         if the token is Tsb Token, then burn Tsb Token from sender, otherwise transferFrom the token from sender
+    /// @param token The token to be transferred
+    /// @param from The address of sender
+    /// @param amount The amount of the token
+    /// @param msgValue The msg.value
+    /// @param isTsbToken The flag to indicate whether the token is Tsb Token
+    function tokenTransferFrom(IERC20 token, address from, uint256 amount, uint256 msgValue, bool isTsbToken) internal {
+        isTsbToken
+            ? TsbLib.burnTsbToken(ITsbToken(address(token)), from, amount)
+            : transferFrom(token, from, amount, msgValue);
+    }
 
     /// @notice Internal transfer function
     /// @dev Mutated transfer function to handle the case of ETH and ERC20
