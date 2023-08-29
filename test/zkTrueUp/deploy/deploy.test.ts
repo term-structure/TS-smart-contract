@@ -366,7 +366,10 @@ describe("Deploy", () => {
         initData,
         onlyCall
       )
-    ).to.be.revertedWithCustomError(ZkTrueUpInit, "AlreadyInitialized");
+    ).to.be.revertedWithCustomError(
+      ZkTrueUpInit,
+      "Initializable__AlreadyInitialized"
+    );
   });
 
   it("Success to deploy", async function () {

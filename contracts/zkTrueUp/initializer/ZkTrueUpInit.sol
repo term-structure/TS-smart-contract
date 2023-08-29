@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Initializable} from "@solidstate/contracts/security/initializable/Initializable.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {Ownable} from "@solidstate/contracts/access/ownable/Ownable.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
@@ -23,16 +24,13 @@ import {InitialConfig} from "../libraries/InitialConfig.sol";
  * @author Term Structure Labs
  * @notice This contract is used to initialize the Term Structure Protocol
  */
-contract ZkTrueUpInit is Ownable, AccessControlInternal {
-    // error for initialized again
-    error AlreadyInitialized();
-
+contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
     /**
      * @notice Initialize function for the Term Structure Protocol
      * @dev This function is called only once when the protocol is deployed
      * @param data The encoded data for the initializer
      */
-    function init(bytes calldata data) external {
+    function init(bytes calldata data) external initializer {
         (
             address wETHAddr,
             address poseidonUnit2Addr,
@@ -49,9 +47,6 @@ contract ZkTrueUpInit is Ownable, AccessControlInternal {
                 data,
                 (address, address, address, address, address, address, address, address, address, bytes32, AssetConfig)
             );
-
-        // check if already initialized to prevent re-initialize
-        if (_getRoleAdmin(Config.ADMIN_ROLE) != bytes32(0)) revert AlreadyInitialized();
 
         // set roles
         _setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
