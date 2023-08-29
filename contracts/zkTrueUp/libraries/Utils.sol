@@ -28,6 +28,8 @@ library Utils {
     error InvalidMsgValue(uint256 msgValue);
     /// @notice Error for get invalid price
     error InvalidPrice(int256 price);
+    /// @notice Error for transferFrom amount inconsistent when transferFrom non-standard ERC20
+    error AmountInconsistent(uint256 amount, uint256 transferredAmt);
 
     /// @notice Internal transfer function
     /// @dev Mutated transfer function to handle the case of ETH and ERC20
@@ -56,7 +58,11 @@ library Utils {
             AddressStorage.layout().getWETH().deposit{value: amount}();
         } else {
             if (msgValue != 0) revert InvalidMsgValue(msgValue);
+            uint256 balanceBefore = token.balanceOf(address(this));
             token.safeTransferFrom(sender, address(this), amount);
+            uint256 balanceAfter = token.balanceOf(address(this));
+            uint256 transferredAmt = balanceAfter - balanceBefore;
+            if (amount != transferredAmt) revert AmountInconsistent(amount, transferredAmt);
         }
     }
 
