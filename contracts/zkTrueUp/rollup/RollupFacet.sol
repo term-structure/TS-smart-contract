@@ -112,11 +112,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
     /**
      * @inheritdoc IRollupFacet
-     * @dev The evacuation mode will be activated when the current block timestamp
+     * @notice The evacuation mode will be activated when the current block timestamp
      *      is greater than the expiration block timestamp of the last executed L1 request
-     * @dev When the evacuation mode is activated, the block state will be rolled back to the last executed block
+     * @notice When the evacuation mode is activated, the block state will be rolled back to the last executed block
      *      and the request state will be rolled back to the last executed request
-     * @dev The remaining non-executed L1 requests will be consumed by the consumeL1RequestInEvacuMode function
+     * @notice The remaining non-executed L1 requests will be consumed by the consumeL1RequestInEvacuMode function
      *      with their public data, after consume all non-executed request, user can start to evacuate their funds
      */
     function activateEvacuation() external {
@@ -143,8 +143,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
     /**
      * @inheritdoc IRollupFacet
-     * @dev The function only can be called in evacuation mode
-     * @dev Consume the non-executed L1 requests with their public data
+     * @notice The function only can be called in evacuation mode
+     * @notice Consume the non-executed L1 requests with their public data
      */
     function consumeL1RequestInEvacuMode(bytes[] memory consumedTxPubData) external {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
@@ -196,8 +196,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
     /**
      * @inheritdoc IRollupFacet
-     * @dev The function only can be called in evacuation mode and after consume all non-executed L1 requests
-     * @dev The evacuate fuction will not commit a new state root to make all the users evacuate their funds from the same state
+     * @notice The function only can be called in evacuation mode and after consume all non-executed L1 requests
+     * @notice The newBlock is a pseudo block, it only for create the block commitment and not commit to the state
+     * @notice The evacuate fuction will not commit a new state root to make all the users evacuate their funds from the same state
      */
     function evacuate(
         StoredBlock memory lastExecutedBlock,

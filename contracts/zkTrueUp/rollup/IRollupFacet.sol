@@ -138,8 +138,8 @@ interface IRollupFacet {
 
     /// @notice Evacuate the funds of a specified user and token in the evacuMode
     /// @param lastExecutedBlock The last executed block
-    /// @param newBlock The new block to be committed with the evacuation operation
-    /// @param proof The proof of the new block
+    /// @param newBlock A pseudo block to create block commitment for verification but not to be commited
+    /// @param proof The proof of the newBlock
     function evacuate(StoredBlock memory lastExecutedBlock, CommitBlock memory newBlock, Proof memory proof) external;
 
     /// @notice Commit evacuation blocks
