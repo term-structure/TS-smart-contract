@@ -21,6 +21,7 @@ import {
   RollupFacet,
   TokenFacet,
   TsbFacet,
+  TsbToken,
   WETH9,
   ZkTrueUp,
 } from "../../../typechain-types";
@@ -46,7 +47,7 @@ const testDataPath = resolve("./test/data/rollupData/rollup");
 const testData = initTestData(testDataPath);
 import _case01 from "../../data/rollupData/evacuate/case01.json";
 import _case02 from "../../data/rollupData/evacuate/case02.json";
-import _case03 from "../../data/rollupData/evacuate/case03.json";
+import _case05 from "../../data/rollupData/evacuate/case05.json";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -90,13 +91,13 @@ describe("Evacuate", function () {
   let baseTokenAddresses: BaseTokenAddresses;
   let case01: typeof _case01;
   let case02: typeof _case02;
-  let case03: typeof _case03;
+  let case05: typeof _case05;
 
   beforeEach(async function () {
     const res = await loadFixture(fixture);
     case01 = JSON.parse(JSON.stringify(_case01));
     case02 = JSON.parse(JSON.stringify(_case02));
-    case03 = JSON.parse(JSON.stringify(_case03));
+    case05 = JSON.parse(JSON.stringify(_case05));
     storedBlocks = [];
     storedBlocks.push(genesisBlock);
     committedBlockNum = 1;
@@ -240,10 +241,10 @@ describe("Evacuate", function () {
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const evacuBlock1 = case01.newBlock;
     const evacuBlock2 = case02.newBlock;
-    const evacuBlock3 = case03.newBlock;
+    const evacuBlock3 = _case05.newBlock;
     const proof1: ProofStruct = case01.proof as ProofStruct;
     const proof2: ProofStruct = case02.proof as ProofStruct;
-    const proof3: ProofStruct = case03.proof as ProofStruct;
+    const proof3: ProofStruct = _case05.proof as ProofStruct;
     const evacuation1 = readEvacuationPubData(
       evacuBlock1.publicData.toString()
     );
@@ -272,12 +273,17 @@ describe("Evacuate", function () {
     const token2Addr = baseTokenAddresses[token2Id];
     const token2 = await ethers.getContractAt("IERC20", token2Addr);
     const beforeUser2WbtcBalance = await token2.balanceOf(account2Addr);
-    // user3 evacuate wbtc
+
+    // user3 evacuate tsb token
     const account3Addr = await diamondAcc.getAccountAddr(evacuation3.accountId);
-    const token3Id = Number(evacuation3.tokenId);
-    const token3Addr = baseTokenAddresses[token3Id];
-    const token3 = await ethers.getContractAt("IERC20", token3Addr);
-    const beforeUser3WbtcBalance = await token3.balanceOf(account3Addr);
+    const tsbTokenId = Number(evacuation3.tokenId);
+    const tsbTokenAddr = (await diamondToken.getAssetConfig(tsbTokenId)).token;
+    const tsbToken = (await ethers.getContractAt(
+      "TsbToken",
+      tsbTokenAddr
+    )) as TsbToken;
+    const beforeUser3TsbBalance = await tsbToken.balanceOf(account3Addr);
+    const beforeTsbTotalSupply = await tsbToken.totalSupply();
 
     // test 3 user evacuate
     time.increaseTo(Number(evacuBlock1.timestamp));
@@ -286,13 +292,13 @@ describe("Evacuate", function () {
       evacuBlock1,
       proof1
     );
-    time.increaseTo(Number(evacuBlock1.timestamp));
+    time.increaseTo(Number(evacuBlock2.timestamp));
     const evacuateTx2 = await diamondRollup.evacuate(
       lastExecutedBlock,
       evacuBlock2,
       proof2
     );
-    time.increaseTo(Number(evacuBlock1.timestamp));
+    time.increaseTo(Number(evacuBlock3.timestamp));
     const evacuateTx3 = await diamondRollup.evacuate(
       lastExecutedBlock,
       evacuBlock3,
@@ -301,7 +307,8 @@ describe("Evacuate", function () {
 
     const evacuation1Amt = toL1Amt(evacuation1.amount, TS_BASE_TOKEN.ETH);
     const evacuation2Amt = toL1Amt(evacuation2.amount, TS_BASE_TOKEN.WBTC);
-    const evacuation3Amt = toL1Amt(evacuation3.amount, TS_BASE_TOKEN.WBTC);
+    // tsb token's L1 and L2 decimals are same
+    const evacuation3Amt = evacuation3.amount;
     // check event
     await expect(evacuateTx1)
       .to.emit(diamondRollup, "Evacuation")
@@ -326,8 +333,8 @@ describe("Evacuate", function () {
       .withArgs(
         account3Addr,
         evacuation3.accountId,
-        token3Addr,
-        token3Id,
+        tsbTokenAddr,
+        tsbTokenId,
         evacuation3Amt
       );
 
@@ -341,7 +348,8 @@ describe("Evacuate", function () {
     // after balance
     const afterUser1EthBalance = await user1.getBalance();
     const afterUser2WbtcBalance = await token2.balanceOf(account2Addr);
-    const afterUser3WbtcBalance = await token3.balanceOf(account3Addr);
+    const afterUser3TsbBalance = await tsbToken.balanceOf(account3Addr);
+    const afterTsbTotalSupply = await tsbToken.totalSupply();
 
     // check state
     expect(afterCommittedL1RequestNum).to.be.eq(beforeCommittedL1RequestNum);
@@ -355,14 +363,17 @@ describe("Evacuate", function () {
     expect(afterUser2WbtcBalance.sub(beforeUser2WbtcBalance)).to.be.eq(
       evacuation2Amt
     );
-    expect(afterUser3WbtcBalance.sub(beforeUser3WbtcBalance)).to.be.eq(
+    expect(afterUser3TsbBalance.sub(beforeUser3TsbBalance)).to.be.eq(
+      evacuation3Amt
+    );
+    expect(afterTsbTotalSupply.sub(beforeTsbTotalSupply)).to.be.eq(
       evacuation3Amt
     );
 
     // check is evacuated
     expect(await diamondRollup.isEvacuted(account1Addr, token1Id)).to.be.true;
     expect(await diamondRollup.isEvacuted(account2Addr, token2Id)).to.be.true;
-    expect(await diamondRollup.isEvacuted(account3Addr, token3Id)).to.be.true;
+    expect(await diamondRollup.isEvacuted(account3Addr, tsbTokenId)).to.be.true;
     // check evacuation request in L1 request queue
     expect(
       await diamondRollup.isEvacuationInL1RequestQueue(
