@@ -1,10 +1,10 @@
 {
   "blockNumber": "16",
-  "stateRoot": "0x2df3e77db914774482c13b82c51db9deb7e2aa9127425ac673030f61bf7404fc",
-  "tsRoot": "0x0db88c7333a7f81928ebe5888bab03d369070aa2e7c2e39337196aff3768d7dc",
+  "stateRoot": "0x28bdacf3418964eb6467fe5f1f8177ee58d35b07a2593341a9c81608a2ab2ef7",
+  "tsRoot": "0x0ecc101474e61e0386448beed849dee3310a0084406148e802a5a65c77cc49f9",
   "l1RequestNum": "0",
-  "pendingRollupTxHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-  "commitment": "0x308ef26e80835861a2625e4e3ef30b1ebf882cebd08476c78124b90e351bef8a",
-  "timestamp": "1691452800",
+  "pendingRollupTxHash": "0x63c817dbaa9d405adff6c7062e695b5ba82356846d3296539f6119fa5e44f573",
+  "commitment": "0xc11212b965768c97a2aefd7be2307baa2d218c15dd86a50e9d728428115ba2a7",
+  "timestamp": "1691139500",
   "endTxId": "64"
 }
