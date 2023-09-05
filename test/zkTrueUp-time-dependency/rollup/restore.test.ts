@@ -47,6 +47,7 @@ import _case01 from "../../data/rollupData/evacuate/case01.json";
 import _case02 from "../../data/rollupData/evacuate/case02.json";
 import _case03 from "../../data/rollupData/evacuate/case03.json";
 import _case04 from "../../data/rollupData/evacuate/case04.json";
+import _case05 from "../../data/rollupData/evacuate/case05.json";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES);
@@ -92,6 +93,7 @@ describe("Restore protocol", function () {
   let case02: typeof _case02;
   let case03: typeof _case03;
   let case04: typeof _case04;
+  let case05: typeof _case05;
 
   // simulate the situation before restore protocol
   // 1. over 14 days since the last block executed
@@ -104,6 +106,7 @@ describe("Restore protocol", function () {
     case02 = JSON.parse(JSON.stringify(_case02));
     case03 = JSON.parse(JSON.stringify(_case03));
     case04 = JSON.parse(JSON.stringify(_case04));
+    case05 = JSON.parse(JSON.stringify(_case05));
     storedBlocks = [];
     storedBlocks.push(genesisBlock);
     committedBlockNum = 1;
@@ -244,10 +247,12 @@ describe("Restore protocol", function () {
     const evacuBlock2 = case02.newBlock;
     const evacuBlock3 = case03.newBlock;
     const evacuBlock4 = case04.newBlock;
+    const evacuBlock5 = case05.newBlock;
     const proof1: ProofStruct = case01.proof as ProofStruct;
     const proof2: ProofStruct = case02.proof as ProofStruct;
     const proof3: ProofStruct = case03.proof as ProofStruct;
     const proof4: ProofStruct = case04.proof as ProofStruct;
+    const proof5: ProofStruct = case05.proof as ProofStruct;
 
     // evacuate
     await time.increaseTo(Number(evacuBlock1.timestamp));
@@ -255,6 +260,7 @@ describe("Restore protocol", function () {
     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock2, proof2);
     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock3, proof3);
     await diamondRollup.evacuate(lastExecutedBlock, evacuBlock4, proof4);
+    await diamondRollup.evacuate(lastExecutedBlock, evacuBlock5, proof5);
   });
 
   it("Success to restore protocol", async function () {
@@ -408,9 +414,9 @@ describe("Restore protocol", function () {
     expect(afterExecutedBlockNum - beforeExecutedBlockNum).to.equal(2);
     expect(
       afterCommittedL1RequestNum.sub(beforeCommittedL1RequestNum)
-    ).to.equal(4);
+    ).to.equal(5);
     expect(afterExecutedL1RequestNum.sub(beforeExecutedL1RequestNum)).to.equal(
-      4
+      5
     );
     expect(afterTotalL1RequestNum).to.equal(beforeTotalL1RequestNum);
   });
