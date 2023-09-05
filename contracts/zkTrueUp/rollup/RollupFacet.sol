@@ -52,7 +52,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
      */
     function commitBlocks(
         StoredBlock memory lastCommittedBlock,
-        CommitBlock[] memory newBlocks
+        CommitBlock[] calldata newBlocks
     ) external onlyRole(Config.COMMITTER_ROLE) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
@@ -63,7 +63,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc IRollupFacet
      */
-    function verifyBlocks(VerifyBlock[] memory verifyingBlocks) external onlyRole(Config.VERIFIER_ROLE) {
+    function verifyBlocks(VerifyBlock[] calldata verifyingBlocks) external onlyRole(Config.VERIFIER_ROLE) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
 
@@ -73,7 +73,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc IRollupFacet
      */
-    function executeBlocks(ExecuteBlock[] memory pendingBlocks) external onlyRole(Config.EXECUTER_ROLE) {
+    function executeBlocks(ExecuteBlock[] calldata pendingBlocks) external onlyRole(Config.EXECUTER_ROLE) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
 
@@ -83,7 +83,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc IRollupFacet
      */
-    function revertBlocks(StoredBlock[] memory revertedBlocks) external onlyRole(Config.COMMITTER_ROLE) {
+    function revertBlocks(StoredBlock[] calldata revertedBlocks) external onlyRole(Config.COMMITTER_ROLE) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
 
@@ -146,7 +146,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
      * @notice The function only can be called in evacuation mode
      * @notice Consume the non-executed L1 requests with their public data
      */
-    function consumeL1RequestInEvacuMode(bytes[] memory consumedTxPubData) external {
+    function consumeL1RequestInEvacuMode(bytes[] calldata consumedTxPubData) external {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
@@ -201,9 +201,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
      * @notice The evacuate fuction will not commit a new state root to make all the users evacuate their funds from the same state
      */
     function evacuate(
-        StoredBlock memory lastExecutedBlock,
-        CommitBlock memory newBlock,
-        Proof memory proof
+        StoredBlock calldata lastExecutedBlock,
+        CommitBlock calldata newBlock,
+        Proof calldata proof
     ) external nonReentrant {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
@@ -214,7 +214,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         newBlock.blockNumber.requireValidBlockNum(lastExecutedBlock.blockNumber);
         newBlock.timestamp.requireValidBlockTimestamp(lastExecutedBlock.timestamp);
 
-        bytes memory publicData = newBlock.publicData;
+        bytes calldata publicData = newBlock.publicData;
         // evacuation public data length is 2 chunks
         if (publicData.length != Config.BYTES_OF_TWO_CHUNKS) revert InvalidPubDataLength(publicData.length);
 
@@ -233,7 +233,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
      */
     function commitEvacuBlocks(
         StoredBlock memory lastCommittedBlock,
-        CommitBlock[] memory evacuBlocks
+        CommitBlock[] calldata evacuBlocks
     ) external onlyRole(Config.COMMITTER_ROLE) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
@@ -245,7 +245,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc IRollupFacet
      */
-    function verifyEvacuBlocks(VerifyBlock[] memory evacuBlocks) external onlyRole(Config.VERIFIER_ROLE) {
+    function verifyEvacuBlocks(VerifyBlock[] calldata evacuBlocks) external onlyRole(Config.VERIFIER_ROLE) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
@@ -257,7 +257,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc IRollupFacet
      * @dev If executed all evacuation requests, the protocol will exit the evacuation mode and back to normal mode
      */
-    function executeEvacuBlocks(ExecuteBlock[] memory evacuBlocks) external onlyRole(Config.EXECUTER_ROLE) {
+    function executeEvacuBlocks(ExecuteBlock[] calldata evacuBlocks) external onlyRole(Config.EXECUTER_ROLE) {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireEvacuMode();
 
@@ -391,7 +391,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _commitBlocks(
         RollupStorage.Layout storage rsl,
         StoredBlock memory lastCommittedBlock,
-        CommitBlock[] memory newBlocks,
+        CommitBlock[] calldata newBlocks,
         bool isEvacuBlocks
     ) internal {
         rsl.requireBlockHashIsEq(rsl.getCommittedBlockNum(), lastCommittedBlock);
@@ -427,7 +427,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _commitOneBlock(
         RollupStorage.Layout storage rsl,
         StoredBlock memory previousBlock,
-        CommitBlock memory newBlock,
+        CommitBlock calldata newBlock,
         uint64 committedL1RequestNum,
         bool isEvacuBlock
     ) internal view returns (StoredBlock memory) {
@@ -488,7 +488,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @dev The evacuation block only includes the evacuation request or noop,
     ///      so the first chunk id delta should be 0 and the remaining chunk id delta should be evacuation chunk size
     /// @param chunkIdDeltas The chunk id delta array
-    function _requireValidEvacuBlockChunkIdDelta(uint16[] memory chunkIdDeltas) internal pure {
+    function _requireValidEvacuBlockChunkIdDelta(uint16[] calldata chunkIdDeltas) internal pure {
         uint256 chunkIdDeltaLength = chunkIdDeltas.length;
         if (chunkIdDeltaLength != 0 && chunkIdDeltas[0] != 0) revert InvalidChunkIdDelta(chunkIdDeltas);
         for (uint256 i = 1; i < chunkIdDeltaLength; ++i) {
@@ -502,15 +502,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     ///      and remaining pubdata should be padded with 0 bytes and have no other values
     /// @param evacuationRequestNum The number of evacuation requests
     /// @param pubData The public data of the block
-    function _requireValidEvacuBlockPubData(uint256 evacuationRequestNum, bytes memory pubData) internal pure {
+    function _requireValidEvacuBlockPubData(uint256 evacuationRequestNum, bytes calldata pubData) internal pure {
         uint256 validBytesNum = evacuationRequestNum * Config.BYTES_OF_TWO_CHUNKS; // evacuation request is 2 chunks
         bytes4 errorSelector = InvalidEvacuBlockPubData.selector;
 
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            let pubDataLength := mload(pubData)
-            let curr := add(validBytesNum, add(pubData, 0x20))
-            let end := add(pubData, add(0x20, pubDataLength))
+            let curr := add(pubData.offset, validBytesNum)
+            let end := add(pubData.offset, pubData.length)
 
             // solhint-disable-next-line no-empty-blocks
             for {
@@ -518,7 +517,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             } lt(curr, end) {
                 curr := add(curr, 0x20)
             } {
-                let data := mload(curr)
+                let data := calldataload(curr)
 
                 // if data is not zero, revert
                 if data {
@@ -581,7 +580,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @dev newProcessableRollupTxHash will be updated if the processed request is to be executed
     function _processOneRequest(
         RollupStorage.Layout storage rsl,
-        bytes memory pubData,
+        bytes calldata pubData,
         uint256 offset,
         uint64 requestId,
         bytes32 processableRollupTxHash
@@ -649,7 +648,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Internal function to verify blocks
     /// @param rsl The rollup storage layout
     /// @param verifyingBlocks The verifying blocks
-    function _verifyBlocks(RollupStorage.Layout storage rsl, VerifyBlock[] memory verifyingBlocks) internal {
+    function _verifyBlocks(RollupStorage.Layout storage rsl, VerifyBlock[] calldata verifyingBlocks) internal {
         uint32 verifiedBlockNum = rsl.getVerifiedBlockNum();
         uint256 verifyingBlocksLength = verifyingBlocks.length;
         if (verifiedBlockNum + verifyingBlocksLength > rsl.getCommittedBlockNum())
@@ -657,7 +656,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         for (uint256 i; i < verifyingBlocksLength; ++i) {
             ++verifiedBlockNum;
-            VerifyBlock memory verifyingBlock = verifyingBlocks[i];
+            VerifyBlock calldata verifyingBlock = verifyingBlocks[i];
             rsl.requireBlockHashIsEq(verifiedBlockNum, verifyingBlock.storedBlock);
 
             _verifyOneBlock(verifyingBlock.storedBlock.commitment, verifyingBlock.proof, false);
@@ -670,7 +669,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param commitment The commitment of the block
     /// @param proof The proof of the block
     /// @param isEvacuBlock Whether the block is evacu block
-    function _verifyOneBlock(bytes32 commitment, Proof memory proof, bool isEvacuBlock) internal view {
+    function _verifyOneBlock(bytes32 commitment, Proof calldata proof, bool isEvacuBlock) internal view {
         if (proof.commitment[0] != uint256(commitment) % Config.SCALAR_FIELD_SIZE)
             revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
 
@@ -683,7 +682,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Internal function to execute blocks
     /// @param rsl The rollup storage layout
     /// @param pendingBlocks The pending blocks
-    function _executeBlocks(RollupStorage.Layout storage rsl, ExecuteBlock[] memory pendingBlocks) internal {
+    function _executeBlocks(RollupStorage.Layout storage rsl, ExecuteBlock[] calldata pendingBlocks) internal {
         uint32 executedBlockNum = rsl.getExecutedBlockNum();
         uint256 pendingBlocksLength = pendingBlocks.length;
         if (executedBlockNum + pendingBlocksLength > rsl.getVerifiedBlockNum())
@@ -691,7 +690,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         for (uint32 i; i < pendingBlocksLength; ++i) {
-            ExecuteBlock memory pendingBlock = pendingBlocks[i];
+            ExecuteBlock calldata pendingBlock = pendingBlocks[i];
             rsl.requireBlockHashIsEq(pendingBlock.storedBlock.blockNumber, pendingBlock.storedBlock);
 
             ++executedBlockNum;
@@ -710,7 +709,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Internal function to execute one block
     /// @param rsl The rollup storage layout
     /// @param executeBlock The block to be executed
-    function _executeOneBlock(RollupStorage.Layout storage rsl, ExecuteBlock memory executeBlock) internal {
+    function _executeOneBlock(RollupStorage.Layout storage rsl, ExecuteBlock calldata executeBlock) internal {
         bytes32 pendingRollupTxHash = Config.EMPTY_STRING_KECCAK;
         bytes memory pubData;
         for (uint32 i; i < executeBlock.pendingRollupTxPubData.length; ++i) {
@@ -880,7 +879,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @return commitment The commitment of the new block
     function _calcBlockCommitment(
         StoredBlock memory previousBlock,
-        CommitBlock memory newBlock,
+        CommitBlock calldata newBlock,
         bytes memory commitmentOffset
     ) internal pure returns (bytes32) {
         return

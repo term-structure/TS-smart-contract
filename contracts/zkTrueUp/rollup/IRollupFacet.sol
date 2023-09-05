@@ -114,46 +114,50 @@ interface IRollupFacet {
     /// @notice Commit blocks
     /// @param lastCommittedBlock The last committed block
     /// @param newBlocks The new blocks to be committed
-    function commitBlocks(StoredBlock memory lastCommittedBlock, CommitBlock[] memory newBlocks) external;
+    function commitBlocks(StoredBlock memory lastCommittedBlock, CommitBlock[] calldata newBlocks) external;
 
     /// @notice Verify blocks
     /// @param verifyingBlocks The committed blocks to be verified and proofs
-    function verifyBlocks(VerifyBlock[] memory verifyingBlocks) external;
+    function verifyBlocks(VerifyBlock[] calldata verifyingBlocks) external;
 
     /// @notice Execute blocks
     /// @param pendingBlocks The pending blocks to be executed
-    function executeBlocks(ExecuteBlock[] memory pendingBlocks) external;
+    function executeBlocks(ExecuteBlock[] calldata pendingBlocks) external;
 
     /// @notice Revert blocks
     /// @dev This function is only used for revert the unexecuted blocks
     /// @param revertedBlocks The blocks to be reverted
-    function revertBlocks(StoredBlock[] memory revertedBlocks) external;
+    function revertBlocks(StoredBlock[] calldata revertedBlocks) external;
 
     /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
     function activateEvacuation() external;
 
     /// @notice Consume the L1 non-executed requests in the evacuation mode
     /// @param consumedTxPubData The public data of the non-executed L1 requests which in the request queue
-    function consumeL1RequestInEvacuMode(bytes[] memory consumedTxPubData) external;
+    function consumeL1RequestInEvacuMode(bytes[] calldata consumedTxPubData) external;
 
     /// @notice Evacuate the funds of a specified user and token in the evacuMode
     /// @param lastExecutedBlock The last executed block
     /// @param newBlock A pseudo block to create block commitment for verification but not to be commited
     /// @param proof The proof of the newBlock
-    function evacuate(StoredBlock memory lastExecutedBlock, CommitBlock memory newBlock, Proof memory proof) external;
+    function evacuate(
+        StoredBlock memory lastExecutedBlock,
+        CommitBlock calldata newBlock,
+        Proof calldata proof
+    ) external;
 
     /// @notice Commit evacuation blocks
     /// @param lastCommittedBlock The last committed block
     /// @param evacuBlocks The evacuation blocks to be committed
-    function commitEvacuBlocks(StoredBlock memory lastCommittedBlock, CommitBlock[] memory evacuBlocks) external;
+    function commitEvacuBlocks(StoredBlock memory lastCommittedBlock, CommitBlock[] calldata evacuBlocks) external;
 
     /// @notice Verify evacuation blocks
     /// @param evacuBlocks The evacuation blocks to be verified and proofs
-    function verifyEvacuBlocks(VerifyBlock[] memory evacuBlocks) external;
+    function verifyEvacuBlocks(VerifyBlock[] calldata evacuBlocks) external;
 
     /// @notice Execute evacuation blocks
     /// @param evacuBlocks The evacuation blocks to be executed
-    function executeEvacuBlocks(ExecuteBlock[] memory evacuBlocks) external;
+    function executeEvacuBlocks(ExecuteBlock[] calldata evacuBlocks) external;
 
     /// @notice Return the evacuation mode is activated or not
     /// @return evacuMode The evacuation mode status
