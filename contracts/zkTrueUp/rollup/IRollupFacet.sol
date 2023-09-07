@@ -16,8 +16,8 @@ interface IRollupFacet {
     error VerifiedBlockNumExceedCommittedNum(uint256 verifyingBlockNum);
     /// @notice Error for executed block number exceed proved block number
     error ExecutedBlockNumExceedProvedNum(uint256 pendingBlockNum);
-    /// @notice Error for invalid invalid public data length
-    error InvalidPubDataLength(uint256 pubDataLength);
+    /// @notice Error for invalid evacuate public data length
+    error InvalidEvacuatePubDataLength(uint256 pubDataLength);
     /// @notice Error for offset is greater than public data length
     error OffsetGtPubDataLength(uint256 offset);
     /// @notice Error for offset is already set

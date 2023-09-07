@@ -216,7 +216,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         bytes calldata publicData = newBlock.publicData;
         // evacuation public data length is 2 chunks
-        if (publicData.length != Config.BYTES_OF_TWO_CHUNKS) revert InvalidPubDataLength(publicData.length);
+        if (publicData.length != Config.BYTES_OF_TWO_CHUNKS) revert InvalidEvacuatePubDataLength(publicData.length);
 
         bytes32 commitment = _calcBlockCommitment(lastExecutedBlock, newBlock, Config.EVACUATION_COMMITMENT_OFFSET);
 
@@ -398,13 +398,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         uint64 committedL1RequestNum = rsl.getCommittedL1RequestNum();
         for (uint32 i; i < newBlocks.length; ++i) {
-            lastCommittedBlock = _commitOneBlock(
-                rsl,
-                lastCommittedBlock,
-                newBlocks[i],
-                committedL1RequestNum,
-                isEvacuBlocks
-            );
+            lastCommittedBlock = isEvacuBlocks
+                ? _commitOneEvacuBlock(rsl, lastCommittedBlock, newBlocks[i], committedL1RequestNum)
+                : _commitOneBlock(rsl, lastCommittedBlock, newBlocks[i], committedL1RequestNum);
+
             committedL1RequestNum += lastCommittedBlock.l1RequestNum;
             rsl.storedBlockHashes[lastCommittedBlock.blockNumber] = keccak256(abi.encode(lastCommittedBlock));
             emit BlockCommit(lastCommittedBlock.blockNumber, lastCommittedBlock.commitment);
@@ -422,43 +419,28 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param previousBlock The previous block
     /// @param newBlock The new block to be committed
     /// @param committedL1RequestNum The committed L1 request number
-    /// @param isEvacuBlock Whether the block is evacu block
     /// @return storedBlock The committed block
     function _commitOneBlock(
         RollupStorage.Layout storage rsl,
         StoredBlock memory previousBlock,
         CommitBlock calldata newBlock,
-        uint64 committedL1RequestNum,
-        bool isEvacuBlock
+        uint64 committedL1RequestNum
     ) internal view returns (StoredBlock memory) {
         newBlock.blockNumber.requireValidBlockNum(previousBlock.blockNumber);
         newBlock.timestamp.requireValidBlockTimestamp(previousBlock.timestamp);
-
-        /// Two assertions below are equivalent to:
-        /// 1. assert(publicDataLength % Config.BYTES_OF_CHUNK == 0)
-        /// 2. assert((publicDataLength / Config.BYTES_OF_CHUNK) % BITS_OF_BYTES == 0)
-        /// ==> assert(publicDataLength % (Config.BYTES_OF_CHUNK * BITS_OF_BYTES) == 0)
-        /// ==> assert(publicDataLength % Config.BITS_OF_CHUNK == 0)
-        uint256 publicDataLength = newBlock.publicData.length;
-        if (publicDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(publicDataLength);
-
-        uint256 chunkIdDeltaLength = newBlock.chunkIdDeltas.length;
-        if (isEvacuBlock) {
-            _requireValidEvacuBlockChunkIdDelta(newBlock.chunkIdDeltas);
-            _requireValidEvacuBlockPubData(chunkIdDeltaLength, newBlock.publicData);
-        }
+        newBlock.publicData.length.requireValidPubDataLength();
 
         /// The commitment offset array is used to store the commitment offset for each chunk
-        bytes memory commitmentOffset = new bytes(publicDataLength / Config.BITS_OF_CHUNK);
-
+        bytes memory commitmentOffset = new bytes(newBlock.publicData.length / Config.BITS_OF_CHUNK);
         uint256 chunkId;
         uint64 requestId = committedL1RequestNum;
         bytes32 processableRollupTxHash = Config.EMPTY_STRING_KECCAK;
+        uint256 chunkIdDeltaLength = newBlock.chunkIdDeltas.length;
         for (uint256 i; i < chunkIdDeltaLength; ++i) {
             uint16 delta = newBlock.chunkIdDeltas[i];
             chunkId += delta;
             uint256 offset = chunkId * Config.BYTES_OF_CHUNK;
-            if (offset >= publicDataLength) revert OffsetGtPubDataLength(offset);
+            if (offset >= newBlock.publicData.length) revert OffsetGtPubDataLength(offset);
 
             (requestId, processableRollupTxHash) = _processOneRequest(
                 rsl,
@@ -477,6 +459,61 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             StoredBlock({
                 blockNumber: newBlock.blockNumber,
                 l1RequestNum: processedL1RequestNum,
+                pendingRollupTxHash: processableRollupTxHash,
+                commitment: commitment,
+                stateRoot: newBlock.newStateRoot,
+                timestamp: newBlock.timestamp
+            });
+    }
+
+    /// @notice Internal function to commit one evacuation block
+    /// @param rsl Rollup storage layout
+    /// @param previousBlock The previous block
+    /// @param newBlock The new block to be committed
+    /// @param committedL1RequestNum The committed L1 request number
+    /// @return storedBlock The committed block
+    function _commitOneEvacuBlock(
+        RollupStorage.Layout storage rsl,
+        StoredBlock memory previousBlock,
+        CommitBlock calldata newBlock,
+        uint64 committedL1RequestNum
+    ) internal view returns (StoredBlock memory) {
+        newBlock.blockNumber.requireValidBlockNum(previousBlock.blockNumber);
+        newBlock.timestamp.requireValidBlockTimestamp(previousBlock.timestamp);
+        newBlock.publicData.length.requireValidPubDataLength();
+        uint256 chunkIdDeltaLength = newBlock.chunkIdDeltas.length;
+
+        /// Check the block only includes the evacuation request and noop
+        _requireValidEvacuBlockChunkIdDelta(newBlock.chunkIdDeltas);
+        _requireValidEvacuBlockPubData(chunkIdDeltaLength, newBlock.publicData);
+
+        /// The commitment offset array is used to store the commitment offset for each chunk
+        bytes memory commitmentOffset = new bytes(newBlock.publicData.length / Config.BITS_OF_CHUNK);
+        uint256 chunkId;
+        bytes32 processableRollupTxHash = Config.EMPTY_STRING_KECCAK;
+        for (uint256 i; i < chunkIdDeltaLength; ++i) {
+            uint16 delta = newBlock.chunkIdDeltas[i];
+            chunkId += delta;
+            uint256 offset = chunkId * Config.BYTES_OF_CHUNK;
+            if (offset >= newBlock.publicData.length) revert OffsetGtPubDataLength(offset);
+
+            processableRollupTxHash = _processOneEvacuRequest(
+                rsl,
+                newBlock.publicData,
+                offset,
+                committedL1RequestNum,
+                processableRollupTxHash
+            );
+
+            ++committedL1RequestNum; // evacuation request is L1 request
+            commitmentOffset = _updateCommitmentOffsetForChunk(commitmentOffset, chunkId);
+        }
+
+        bytes32 commitment = _calcBlockCommitment(previousBlock, newBlock, commitmentOffset);
+        return
+            StoredBlock({
+                blockNumber: newBlock.blockNumber,
+                l1RequestNum: uint64(chunkIdDeltaLength),
                 pendingRollupTxHash: processableRollupTxHash,
                 commitment: commitment,
                 stateRoot: newBlock.newStateRoot,
@@ -574,6 +611,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param pubData The public data of the new block
     /// @param offset The offset of the public data
     /// @param requestId The request id of the new block
+    /// @param processableRollupTxHash The processable rollup tx hash
     /// @return newRequestId The new L1 request id
     /// @dev newRequestId is used to increase the L1 request id if the processed request is L1 request
     /// @return newProcessableRollupTxHash The new processable rollup tx hash
@@ -623,11 +661,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
                 Operations.Deposit memory deposit = data.readDepositPubData();
                 request.isDepositInL1RequestQueue(deposit);
-            } else if (opType == Operations.OpType.EVACUATION) {
-                data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
-                Operations.Evacuation memory evacuation = data.readEvacuationPubdata();
-                request.isEvacuationInL1RequestQueue(evacuation);
-                isToBeExecuted = true;
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                 data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
                 Operations.ForceWithdraw memory forceWithdrawReq = data.readForceWithdrawPubData();
@@ -643,6 +676,30 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         if (isToBeExecuted) processableRollupTxHash = keccak256(abi.encode(processableRollupTxHash, data));
 
         return (requestId, processableRollupTxHash);
+    }
+
+    /// @notice Process one evacuation request
+    /// @param rsl The rollup storage layout
+    /// @param pubData The public data of the new block
+    /// @param offset The offset of the public data
+    /// @param requestId The request id of the new block
+    /// @param processableRollupTxHash The processable rollup tx hash
+    /// @return newProcessableRollupTxHash The new processable rollup tx hash
+    function _processOneEvacuRequest(
+        RollupStorage.Layout storage rsl,
+        bytes calldata pubData,
+        uint256 offset,
+        uint64 requestId,
+        bytes32 processableRollupTxHash
+    ) internal view returns (bytes32) {
+        Operations.OpType opType = Operations.OpType(uint8(pubData[offset]));
+        if (opType != Operations.OpType.EVACUATION) revert InvalidOpType(opType);
+
+        bytes memory data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
+        Operations.Evacuation memory evacuation = data.readEvacuationPubdata();
+        rsl.getL1Request(requestId).isEvacuationInL1RequestQueue(evacuation);
+
+        return keccak256(abi.encode(processableRollupTxHash, data));
     }
 
     /// @notice Internal function to verify blocks

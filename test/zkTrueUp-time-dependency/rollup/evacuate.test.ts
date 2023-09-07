@@ -486,7 +486,10 @@ describe("Evacuate", function () {
     await time.increaseTo(Number(invalidEvacuBlock.timestamp));
     await expect(
       diamondRollup.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "InvalidPubDataLength");
+    ).to.be.revertedWithCustomError(
+      diamondRollup,
+      "InvalidEvacuatePubDataLength"
+    );
   });
 
   it("Failed to evacuate, invalid commitment", async function () {
