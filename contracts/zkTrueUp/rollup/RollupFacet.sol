@@ -220,7 +220,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         bytes32 commitment = _calcBlockCommitment(lastExecutedBlock, newBlock, Config.EVACUATION_COMMITMENT_OFFSET);
 
-        _verifyOneBlock(commitment, proof, true);
+        _verifyOneBlock(commitment, proof, AddressStorage.layout().getEvacuVerifier());
 
         Operations.Evacuation memory evacuation = Operations.readEvacuationPubdata(publicData);
         _evacuate(rsl, evacuation);
@@ -686,7 +686,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             VerifyBlock calldata verifyingBlock = verifyingBlocks[i];
             rsl.requireBlockHashIsEq(verifiedBlockNum, verifyingBlock.storedBlock);
 
-            _verifyOneBlock(verifyingBlock.storedBlock.commitment, verifyingBlock.proof, false);
+            _verifyOneBlock(
+                verifyingBlock.storedBlock.commitment,
+                verifyingBlock.proof,
+                AddressStorage.layout().getVerifier()
+            );
             emit BlockVerification(verifyingBlock.storedBlock.blockNumber);
         }
         rsl.verifiedBlockNum = verifiedBlockNum;
@@ -695,13 +699,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @notice Internal function to verify one block
     /// @param commitment The commitment of the block
     /// @param proof The proof of the block
-    /// @param isEvacuBlock Whether the block is evacu block
-    function _verifyOneBlock(bytes32 commitment, Proof calldata proof, bool isEvacuBlock) internal view {
+    /// @param verifier The verifier contract
+    ///        if the block is normal block, the verifier is AddressStorage.verifier
+    ///        if the block is evacuation block, the verifier is AddressStorage.evacuVerifier
+    function _verifyOneBlock(bytes32 commitment, Proof calldata proof, IVerifier verifier) internal view {
         if (proof.commitment[0] != uint256(commitment) % Config.SCALAR_FIELD_SIZE)
             revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
-
-        AddressStorage.Layout storage asl = AddressStorage.layout();
-        IVerifier verifier = isEvacuBlock ? asl.getEvacuVerifier() : asl.getVerifier();
 
         if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
     }
