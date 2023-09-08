@@ -28,6 +28,8 @@ library RollupLib {
     error TimestampLtPreviousBlock(uint256 newBlockTimestamp, uint256 lastBlockTimestamp);
     /// @notice Error for block timestamp is not in the valid range
     error InvalidBlockTimestamp(uint256 l2BlockTimestamp, uint256 l1BlockTimestamp);
+    /// @notice Error for invalid invalid public data length
+    error InvalidPubDataLength(uint256 pubDataLength);
 
     /// @notice Emit when there is a new priority request added
     /// @dev The L1 request needs to be executed before the expiration block or the system will enter the evacuation mode
@@ -300,6 +302,19 @@ library RollupLib {
     /// @param lastBlockNum The last block number
     function requireValidBlockNum(uint32 newBlockNum, uint32 lastBlockNum) internal pure {
         if (newBlockNum != lastBlockNum + 1) revert InvalidBlockNum(newBlockNum, lastBlockNum);
+    }
+
+    /// @notice Internal function to check whether the public data length is valid
+    /// @dev The public data length should be multiple of chunk size
+    /// @dev The numbers of chunk should be multiple of 8
+    /// @param pubDataLength The public data length
+    function requireValidPubDataLength(uint256 pubDataLength) internal pure {
+        /// Two assertions below are equivalent to:
+        /// 1. assert(publicDataLength % Config.BYTES_OF_CHUNK == 0)
+        /// 2. assert((publicDataLength / Config.BYTES_OF_CHUNK) % BITS_OF_BYTES == 0)
+        /// ==> assert(publicDataLength % (Config.BYTES_OF_CHUNK * BITS_OF_BYTES) == 0)
+        /// ==> assert(publicDataLength % Config.BITS_OF_CHUNK == 0)
+        if (pubDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(pubDataLength);
     }
 
     /// @notice Internal function to calculate the pending balance key
