@@ -57,7 +57,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         rsl.requireActive();
 
-        _commitBlocks(rsl, lastCommittedBlock, newBlocks, false);
+        _commitBlocks(rsl, lastCommittedBlock, newBlocks, _processOneRequest);
     }
 
     /**
@@ -239,7 +239,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         rsl.requireEvacuMode();
 
         _requireConsumedAllNonExecutedReq(rsl);
-        _commitBlocks(rsl, lastCommittedBlock, evacuBlocks, true);
+        _commitBlocks(rsl, lastCommittedBlock, evacuBlocks, _processOneEvacuRequest);
     }
 
     /**
@@ -387,34 +387,28 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param rsl RollupStorage Layout
     /// @param lastCommittedBlock Last committed block
     /// @param newBlocks New blocks to commit
-    /// @param isEvacuBlocks Whether the blocks are evacuation blocks
+    /// @param processOneRequest The process one request function
+    ///        if the block is normal block, the function is _processOneRequest
+    ///        if the block is evacuation block, the function is _processOneEvacuRequest
     function _commitBlocks(
         RollupStorage.Layout storage rsl,
         StoredBlock memory lastCommittedBlock,
         CommitBlock[] calldata newBlocks,
-        bool isEvacuBlocks
-    ) internal {
-        rsl.requireBlockHashIsEq(rsl.getCommittedBlockNum(), lastCommittedBlock);
-
-        /// declare the processOneRequest function for _commitOneBlock function input
         function(RollupStorage.Layout storage, bytes calldata, uint256, uint64, bytes32)
             internal
             view
-            returns (uint64, bytes32) processOneRequest;
+            returns (uint64, bytes32) processOneRequest
+    ) internal {
+        rsl.requireBlockHashIsEq(rsl.getCommittedBlockNum(), lastCommittedBlock);
 
         uint64 committedL1RequestNum = rsl.getCommittedL1RequestNum();
         for (uint32 i; i < newBlocks.length; ++i) {
             CommitBlock calldata newBlock = newBlocks[i];
 
-            if (!isEvacuBlocks) {
-                /// if not evacuation blocks, using the normal processOneRequest function
-                processOneRequest = _processOneRequest;
-            } else {
-                /// if evacuation blocks, check the block only includes the evacuation request and noop
+            /// if evacuation blocks, check the block only includes the evacuation request and noop
+            if (processOneRequest == _processOneEvacuRequest) {
                 _requireValidEvacuBlockChunkIdDelta(newBlock.chunkIdDeltas);
                 _requireValidEvacuBlockPubData(newBlock.chunkIdDeltas.length, newBlock.publicData);
-                /// if evacuation blocks, using the processOneEvacuRequest function
-                processOneRequest = _processOneEvacuRequest;
             }
 
             lastCommittedBlock = _commitOneBlock(
