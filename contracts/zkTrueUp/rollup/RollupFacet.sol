@@ -387,7 +387,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param rsl RollupStorage Layout
     /// @param lastCommittedBlock Last committed block
     /// @param newBlocks New blocks to commit
-    /// @param processOneRequest The process one request function
+    /// @param processRequestFunc The process request function
     ///        if the block is normal block, the function is _processOneRequest
     ///        if the block is evacuation block, the function is _processOneEvacuRequest
     function _commitBlocks(
@@ -397,7 +397,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         function(RollupStorage.Layout storage, bytes calldata, uint256, uint64, bytes32)
             internal
             view
-            returns (uint64, bytes32) processOneRequest
+            returns (uint64, bytes32) processRequestFunc
     ) internal {
         rsl.requireBlockHashIsEq(rsl.getCommittedBlockNum(), lastCommittedBlock);
 
@@ -406,7 +406,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             CommitBlock calldata newBlock = newBlocks[i];
 
             /// if evacuation blocks, check the block only includes the evacuation request and noop
-            if (processOneRequest == _processOneEvacuRequest) {
+            if (processRequestFunc == _processOneEvacuRequest) {
                 _requireValidEvacuBlockChunkIdDelta(newBlock.chunkIdDeltas);
                 _requireValidEvacuBlockPubData(newBlock.chunkIdDeltas.length, newBlock.publicData);
             }
@@ -416,7 +416,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 lastCommittedBlock,
                 newBlock,
                 committedL1RequestNum,
-                processOneRequest
+                processRequestFunc
             );
 
             committedL1RequestNum += lastCommittedBlock.l1RequestNum;
@@ -436,7 +436,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param previousBlock The previous block
     /// @param newBlock The new block to be committed
     /// @param committedL1RequestNum The committed L1 request number
-    /// @param processOneRequest The process one request function
+    /// @param processRequestFunc The process request function
     ///        if the block is normal block, the function is _processOneRequest
     ///        if the block is evacuation block, the function is _processOneEvacuRequest
     /// @return storedBlock The committed block
@@ -448,7 +448,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         function(RollupStorage.Layout storage, bytes calldata, uint256, uint64, bytes32)
             internal
             view
-            returns (uint64, bytes32) processOneRequest
+            returns (uint64, bytes32) processRequestFunc
     ) internal view returns (StoredBlock memory) {
         newBlock.blockNumber.requireValidBlockNum(previousBlock.blockNumber);
         newBlock.timestamp.requireValidBlockTimestamp(previousBlock.timestamp);
@@ -465,7 +465,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             uint256 offset = chunkId * Config.BYTES_OF_CHUNK;
             if (offset >= newBlock.publicData.length) revert OffsetGtPubDataLength(offset);
 
-            (requestId, processableRollupTxHash) = processOneRequest(
+            (requestId, processableRollupTxHash) = processRequestFunc(
                 rsl,
                 newBlock.publicData,
                 offset,
@@ -700,8 +700,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param commitment The commitment of the block
     /// @param proof The proof of the block
     /// @param verifier The verifier contract
-    ///        if the block is normal block, the verifier is AddressStorage.verifier
-    ///        if the block is evacuation block, the verifier is AddressStorage.evacuVerifier
+    ///        if the block is normal block, use the AddressStorage.verifier (for normal circuit)
+    ///        if the block is evacuation block, use the AddressStorage.evacuVerifier (for evacuation circuit)
     function _verifyOneBlock(bytes32 commitment, Proof calldata proof, IVerifier verifier) internal view {
         if (proof.commitment[0] != uint256(commitment) % Config.SCALAR_FIELD_SIZE)
             revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
