@@ -420,4 +420,79 @@ describe("Restore protocol", function () {
     );
     expect(afterTotalL1RequestNum).to.equal(beforeTotalL1RequestNum);
   });
+
+  it("Fail to restore protocol, invalid chunk id delta (the first delta not zero)", async function () {
+    // generate new blocks
+    const restoreBlock1Data = restoreData[0];
+    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
+    const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
+    const invalidChunkIdDelta = restoreBlock1Data.commitBlock.chunkIdDeltas;
+    invalidChunkIdDelta[0] = 2; // invalid chunk id delta (the first delta not zero)
+    const commitBlock: CommitBlockStruct = {
+      blockNumber,
+      newStateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
+      newTsRoot: restoreBlock1Data.commitBlock.newFlowInfo.tsRoot,
+      publicData: restoreBlock1Data.commitBlock.o_chunk,
+      chunkIdDeltas: invalidChunkIdDelta,
+      timestamp: restoreBlock1Data.commitBlock.timestamp,
+    };
+
+    // commit evacu blocks
+    await time.increaseTo(Number(commitBlock.timestamp));
+    expect(
+      diamondRollup
+        .connect(operator)
+        .commitEvacuBlocks(lastCommittedBlock, [commitBlock])
+    ).to.be.revertedWithCustomError(diamondRollup, "InvalidChunkIdDelta");
+  });
+
+  it("Fail to restore protocol, invalid chunk id delta (there are invalid deltas other than evacuation and noop)", async function () {
+    // generate new blocks
+    const restoreBlock1Data = restoreData[0];
+    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
+    const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
+    const invalidChunkIdDelta = restoreBlock1Data.commitBlock.chunkIdDeltas;
+    invalidChunkIdDelta[1] = 3; // invalid chunk id delta (there are invalid deltas other than evacuation and noop)
+    const commitBlock: CommitBlockStruct = {
+      blockNumber,
+      newStateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
+      newTsRoot: restoreBlock1Data.commitBlock.newFlowInfo.tsRoot,
+      publicData: restoreBlock1Data.commitBlock.o_chunk,
+      chunkIdDeltas: invalidChunkIdDelta,
+      timestamp: restoreBlock1Data.commitBlock.timestamp,
+    };
+
+    // commit evacu blocks
+    await time.increaseTo(Number(commitBlock.timestamp));
+    expect(
+      diamondRollup
+        .connect(operator)
+        .commitEvacuBlocks(lastCommittedBlock, [commitBlock])
+    ).to.be.revertedWithCustomError(diamondRollup, "InvalidChunkIdDelta");
+  });
+
+  it("Fail to restore protocol, invalid public data", async function () {
+    // generate new blocks
+    const restoreBlock1Data = restoreData[0];
+    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
+    const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
+    const invalidPublicData = restoreBlock1Data.commitBlock.o_chunk;
+    const invalidPublicDataStr = invalidPublicData.slice(0, -2) + "01"; // replaced the last byte to non-zero
+    const commitBlock: CommitBlockStruct = {
+      blockNumber,
+      newStateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
+      newTsRoot: restoreBlock1Data.commitBlock.newFlowInfo.tsRoot,
+      publicData: invalidPublicDataStr,
+      chunkIdDeltas: restoreBlock1Data.commitBlock.chunkIdDeltas,
+      timestamp: restoreBlock1Data.commitBlock.timestamp,
+    };
+
+    // commit evacu blocks
+    await time.increaseTo(Number(commitBlock.timestamp));
+    expect(
+      diamondRollup
+        .connect(operator)
+        .commitEvacuBlocks(lastCommittedBlock, [commitBlock])
+    ).to.be.revertedWithCustomError(diamondRollup, "InvalidEvacuBlockPubData");
+  });
 });
