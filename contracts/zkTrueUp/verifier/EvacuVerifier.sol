@@ -162,8 +162,6 @@ contract EvacuVerifier {
 
             checkField(calldataload(add(_pubSignals, 0)))
 
-            checkField(calldataload(add(_pubSignals, 32)))
-
             // Validate all evaluations
             let isValid := checkPairing(_pA, _pB, _pC, _pubSignals, pMem)
 
