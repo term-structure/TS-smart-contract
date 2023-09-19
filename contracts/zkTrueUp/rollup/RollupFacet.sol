@@ -263,9 +263,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         _requireConsumedAllNonExecutedReq(rsl);
         _executeBlocks(rsl, evacuBlocks);
 
-        /// If executed L1 requests number == total L1 requests number
-        /// means all evacuation requests have been executed,
-        /// the protocol will exit the evacuation mode and back to normal mode
+        // If executed L1 requests number == total L1 requests number
+        // means all evacuation requests have been executed or the evacuation requests are empty
+        // the protocol will exit the evacuation mode and back to normal mode
         if (rsl.getExecutedL1RequestNum() == rsl.getTotalL1RequestNum()) {
             rsl.evacuMode = false;
             emit EvacuModeDeactivation();
