@@ -496,9 +496,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     function _requireValidEvacuBlockChunkIdDelta(uint16[] calldata chunkIdDeltas) internal pure {
         uint256 chunkIdDeltaLength = chunkIdDeltas.length;
         if (chunkIdDeltaLength != 0 && chunkIdDeltas[0] != 0) revert InvalidChunkIdDelta(chunkIdDeltas);
+        // for (uint256 i = 1; i < chunkIdDeltaLength; ++i) {
+        //     if (chunkIdDeltas[i] != Config.EVACUATION_CHUNK_SIZE) revert InvalidChunkIdDelta(chunkIdDeltas);
+        // }
+        uint256 andDeltas = Config.EVACUATION_CHUNK_SIZE;
+        uint256 orDeltas = Config.EVACUATION_CHUNK_SIZE;
         for (uint256 i = 1; i < chunkIdDeltaLength; ++i) {
-            if (chunkIdDeltas[i] != Config.EVACUATION_CHUNK_SIZE) revert InvalidChunkIdDelta(chunkIdDeltas);
+            andDeltas &= chunkIdDeltas[i];
+            orDeltas |= chunkIdDeltas[i];
         }
+        if (andDeltas != orDeltas) revert InvalidChunkIdDelta(chunkIdDeltas);
     }
 
     /// @notice Internal function to check whether the evacuation block pubdata is valid
