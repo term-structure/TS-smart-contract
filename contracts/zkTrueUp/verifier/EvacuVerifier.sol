@@ -108,7 +108,7 @@ contract EvacuVerifier {
 
                 // Compute the linear combination vk_x
 
-                g1_mulAccC(_pVk, IC1x, IC1y, calldataload(add(pubSignals, 0)))
+                g1_mulAccC(_pVk, IC1x, IC1y, calldataload(pubSignals))
 
                 // -A
                 mstore(_pPairing, calldataload(pA))
