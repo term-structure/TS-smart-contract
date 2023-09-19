@@ -509,28 +509,37 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param pubData The public data of the block
     function _requireValidEvacuBlockPubData(uint256 evacuationRequestNum, bytes calldata pubData) internal pure {
         uint256 validBytesNum = evacuationRequestNum * Config.BYTES_OF_TWO_CHUNKS; // evacuation request is 2 chunks
+        if (pubData.length < validBytesNum) revert InvalidEvacuBlockPubData(evacuationRequestNum);
         bytes4 errorSelector = InvalidEvacuBlockPubData.selector;
 
         // solhint-disable-next-line no-inline-assembly
         assembly {
+            let data
+            // check each 32 bytes in zero length
+            let zeroLen := sub(pubData.length, validBytesNum)
             let curr := add(pubData.offset, validBytesNum)
-            let end := add(pubData.offset, pubData.length)
-
+            let end := add(curr, mul(div(zeroLen, 0x20), 0x20))
             // solhint-disable-next-line no-empty-blocks
             for {
 
             } lt(curr, end) {
                 curr := add(curr, 0x20)
             } {
-                let data := calldataload(curr)
+                data := or(data, calldataload(curr))
+            }
 
-                // if data is not zero, revert
-                if data {
-                    let ptr := mload(0x40)
-                    mstore(ptr, errorSelector)
-                    mstore(add(ptr, 0x04), evacuationRequestNum)
-                    revert(ptr, 0x24)
-                }
+            // check remainders bytes in zero length
+            let r := mod(zeroLen, 0x20)
+            // shift right (0x20 - r) bytes to remove the garbage data
+            let endData := shr(mul(sub(0x20, r), 0x8), calldataload(end))
+            data := or(data, endData)
+
+            // if data is not zero, revert
+            if data {
+                let ptr := mload(0x40)
+                mstore(ptr, errorSelector)
+                mstore(add(ptr, 0x04), evacuationRequestNum)
+                revert(ptr, 0x24)
             }
         }
     }
