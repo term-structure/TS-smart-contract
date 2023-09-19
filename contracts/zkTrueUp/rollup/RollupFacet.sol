@@ -184,9 +184,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 address registerAddr = asl.accountAddresses[registerReq.accountId];
                 delete asl.accountIds[registerAddr];
                 // solhint-disable-next-line no-empty-blocks
-            } else {
-                // do nothing, others L1 requests have no storage changes
             }
+
             ++executedL1RequestNum;
             emit L1RequestConsumed(executedL1RequestNum, opType, pubData);
         }
