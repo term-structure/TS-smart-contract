@@ -125,8 +125,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      */
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
-        bool isActivated = lsl.getRollerState();
-        if (!isActivated) revert RollIsNotActivated();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
 
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         msg.sender.requireLoanOwner(loanInfo);
