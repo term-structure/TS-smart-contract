@@ -103,11 +103,11 @@ contract Verifier {
                 let _pPairing := add(pMem, pPairing)
                 let _pVk := add(pMem, pVk)
 
+                // _pVk = {IC0x, IC0y}
                 mstore(_pVk, IC0x)
                 mstore(add(_pVk, 32), IC0y)
 
                 // Compute the linear combination vk_x
-
                 g1_mulAccC(_pVk, IC1x, IC1y, calldataload(pubSignals))
 
                 // -A
