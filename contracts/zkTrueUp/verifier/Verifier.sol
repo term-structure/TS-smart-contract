@@ -160,7 +160,7 @@ contract Verifier {
 
             // Validate that all evaluations ∈ F
 
-            checkField(calldataload(add(_pubSignals, 0)))
+            checkField(calldataload(_pubSignals))
 
             // Validate all evaluations
             let isValid := checkPairing(_pA, _pB, _pC, _pubSignals, pMem)
