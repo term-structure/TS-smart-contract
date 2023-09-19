@@ -152,7 +152,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
         uint64 lastL1RequestId = totalL1RequestNum - 1;
-        ///  the last L1 request cannot be evacuation because it would means all L1 requests have been consumed and start to evacuate
+        // The last L1 request cannot be evacuation
+        // because the evacuate action can only be called after consumed all L1 non-executed request
         if (rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION)
             revert LastL1RequestIsEvacuation(totalL1RequestNum);
 
@@ -175,10 +176,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 Operations.Deposit memory depositReq = pubData.readDepositPubData();
                 _addPendingBalance(rsl, depositReq.accountId, depositReq.tokenId, depositReq.amount);
             } else if (opType == Operations.OpType.REGISTER) {
-                /// de-register only remove the accountAddr mapping to accountId,
-                /// which use to check in AccountLib.getValidAccount and let user can register again
-                /// and still can add pending balance to this register account
-                /// when consume the deposit request in the next request
+                // de-register only remove the accountAddr mapping to accountId,
+                // which use to check in AccountLib.getValidAccount and let user can register again
+                // and still can add pending balance to this register account
+                // when consume the deposit request in the next request
                 Operations.Register memory registerReq = pubData.readRegisterPubData();
                 AccountStorage.Layout storage asl = AccountStorage.layout();
                 address registerAddr = asl.accountAddresses[registerReq.accountId];
