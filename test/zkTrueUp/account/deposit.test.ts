@@ -378,8 +378,9 @@ describe("Deposit", function () {
       let underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
       let maturity = BigNumber.from(tsbTokensJSON[0].maturity);
       const tsbEth = await diamondTsb.getTsbToken(underlyingTokenId, maturity);
+      const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await (
-        await diamondAccMock.connect(user1).withdraw(tsbEth, tsbEthAmt)
+        await diamondAccMock.connect(user1).withdraw(tsbEth, tsbEthAmt, user1Id)
       ).wait(); //! ignore _withdraw in AccountMock
 
       // withdraw tsbUSDT token
@@ -388,7 +389,9 @@ describe("Deposit", function () {
       maturity = BigNumber.from(tsbTokensJSON[2].maturity);
       const tsbUsdt = await diamondTsb.getTsbToken(underlyingTokenId, maturity);
       await (
-        await diamondAccMock.connect(user1).withdraw(tsbUsdt, tsbUsdtAmt)
+        await diamondAccMock
+          .connect(user1)
+          .withdraw(tsbUsdt, tsbUsdtAmt, user1Id)
       ).wait(); //! ignore _withdraw in AccountMock
     });
 

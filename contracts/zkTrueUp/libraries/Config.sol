@@ -28,12 +28,6 @@ library Config {
     /// @notice The base of flashloan premium
     uint16 internal constant FLASH_LOAN_PREMIUM_BASE = 10000;
 
-    /// @notice The Bits number of 1 byte
-    uint8 internal constant BITS_OF_BYTE = 8;
-
-    /// @notice The last index of 1 byte
-    uint8 internal constant LAST_INDEX_OF_BYTE = 7;
-
     /// @notice The max amount of registered tokens
     uint32 internal constant MAX_AMOUNT_OF_REGISTERED_TOKENS = type(uint16).max;
 
@@ -43,41 +37,50 @@ library Config {
     /// @notice Expriation period for L1 request
     uint256 internal constant EXPIRATION_PERIOD = 14 days;
 
-    /// @notice Number of reserved accountsx (reserved accountId 0 as default accountId)
+    /// @notice Number of reserved accounts (reserved accountId 0 as default accountId)
     uint8 internal constant NUM_RESERVED_ACCOUNTS = 1;
 
     /// @notice Hash of empty string
     bytes32 internal constant EMPTY_STRING_KECCAK = keccak256("");
 
+    /// @notice The Bits number of 1 byte
+    uint8 internal constant BITS_OF_BYTE = 8;
+
+    /// @notice The last index of 1 byte
+    uint8 internal constant LAST_INDEX_OF_BYTE = BITS_OF_BYTE - 1;
+
+    /// @notice The bytes lengths to represent operation type
+    uint8 internal constant BYTES_OF_OP_TYPE = 1;
+
     /// @notice The bytes lengths of a chunk
     uint8 internal constant BYTES_OF_CHUNK = 12;
+
+    /// @notice The bytes lengths of two chunks
+    uint8 internal constant BYTES_OF_TWO_CHUNKS = 2 * BYTES_OF_CHUNK;
+
+    /// @notice The bytes lengths of three chunks
+    uint8 internal constant BYTES_OF_THREE_CHUNKS = 3 * BYTES_OF_CHUNK;
+
+    /// @notice The bytes lengths of four chunks
+    uint8 internal constant BYTES_OF_FOUR_CHUNKS = 4 * BYTES_OF_CHUNK;
 
     /// @notice The bits lengths of a chunk
     uint8 internal constant BITS_OF_CHUNK = BYTES_OF_CHUNK * BITS_OF_BYTE;
 
-    /// @notice The bytes lengths of register request
-    uint256 internal constant REGISTER_BYTES = 3 * BYTES_OF_CHUNK;
+    /// @notice The chunk size of a evacuation request
+    uint256 internal constant EVACUATION_CHUNK_SIZE = 2;
 
-    /// @notice The bytes lengths of deposit request
-    uint256 internal constant DEPOSIT_BYTES = 2 * BYTES_OF_CHUNK;
+    /// @notice The evacuation commitment offset
+    /// @dev 0x80 = 0b10000000 in binary, the first bit (critical chunk flag) is 1
+    bytes internal constant EVACUATION_COMMITMENT_OFFSET = hex"80";
 
-    /// @notice The bytes lengths of withdraw request
-    uint256 internal constant WITHDRAW_BYTES = 3 * BYTES_OF_CHUNK;
+    /// @notice The max tolerance between the L2 block timestamp and the L1 block timestamp
+    ///         i.e. the block created on L2 must be commit to L1 within 1 day
+    uint256 internal constant COMMIT_BLOCK_TIMESTAMP_MAX_TOLERANCE = 1 days;
 
-    /// @notice The bytes lengths of force withdraw request
-    uint256 internal constant FORCE_WITHDRAW_BYTES = 2 * BYTES_OF_CHUNK;
-
-    /// @notice The bytes lengths of auctionEnd request
-    uint256 internal constant AUCTION_END_BYTES = 4 * BYTES_OF_CHUNK;
-
-    /// @notice The bytes lengths of CreateTsbToken request
-    uint256 internal constant CREATE_TSB_TOKEN_BYTES = 1 * BYTES_OF_CHUNK;
-
-    /// @notice The bytes lengths of WithdrawFee request
-    uint256 internal constant WITHDRAW_FEE_BYTES = 2 * BYTES_OF_CHUNK;
-
-    /// @notice The bytes lengths of Evacuation request
-    uint256 internal constant EVACUATION_BYTES = 2 * BYTES_OF_CHUNK;
+    /// @notice The max deviation between the L2 block timestamp and the L1 block timestamp
+    ///         i.e. the L2 block timestamp cannot greater than the L1 block timestamp + 15 minutes
+    uint256 internal constant COMMIT_BLOCK_TIMESTAMP_MAX_DEVIATION = 15 minutes;
 
     /// @notice The field modulus of bn254
     uint256 internal constant SCALAR_FIELD_SIZE =

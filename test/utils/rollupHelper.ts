@@ -7,6 +7,7 @@ import {
   BYTES_OF_CHUNK,
   DEFAULT_ZERO_ADDR,
   ETH_ASSET_CONFIG,
+  EVACUATION_BYTES,
   FORCE_WITHDRAW_BYTES,
   NOOP_BYTES,
   WITHDRAW_BYTES,
@@ -18,7 +19,6 @@ import {
   TS_BASE_TOKEN,
   TS_SYSTEM_DECIMALS,
   TsTxType,
-  uint8ArrayToHexString,
 } from "term-structure-sdk";
 import {
   CommitBlockStruct,
@@ -42,6 +42,7 @@ import {
 import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 import { ethers } from "hardhat";
 import { LoanStruct } from "../../typechain-types/contracts/zkTrueUp/loan/ILoanFacet";
+import { diamond } from "../../typechain-types/@solidstate/contracts/proxy";
 
 export type RootInfo = {
   txId: string;
@@ -114,7 +115,7 @@ export function initTestData(baseDir: string): TestDataItem[] {
         throw new Error("invalid tsPubKeyList");
       }
       result.push({
-        index: index,
+        index,
         path: resolve(baseDir, file.name),
         commitBlock,
         callData: {
@@ -149,7 +150,7 @@ export function initEvacuationTestData(baseDir: string) {
       const callDataRaw = JSON.parse(fs.readFileSync(calldataRawPath, "utf-8"));
 
       result.push({
-        index: index,
+        index,
         path: resolve(baseDir, file.name),
         commitmentData,
         callData: {
@@ -227,12 +228,13 @@ export const getStates = async (
     }
   }
   const states: { [key: number]: AccountState } = {};
-
   for (const accountId in collections) {
     const collection: Collection = collections[accountId];
-
     for (const tokenId of collection.withdrawTokenIds) {
-      const tokenAddr = baseTokenAddresses[tokenId];
+      // const tokenAddr = baseTokenAddresses[tokenId];
+      const tokenAddr = await (
+        await diamondToken.getAssetConfig(tokenId)
+      ).token;
       const sender = accounts[accountId];
       const pendingBalance = await diamondRollup.getPendingBalances(
         await sender.getAddress(),
@@ -243,7 +245,6 @@ export const getStates = async (
       }
       states[accountId].pendingBalances[tokenId] = pendingBalance;
     }
-
     for (const tokenId of collection.withdrawFeeTokenIds) {
       const tokenAddr = baseTokenAddresses[tokenId];
       const token = await ethers.getContractAt(
@@ -267,7 +268,6 @@ export const getStates = async (
         .add(vaultAmt)
         .add(insuranceAmt);
     }
-
     for (const id of collection.loanIds) {
       const [accountId, collateralTokenId, baseTokenId, maturityTime] =
         id.split("-");
@@ -302,7 +302,9 @@ export const checkStates = async (
     if (reqType == TsTxType.WITHDRAW || reqType == TsTxType.FORCE_WITHDRAW) {
       const accountId = Number(testCase.reqDataList[i][1]);
       const tokenId = Number(testCase.reqDataList[i][2]);
-      const tokenDecimals = getDecimals(tokenId);
+      // const tokenDecimals = getDecimals(tokenId);
+      const tokenDecimals = (await diamondToken.getAssetConfig(tokenId))
+        .decimals;
       const amount = BigNumber.from(testCase.reqDataList[i][3])
         .mul(BigNumber.from(10).pow(tokenDecimals))
         .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
@@ -485,7 +487,7 @@ export const doDeposit = async (
 };
 export const doForceWithdraw = async (
   accounts: Signer[],
-  baseTokenAddresses: BaseTokenAddresses,
+  diamondToken: TokenFacet,
   diamondAcc: AccountFacet,
   testCase: TestDataItem,
   requestId: number
@@ -493,7 +495,7 @@ export const doForceWithdraw = async (
   const accountId = Number(testCase.reqDataList[requestId][9]);
   const signer = accounts[accountId];
   const tokenId = Number(testCase.reqDataList[requestId][2]);
-  const tokenAddr = baseTokenAddresses[tokenId];
+  const tokenAddr = await (await diamondToken.getAssetConfig(tokenId)).token;
 
   await diamondAcc.connect(signer).forceWithdraw(tokenAddr);
 };
@@ -540,65 +542,37 @@ export function getPendingRollupTxHash(commitBlock: CommitBlockType) {
     const opType = Number(
       "0x" + commitBlock.o_chunk.slice(startFlag, startFlag + 2 * NOOP_BYTES)
     ).toString() as TsTxType;
+    let endFlag = 0;
     switch (opType) {
       case TsTxType.FORCE_WITHDRAW: {
-        const pubdata =
-          "0x" +
-          commitBlock.o_chunk.slice(
-            startFlag,
-            startFlag + 2 * FORCE_WITHDRAW_BYTES
-          );
-        pendingRollupTxHash = ethers.utils.keccak256(
-          ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "bytes"],
-            [pendingRollupTxHash, pubdata]
-          )
-        );
+        endFlag = startFlag + 2 * FORCE_WITHDRAW_BYTES;
         break;
       }
-
       case TsTxType.WITHDRAW: {
-        const pubdata =
-          "0x" +
-          commitBlock.o_chunk.slice(startFlag, startFlag + 2 * WITHDRAW_BYTES);
-        pendingRollupTxHash = ethers.utils.keccak256(
-          ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "bytes"],
-            [pendingRollupTxHash, pubdata]
-          )
-        );
+        endFlag = startFlag + 2 * WITHDRAW_BYTES;
         break;
       }
       case TsTxType.AUCTION_END: {
-        const pubdata =
-          "0x" +
-          commitBlock.o_chunk.slice(
-            startFlag,
-            startFlag + 2 * AUCTION_END_BYTES
-          );
-        pendingRollupTxHash = ethers.utils.keccak256(
-          ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "bytes"],
-            [pendingRollupTxHash, pubdata]
-          )
-        );
+        endFlag = startFlag + 2 * AUCTION_END_BYTES;
         break;
       }
       case TsTxType.WITHDRAW_FEE: {
-        const pubdata =
-          "0x" +
-          commitBlock.o_chunk.slice(
-            startFlag,
-            startFlag + 2 * WITHDRAW_FEE_BYTES
-          );
-        pendingRollupTxHash = ethers.utils.keccak256(
-          ethers.utils.defaultAbiCoder.encode(
-            ["bytes32", "bytes"],
-            [pendingRollupTxHash, pubdata]
-          )
-        );
+        endFlag = startFlag + 2 * WITHDRAW_FEE_BYTES;
         break;
       }
+      case TsTxType.EVACUATION: {
+        endFlag = startFlag + 2 * EVACUATION_BYTES;
+        break;
+      }
+    }
+    if (endFlag !== 0) {
+      const pubdata = "0x" + commitBlock.o_chunk.slice(startFlag, endFlag);
+      pendingRollupTxHash = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(
+          ["bytes32", "bytes"],
+          [pendingRollupTxHash, pubdata]
+        )
+      );
     }
   }
   return pendingRollupTxHash;
@@ -725,6 +699,14 @@ export function getPendingRollupTxPubData(testCase: TestDataItem) {
           2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * WITHDRAW_FEE_BYTES
         );
       pendingRollupTxPubdata.push(pubdata);
+    } else if (opType == Number(TsTxType.EVACUATION)) {
+      pubdata =
+        "0x" +
+        testCase.commitBlock.o_chunk.slice(
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i],
+          2 + 2 * BYTES_OF_CHUNK * criticalChunks[i] + 2 * EVACUATION_BYTES
+        );
+      pendingRollupTxPubdata.push(pubdata);
     }
   }
 
@@ -733,21 +715,15 @@ export function getPendingRollupTxPubData(testCase: TestDataItem) {
 
 export function getCommitBlock(
   lastCommittedBlock: StoredBlockStruct,
-  testCase: TestDataItem,
-  isEvacuate: boolean
+  testCase: TestDataItem
 ) {
   // NOTE: normal chunk is 1 chunk for 1 bit and padding it to 1 bytes(8 bits)
-  const chunkLen =
-    (testCase.commitBlock.o_chunk.length - 2) / 2 / CHUNK_BYTES_SIZE;
-
-  const chunkIdDeltas = testCase.commitBlock.chunkIdDeltas;
-
   const commitBlock: CommitBlockStruct = {
     blockNumber: BigNumber.from(lastCommittedBlock.blockNumber).add(1),
     newStateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
     newTsRoot: testCase.commitBlock.newFlowInfo.tsRoot,
     publicData: testCase.commitBlock.o_chunk,
-    chunkIdDeltas,
+    chunkIdDeltas: testCase.commitBlock.chunkIdDeltas,
     timestamp: testCase.commitBlock.timestamp,
   };
   return commitBlock;
@@ -774,52 +750,13 @@ export function getStoredBlock(
   commitBlock: CommitBlockStruct,
   testCase: TestDataItem
 ) {
-  const publicData = utils.solidityPack(
-    ["bytes", "bytes"],
-    [testCase.commitBlock.isCriticalChunk, testCase.commitBlock.o_chunk]
-  );
-  const publicDataLength = (testCase.commitBlock.o_chunk.length - 2) / 2;
-  const BITS_OF_BYTE = 8;
-  const BYTES_OF_CHUNK = 12;
-  const BITS_OF_CHUNK = BYTES_OF_CHUNK * BITS_OF_BYTE;
-  const LAST_INDEX_OF_BYTE = BITS_OF_BYTE - 1;
-  const commitmentOffset: Uint8Array = new Uint8Array(
-    publicDataLength / BITS_OF_CHUNK
-  );
-  const chunkIdDeltas: number[] = commitBlock.chunkIdDeltas.map((v) =>
-    Number(v)
-  ); // Initialize with actual values if any.
-  let chunkId = 0;
-  for (let i = 0; i < chunkIdDeltas.length; i++) {
-    chunkId += chunkIdDeltas[i];
-    const chunkIndex: number = Math.floor(chunkId / BITS_OF_BYTE);
-    const processingCommitmentOffset: number = commitmentOffset[chunkIndex];
-    const bitwiseMask: number =
-      1 << (LAST_INDEX_OF_BYTE - (chunkId % BITS_OF_BYTE));
-    if ((processingCommitmentOffset & bitwiseMask) !== 0) {
-      throw new Error(`OffsetIsSet: ${chunkId}`);
-    }
-    commitmentOffset[chunkIndex] = processingCommitmentOffset | bitwiseMask;
-  }
-
-  const commitmentHash = stateToCommitmentHash({
-    oriStateRoot: testCase.commitBlock.oriFlowInfo.stateRoot,
-    newStateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
-    newTsRoot: testCase.commitBlock.newFlowInfo.tsRoot,
-    pubdata: testCase.commitBlock.publicData,
-    commitmentOffset: utils.hexlify(commitmentOffset),
-    newBlockTimestamp: testCase.commitBlock.timestamp,
-  });
-  const l1RequestNum = getL1RequestNum(testCase.reqDataList);
-  const pendingRollupTxHash = getPendingRollupTxHash(testCase.commitBlock);
-  // const pendingRollupTxHash = testCase.commitBlock.pendingRollupTxHash;
   const storedBlock: StoredBlockStruct = {
     blockNumber: commitBlock.blockNumber,
-    l1RequestNum: l1RequestNum,
-    pendingRollupTxHash: pendingRollupTxHash,
-    commitment: commitmentHash,
+    l1RequestNum: testCase.commitBlock.l1RequestNum,
+    pendingRollupTxHash: testCase.commitBlock.pendingRollupTxHash,
+    commitment: testCase.commitBlock.commitment,
     stateRoot: testCase.commitBlock.newFlowInfo.stateRoot,
-    timestamp: commitBlock.timestamp,
+    timestamp: testCase.commitBlock.timestamp,
   };
   return storedBlock;
 }
@@ -891,16 +828,53 @@ export function stateToCommitmentHash({
   return commitmentHash;
 }
 
-export function getL1RequestNum(reqData: any) {
-  let requestNum = 0;
-  for (let i = 0; i < reqData.length; i++) {
-    if (
-      reqData[i][0] == TsTxType.REGISTER ||
-      reqData[i][0] == TsTxType.DEPOSIT ||
-      reqData[i][0] == TsTxType.FORCE_WITHDRAW
-    ) {
-      requestNum++;
+export async function actionDispatcher(
+  reqType: string,
+  operator: Signer,
+  accounts: Signer[],
+  baseTokenAddresses: BaseTokenAddresses,
+  testCase: TestDataItem,
+  requestId: number,
+  diamondAcc: AccountFacet,
+  diamondToken: TokenFacet,
+  diamondTsb: TsbFacet
+) {
+  if (reqType == TsTxType.REGISTER.toString()) {
+    await doRegister(
+      accounts,
+      baseTokenAddresses,
+      diamondAcc,
+      testCase,
+      requestId
+    );
+  } else if (reqType == TsTxType.DEPOSIT.toString()) {
+    if (requestId > 0) {
+      if (Number(testCase.reqDataList[requestId - 1][0]) == 1) {
+        return;
+      }
     }
+    await doDeposit(
+      accounts,
+      baseTokenAddresses,
+      diamondAcc,
+      testCase,
+      requestId
+    );
+  } else if (reqType == TsTxType.FORCE_WITHDRAW.toString()) {
+    await doForceWithdraw(
+      accounts,
+      diamondToken,
+      diamondAcc,
+      testCase,
+      requestId
+    );
+  } else if (reqType == TsTxType.CREATE_TSB_TOKEN.toString()) {
+    await doCreateBondToken(
+      operator,
+      diamondToken,
+      diamondTsb,
+      testCase,
+      requestId
+    );
   }
-  return requestNum;
 }

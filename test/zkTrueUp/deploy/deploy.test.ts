@@ -9,7 +9,7 @@ import { AddressFacet } from "../../../typechain-types/contracts/zkTrueUp/addres
 import { keccak256 } from "ethers/lib/utils";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 import { useFacet } from "../../../utils/useFacet";
-import initStates from "../../data/rollupData/local-block-230808/initStates.json";
+import initStates from "../../data/rollupData/rollup/initStates.json";
 import {
   AccountFacet,
   AccountFacet__factory,
@@ -366,7 +366,10 @@ describe("Deploy", () => {
         initData,
         onlyCall
       )
-    ).to.be.revertedWithCustomError(ZkTrueUpInit, "AlreadyInitialized");
+    ).to.be.revertedWithCustomError(
+      ZkTrueUpInit,
+      "Initializable__AlreadyInitialized"
+    );
   });
 
   it("Success to deploy", async function () {

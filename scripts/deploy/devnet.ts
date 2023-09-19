@@ -11,7 +11,6 @@ import { cutFacets } from "../../utils/cutFacets";
 import { DEFAULT_ETH_ADDRESS, TsTokenId } from "term-structure-sdk";
 import {
   BASE_TOKEN_ASSET_CONFIG,
-  DEFAULT_GENESIS_STATE_ROOT,
   ETH_ASSET_CONFIG,
   FACET_NAMES,
   INIT_FUNCTION_NAME,
@@ -34,6 +33,7 @@ export const main = async () => {
   const treasuryAddr = getString(process.env.DEVNET_TREASURY_ADDRESS);
   const insuranceAddr = getString(process.env.DEVNET_INSURANCE_ADDRESS);
   const vaultAddr = getString(process.env.DEVNET_VAULT_ADDRESS);
+  const genesisStateRoot = getString(process.env.DEVNET_GENESIS_STATE_ROOT);
 
   console.log(
     "Deploying contracts with deployer:",
@@ -146,7 +146,7 @@ export const main = async () => {
       treasuryAddr,
       insuranceAddr,
       vaultAddr,
-      DEFAULT_GENESIS_STATE_ROOT,
+      genesisStateRoot,
       {
         isStableCoin: ETH_ASSET_CONFIG.isStableCoin,
         isTsbToken: ETH_ASSET_CONFIG.isTsbToken,
