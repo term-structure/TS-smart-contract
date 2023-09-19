@@ -557,12 +557,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
         uint64 lastL1RequestId = totalL1RequestNum - 1;
-        /// the last executed L1 req == the total L1 req (end of consume),
-        /// the last L1 req is evacuation (end of consume and someone already evacuated)
-        bool isExecutedL1RequestNumEqTotalL1RequestNum = executedL1RequestNum == totalL1RequestNum;
-        bool isLastL1RequestEvacuation = rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION;
-        if (!isExecutedL1RequestNumEqTotalL1RequestNum && !isLastL1RequestEvacuation)
-            revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
+        // the last executed L1 req == the total L1 req (end of consume)
+        if (executedL1RequestNum != totalL1RequestNum) {
+            // the last L1 req is evacuation (end of consume and someone already evacuated)
+            bool isLastL1RequestEvacuation = rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION;
+            if (!isLastL1RequestEvacuation) revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
+        }
     }
 
     /// @notice Internal function to update the commitment offset for the chunk
