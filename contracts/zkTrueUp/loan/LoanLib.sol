@@ -180,14 +180,6 @@ library LoanLib {
         return s.isActivatedRoller;
     }
 
-    /// @notice Internal function to check if the sender is the loan owner
-    /// @param addr The address of the sender
-    /// @param loanInfo The loan info
-    function isLoanOwner(address addr, LoanInfo memory loanInfo) internal view {
-        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
-        if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
-    }
-
     /// @notice Internal function to check if the loan is liquidable
     /// @param healthFactor The health factor of the loan
     /// @param maturityTime The maturity time of the loan
@@ -209,6 +201,14 @@ library LoanLib {
     /// @return isHealthy True if the loan is healthy, otherwise false
     function isHealthy(uint256 healthFactor) internal pure returns (bool) {
         return healthFactor >= Config.HEALTH_FACTOR_THRESHOLD;
+    }
+
+    /// @notice Internal function to check if the address is the loan owner
+    /// @param addr The address to be checked
+    /// @param loanInfo The loan info
+    function requireLoanOwner(address addr, LoanInfo memory loanInfo) internal view {
+        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
+        if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
     }
 
     /// @notice Internal function to check if the loan is healthy
