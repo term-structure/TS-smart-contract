@@ -543,10 +543,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
             // if data is not zero, revert
             if data {
-                let ptr := mload(0x40)
-                mstore(ptr, errorSelector)
-                mstore(add(ptr, 0x04), evacuationRequestNum)
-                revert(ptr, 0x24)
+                mstore(0x00, errorSelector)
+                mstore(0x04, evacuationRequestNum)
+                revert(0x00, 0x24)
             }
         }
     }
