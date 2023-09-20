@@ -108,6 +108,7 @@ contract EvacuVerifier {
                 mstore(add(_pVk, 32), IC0y)
 
                 // Compute the linear combination vk_x
+                // _pVk += {IC1x, IC1y} * pubSignals[0]
                 g1_mulAccC(_pVk, IC1x, IC1y, calldataload(pubSignals))
 
                 // -A
@@ -159,7 +160,6 @@ contract EvacuVerifier {
             mstore(0x40, add(pMem, pLastMem))
 
             // Validate that all evaluations ∈ F
-
             checkField(calldataload(_pubSignals))
 
             // Validate all evaluations
