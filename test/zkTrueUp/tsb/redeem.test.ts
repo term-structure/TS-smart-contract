@@ -145,9 +145,7 @@ describe("Redeem TsbToken", () => {
       const tsbTokenAddr = await diamondTsbMock.getTsbToken(tokenId, maturity);
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await (
-        await diamondAccMock
-          .connect(user1)
-          .withdraw(tsbTokenAddr, amount, user1Id)
+        await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, amount)
       ).wait(); //! ignore _withdraw in AccountMock
     });
 
@@ -313,9 +311,7 @@ describe("Redeem TsbToken", () => {
       const tsbTokenAddr = await diamondTsbMock.getTsbToken(tokenId, maturity);
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await (
-        await diamondAccMock
-          .connect(user1)
-          .withdraw(tsbTokenAddr, tsbTokenAmt, user1Id)
+        await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, tsbTokenAmt)
       ).wait(); //! ignore _withdraw in AccountMock
     });
 

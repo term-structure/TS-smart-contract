@@ -10,8 +10,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IAccountFacet {
     /// @notice Error for register account which is already registered
     error AccountIsRegistered(address sender);
-    /// @notice Error for account address is not the msg.sender
-    error AccountAddrIsNotSender(address accountAddr, address sender);
     /// @notice Error for register account when exceed account number limit
     error AccountNumExceedLimit(uint32 registeredAccountId);
     /// @notice Error for register account when the public key is invalid
@@ -33,8 +31,7 @@ interface IAccountFacet {
     /// @notice Withdraw Ether or ERC20 from ZkTrueUp
     /// @param token The token to be withdrawn
     /// @param amount The amount of the token to be withdrawn
-    /// @param accountId The L2 account id
-    function withdraw(IERC20 token, uint256 amount, uint32 accountId) external;
+    function withdraw(IERC20 token, uint256 amount) external;
 
     /// @notice Force withdraw Ether or ERC20 from ZkTrueUp
     /// @notice When the L2 system is down or user's asset is censored, user can do forceWithdraw to withdraw asset from ZkTrueUp

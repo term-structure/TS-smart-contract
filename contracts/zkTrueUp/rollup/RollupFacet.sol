@@ -184,6 +184,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 AccountStorage.Layout storage asl = AccountStorage.layout();
                 address registerAddr = asl.accountAddresses[registerReq.accountId];
                 delete asl.accountIds[registerAddr];
+                emit AccountDeregistered(registerAddr, registerReq.accountId);
             }
 
             ++executedL1RequestNum;
@@ -270,6 +271,24 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             rsl.evacuMode = false;
             emit EvacuModeDeactivation();
         }
+    }
+
+    /**
+     * @inheritdoc IRollupFacet
+     * @notice The function is to refund the pending balance for the account which is deregistered in `consumeL1RequestInEvacuMode`
+     */
+    function refundDeregisteredAddr(IERC20 token, uint256 amount, uint32 accountId) external nonReentrant {
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        address accountAddr = asl.getAccountAddr(accountId);
+        if (accountAddr != msg.sender) revert AccountAddrIsNotSender(accountAddr, msg.sender);
+
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
+
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        AccountLib.updateWithdrawalRecord(rsl, accountAddr, accountId, token, tokenId, amount);
+
+        Utils.tokenTransfer(token, payable(accountAddr), amount, assetConfig.isTsbToken);
     }
 
     /* ============ External View Functions ============ */
