@@ -113,7 +113,7 @@ contract Verifier {
 
                 // -A
                 mstore(_pPairing, calldataload(pA))
-                mstore(add(_pPairing, 32), mod(sub(q, calldataload(add(pA, 32))), q))
+                mstore(add(_pPairing, 32), sub(q, mod(calldataload(add(pA, 32)), q)))
 
                 // B
                 mstore(add(_pPairing, 64), calldataload(pB))
