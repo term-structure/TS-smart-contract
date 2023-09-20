@@ -128,7 +128,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         uint32 expirationTime = rsl.getL1Request(lastExecutedL1RequestId).expirationTime;
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
-            /// Roll back state
+            // Roll back state
             uint32 executedBlockNum = rsl.getExecutedBlockNum();
             rsl.committedBlockNum = executedBlockNum;
             rsl.verifiedBlockNum = executedBlockNum;
@@ -172,7 +172,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             if (opType > type(Operations.OpType).max) revert InvalidOpType(opType);
 
             if (opType == Operations.OpType.DEPOSIT) {
-                /// refund the deposit amount to the pending balance for withdraw
+                // refund the deposit amount to the pending balance for withdraw
                 Operations.Deposit memory depositReq = pubData.readDepositPubData();
                 _addPendingBalance(rsl, depositReq.accountId, depositReq.tokenId, depositReq.amount);
             } else if (opType == Operations.OpType.REGISTER) {
@@ -423,7 +423,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         for (uint32 i; i < newBlocks.length; ++i) {
             CommitBlock calldata newBlock = newBlocks[i];
 
-            /// if evacuation blocks, check the block only includes the evacuation request and noop
+            // if evacuation blocks, check the block only includes the evacuation request and noop
             if (processRequestFunc == _processOneEvacuRequest) {
                 _requireValidEvacuBlockChunkIdDelta(newBlock.chunkIdDeltas);
                 _requireValidEvacuBlockPubData(newBlock.chunkIdDeltas.length, newBlock.publicData);
@@ -472,7 +472,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         newBlock.timestamp.requireValidBlockTimestamp(previousBlock.timestamp);
         newBlock.publicData.length.requireValidPubDataLength();
 
-        /// The commitment offset array is used to store the commitment offset for each chunk
+        // The commitment offset array is used to store the commitment offset for each chunk
         bytes memory commitmentOffset = new bytes(newBlock.publicData.length / Config.BITS_OF_CHUNK);
         uint256 chunkId;
         uint64 requestId = committedL1RequestNum;
