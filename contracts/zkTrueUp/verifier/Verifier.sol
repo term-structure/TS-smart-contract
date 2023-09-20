@@ -74,6 +74,7 @@ contract Verifier {
             }
 
             // G1 function to multiply a G1 value(x,y) to value in an address
+            // and add it to the value in the address => pR = pR + {x, y} * s
             function g1_mulAccC(pR, x, y, s) {
                 let success
                 let mIn := mload(0x40)
