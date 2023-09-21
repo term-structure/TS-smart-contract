@@ -32,28 +32,7 @@ contract WstETHPriceFeed is AggregatorV3Interface {
     }
 
     /**
-     * @inheritdoc AggregatorV3Interface
-     */
-    function decimals() external view returns (uint8) {
-        return _stETHPriceFeed.decimals();
-    }
-
-    /**
-     * @inheritdoc AggregatorV3Interface
-     */
-    function description() external view returns (string memory) {
-        return _stETHPriceFeed.description();
-    }
-
-    /**
-     * @inheritdoc AggregatorV3Interface
-     */
-    function version() external view returns (uint256) {
-        return _stETHPriceFeed.version();
-    }
-
-    /**
-     * @inheritdoc AggregatorV3Interface
+     * @notice Revert this function because cannot get the chi (rate accumulator) at a specific round
      */
     function getRoundData(
         uint80 _roundId
@@ -67,7 +46,12 @@ contract WstETHPriceFeed is AggregatorV3Interface {
     }
 
     /**
-     * @inheritdoc AggregatorV3Interface
+     * @notice Get the latest round data from chainlink and calculate the wstETH price by multiplying stETH/wstETH ratio
+     * @return roundId The round ID
+     * @return answer The calculated wstETH price
+     * @return startedAt Timestamp of when the round started
+     * @return updatedAt Timestamp of when the round was updated
+     * @return answeredInRound The round ID of the round in which the answer was computed
      */
     function latestRoundData()
         external
@@ -78,5 +62,19 @@ contract WstETHPriceFeed is AggregatorV3Interface {
         (roundId, answer, startedAt, updatedAt, answeredInRound) = _stETHPriceFeed.latestRoundData();
         answer = (answer * _wstETH.stEthPerToken().toInt256()) / STETH_PER_WSTETH_DECIMALS;
         return (roundId, answer, startedAt, updatedAt, answeredInRound);
+    }
+
+    /** ========== Return original chainlink data ========== */
+
+    function decimals() external view returns (uint8) {
+        return _stETHPriceFeed.decimals();
+    }
+
+    function description() external view returns (string memory) {
+        return _stETHPriceFeed.description();
+    }
+
+    function version() external view returns (uint256) {
+        return _stETHPriceFeed.version();
     }
 }
