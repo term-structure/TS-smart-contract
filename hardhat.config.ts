@@ -11,12 +11,13 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import { resolve } from "path";
 import { getBoolean, getString } from "./utils/type";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, rmSync } from "fs";
 task("storage-layout", "Prints the storage layout", async (_, hre) => {
   await hre.storageLayout.export();
 });
 
 if (!existsSync(resolve(__dirname, "./reports"))) {
+  rmSync(resolve(__dirname, "./reports"), { recursive: true, force: true });
   mkdirSync(resolve(__dirname, "./reports"));
 }
 
