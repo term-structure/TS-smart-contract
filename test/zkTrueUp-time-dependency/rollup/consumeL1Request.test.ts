@@ -427,15 +427,11 @@ describe("Consume L1 Request in EvacuMode", function () {
     expect(afterNewUserAccountId).to.be.eq(0);
 
     // check user1 successfully withdraw after consume l1 request
-    await diamondRollup
+    await diamondAcc
       .connect(user1)
-      .refundDeregisteredAddr(
-        DEFAULT_ETH_ADDRESS,
-        user1DepositAmt,
-        user1AccountId
-      );
+      .withdraw(DEFAULT_ETH_ADDRESS, user1DepositAmt);
 
-    // check new user successfully withdraw after consume l1 request
+    // check new user successfully refund after consume l1 request
     await diamondRollup
       .connect(newUser)
       .refundDeregisteredAddr(

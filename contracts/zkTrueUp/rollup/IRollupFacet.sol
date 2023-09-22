@@ -56,6 +56,8 @@ interface IRollupFacet {
     error InvalidEvacuBlockPubData(uint256 evacuationRequestNum);
     /// @notice Error for account address is not the msg.sender
     error AccountAddrIsNotSender(address accountAddr, address sender);
+    /// @notice Error for refund deregistered address but the account is not deregistered
+    error NotDeregisteredAddr(address accountAddr, uint32 accountId);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block

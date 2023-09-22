@@ -276,10 +276,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc IRollupFacet
      * @notice The function is to refund the pending balance for the account which is deregistered in `consumeL1RequestInEvacuMode`
+     * @notice The function is only refund for the deregistered account, the normal account should use the `withdraw` function to withdraw their funds
+     * @notice De-register only remove the accountAddr mapping to accountId, and keep the accountId mapping to accountAddr for refund
+               so if the `asl.getAccountId(asl.getAccountAddr(accountId)) == accountId` means the account is not the deregistered account
      */
     function refundDeregisteredAddr(IERC20 token, uint256 amount, uint32 accountId) external nonReentrant {
         AccountStorage.Layout storage asl = AccountStorage.layout();
         address accountAddr = asl.getAccountAddr(accountId);
+        // check the account is deregistered (accountAddr mapping to accountId is deleted)
+        if (asl.getAccountId(accountAddr) == accountId) revert NotDeregisteredAddr(accountAddr, accountId);
         if (accountAddr != msg.sender) revert AccountAddrIsNotSender(accountAddr, msg.sender);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
