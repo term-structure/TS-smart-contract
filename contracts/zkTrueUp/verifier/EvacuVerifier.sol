@@ -114,7 +114,7 @@ contract EvacuVerifier {
 
                 // -A
                 mstore(_pPairing, calldataload(pA))
-                mstore(add(_pPairing, 32), sub(q, mod(calldataload(add(pA, 32)), q)))
+                mstore(add(_pPairing, 32), mod(sub(q, mod(calldataload(add(pA, 32)), q)), q))
 
                 // B
                 mstore(add(_pPairing, 64), calldataload(pB))
