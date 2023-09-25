@@ -1,14 +1,14 @@
 import { ethers } from "hardhat";
-import { getString } from "../../../utils/type";
+import { getString } from "../../../../utils/type";
 import { Wallet } from "ethers";
-import { SDaiPriceFeed__factory } from "../../../typechain-types";
-import { MAINNET_ADDRESS } from "../../../utils/config";
+import { SDaiPriceFeed__factory } from "../../../../typechain-types";
+import { GOERLI_ADDRESS } from "../../../../utils/config";
 
 export const main = async () => {
   const provider = new ethers.providers.JsonRpcProvider(
-    process.env.MAINNET_RPC_URL
+    process.env.GOERLI_RPC_URL
   );
-  const deployerPrivKey = getString(process.env.MAINNET_DEPLOYER_PRIVATE_KEY);
+  const deployerPrivKey = getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY);
   const deployer = new Wallet(deployerPrivKey, provider);
 
   console.log(
@@ -21,8 +21,8 @@ export const main = async () => {
   const sDaiPriceFeedFactory = (await ethers.getContractFactory(
     "SDaiPriceFeed"
   )) as SDaiPriceFeed__factory;
-  const potAddr = MAINNET_ADDRESS.MAKER_POT;
-  const daiPriceFeed = MAINNET_ADDRESS.DAI_PRICE_FEED;
+  const potAddr = GOERLI_ADDRESS.MAKER_POT;
+  const daiPriceFeed = getString(process.env.GOERLI_DAI_PRICE_FEED);
   const sDaiPriceFeed = await sDaiPriceFeedFactory.deploy(
     potAddr,
     daiPriceFeed
