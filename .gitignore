@@ -15,3 +15,7 @@ reports/**/*
 .VSCodeCounter
 .vscode
 
+# others
+log
+*.log
+

@@ -33,12 +33,15 @@ export const main = async () => {
   const insuranceAddr = getString(process.env.GOERLI_INSURANCE_ADDRESS);
   const vaultAddr = getString(process.env.GOERLI_VAULT_ADDRESS);
   const faucetOwner = getString(process.env.GOERLI_FAUCET_OWNER_ADDRESS);
+  const oracleOwner = getString(process.env.GOERLI_ORACLE_OWNER_ADDRESS);
   const genesisStateRoot = getString(process.env.GOERLI_GENESIS_STATE_ROOT);
 
   console.log(
     "Deploying contracts with deployer:",
     await deployer.getAddress()
   );
+
+  console.log("Genesis state root: ", genesisStateRoot);
 
   // Deploy WETH
   console.log("Deploying WETH...");
@@ -107,6 +110,7 @@ export const main = async () => {
   for (const tokenId of Object.keys(baseTokenAddresses)) {
     const oracleMock = await OracleMock.connect(deployer).deploy();
     await oracleMock.deployed();
+    await oracleMock.connect(deployer).transferOwnership(oracleOwner);
     priceFeeds[tokenId] = oracleMock.address;
   }
 
@@ -143,7 +147,8 @@ export const main = async () => {
       poseidonUnit2Contract.address,
       verifier.address,
       evacuVerifier.address,
-      adminAddr,
+      //! adminAddr, only for demo
+      deployer.address,
       operatorAddr,
       treasuryAddr,
       insuranceAddr,

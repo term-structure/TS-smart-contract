@@ -40,6 +40,8 @@ export const main = async () => {
     await deployer.getAddress()
   );
 
+  console.log("Genesis state root: ", genesisStateRoot);
+
   // Deploy WETH
   console.log("Deploying WETH...");
   const WETH = await ethers.getContractFactory("WETH9");

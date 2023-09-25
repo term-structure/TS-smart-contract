@@ -12,6 +12,8 @@ import "solidity-coverage";
 import { resolve } from "path";
 import { getBoolean, getString } from "./utils/type";
 import { existsSync, mkdirSync } from "fs";
+import "./tasks";
+
 task("storage-layout", "Prints the storage layout", async (_, hre) => {
   await hre.storageLayout.export();
 });
@@ -83,9 +85,17 @@ const config: HardhatUserConfig = {
         ? { url: getString(process.env.MAINNET_RPC_URL), blockNumber: 17426510 }
         : undefined,
     },
+    // dev: {
+    //   url: getString(process.env.DEVNET_RPC_URL) || "",
+    //   accounts: [getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY)],
+    // },
     // goerli: {
     //   url: getString(process.env.GOERLI_RPC_URL),
-    //   accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY)],
+    //   accounts: [
+    //     getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY),
+    //     getString(process.env.GOERLI_FAUCET_OPERATOR_PRIVATE_KEY),
+    //     getString(process.env.GOERLI_ORACLE_OPERATOR_PRIVATE_KEY),
+    //   ],
     // },
   },
 };
