@@ -135,7 +135,7 @@ describe("Ts Bond", () => {
     it("Fail to create tsb token, invalid maturity", async () => {
       // get params
       const underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
-      const maturity = BigNumber.from("1672329600"); // 2022-12-30
+      const maturity = BigNumber.from("1659225600"); // 2022-07-31
       const name = tsbTokensJSON[0].name;
       const symbol = tsbTokensJSON[0].symbol;
 
