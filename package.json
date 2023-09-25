@@ -49,6 +49,8 @@
     "test:consume": "hardhat test test/zkTrueUp-time-dependency/rollup/consumeL1Request.test.ts",
     "test:restore": "hardhat test test/zkTrueUp-time-dependency/rollup/restore.test.ts",
     "test:roll": "cross-env IS_FORK_MAINNET=true hardhat test test/mainnetFork/roll/roll.test.ts",
+    "test:wsteth": "cross-env IS_FORK_MAINNET=true hardhat test test/mainnetFork/extension/wsteth.test.ts",
+    "test:sdai": "cross-env IS_FORK_MAINNET=true hardhat test test/mainnetFork/extension/sdai.test.ts",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js",
     "generate:docs": "hardhat docgen",
     "format": "prettier --write 'contracts/**/*.sol' '**/*.{js,ts}' && eslint --fix '**/*.{js,ts}'",
