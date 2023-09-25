@@ -10,6 +10,8 @@ export const main = async () => {
   );
   const deployerPrivKey = getString(process.env.MAINNET_DEPLOYER_PRIVATE_KEY);
   const deployer = new Wallet(deployerPrivKey, provider);
+  const potAddr = MAINNET_ADDRESS.MAKER_POT;
+  const daiPriceFeed = MAINNET_ADDRESS.DAI_PRICE_FEED;
 
   console.log(
     "Deploying customized sDai oracle contracts with deployer:",
@@ -21,8 +23,7 @@ export const main = async () => {
   const sDaiPriceFeedFactory = (await ethers.getContractFactory(
     "SDaiPriceFeed"
   )) as SDaiPriceFeed__factory;
-  const potAddr = MAINNET_ADDRESS.MAKER_POT;
-  const daiPriceFeed = MAINNET_ADDRESS.DAI_PRICE_FEED;
+
   const sDaiPriceFeed = await sDaiPriceFeedFactory.deploy(
     potAddr,
     daiPriceFeed

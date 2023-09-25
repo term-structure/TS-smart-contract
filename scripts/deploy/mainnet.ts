@@ -32,6 +32,8 @@ export const main = async () => {
     await deployer.getAddress()
   );
 
+  console.log("Genesis state root: ", genesisStateRoot);
+
   // deploy poseidonUnit2
   console.log("Deploying PoseidonUnit2...");
   const PoseidonFactory = new ethers.ContractFactory(

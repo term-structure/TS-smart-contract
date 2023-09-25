@@ -10,6 +10,8 @@ export const main = async () => {
   );
   const deployerPrivKey = getString(process.env.MAINNET_DEPLOYER_PRIVATE_KEY);
   const deployer = new Wallet(deployerPrivKey, provider);
+  const wstETHAddr = MAINNET_ADDRESS.WSTETH;
+  const stETHPriceFeed = MAINNET_ADDRESS.STETH_PRICE_FEED;
 
   console.log(
     "Deploying customized wsteth oracle contracts with deployer:",
@@ -21,8 +23,7 @@ export const main = async () => {
   const wstETHPriceFeedFactory = (await ethers.getContractFactory(
     "WstETHPriceFeed"
   )) as WstETHPriceFeed__factory;
-  const wstETHAddr = MAINNET_ADDRESS.WSTETH;
-  const stETHPriceFeed = MAINNET_ADDRESS.STETH_PRICE_FEED;
+
   const wstETHPriceFeed = await wstETHPriceFeedFactory.deploy(
     wstETHAddr,
     stETHPriceFeed
