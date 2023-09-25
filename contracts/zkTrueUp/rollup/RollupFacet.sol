@@ -518,14 +518,20 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param chunkIdDeltas The chunk id delta array
     function _requireValidEvacuBlockChunkIdDelta(uint16[] calldata chunkIdDeltas) internal pure {
         uint256 chunkIdDeltaLength = chunkIdDeltas.length;
+
+        // If there are chunk ID deltas and the first one is not 0, revert
         if (chunkIdDeltaLength != 0 && chunkIdDeltas[0] != 0) revert InvalidChunkIdDelta(chunkIdDeltas);
 
+        // check every chunk id delta is equal to evacuation chunk size
         uint256 andDeltas = Config.EVACUATION_CHUNK_SIZE;
         uint256 orDeltas = Config.EVACUATION_CHUNK_SIZE;
         for (uint256 i = 1; i < chunkIdDeltaLength; ++i) {
             andDeltas &= chunkIdDeltas[i];
             orDeltas |= chunkIdDeltas[i];
         }
+
+        // If there is inconsistency in delta values, revert
+        // This will occur if at least one chunk ID delta is not equal to the size of an evacuation chunk
         if (andDeltas != orDeltas) revert InvalidChunkIdDelta(chunkIdDeltas);
     }
 
