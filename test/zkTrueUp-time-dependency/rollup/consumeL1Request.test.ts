@@ -429,12 +429,16 @@ describe("Consume L1 Request in EvacuMode", function () {
     // check user1 successfully withdraw after consume l1 request
     await diamondAcc
       .connect(user1)
-      .withdraw(DEFAULT_ETH_ADDRESS, user1DepositAmt, user1AccountId);
+      .withdraw(DEFAULT_ETH_ADDRESS, user1DepositAmt);
 
-    // check new user successfully withdraw after consume l1 request
-    await diamondAcc
+    // check new user successfully refund after consume l1 request
+    await diamondRollup
       .connect(newUser)
-      .withdraw(usdc.address, newUserRegisterAmt, newUserAccountId);
+      .refundDeregisteredAddr(
+        usdc.address,
+        newUserRegisterAmt,
+        newUserAccountId
+      );
   });
 
   it("Fail to consume L1 request, not in evacuation mode", async function () {

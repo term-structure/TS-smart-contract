@@ -128,7 +128,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         uint32 expirationTime = rsl.getL1Request(lastExecutedL1RequestId).expirationTime;
         // solhint-disable-next-line not-rely-on-time
         if (block.timestamp > expirationTime && expirationTime != 0) {
-            /// Roll back state
+            // Roll back state
             uint32 executedBlockNum = rsl.getExecutedBlockNum();
             rsl.committedBlockNum = executedBlockNum;
             rsl.verifiedBlockNum = executedBlockNum;
@@ -152,7 +152,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
         uint64 lastL1RequestId = totalL1RequestNum - 1;
-        ///  the last L1 request cannot be evacuation because it would means all L1 requests have been consumed and start to evacuate
+        // The last L1 request cannot be evacuation
+        // because the evacuate action can only be called after consumed all L1 non-executed request
         if (rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION)
             revert LastL1RequestIsEvacuation(totalL1RequestNum);
 
@@ -171,22 +172,21 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             if (opType > type(Operations.OpType).max) revert InvalidOpType(opType);
 
             if (opType == Operations.OpType.DEPOSIT) {
-                /// refund the deposit amount to the pending balance for withdraw
+                // refund the deposit amount to the pending balance for withdraw
                 Operations.Deposit memory depositReq = pubData.readDepositPubData();
                 _addPendingBalance(rsl, depositReq.accountId, depositReq.tokenId, depositReq.amount);
             } else if (opType == Operations.OpType.REGISTER) {
-                /// de-register only remove the accountAddr mapping to accountId,
-                /// which use to check in AccountLib.getValidAccount and let user can register again
-                /// and still can add pending balance to this register account
-                /// when consume the deposit request in the next request
+                // de-register only remove the accountAddr mapping to accountId,
+                // which use to check in AccountLib.getValidAccount and let user can register again
+                // and still can add pending balance to this register account
+                // when consume the deposit request in the next request
                 Operations.Register memory registerReq = pubData.readRegisterPubData();
                 AccountStorage.Layout storage asl = AccountStorage.layout();
                 address registerAddr = asl.accountAddresses[registerReq.accountId];
                 delete asl.accountIds[registerAddr];
-                // solhint-disable-next-line no-empty-blocks
-            } else {
-                // do nothing, others L1 requests have no storage changes
+                emit AccountDeregistered(registerAddr, registerReq.accountId);
             }
+
             ++executedL1RequestNum;
             emit L1RequestConsumed(executedL1RequestNum, opType, pubData);
         }
@@ -264,13 +264,36 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         _requireConsumedAllNonExecutedReq(rsl);
         _executeBlocks(rsl, evacuBlocks);
 
-        /// If executed L1 requests number == total L1 requests number
-        /// means all evacuation requests have been executed,
-        /// the protocol will exit the evacuation mode and back to normal mode
+        // If executed L1 requests number == total L1 requests number
+        // means all evacuation requests have been executed or the evacuation requests are empty
+        // the protocol will exit the evacuation mode and back to normal mode
         if (rsl.getExecutedL1RequestNum() == rsl.getTotalL1RequestNum()) {
             rsl.evacuMode = false;
             emit EvacuModeDeactivation();
         }
+    }
+
+    /**
+     * @inheritdoc IRollupFacet
+     * @notice The function is to refund the pending balance for the account which is deregistered in `consumeL1RequestInEvacuMode`
+     * @notice The function is only refund for the deregistered account, the normal account should use the `withdraw` function to withdraw their funds
+     * @notice De-register only remove the accountAddr mapping to accountId, and keep the accountId mapping to accountAddr for refund
+               so if the `asl.getAccountId(asl.getAccountAddr(accountId)) == accountId` means the account is not the deregistered account
+     */
+    function refundDeregisteredAddr(IERC20 token, uint256 amount, uint32 accountId) external nonReentrant {
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        address accountAddr = asl.getAccountAddr(accountId);
+        // check the account is deregistered (accountAddr mapping to accountId is deleted)
+        if (asl.getAccountId(accountAddr) == accountId) revert NotDeregisteredAddr(accountAddr, accountId);
+        if (accountAddr != msg.sender) revert AccountAddrIsNotSender(accountAddr, msg.sender);
+
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
+
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        AccountLib.updateWithdrawalRecord(rsl, accountAddr, accountId, token, tokenId, amount);
+
+        Utils.tokenTransfer(token, payable(accountAddr), amount, assetConfig.isTsbToken);
     }
 
     /* ============ External View Functions ============ */
@@ -405,7 +428,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         for (uint32 i; i < newBlocks.length; ++i) {
             CommitBlock calldata newBlock = newBlocks[i];
 
-            /// if evacuation blocks, check the block only includes the evacuation request and noop
+            // if evacuation blocks, check the block only includes the evacuation request and noop
             if (processRequestFunc == _processOneEvacuRequest) {
                 _requireValidEvacuBlockChunkIdDelta(newBlock.chunkIdDeltas);
                 _requireValidEvacuBlockPubData(newBlock.chunkIdDeltas.length, newBlock.publicData);
@@ -454,7 +477,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         newBlock.timestamp.requireValidBlockTimestamp(previousBlock.timestamp);
         newBlock.publicData.length.requireValidPubDataLength();
 
-        /// The commitment offset array is used to store the commitment offset for each chunk
+        // The commitment offset array is used to store the commitment offset for each chunk
         bytes memory commitmentOffset = new bytes(newBlock.publicData.length / Config.BITS_OF_CHUNK);
         uint256 chunkId;
         uint64 requestId = committedL1RequestNum;
@@ -495,10 +518,21 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param chunkIdDeltas The chunk id delta array
     function _requireValidEvacuBlockChunkIdDelta(uint16[] calldata chunkIdDeltas) internal pure {
         uint256 chunkIdDeltaLength = chunkIdDeltas.length;
+
+        // If there are chunk ID deltas and the first one is not 0, revert
         if (chunkIdDeltaLength != 0 && chunkIdDeltas[0] != 0) revert InvalidChunkIdDelta(chunkIdDeltas);
+
+        // check every chunk id delta is equal to evacuation chunk size
+        uint256 andDeltas = Config.EVACUATION_CHUNK_SIZE;
+        uint256 orDeltas = Config.EVACUATION_CHUNK_SIZE;
         for (uint256 i = 1; i < chunkIdDeltaLength; ++i) {
-            if (chunkIdDeltas[i] != Config.EVACUATION_CHUNK_SIZE) revert InvalidChunkIdDelta(chunkIdDeltas);
+            andDeltas &= chunkIdDeltas[i];
+            orDeltas |= chunkIdDeltas[i];
         }
+
+        // If there is inconsistency in delta values, revert
+        // This will occur if at least one chunk ID delta is not equal to the size of an evacuation chunk
+        if (andDeltas != orDeltas) revert InvalidChunkIdDelta(chunkIdDeltas);
     }
 
     /// @notice Internal function to check whether the evacuation block pubdata is valid
@@ -509,28 +543,36 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     /// @param pubData The public data of the block
     function _requireValidEvacuBlockPubData(uint256 evacuationRequestNum, bytes calldata pubData) internal pure {
         uint256 validBytesNum = evacuationRequestNum * Config.BYTES_OF_TWO_CHUNKS; // evacuation request is 2 chunks
+        if (pubData.length < validBytesNum) revert InvalidEvacuBlockPubData(evacuationRequestNum);
         bytes4 errorSelector = InvalidEvacuBlockPubData.selector;
 
         // solhint-disable-next-line no-inline-assembly
         assembly {
+            let data
+            // check each 32 bytes in zero length
+            let zeroLen := sub(pubData.length, validBytesNum)
             let curr := add(pubData.offset, validBytesNum)
-            let end := add(pubData.offset, pubData.length)
-
+            let end := add(curr, mul(div(zeroLen, 0x20), 0x20))
             // solhint-disable-next-line no-empty-blocks
             for {
 
             } lt(curr, end) {
                 curr := add(curr, 0x20)
             } {
-                let data := calldataload(curr)
+                data := or(data, calldataload(curr))
+            }
 
-                // if data is not zero, revert
-                if data {
-                    let ptr := mload(0x40)
-                    mstore(ptr, errorSelector)
-                    mstore(add(ptr, 0x04), evacuationRequestNum)
-                    revert(ptr, 0x24)
-                }
+            // check remainders bytes in zero length
+            let r := mod(zeroLen, 0x20)
+            // shift right (0x20 - r) bytes to remove the garbage data
+            let endData := shr(mul(sub(0x20, r), 0x8), calldataload(end))
+            data := or(data, endData)
+
+            // if data is not zero, revert
+            if data {
+                mstore(0x00, errorSelector)
+                mstore(0x04, evacuationRequestNum)
+                revert(0x00, 0x24)
             }
         }
     }
@@ -541,12 +583,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
         uint64 lastL1RequestId = totalL1RequestNum - 1;
-        /// the last executed L1 req == the total L1 req (end of consume),
-        /// the last L1 req is evacuation (end of consume and someone already evacuated)
-        bool isExecutedL1RequestNumEqTotalL1RequestNum = executedL1RequestNum == totalL1RequestNum;
-        bool isLastL1RequestEvacuation = rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION;
-        if (!isExecutedL1RequestNumEqTotalL1RequestNum && !isLastL1RequestEvacuation)
-            revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
+        // the last executed L1 req == the total L1 req (end of consume)
+        if (executedL1RequestNum != totalL1RequestNum) {
+            // the last L1 req is evacuation (end of consume and someone already evacuated)
+            bool isLastL1RequestEvacuation = rsl.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION;
+            if (!isLastL1RequestEvacuation) revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
+        }
     }
 
     /// @notice Internal function to update the commitment offset for the chunk

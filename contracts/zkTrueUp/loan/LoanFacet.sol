@@ -63,7 +63,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     function removeCollateral(bytes12 loanId, uint128 amount) external nonReentrant {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.isLoanOwner(loanInfo);
+        msg.sender.requireLoanOwner(loanInfo);
 
         Loan memory loan = loanInfo.loan;
         loan = loan.removeCollateral(amount);
@@ -125,11 +125,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      */
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
-        bool isActivated = lsl.getRollerState();
-        if (!isActivated) revert RollIsNotActivated();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
 
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.isLoanOwner(loanInfo);
+        msg.sender.requireLoanOwner(loanInfo);
 
         Loan memory loan = loanInfo.loan;
         loan = loan.repay(collateralAmt, debtAmt);
@@ -282,7 +281,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ) internal returns (IERC20, uint32) {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.isLoanOwner(loanInfo);
+        msg.sender.requireLoanOwner(loanInfo);
 
         Loan memory loan = loanInfo.loan;
         IERC20 collateralToken = loanInfo.collateralAsset.token;

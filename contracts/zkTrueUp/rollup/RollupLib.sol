@@ -309,11 +309,11 @@ library RollupLib {
     /// @dev The numbers of chunk should be multiple of 8
     /// @param pubDataLength The public data length
     function requireValidPubDataLength(uint256 pubDataLength) internal pure {
-        /// Two assertions below are equivalent to:
-        /// 1. assert(publicDataLength % Config.BYTES_OF_CHUNK == 0)
-        /// 2. assert((publicDataLength / Config.BYTES_OF_CHUNK) % BITS_OF_BYTES == 0)
-        /// ==> assert(publicDataLength % (Config.BYTES_OF_CHUNK * BITS_OF_BYTES) == 0)
-        /// ==> assert(publicDataLength % Config.BITS_OF_CHUNK == 0)
+        // Two assertions below are equivalent to the assertion below
+        // assert(publicDataLength % Config.BYTES_OF_CHUNK == 0) &&
+        // assert((publicDataLength / Config.BYTES_OF_CHUNK) % BITS_OF_BYTES == 0)
+        // ==> assert(publicDataLength % (Config.BYTES_OF_CHUNK * BITS_OF_BYTES) == 0)
+        // ==> assert(publicDataLength % Config.BITS_OF_CHUNK == 0)
         if (pubDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(pubDataLength);
     }
 

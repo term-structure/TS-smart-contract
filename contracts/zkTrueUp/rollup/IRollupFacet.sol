@@ -54,6 +54,10 @@ interface IRollupFacet {
     error LastL1RequestIsEvacuation(uint64 totalL1RequestNum);
     /// @notice Error for invalid public data when commit evacublock in evacuation mode
     error InvalidEvacuBlockPubData(uint256 evacuationRequestNum);
+    /// @notice Error for account address is not the msg.sender
+    error AccountAddrIsNotSender(address accountAddr, address sender);
+    /// @notice Error for refund deregistered address but the account is not deregistered
+    error NotDeregisteredAddr(address accountAddr, uint32 accountId);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
@@ -111,6 +115,14 @@ interface IRollupFacet {
         uint128 addedDebtAmt
     );
 
+    /// @notice Emit when an account is de-registered
+    /// @notice De-registered only remove the accountAddr -> accountId mapping,
+    ///         but not remove the accountId -> accountAddr mapping,
+    ///         this is for user can still refund their asset by `refundDeregisteredAddr`
+    /// @param accountAddr The address of the account
+    /// @param accountId The id of the account
+    event AccountDeregistered(address accountAddr, uint32 indexed accountId);
+
     /// @notice Commit blocks
     /// @param lastCommittedBlock The last committed block
     /// @param newBlocks The new blocks to be committed
@@ -158,6 +170,12 @@ interface IRollupFacet {
     /// @notice Execute evacuation blocks
     /// @param evacuBlocks The evacuation blocks to be executed
     function executeEvacuBlocks(ExecuteBlock[] calldata evacuBlocks) external;
+
+    /// @notice Refund the deregistered address
+    /// @param token The token to be refunded
+    /// @param amount The amount of the token to be refunded
+    /// @param accountId The account id to be refunded
+    function refundDeregisteredAddr(IERC20 token, uint256 amount, uint32 accountId) external;
 
     /// @notice Return the evacuation mode is activated or not
     /// @return evacuMode The evacuation mode status
