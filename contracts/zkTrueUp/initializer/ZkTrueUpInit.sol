@@ -18,6 +18,7 @@ import {IVerifier} from "../interfaces/IVerifier.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
 import {Config} from "../libraries/Config.sol";
 import {InitialConfig} from "../libraries/InitialConfig.sol";
+import {Utils} from "../libraries/Utils.sol";
 
 /**
  * @title Zk-TureUp Initializer Contract
@@ -25,6 +26,8 @@ import {InitialConfig} from "../libraries/InitialConfig.sol";
  * @notice This contract is used to initialize the Term Structure Protocol
  */
 contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
+    using Utils for *;
+
     /**
      * @notice Initialize function for the Term Structure Protocol
      * @dev This function is called only once when the protocol is deployed
@@ -47,6 +50,17 @@ contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
                 data,
                 (address, address, address, address, address, address, address, address, address, bytes32, AssetConfig)
             );
+
+        // check address of initial parameters are not zero address
+        wETHAddr.notZeroAddr();
+        poseidonUnit2Addr.notZeroAddr();
+        verifierAddr.notZeroAddr();
+        evacuVerifierAddr.notZeroAddr();
+        adminAddr.notZeroAddr();
+        operatorAddr.notZeroAddr();
+        treasuryAddr.notZeroAddr();
+        insuranceAddr.notZeroAddr();
+        vaultAddr.notZeroAddr();
 
         // set roles
         _setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
