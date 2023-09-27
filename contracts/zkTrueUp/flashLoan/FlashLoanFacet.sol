@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
+import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {FlashLoanStorage} from "./FlashLoanStorage.sol";
 import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
@@ -20,7 +21,7 @@ import {Config} from "../libraries/Config.sol";
  * @author Term Structure Labs
  * @notice The flashLoan facet is used to flash loan tokens from Term Structure Protocol
  */
-contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
+contract FlashLoanFacet is IFlashLoanFacet, AccessControlInternal, ReentrancyGuard {
     using Math for uint256;
     using SafeERC20 for IERC20;
     using FlashLoanLib for FlashLoanStorage.Layout;
@@ -38,7 +39,7 @@ contract FlashLoanFacet is AccessControlInternal, IFlashLoanFacet {
         IERC20[] memory assets,
         uint256[] memory amounts,
         bytes memory data
-    ) external {
+    ) external nonReentrant {
         if (assets.length != amounts.length) revert InputLengthMismatch(assets.length, amounts.length);
         uint16 flashLoanPremium = FlashLoanStorage.layout().getFlashLoanPremium();
         uint256[] memory premiums = new uint256[](assets.length);
