@@ -7,11 +7,19 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract TsERC20 is ERC20 {
     address public immutable tsFaucet;
     address public immutable zkTrueUp;
+    address public immutable exchange;
     uint8 private immutable _decimals;
 
-    constructor(address zkTrueUpAddr, string memory name_, string memory symbol_, uint8 dec_) ERC20(name_, symbol_) {
+    constructor(
+        address zkTrueUpAddr,
+        address exchangeAddr,
+        string memory name_,
+        string memory symbol_,
+        uint8 dec_
+    ) ERC20(name_, symbol_) {
         tsFaucet = _msgSender();
         zkTrueUp = zkTrueUpAddr;
+        exchange = exchangeAddr;
         _decimals = dec_;
     }
 
@@ -30,7 +38,7 @@ contract TsERC20 is ERC20 {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal view override {
-        if (to != zkTrueUp) {
+        if (to != zkTrueUp || to != exchange) {
             require(from == zkTrueUp || from == address(0), "Invalid recipient");
         }
     }
