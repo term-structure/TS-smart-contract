@@ -15,6 +15,7 @@ struct TokenMetadata {
 /// @author Term Structure Labs
 contract TsFaucet is Ownable {
     address public immutable zkTrueUp;
+    address public exchange;
 
     uint8 internal constant TS_ERC20_NUMBERS = 5; // ETH WBTC USDT USDC DAI
     uint16 internal constant MINT_AMOUNT = 1000;
@@ -37,9 +38,11 @@ contract TsFaucet is Ownable {
 
     event SetFreeMint(bool indexed isFreeMint);
 
-    constructor(address _zkTrueUpAddr) {
-        zkTrueUp = _zkTrueUpAddr;
+    event ExchangeMint(address indexed to, address indexed tokenAddr, uint256 amount);
 
+    constructor(address _zkTrueUpAddr, address _exchangeAddr) {
+        zkTrueUp = _zkTrueUpAddr;
+        exchange = _exchangeAddr;
         tsERC20s[0] = _createTsERC20(_weth);
         tsERC20s[1] = _createTsERC20(_wbtc);
         tsERC20s[2] = _createTsERC20(_usdt);
@@ -49,7 +52,7 @@ contract TsFaucet is Ownable {
 
     function _createTsERC20(TokenMetadata memory tokenMetadata) internal returns (address) {
         address tsERC20Addr = address(
-            new TsERC20(zkTrueUp, tokenMetadata.name, tokenMetadata.symbol, tokenMetadata.decimals)
+            new TsERC20(zkTrueUp, exchange, tokenMetadata.name, tokenMetadata.symbol, tokenMetadata.decimals)
         );
         emit TsERC20Created(tsERC20Addr);
         return tsERC20Addr;
@@ -84,5 +87,11 @@ contract TsFaucet is Ownable {
     function setFreeMint(bool isFreeMint) external onlyOwner {
         _isFreeMint = isFreeMint;
         emit SetFreeMint(isFreeMint);
+    }
+
+    function exchangeMint(address _to, address _tokenAddr, uint256 _amount) external {
+        require(msg.sender == exchange, "Only exchange contract");
+        TsERC20(_tokenAddr).mint(_to, _amount);
+        emit ExchangeMint(_to, _tokenAddr, _amount);
     }
 }

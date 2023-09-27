@@ -52,7 +52,10 @@ describe("TsFaucet", () => {
     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
 
     const TsFaucet = await ethers.getContractFactory("TsFaucet");
-    tsFaucet = await TsFaucet.connect(operator).deploy(zkTrueUpAddr);
+    tsFaucet = await TsFaucet.connect(operator).deploy(
+      zkTrueUpAddr,
+      zkTrueUpAddr
+    );
     (await tsFaucet.deployed()) as TsFaucet;
 
     const wethMockAddr = await tsFaucet.tsERC20s(0);
