@@ -81,7 +81,10 @@ contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
         addrsl.poseidonUnit2 = IPoseidonUnit2(poseidonUnit2Addr);
         addrsl.verifier = IVerifier(verifierAddr);
         addrsl.evacuVerifier = IVerifier(evacuVerifierAddr);
-        addrsl.aaveV3Pool = IPool(Config.AAVE_V3_POOL_ADDRESS);
+
+        address aaveV3PoolAddr = Config.AAVE_V3_POOL_ADDRESS;
+        aaveV3PoolAddr.notZeroAddr();
+        addrsl.aaveV3Pool = IPool(aaveV3PoolAddr);
 
         // init flashLoan facet
         FlashLoanStorage.Layout storage flsl = FlashLoanStorage.layout();
