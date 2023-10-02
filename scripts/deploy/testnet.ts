@@ -35,6 +35,7 @@ export const main = async () => {
   const faucetOwner = getString(process.env.GOERLI_FAUCET_OWNER_ADDRESS);
   const oracleOwner = getString(process.env.GOERLI_ORACLE_OWNER_ADDRESS);
   const genesisStateRoot = getString(process.env.GOERLI_GENESIS_STATE_ROOT);
+  const exchangeAddr = getString(process.env.GOERLI_EXCHANGE_ADDRESS);
 
   console.log(
     "Deploying contracts with deployer:",
@@ -90,7 +91,10 @@ export const main = async () => {
   // Deploy faucet and base tokens for test
   console.log("Deploying TsFaucet and base tokens...");
   const TsFaucet = await ethers.getContractFactory("TsFaucet");
-  const tsFaucet = await TsFaucet.connect(deployer).deploy(zkTrueUp.address);
+  const tsFaucet = await TsFaucet.connect(deployer).deploy(
+    zkTrueUp.address,
+    exchangeAddr
+  );
   await tsFaucet.deployed();
   await tsFaucet.connect(deployer).transferOwnership(faucetOwner);
 
@@ -147,8 +151,7 @@ export const main = async () => {
       poseidonUnit2Contract.address,
       verifier.address,
       evacuVerifier.address,
-      //! adminAddr, only for demo
-      deployer.address,
+      adminAddr,
       operatorAddr,
       treasuryAddr,
       insuranceAddr,

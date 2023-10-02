@@ -34,6 +34,7 @@ export const main = async () => {
   const insuranceAddr = getString(process.env.DEVNET_INSURANCE_ADDRESS);
   const vaultAddr = getString(process.env.DEVNET_VAULT_ADDRESS);
   const genesisStateRoot = getString(process.env.DEVNET_GENESIS_STATE_ROOT);
+  const exchangeAddr = getString(process.env.DEVNET_EXCHANGE_ADDRESS);
 
   console.log(
     "Deploying contracts with deployer:",
@@ -89,7 +90,10 @@ export const main = async () => {
   // Deploy faucet and base tokens for test
   console.log("Deploying TsFaucet and base tokens...");
   const TsFaucet = await ethers.getContractFactory("TsFaucet");
-  const tsFaucet = await TsFaucet.connect(deployer).deploy(zkTrueUp.address);
+  const tsFaucet = await TsFaucet.connect(deployer).deploy(
+    zkTrueUp.address,
+    exchangeAddr
+  );
   await tsFaucet.deployed();
   const baseTokenAddresses: BaseTokenAddresses = {};
   const priceFeeds: PriceFeeds = {};

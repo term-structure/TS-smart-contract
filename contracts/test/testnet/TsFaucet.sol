@@ -15,7 +15,7 @@ struct TokenMetadata {
 /// @author Term Structure Labs
 contract TsFaucet is Ownable {
     address public immutable zkTrueUp;
-    address public exchange;
+    address public immutable exchange;
 
     uint8 internal constant TS_ERC20_NUMBERS = 5; // ETH WBTC USDT USDC DAI
     uint16 internal constant MINT_AMOUNT = 1000;
