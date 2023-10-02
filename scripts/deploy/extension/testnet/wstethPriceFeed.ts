@@ -16,16 +16,21 @@ export const main = async () => {
     await deployer.getAddress()
   );
 
+  // deploy stETH price feed on testnet, because we have not existed stETH price feed on testnet
+  const stETHPriceFeedFactory = await ethers.getContractFactory("OracleMock");
+  const stETHPriceFeed = await stETHPriceFeedFactory.deploy();
+  await stETHPriceFeed.deployed();
+  console.log("stETHPriceFeed address:", stETHPriceFeed.address);
+
   // deploy wstETHPriceFeed
   console.log("Deploying wstETHPriceFeed...");
   const wstETHPriceFeedFactory = (await ethers.getContractFactory(
     "WstETHPriceFeed"
   )) as WstETHPriceFeed__factory;
   const wstETHAddr = GOERLI_ADDRESS.WSTETH;
-  const stETHPriceFeed = getString(process.env.GOERLI_STETH_PRICE_FEED);
   const wstETHPriceFeed = await wstETHPriceFeedFactory.deploy(
     wstETHAddr,
-    stETHPriceFeed
+    stETHPriceFeed.address
   );
   await wstETHPriceFeed.deployed();
   console.log("WstETHPriceFeed address:", wstETHPriceFeed.address);
