@@ -18,10 +18,9 @@ contract TsFaucet is Ownable {
     address public immutable exchange;
 
     uint8 internal constant TS_ERC20_NUMBERS = 5; // tsETH WBTC USDT USDC DAI
-    uint16 internal constant MINT_AMOUNT = 10000;
-    uint256[] internal _mintAmounts = [6, 36192282, 10000, 10000, 10000];
+    uint16 internal constant MINT_AMOUNT = 1000;
 
-    TokenMetadata internal _weth = TokenMetadata("Term Structure Ether", "tsETH", 18);
+    TokenMetadata internal _weth = TokenMetadata("Wrapped Ether", "WETH", 18);
     TokenMetadata internal _wbtc = TokenMetadata("Wrapped Bitcoin", "WBTC", 8);
     TokenMetadata internal _usdt = TokenMetadata("Tether USD", "USDT", 6);
     TokenMetadata internal _usdc = TokenMetadata("USD Coin", "USDC", 6);
@@ -64,12 +63,7 @@ contract TsFaucet is Ownable {
         isMinted[_to] = true;
         for (uint256 i; i < TS_ERC20_NUMBERS; i++) {
             uint8 decimals = TsERC20(tsERC20s[i]).decimals();
-            uint256 amount;
-            if (i == 1) {
-                amount = _mintAmounts[i];
-            } else {
-                amount = _mintAmounts[i] * (10 ** decimals);
-            }
+            uint256 amount = MINT_AMOUNT * (10 ** decimals);
             TsERC20(tsERC20s[i]).mint(_to, amount);
         }
         emit BatchMint(_to);
