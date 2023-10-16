@@ -98,6 +98,6 @@
     "@safe-global/protocol-kit": "^1.2.0",
     "@safe-global/safe-core-sdk-types": "^2.2.0",
     "circomlibjs": "^0.1.7",
-    "term-structure-sdk": "^0.1.30"
+    "term-structure-sdk": "^0.2.4"
   }
 }
