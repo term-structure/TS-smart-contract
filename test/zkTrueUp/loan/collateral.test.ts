@@ -388,7 +388,7 @@ describe("Collateral", () => {
       // check revert
       await expect(
         diamondLoan.connect(user1).removeCollateral(loanId, amount)
-      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsUnhealthy");
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotHealthy");
     });
   });
   describe("Add/Remove collateral (stable coin pairs case)", () => {
@@ -670,7 +670,7 @@ describe("Collateral", () => {
       // check revert
       await expect(
         diamondLoan.connect(user2).removeCollateral(loanId, amount)
-      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsUnhealthy");
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotHealthy");
 
       // convert amount to 8 decimals for loan data
       const removedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.USDT);
@@ -697,7 +697,7 @@ describe("Collateral", () => {
       // check revert
       await expect(
         diamondLoan.connect(user2).removeCollateral(loanId, amount)
-      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsUnhealthy");
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotHealthy");
     });
   });
 });

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "./Config.sol";
 import {Bytes} from "./Bytes.sol";
 
@@ -38,7 +39,8 @@ library Operations {
         REDEEM,
         WITHDRAW_FEE,
         EVACUATION,
-        SET_ADMIN_TS_ADDR
+        SET_ADMIN_TS_ADDR,
+        ROLL_OVER
     }
 
     /// @notice Public data struct definition
@@ -92,6 +94,15 @@ library Operations {
         uint128 amount;
     }
 
+    struct RollOver {
+        uint32 accountId;
+        bytes12 loanId;
+        address tsbTokenAddr;
+        uint32 expiredTime;
+        uint128 collateralAmt;
+        uint128 maxAllowableDebtAmt;
+    }
+
     /* ============ Encode public data function ============ */
 
     function encodeRegisterPubData(Register memory register) internal pure returns (bytes memory buf) {
@@ -109,6 +120,19 @@ library Operations {
 
     function encodeEvacuationPubData(Evacuation memory evacuation) internal pure returns (bytes memory buf) {
         return abi.encodePacked(uint8(OpType.EVACUATION), evacuation.accountId, evacuation.tokenId, evacuation.amount);
+    }
+
+    function encodeRollOverPubData(RollOver memory rollOver) internal pure returns (bytes memory buf) {
+        return
+            abi.encodePacked(
+                uint8(OpType.ROLL_OVER),
+                rollOver.accountId,
+                rollOver.loanId,
+                rollOver.tsbTokenAddr,
+                rollOver.expiredTime,
+                rollOver.collateralAmt,
+                rollOver.maxAllowableDebtAmt
+            );
     }
 
     /* ============ Check hashed public data function ============ */
@@ -139,6 +163,13 @@ library Operations {
         bytes32 hashedPubData
     ) internal pure returns (bool isExisted) {
         return keccak256(encodeEvacuationPubData(op)) == hashedPubData;
+    }
+
+    function isRollOverHashedPubDataMatched(
+        RollOver memory op,
+        bytes32 hashedPubData
+    ) internal pure returns (bool isExisted) {
+        return keccak256(encodeRollOverPubData(op)) == hashedPubData;
     }
 
     /* ============ Read public data function ============ */
@@ -197,5 +228,15 @@ library Operations {
         (offset, evacuation.accountId) = Bytes.readUInt32(data, offset);
         (offset, evacuation.tokenId) = Bytes.readUInt16(data, offset);
         (, evacuation.amount) = Bytes.readUInt128(data, offset);
+    }
+
+    function readRollOverPubdata(bytes memory data) internal pure returns (RollOver memory rollOver) {
+        uint256 offset = Config.BYTES_OF_OP_TYPE;
+        (offset, rollOver.accountId) = Bytes.readUInt32(data, offset);
+        (offset, rollOver.loanId) = Bytes.readBytes12(data, offset);
+        (offset, rollOver.tsbTokenAddr) = Bytes.readAddress(data, offset);
+        (offset, rollOver.expiredTime) = Bytes.readUInt32(data, offset);
+        (offset, rollOver.collateralAmt) = Bytes.readUInt128(data, offset);
+        (, rollOver.maxAllowableDebtAmt) = Bytes.readUInt128(data, offset);
     }
 }

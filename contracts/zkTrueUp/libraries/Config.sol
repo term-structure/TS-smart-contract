@@ -111,4 +111,7 @@ library Config {
 
     /// @notice Aave V3 interest rate mode
     uint256 internal constant AAVE_V3_INTEREST_RATE_MODE = 2;
+
+    /// @notice The last roll borrow order time can place to maturity time
+    uint256 internal constant LAST_ROLL_ORDER_TIME_TO_MATURITY = 1 days;
 }

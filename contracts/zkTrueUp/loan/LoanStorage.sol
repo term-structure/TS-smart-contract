@@ -2,11 +2,17 @@
 pragma solidity ^0.8.17;
 
 import {AssetConfig} from "../token/TokenStorage.sol";
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 /// @notice Liquidation factor of the loan
-/// @dev ltvThreshold: the threshold of the loan-to-value ratio,
+/// @dev liquidationLtvThreshold: the liquidation threshold of the loan-to-value ratio,
 ///      if the ratio is higher than the threshold, the loan will be liquidated
 ///      the base is 1e3 (1000), i.e. 800 means 80%
+/// @dev borrowOrderLtvThreshold: the borrow order threshold of the loan-to-value ratio,
+///      the borrow order will be rejected if the ratio is higher than the threshold.
+///      the base is 1e3 (1000), i.e. 750 means 75%,
+///      buffer between liquidated LTV threshold and borrow order LTV threshold to avoid
+///      liquidation immediately if LTV fluctuates too much after the borrow order and before create loan in rollup
 /// @dev liquidatorIncentive: the incentive for liquidator if the loan is liquidated,
 ///      the liquidator will get the extra incentive equivalent to the collateral value
 ///      the base is 1e3 (1000), i.e. 50 means 5%
@@ -14,15 +20,17 @@ import {AssetConfig} from "../token/TokenStorage.sol";
 ///      the protocol will get the penalty equivalent to the collateral value
 ///      the base is 1e3 (1000), i.e. 50 means 5%
 struct LiquidationFactor {
-    uint16 ltvThreshold;
+    uint16 liquidationLtvThreshold;
+    uint16 borrowOrderLtvThreshold;
     uint16 liquidatorIncentive;
     uint16 protocolPenalty;
 }
 
 /// @notice Data of loan
 struct Loan {
-    uint128 debtAmt;
     uint128 collateralAmt;
+    uint128 lockedCollateralAmt;
+    uint128 debtAmt;
 }
 
 /// @notice The information of the loan
@@ -39,6 +47,14 @@ struct LoanInfo {
 struct LiquidationAmt {
     uint128 liquidatorRewardAmt;
     uint128 protocolPenaltyAmt;
+}
+
+struct RollBorrowOrder {
+    bytes12 loanId;
+    ITsbToken tsbToken;
+    uint32 expiredTime;
+    uint128 collateralAmt;
+    uint128 maxAllowableDebtAmt;
 }
 
 /**

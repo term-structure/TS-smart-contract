@@ -20,11 +20,17 @@ library InitialConfig {
     /// @dev If the collateral value is larger than half liquidation threshold, the liquidator can only liquidate half of the loan
     uint16 internal constant INIT_HALF_LIQUIDATION_THRESHOLD = 10000; // 10000 USD
 
-    /// @notice Initial threshold of LTV ratio
-    uint16 internal constant INIT_LTV_THRESHOLD = 0.8e3; // 80%
+    /// @notice Initial threshold of liquidation LTV ratio, if the ratio is higher than the threshold, the loan will be liquidated
+    uint16 internal constant INIT_LIQUIDATION_LTV_THRESHOLD = 0.8e3; // 80%
 
-    /// @notice Initial threshold of stablecoin pair LTV ratio
-    uint16 internal constant INIT_STABLECOIN_PAIR_LTV_THRESHOLD = 0.925e3; // 92.5%
+    /// @notice Initial threshold of borrow order LTV ratio, 5% buffer between liquidated LTV threshold and borrow order LTV threshold
+    uint16 internal constant INIT_BORROW_ORDER_LTV_THRESHOLD = 0.75e3; // 75%
+
+    /// @notice Initial threshold of stablecoin pair liquidation LTV ratio, if the ratio is higher than the threshold, the loan will be liquidated
+    uint16 internal constant INIT_STABLECOIN_PAIR_LIQUIDATION_LTV_THRESHOLD = 0.925e3; // 92.5%
+
+    /// @notice Initial threshold of stablecoin pair borrow order LTV ratio, 2.5% buffer between liquidated LTV threshold and borrow order LTV threshold
+    uint16 internal constant INIT_STABLECOIN_PAIR_BORROW_ORDER_LTV_THRESHOLD = 0.9e3; // 90%
 
     /// @notice Initial liquidator incentive
     uint16 internal constant INIT_LIQUIDATOR_INCENTIVE = 0.05e3; // 5%

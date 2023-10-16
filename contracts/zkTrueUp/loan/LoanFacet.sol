@@ -13,6 +13,7 @@ import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
 import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
@@ -20,8 +21,9 @@ import {AddressLib} from "../address/AddressLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {LoanLib} from "./LoanLib.sol";
+import {TsbLib} from "../tsb/TsbLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
-import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo} from "./LoanStorage.sol";
+import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo, RollBorrowOrder} from "./LoanStorage.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
@@ -116,6 +118,83 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return (liquidatorRewardAmt, protocolPenaltyAmt);
     }
 
+    function rollOver(RollBorrowOrder memory rollBorrowOrder) external {
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
+
+        bytes12 loanId = rollBorrowOrder.loanId;
+        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
+        msg.sender.requireLoanOwner(loanInfo);
+
+        /// check the tsb token is exist
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        ITsbToken tsbToken = rollBorrowOrder.tsbToken;
+        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(address(tsbToken)));
+        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbToken);
+
+        /// expireTime + 1 day should be less than or equal to maturityTime
+        (, uint32 maturityTime) = tsbToken.tokenInfo();
+        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > maturityTime)
+            revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
+
+        _rollOver(
+            lsl,
+            loanId,
+            loanInfo,
+            tsbToken,
+            rollBorrowOrder.collateralAmt,
+            rollBorrowOrder.maxAllowableDebtAmt,
+            maturityTime,
+            rollBorrowOrder.expiredTime
+        );
+    }
+
+    function _rollOver(
+        LoanStorage.Layout storage lsl,
+        bytes12 loanId,
+        LoanInfo memory loanInfo,
+        ITsbToken tsbToken,
+        uint128 collateralAmt,
+        uint128 maxAllowableDebtAmt,
+        uint32 maturityTime,
+        uint32 expiredTime
+    ) internal {
+        Loan memory loan = loanInfo.loan;
+
+        /// check the original loan will be strictly healthy after roll over
+        loan = loan.repay(collateralAmt, maxAllowableDebtAmt);
+        loan.requireStrictHealthy(loanInfo);
+
+        /// reuse the original memory of `loan` and `loanInfo` to sava gas
+        /// those represent the `newLoan` and `newLoanInfo` here
+        loan = Loan({collateralAmt: collateralAmt, lockedCollateralAmt: 0, debtAmt: maxAllowableDebtAmt});
+        loanInfo = LoanInfo({
+            loan: loan,
+            maturityTime: maturityTime,
+            accountId: loanInfo.accountId,
+            liquidationFactor: loanInfo.liquidationFactor,
+            collateralAsset: loanInfo.collateralAsset,
+            debtAsset: loanInfo.debtAsset
+        });
+        /// check the new loan will be also strictly healthy
+        /// if the roll borrow order is executed in L2 then the position is be rollup to L1
+        loan.requireStrictHealthy(loanInfo);
+
+        /// add the locked collateral to the original loan
+        lsl.loans[loanId].lockedCollateralAmt = collateralAmt;
+
+        LoanLib.addRollOverReq(
+            RollupStorage.layout(),
+            msg.sender,
+            loanInfo.accountId,
+            loanId,
+            address(tsbToken),
+            expiredTime,
+            collateralAmt,
+            maxAllowableDebtAmt
+        );
+    }
+
     /**
      * @inheritdoc ILoanFacet
      * @notice Should be `approveDelegation` before `borrow from AAVE V3 pool`
@@ -156,9 +235,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LiquidationFactor memory liquidationFactor,
         bool isStableCoinPair
     ) external onlyRole(Config.ADMIN_ROLE) {
+        uint16 borrowOrderLtvThreshold = liquidationFactor.borrowOrderLtvThreshold;
+        uint16 liquidationLtvThreshold = liquidationFactor.liquidationLtvThreshold;
+        if (borrowOrderLtvThreshold == 0) revert InvalidLiquidationFactor(liquidationFactor);
+        if (liquidationLtvThreshold == 0) revert InvalidLiquidationFactor(liquidationFactor);
+        if (borrowOrderLtvThreshold > liquidationLtvThreshold) revert InvalidLiquidationFactor(liquidationFactor);
         if (
-            liquidationFactor.ltvThreshold == 0 ||
-            liquidationFactor.ltvThreshold + liquidationFactor.liquidatorIncentive + liquidationFactor.protocolPenalty >
+            liquidationLtvThreshold + liquidationFactor.liquidatorIncentive + liquidationFactor.protocolPenalty >
             Config.MAX_LTV_RATIO
         ) revert InvalidLiquidationFactor(liquidationFactor);
 
@@ -187,7 +270,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         Loan memory loan = loanInfo.loan;
         (uint256 healthFactor, , ) = loan.getHealthFactor(
-            loanInfo.liquidationFactor.ltvThreshold,
+            loanInfo.liquidationFactor.liquidationLtvThreshold,
             loanInfo.collateralAsset,
             loanInfo.debtAsset
         );
@@ -224,7 +307,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         Loan memory loan = loanInfo.loan;
         (uint256 healthFactor, uint256 normalizedCollateralPrice, ) = loan.getHealthFactor(
-            loanInfo.liquidationFactor.ltvThreshold,
+            loanInfo.liquidationFactor.liquidationLtvThreshold,
             loanInfo.collateralAsset,
             loanInfo.debtAsset
         );
@@ -317,6 +400,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         IERC20 debtToken = loanInfo.debtAsset.token;
         Utils.transferFrom(debtToken, msg.sender, repayAmt, msg.value);
 
+        /// remove all locked collateral (forced cancel the roll over borrow order)
+        if (loan.lockedCollateralAmt > 0) loan.removeLockedCollateral(loan.lockedCollateralAmt);
+
         loan.repay(totalRemovedCollateralAmt, repayAmt);
         lsl.loans[loanId] = loan;
 
@@ -355,7 +441,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             AssetConfig memory collateralAsset = loanInfo.collateralAsset;
             AssetConfig memory debtAsset = loanInfo.debtAsset;
             (uint256 healthFactor, uint256 normalizedCollateralPrice, uint256 normalizedDebtPrice) = loan
-                .getHealthFactor(liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
+                .getHealthFactor(liquidationFactor.liquidationLtvThreshold, collateralAsset, debtAsset);
             if (!LoanLib.isLiquidable(healthFactor, loanInfo.maturityTime))
                 revert LoanIsSafe(healthFactor, loanInfo.maturityTime);
 
