@@ -88,6 +88,9 @@ library Config {
     /// @notice The decimals of L2 system
     uint8 internal constant SYSTEM_DECIMALS = 8;
 
+    /// @notice The base of L2 system unit
+    uint256 internal constant SYSTEM_DECIMALS_BASE = 10 ** SYSTEM_DECIMALS;
+
     /// @notice Role for admin
     bytes32 internal constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
@@ -114,4 +117,7 @@ library Config {
 
     /// @notice The last roll borrow order time can place to maturity time
     uint256 internal constant LAST_ROLL_ORDER_TIME_TO_MATURITY = 1 days;
+
+    /// @notice The seconds of one year
+    uint256 internal constant SECONDS_OF_ONE_YEAR = 365 days;
 }
