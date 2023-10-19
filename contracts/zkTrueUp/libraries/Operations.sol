@@ -113,13 +113,6 @@ library Operations {
         uint128 maxBorrowAmt;
     }
 
-    struct ForceCancelRollBorrow {
-        uint32 accountId;
-        uint32 maturityTime;
-        uint16 collateralTokenId;
-        uint16 debtTokenId;
-    }
-
     struct RollOverEnd {
         uint32 accountId;
         uint32 matchedTime;
@@ -129,6 +122,13 @@ library Operations {
         uint128 collateralAmt;
         uint128 borrowAmt;
         uint128 debtAmt;
+    }
+
+    struct CancelRollBorrow {
+        uint32 accountId;
+        uint32 maturityTime;
+        uint16 collateralTokenId;
+        uint16 debtTokenId;
     }
 
     /* ============ Encode public data function ============ */
@@ -167,7 +167,7 @@ library Operations {
     }
 
     function encodeForceCancelRollBorrowPubData(
-        ForceCancelRollBorrow memory forceCancelRollBorrow
+        CancelRollBorrow memory forceCancelRollBorrow
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(
@@ -299,16 +299,6 @@ library Operations {
         return rollBorrow;
     }
 
-    function readForceCancelRollBoPubdata(bytes memory data) internal pure returns (ForceCancelRollBorrow memory) {
-        uint256 offset = Config.BYTES_OF_OP_TYPE;
-        ForceCancelRollBorrow memory forceCancelRollBorrow;
-        (offset, forceCancelRollBorrow.accountId) = Bytes.readUInt32(data, offset);
-        (offset, forceCancelRollBorrow.maturityTime) = Bytes.readUInt32(data, offset);
-        (offset, forceCancelRollBorrow.collateralTokenId) = Bytes.readUInt16(data, offset);
-        (, forceCancelRollBorrow.debtTokenId) = Bytes.readUInt16(data, offset);
-        return forceCancelRollBorrow;
-    }
-
     function readRollOverEndPubdata(bytes memory data) internal pure returns (RollOverEnd memory) {
         uint256 offset = Config.BYTES_OF_OP_TYPE;
         RollOverEnd memory rollOverEnd;
@@ -321,5 +311,15 @@ library Operations {
         (offset, rollOverEnd.borrowAmt) = Bytes.readUInt128(data, offset);
         (, rollOverEnd.debtAmt) = Bytes.readUInt128(data, offset);
         return rollOverEnd;
+    }
+
+    function readCancelRollBorrowPubdata(bytes memory data) internal pure returns (CancelRollBorrow memory) {
+        uint256 offset = Config.BYTES_OF_OP_TYPE;
+        CancelRollBorrow memory cancelRollBorrow;
+        (offset, cancelRollBorrow.accountId) = Bytes.readUInt32(data, offset);
+        (offset, cancelRollBorrow.maturityTime) = Bytes.readUInt32(data, offset);
+        (offset, cancelRollBorrow.collateralTokenId) = Bytes.readUInt16(data, offset);
+        (, cancelRollBorrow.debtTokenId) = Bytes.readUInt16(data, offset);
+        return cancelRollBorrow;
     }
 }

@@ -816,6 +816,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             } else if (opType == Operations.OpType.ROLL_OVER_END) {
                 Operations.RollOverEnd memory rollOver = pubData.readRollOverEndPubdata();
                 _rollOver(rollOver);
+            } else if (opType == Operations.OpType.USER_CANCEL_ROLL_BORROW) {
+                Operations.CancelRollBorrow memory userCancelRollBorrow = pubData.readCancelRollBorrowPubdata();
+                _cancelRollBorrow(userCancelRollBorrow);
+            } else if (opType == Operations.OpType.ADMIN_CANCEL_ROLL_BORROW) {
+                Operations.CancelRollBorrow memory adminCancelRollBorrow = pubData.readCancelRollBorrowPubdata();
+                _cancelRollBorrow(adminCancelRollBorrow);
+            } else if (opType == Operations.OpType.FORCE_CANCEL_ROLL_BORROW) {
+                Operations.CancelRollBorrow memory forceCancelRollBorrow = pubData.readCancelRollBorrowPubdata();
+                _cancelRollBorrow(forceCancelRollBorrow);
             } else if (opType == Operations.OpType.WITHDRAW_FEE) {
                 Operations.WithdrawFee memory withdrawFee = pubData.readWithdrawFeePubdata();
                 _withdrawFee(rsl, withdrawFee);
@@ -830,6 +839,19 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         if (pendingRollupTxHash != executeBlock.storedBlock.pendingRollupTxHash)
             revert PendingRollupTxHashIsNotMatched(pendingRollupTxHash, executeBlock.storedBlock.pendingRollupTxHash);
+    }
+
+    function _cancelRollBorrow(Operations.CancelRollBorrow memory cancelRollBorrow) internal {
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        bytes12 loanId = LoanLib.calcLoanId(
+            cancelRollBorrow.accountId,
+            cancelRollBorrow.maturityTime,
+            cancelRollBorrow.debtTokenId,
+            cancelRollBorrow.collateralTokenId
+        );
+        Loan memory loan = lsl.getLoan(loanId);
+        loan = loan.removeLockedCollateral(loan.lockedCollateralAmt);
+        lsl.loans[loanId] = loan;
     }
 
     function _rollOver(Operations.RollOverEnd memory rollOver) internal {

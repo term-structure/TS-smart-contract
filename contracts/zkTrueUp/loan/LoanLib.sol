@@ -92,7 +92,7 @@ library LoanLib {
     function addForceCancelRollBorrowReq(
         RollupStorage.Layout storage rsl,
         address sender,
-        Operations.ForceCancelRollBorrow memory forceCancelRollBorrowReq
+        Operations.CancelRollBorrow memory forceCancelRollBorrowReq
     ) internal {
         bytes memory pubData = Operations.encodeForceCancelRollBorrowPubData(forceCancelRollBorrowReq);
         rsl.addL1Request(sender, Operations.OpType.FORCE_CANCEL_ROLL_BORROW, pubData);
@@ -265,21 +265,33 @@ library LoanLib {
 
     /// @notice Internal function to check if the loan is healthy (not liquidable)
     /// @param loan The loan to be checked
-    /// @param loanInfo The loan info
-    function requireHealthy(Loan memory loan, LoanInfo memory loanInfo) internal view {
+    /// @param liquidationFactor The liquidation factor of the loan
+    /// @param collateralAsset The collateral asset of the loan
+    /// @param debtAsset The debt asset of the loan
+    function requireHealthy(
+        Loan memory loan,
+        LiquidationFactor memory liquidationFactor,
+        AssetConfig memory collateralAsset,
+        AssetConfig memory debtAsset
+    ) internal view {
         (uint256 healthFactor, , ) = loan.getHealthFactor(
-            loanInfo.liquidationFactor.liquidationLtvThreshold, // use liquidation LTV threshold
-            loanInfo.collateralAsset,
-            loanInfo.debtAsset
+            liquidationFactor.liquidationLtvThreshold, // use liquidation LTV threshold
+            collateralAsset,
+            debtAsset
         );
         if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert LoanIsNotHealthy(healthFactor);
     }
 
-    function requireStrictHealthy(Loan memory loan, LoanInfo memory loanInfo) internal view {
+    function requireStrictHealthy(
+        Loan memory loan,
+        LiquidationFactor memory liquidationFactor,
+        AssetConfig memory collateralAsset,
+        AssetConfig memory debtAsset
+    ) internal view {
         (uint256 healthFactor, , ) = loan.getHealthFactor(
-            loanInfo.liquidationFactor.borrowOrderLtvThreshold, // use borrow order LTV threshold
-            loanInfo.collateralAsset,
-            loanInfo.debtAsset
+            liquidationFactor.borrowOrderLtvThreshold, // use borrow order LTV threshold
+            collateralAsset,
+            debtAsset
         );
         if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert LoanIsNotStrictHealthy(healthFactor);
     }
