@@ -9,7 +9,7 @@ import {SafeCast} from "@solidstate/contracts/utils/SafeCast.sol";
 import {RollupStorage, Proof, StoredBlock, CommitBlock, ExecuteBlock, VerifyBlock, Request} from "./RollupStorage.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
-import {LoanStorage, Loan} from "../loan/LoanStorage.sol";
+import {LoanStorage, Loan, LoanInfo} from "../loan/LoanStorage.sol";
 import {ProtocolParamsStorage, FundWeight} from "../protocolParams/ProtocolParamsStorage.sol";
 import {RollupStorage} from "./RollupStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
@@ -646,6 +646,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         } else if (opType == Operations.OpType.AUCTION_END) {
             data = pubData.sliceFourChunksBytes(offset); // 4 chunks
             isToBeExecuted = true;
+        } else if (opType == Operations.OpType.ROLL_OVER_END) {
+            data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+            isToBeExecuted = true;
+        } else if (opType == Operations.OpType.USER_CANCEL_ROLL_BORROW) {
+            data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+            isToBeExecuted = true;
+        } else if (opType == Operations.OpType.ADMIN_CANCEL_ROLL_BORROW) {
+            data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+            isToBeExecuted = true;
         } else if (opType == Operations.OpType.WITHDRAW_FEE) {
             data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
             isToBeExecuted = true;
@@ -672,6 +681,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
                 data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
                 Operations.Deposit memory deposit = data.readDepositPubData();
                 request.isDepositInL1RequestQueue(deposit);
+            } else if (opType == Operations.OpType.ROLL_BORROW_ORDER) {
+                data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+                Operations.RollBorrow memory rollBorrowReq = data.readRollBorrowPubdata();
+                request.isRollBorrowInL1RequestQueue(rollBorrowReq);
+            } else if (opType == Operations.OpType.FORCE_CANCEL_ROLL_BORROW) {
+                data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+                isToBeExecuted = true;
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                 data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
                 Operations.ForceWithdraw memory forceWithdrawReq = data.readForceWithdrawPubData();
@@ -797,6 +813,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             } else if (opType == Operations.OpType.AUCTION_END) {
                 Operations.AuctionEnd memory auctionEnd = pubData.readAuctionEndPubData();
                 _updateLoan(auctionEnd);
+            } else if (opType == Operations.OpType.ROLL_OVER_END) {
+                Operations.RollOverEnd memory rollOver = pubData.readRollOverEndPubdata();
+                _rollOver(rollOver);
             } else if (opType == Operations.OpType.WITHDRAW_FEE) {
                 Operations.WithdrawFee memory withdrawFee = pubData.readWithdrawFeePubdata();
                 _withdrawFee(rsl, withdrawFee);
@@ -811,6 +830,43 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
 
         if (pendingRollupTxHash != executeBlock.storedBlock.pendingRollupTxHash)
             revert PendingRollupTxHashIsNotMatched(pendingRollupTxHash, executeBlock.storedBlock.pendingRollupTxHash);
+    }
+
+    function _rollOver(Operations.RollOverEnd memory rollOver) internal {
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        AssetConfig memory tsbAsset = TokenStorage.layout().getAssetConfig(rollOver.tsbTokenId);
+        require(tsbAsset.isTsbToken, "tsbToken is not tsbToken");
+
+        address tsbTokenAddr = address(tsbAsset.token);
+        require(tsbTokenAddr != address(0), "tsbToken is zero address");
+
+        //TODO: old and new maturity time
+        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+        require(maturityTime > block.timestamp, "maturityTime is too small");
+
+        bytes12 loanId = LoanLib.calcLoanId(
+            rollOver.accountId,
+            maturityTime,
+            rollOver.borrowTokenId,
+            rollOver.collateralTokenId
+        );
+        Loan memory loan = lsl.getLoan(loanId);
+        require(rollOver.collateralAmt <= loan.lockedCollateralAmt, "collateralAmt is too large");
+
+        loan = loan.repay(rollOver.collateralAmt, rollOver.borrowAmt);
+        lsl.loans[loanId] = loan;
+
+        // reuse the original memory of `loan` to sava gas, it represent the `newLoan` here
+        loan = Loan({collateralAmt: rollOver.collateralAmt, debtAmt: rollOver.debtAmt, lockedCollateralAmt: 0});
+        bytes12 newLoanId = LoanLib.calcLoanId(
+            rollOver.accountId,
+            maturityTime, // using maturity time of new tsbToken to calculate the `newLoanId`
+            rollOver.borrowTokenId,
+            rollOver.collateralTokenId
+        );
+        lsl.loans[loanId] = loan;
+
+        emit RollOver(loanId, newLoanId, rollOver.collateralAmt, rollOver.debtAmt);
     }
 
     /// @notice Internal function to add the pending balance of an account
@@ -847,6 +903,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
         address tokenAddr = address(assetConfig.token);
         Utils.notZeroAddr(tokenAddr);
+
         ITsbToken tsbToken = ITsbToken(tokenAddr);
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tokenAddr);
 
