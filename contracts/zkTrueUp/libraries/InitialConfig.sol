@@ -46,4 +46,7 @@ library InitialConfig {
 
     /// @notice Initial flashloan premium
     uint16 internal constant INIT_FLASH_LOAN_PREMIUM = 0.0003e4; // 0.03%
+
+    /// @notice Initial borrow fee rate of interest rate for borrower
+    uint32 internal constant INIT_BORROWER_FEE_RATE = 0.1e8; // 10%
 }
