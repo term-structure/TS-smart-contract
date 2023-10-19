@@ -51,10 +51,12 @@ struct LiquidationAmt {
 
 struct RollBorrowOrder {
     bytes12 loanId;
-    ITsbToken tsbToken;
     uint32 expiredTime;
-    uint128 collateralAmt;
-    uint128 maxAllowableDebtAmt;
+    uint32 feeRate; // base is 1e8
+    uint32 annualPercentageRate; // base is 1e8 (APR)
+    uint128 maxCollateralAmt;
+    uint128 maxBorrowAmt;
+    address tsbTokenAddr;
 }
 
 /**
@@ -70,6 +72,9 @@ library LoanStorage {
         /// @notice The half liquidation threshold, unit is US dollar
         ///         i.e. 10000 means 10000 usd
         uint16 halfLiquidationThreshold;
+        /// @notice The fee rate for borrower, base is 1e8
+        ///         i.e. 0.1e8 means 10% of the interest
+        uint32 borrowerFeeRate;
         /// @notice LTV threshold for loans
         LiquidationFactor liquidationFactor;
         /// @notice LTV threshold for stable coin pairs' loans

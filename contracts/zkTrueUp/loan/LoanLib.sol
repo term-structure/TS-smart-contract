@@ -42,15 +42,6 @@ library LoanLib {
     /// @notice Error for collateral amount is less than locked collateral amount
     error CollateralAmtLtLockedCollateralAmt(uint128 collateralAmt, uint128 lockedCollateralAmt);
 
-    event RollOver(
-        address indexed sender,
-        bytes12 indexed loanId,
-        address tsbTokenAddr,
-        uint32 expiredTime,
-        uint128 collateralAmt,
-        uint128 maxAllowableDebtAmt
-    );
-
     /// @notice Internal function to add collateral to the loan
     /// @param loan The loan to be added collateral
     /// @param amount The amount of the collateral to be added
@@ -72,7 +63,7 @@ library LoanLib {
             loan.collateralAmt -= amount;
         }
 
-        /// The collateral amount must be greater than the locked collateral amount
+        // The collateral amount must be greater than the locked collateral amount at any time
         if (loan.collateralAmt < loan.lockedCollateralAmt)
             revert CollateralAmtLtLockedCollateralAmt(loan.collateralAmt, loan.lockedCollateralAmt);
 
@@ -89,31 +80,22 @@ library LoanLib {
         return loan;
     }
 
-    function getAvailableCollateralAmt(Loan memory loan) internal pure returns (uint128) {
-        return loan.collateralAmt - loan.lockedCollateralAmt;
-    }
-
-    function addRollOverReq(
+    function addRollBorrowReq(
         RollupStorage.Layout storage rsl,
         address sender,
-        uint32 accountId,
-        bytes12 loanId,
-        address tsbTokenAddr,
-        uint32 expiredTime,
-        uint128 collateralAmt,
-        uint128 maxAllowableDebtAmt
+        Operations.RollBorrow memory rollBorrowReq
     ) internal {
-        Operations.RollOver memory op = Operations.RollOver({
-            accountId: accountId,
-            loanId: loanId,
-            tsbTokenAddr: tsbTokenAddr,
-            expiredTime: expiredTime,
-            collateralAmt: collateralAmt,
-            maxAllowableDebtAmt: maxAllowableDebtAmt
-        });
-        bytes memory pubData = Operations.encodeRollOverPubData(op);
-        rsl.addL1Request(sender, Operations.OpType.ROLL_OVER, pubData);
-        emit RollOver(sender, loanId, tsbTokenAddr, expiredTime, collateralAmt, maxAllowableDebtAmt);
+        bytes memory pubData = Operations.encodeRollBorrowPubData(rollBorrowReq);
+        rsl.addL1Request(sender, Operations.OpType.ROLL_BORROW_ORDER, pubData);
+    }
+
+    function addForceCancelRollBorrowReq(
+        RollupStorage.Layout storage rsl,
+        address sender,
+        Operations.ForceCancelRollBorrow memory forceCancelRollBorrowReq
+    ) internal {
+        bytes memory pubData = Operations.encodeForceCancelRollBorrowPubData(forceCancelRollBorrowReq);
+        rsl.addL1Request(sender, Operations.OpType.FORCE_CANCEL_ROLL_BORROW, pubData);
     }
 
     /// @notice Internal function to repay the debt of the loan and remove collateral from the loan
@@ -131,7 +113,7 @@ library LoanLib {
             loan.debtAmt -= repayAmt;
         }
 
-        /// The collateral amount must be greater than the locked collateral amount
+        // The collateral amount must be greater than the locked collateral amount at any time
         if (loan.collateralAmt < loan.lockedCollateralAmt)
             revert CollateralAmtLtLockedCollateralAmt(loan.collateralAmt, loan.lockedCollateralAmt);
 
@@ -275,9 +257,9 @@ library LoanLib {
 
     /// @notice Internal function to check if the address is the loan owner
     /// @param addr The address to be checked
-    /// @param loanInfo The loan info
-    function requireLoanOwner(address addr, LoanInfo memory loanInfo) internal view {
-        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
+    /// @param accountId The account id
+    function requireLoanOwner(address addr, uint32 accountId) internal view {
+        address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
         if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
     }
 

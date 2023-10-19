@@ -24,6 +24,7 @@ import {LoanLib} from "./LoanLib.sol";
 import {TsbLib} from "../tsb/TsbLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo, RollBorrowOrder} from "./LoanStorage.sol";
+import {Operations} from "../libraries/Operations.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
@@ -38,6 +39,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using AddressLib for AddressStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
     using TokenLib for TokenStorage.Layout;
+    using SafeCast for uint256;
     using Math for *;
     using LoanLib for *;
 
@@ -65,7 +67,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     function removeCollateral(bytes12 loanId, uint128 amount) external nonReentrant {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.requireLoanOwner(loanInfo);
+        msg.sender.requireLoanOwner(loanInfo.accountId);
 
         Loan memory loan = loanInfo.loan;
         loan = loan.removeCollateral(amount);
@@ -118,56 +120,69 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return (liquidatorRewardAmt, protocolPenaltyAmt);
     }
 
-    function rollOver(RollBorrowOrder memory rollBorrowOrder) external {
+    function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         if (!lsl.getRollerState()) revert RollIsNotActivated();
 
+        //TODO: rollup gas cost * gas price
+        require(msg.value == 0.01 ether, "roll fee is not correct");
+
         bytes12 loanId = rollBorrowOrder.loanId;
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.requireLoanOwner(loanInfo);
+        msg.sender.requireLoanOwner(loanInfo.accountId);
 
-        /// check the tsb token is exist
+        Loan memory loan = loanInfo.loan;
+        require(loan.lockedCollateralAmt == 0, "loan is locked");
+
+        // check the tsb token is exist
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        ITsbToken tsbToken = rollBorrowOrder.tsbToken;
-        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(address(tsbToken)));
-        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbToken);
+        address tsbTokenAddr = rollBorrowOrder.tsbTokenAddr;
+        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(tsbTokenAddr));
+        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
 
-        /// expireTime + 1 day should be less than or equal to maturityTime
-        (, uint32 maturityTime) = tsbToken.tokenInfo();
+        // expireTime + 1 day should be less than or equal to maturityTime
+        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+        if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
         if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > maturityTime)
             revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
 
-        _rollOver(
-            lsl,
-            loanId,
-            loanInfo,
-            tsbToken,
-            rollBorrowOrder.collateralAmt,
-            rollBorrowOrder.maxAllowableDebtAmt,
-            maturityTime,
-            rollBorrowOrder.expiredTime
-        );
+        _rollBorrow(lsl, rollBorrowOrder, loanInfo, loan, loanId, maturityTime);
     }
 
-    function _rollOver(
+    function _rollBorrow(
         LoanStorage.Layout storage lsl,
-        bytes12 loanId,
+        RollBorrowOrder memory rollBorrowOrder,
         LoanInfo memory loanInfo,
-        ITsbToken tsbToken,
-        uint128 collateralAmt,
-        uint128 maxAllowableDebtAmt,
-        uint32 maturityTime,
-        uint32 expiredTime
+        Loan memory loan,
+        bytes12 loanId,
+        uint32 maturityTime
     ) internal {
-        Loan memory loan = loanInfo.loan;
+        // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
+        uint32 interestRate = rollBorrowOrder
+            .annualPercentageRate
+            .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
+            .toUint32();
 
-        /// check the original loan will be strictly healthy after roll over
-        loan = loan.repay(collateralAmt, maxAllowableDebtAmt);
+        // borrowFee = borrowAmt * (interestRate / SYSTEM_DECIMALS_BASE) * (borrowFeeRate / SYSTEM_DECIMALS_BASE)
+        // ==> maxBorrowFee = maxBorrowAmt * (interestRate / SYSTEM_DECIMALS_BASE) * (borrowFeeRate / SYSTEM_DECIMALS_BASE)
+        uint128 maxBorrowFee = rollBorrowOrder
+            .maxBorrowAmt
+            .mulDiv(interestRate, Config.SYSTEM_DECIMALS_BASE)
+            .mulDiv(rollBorrowOrder.feeRate, Config.SYSTEM_DECIMALS_BASE)
+            .toUint128();
+
+        // debtAmt = borrowAmt + interest
+        // ==> maxDebtAmt = maxBorrowAmt + maxBorrowAmt * interestRate / SYSTEM_DECIMALS_BASE
+        uint128 maxDebtAmt = rollBorrowOrder.maxBorrowAmt +
+            rollBorrowOrder.maxBorrowAmt.mulDiv(interestRate, Config.SYSTEM_DECIMALS_BASE).toUint128();
+
+        // check the original loan will be strictly healthy after roll over
+        loan = loan.repay(rollBorrowOrder.maxCollateralAmt, (rollBorrowOrder.maxBorrowAmt - maxBorrowFee));
         loan.requireStrictHealthy(loanInfo);
 
-        /// reuse the original memory of `loan` and `loanInfo` to sava gas
-        /// those represent the `newLoan` and `newLoanInfo` here
-        loan = Loan({collateralAmt: collateralAmt, lockedCollateralAmt: 0, debtAmt: maxAllowableDebtAmt});
+        // reuse the original memory of `loan` and `loanInfo` to sava gas
+        // those represent the `newLoan` and `newLoanInfo` here
+        loan = Loan({collateralAmt: rollBorrowOrder.maxCollateralAmt, lockedCollateralAmt: 0, debtAmt: maxDebtAmt});
         loanInfo = LoanInfo({
             loan: loan,
             maturityTime: maturityTime,
@@ -176,23 +191,44 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             collateralAsset: loanInfo.collateralAsset,
             debtAsset: loanInfo.debtAsset
         });
-        /// check the new loan will be also strictly healthy
-        /// if the roll borrow order is executed in L2 then the position is be rollup to L1
+        // check the new loan will be also strictly healthy
+        // if the roll borrow order is executed in L2 then the position is be rollup to L1
         loan.requireStrictHealthy(loanInfo);
 
-        /// add the locked collateral to the original loan
-        lsl.loans[loanId].lockedCollateralAmt = collateralAmt;
+        // add the locked collateral to the original loan
+        lsl.loans[loanId].lockedCollateralAmt = rollBorrowOrder.maxCollateralAmt;
 
-        LoanLib.addRollOverReq(
-            RollupStorage.layout(),
-            msg.sender,
-            loanInfo.accountId,
-            loanId,
-            address(tsbToken),
-            expiredTime,
-            collateralAmt,
-            maxAllowableDebtAmt
+        (uint32 accountId, , uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(loanId);
+        Operations.RollBorrow memory rollBorrowReq = Operations.RollBorrow({
+            accountId: accountId,
+            collateralTokenId: collateralTokenId,
+            borrowTokenId: debtTokenId,
+            maturityTime: maturityTime,
+            expiredTime: rollBorrowOrder.expiredTime,
+            feeRate: rollBorrowOrder.feeRate,
+            annualPercentageRate: rollBorrowOrder.annualPercentageRate,
+            maxCollateralAmt: rollBorrowOrder.maxCollateralAmt,
+            maxBorrowAmt: rollBorrowOrder.maxBorrowAmt
+        });
+
+        LoanLib.addRollBorrowReq(RollupStorage.layout(), msg.sender, rollBorrowReq);
+        emit RollBorrowOrderPlaced(msg.sender, rollBorrowOrder);
+    }
+
+    function forceCancelRollBorrow(bytes12 loanId) external {
+        (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(
+            loanId
         );
+        msg.sender.requireLoanOwner(accountId);
+
+        Operations.ForceCancelRollBorrow memory forceCancelRollBorrowReq = Operations.ForceCancelRollBorrow({
+            accountId: accountId,
+            maturityTime: maturityTime,
+            collateralTokenId: collateralTokenId,
+            debtTokenId: debtTokenId
+        });
+
+        LoanLib.addForceCancelRollBorrowReq(RollupStorage.layout(), msg.sender, forceCancelRollBorrowReq);
     }
 
     /**
@@ -207,7 +243,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (!lsl.getRollerState()) revert RollIsNotActivated();
 
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.requireLoanOwner(loanInfo);
+        msg.sender.requireLoanOwner(loanInfo.accountId);
 
         Loan memory loan = loanInfo.loan;
         loan = loan.repay(collateralAmt, debtAmt);
@@ -364,7 +400,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ) internal returns (IERC20, uint32) {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.requireLoanOwner(loanInfo);
+        msg.sender.requireLoanOwner(loanInfo.accountId);
 
         Loan memory loan = loanInfo.loan;
         IERC20 collateralToken = loanInfo.collateralAsset.token;

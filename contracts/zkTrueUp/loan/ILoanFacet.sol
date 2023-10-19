@@ -2,16 +2,15 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ITsbToken} from "../interfaces/ITsbToken.sol";
-import {LiquidationFactor, Loan} from "./LoanStorage.sol";
+import {LiquidationFactor, Loan, RollBorrowOrder} from "./LoanStorage.sol";
 
 /**
  * @title Term Structure Loan Facet Interface
  * @author Term Structure Labs
  */
 interface ILoanFacet {
-    /// @notice Error for not the tsb token
-    error InvalidTsbTokenAddr(ITsbToken invalidTsbToken);
+    /// @notice Error for not the tsb token address
+    error InvalidTsbTokenAddr(address invalidTsbTokenAddr);
     /// @notice Error for invalid expiration time
     error InvalidExpiredTime(uint32 expiredTime);
     /// @notice Error for setting invalid liquidation factor
@@ -100,6 +99,8 @@ interface ILoanFacet {
         uint128 collateralAmt,
         uint128 debtAmt
     );
+
+    event RollBorrowOrderPlaced(address indexed sender, RollBorrowOrder rollBorrowOrder);
 
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan

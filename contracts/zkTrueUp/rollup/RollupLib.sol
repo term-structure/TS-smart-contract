@@ -290,6 +290,15 @@ library RollupLib {
         return false;
     }
 
+    function isRollBorrowInL1RequestQueue(
+        Request memory request,
+        Operations.RollBorrow memory rollBorrow
+    ) internal pure returns (bool) {
+        requireMatchedOpType(request.opType, Operations.OpType.ROLL_BORROW_ORDER);
+        if (Operations.isRollBorrowHashedPubDataMatched(rollBorrow, request.hashedPubData)) return true;
+        return false;
+    }
+
     /// @notice Internal function check if the operation type is matched
     /// @param opType The operation type of the request
     /// @param expectedOpType The expected operation type
