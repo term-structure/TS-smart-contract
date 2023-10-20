@@ -935,15 +935,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         ITsbToken tsbToken = ITsbToken(tokenAddr);
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tokenAddr);
 
-        (bytes12 loanId, Loan memory newLoan) = _getAuctionInfo(tsl, auctionEnd, tsbToken);
+        (bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) = _getAuctionInfo(tsl, auctionEnd, tsbToken);
 
         // update loan
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
-        loan = loan.updateLoan(newLoan.collateralAmt, newLoan.debtAmt);
+        loan = loan.updateLoan(collateralAmt, debtAmt);
         lsl.loans[loanId] = loan;
 
-        emit UpdateLoan(loanId, accountId, newLoan.collateralAmt, newLoan.debtAmt);
+        emit UpdateLoan(loanId, accountId, collateralAmt, debtAmt);
     }
 
     /// @notice Internal function to get the auction info
@@ -954,25 +954,25 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         TokenStorage.Layout storage tsl,
         Operations.AuctionEnd memory auctionEnd,
         ITsbToken tsbToken
-    ) internal view virtual returns (bytes12, Loan memory) {
+    ) internal view virtual returns (bytes12, uint128, uint128) {
+        uint128 debtAmt;
+        bytes12 loanId;
+
+        // {} scope to avoid stack too deep error
+        {
+            // debt token config
+            (IERC20 underlyingToken, uint32 maturityTime) = tsbToken.tokenInfo();
+            (uint16 debtTokenId, AssetConfig memory underlyingAsset) = tsl.getAssetConfig(underlyingToken);
+            loanId = LoanLib.calcLoanId(auctionEnd.accountId, maturityTime, debtTokenId, auctionEnd.collateralTokenId);
+            debtAmt = SafeCast.toUint128(auctionEnd.debtAmt.toL1Amt(underlyingAsset.decimals));
+        }
+
         // collateral token config
-        uint16 collateralTokenId = auctionEnd.collateralTokenId;
-        AssetConfig memory assetConfig = tsl.getAssetConfig(collateralTokenId);
+        AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.collateralTokenId);
         Utils.notZeroAddr(address(assetConfig.token));
+        uint128 collateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(assetConfig.decimals));
 
-        //TODO: remove loan memory and return collateral and debt amount directly
-        Loan memory loan;
-        uint8 decimals = assetConfig.decimals;
-        loan.collateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(decimals));
-
-        // debt token config
-        (IERC20 underlyingToken, uint32 maturityTime) = tsbToken.tokenInfo();
-        (uint16 debtTokenId, AssetConfig memory underlyingAsset) = tsl.getAssetConfig(underlyingToken);
-        decimals = underlyingAsset.decimals;
-        loan.debtAmt = SafeCast.toUint128(auctionEnd.debtAmt.toL1Amt(decimals));
-        bytes12 loanId = LoanLib.calcLoanId(auctionEnd.accountId, maturityTime, debtTokenId, collateralTokenId);
-
-        return (loanId, loan);
+        return (loanId, collateralAmt, debtAmt);
     }
 
     /// @notice Internal function to withdraw fee to treasury, vault, and insurance
