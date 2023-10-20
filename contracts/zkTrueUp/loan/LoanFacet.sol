@@ -42,6 +42,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using SafeCast for uint256;
     using Math for *;
     using LoanLib for *;
+    using Utils for *;
 
     /* ============ External Functions ============ */
 
@@ -176,8 +177,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
         // check the original loan will be strictly healthy after roll over
         Loan memory loan = loanInfo.loan;
+        AssetConfig memory collateralAsset = loanInfo.collateralAsset;
+        AssetConfig memory debtAsset = loanInfo.debtAsset;
         loan = loan.repay(rollBorrowOrder.maxCollateralAmt, (rollBorrowOrder.maxBorrowAmt - maxBorrowFee));
-        loan.requireStrictHealthy(loanInfo.liquidationFactor, loanInfo.collateralAsset, loanInfo.debtAsset);
+        loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
 
         // reuse the original memory of `loan` and `loanInfo` to sava gas
         // those represent the `newLoan` and `newLoanInfo` here
@@ -187,27 +190,27 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             maturityTime: maturityTime,
             accountId: loanInfo.accountId,
             liquidationFactor: loanInfo.liquidationFactor,
-            collateralAsset: loanInfo.collateralAsset,
-            debtAsset: loanInfo.debtAsset
+            collateralAsset: collateralAsset,
+            debtAsset: debtAsset
         });
         // check the new loan will be also strictly healthy
         // if the roll borrow order is executed in L2 then the position is be rollup to L1
-        loan.requireStrictHealthy(loanInfo.liquidationFactor, loanInfo.collateralAsset, loanInfo.debtAsset);
+        loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
 
         // add the locked collateral to the original loan
         lsl.loans[loanId].lockedCollateralAmt = rollBorrowOrder.maxCollateralAmt;
 
-        (uint32 accountId, , uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(loanId);
+        (, , uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(loanId);
         Operations.RollBorrow memory rollBorrowReq = Operations.RollBorrow({
-            accountId: accountId,
+            accountId: loanInfo.accountId,
             collateralTokenId: collateralTokenId,
             borrowTokenId: debtTokenId,
-            maturityTime: maturityTime,
+            maturityTime: maturityTime, //TODO: ??
             expiredTime: rollBorrowOrder.expiredTime,
             feeRate: rollBorrowOrder.feeRate,
             annualPercentageRate: rollBorrowOrder.annualPercentageRate,
-            maxCollateralAmt: rollBorrowOrder.maxCollateralAmt,
-            maxBorrowAmt: rollBorrowOrder.maxBorrowAmt
+            maxCollateralAmt: rollBorrowOrder.maxCollateralAmt.toL2Amt(collateralAsset.decimals),
+            maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals)
         });
 
         LoanLib.addRollBorrowReq(RollupStorage.layout(), msg.sender, rollBorrowReq);

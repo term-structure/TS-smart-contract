@@ -117,8 +117,11 @@ library Operations {
         uint32 accountId;
         uint32 matchedTime;
         uint16 collateralTokenId;
-        uint16 borrowTokenId;
-        uint16 tsbTokenId;
+        uint16 debtTokenId;
+        // uint16 oldTsbTokenId; // TODO: remove
+        // uint16 newTsbTokenId; // TODO: remove
+        uint32 oldMaturityTime;
+        uint32 newMaturityTime;
         uint128 collateralAmt;
         uint128 borrowAmt;
         uint128 debtAmt;
@@ -305,8 +308,9 @@ library Operations {
         (offset, rollOverEnd.accountId) = Bytes.readUInt32(data, offset);
         (offset, rollOverEnd.matchedTime) = Bytes.readUInt32(data, offset);
         (offset, rollOverEnd.collateralTokenId) = Bytes.readUInt16(data, offset);
-        (offset, rollOverEnd.borrowTokenId) = Bytes.readUInt16(data, offset);
-        (offset, rollOverEnd.tsbTokenId) = Bytes.readUInt16(data, offset);
+        (offset, rollOverEnd.debtTokenId) = Bytes.readUInt16(data, offset);
+        (offset, rollOverEnd.oldMaturityTime) = Bytes.readUInt32(data, offset);
+        (offset, rollOverEnd.newMaturityTime) = Bytes.readUInt32(data, offset);
         (offset, rollOverEnd.collateralAmt) = Bytes.readUInt128(data, offset);
         (offset, rollOverEnd.borrowAmt) = Bytes.readUInt128(data, offset);
         (, rollOverEnd.debtAmt) = Bytes.readUInt128(data, offset);

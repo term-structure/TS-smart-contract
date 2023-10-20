@@ -663,12 +663,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
             Operations.CreateTsbToken memory createTsbTokenReq = data.readCreateTsbTokenPubData();
             TokenStorage.Layout storage tsl = TokenStorage.layout();
             AssetConfig memory tokenConfig = tsl.getAssetConfig(createTsbTokenReq.tsbTokenId);
-            (IERC20 underlyingAsset, uint32 maturityTime) = ITsbToken(address(tokenConfig.token)).tokenInfo();
+            (IERC20 underlyingToken, uint32 maturityTime) = ITsbToken(address(tokenConfig.token)).tokenInfo();
             if (maturityTime != createTsbTokenReq.maturityTime)
                 revert MaturityTimeIsNotMatched(maturityTime, createTsbTokenReq.maturityTime);
 
             tokenConfig = tsl.getAssetConfig(createTsbTokenReq.baseTokenId);
-            if (underlyingAsset != tokenConfig.token) revert TokenIsNotMatched(underlyingAsset, tokenConfig.token);
+            if (underlyingToken != tokenConfig.token) revert TokenIsNotMatched(underlyingToken, tokenConfig.token);
         } else {
             // L1 request
             isL1Request = true;
@@ -855,40 +855,46 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
     }
 
     function _rollOver(Operations.RollOverEnd memory rollOver) internal {
-        LoanStorage.Layout storage lsl = LoanStorage.layout();
-        AssetConfig memory tsbAsset = TokenStorage.layout().getAssetConfig(rollOver.tsbTokenId);
-        require(tsbAsset.isTsbToken, "tsbToken is not tsbToken");
+        require(rollOver.matchedTime < block.timestamp, "matchedTime is too large");
+        require(rollOver.oldMaturityTime > block.timestamp, "maturityTime is too small");
+        require(rollOver.newMaturityTime > rollOver.oldMaturityTime, "newMaturityTime is too small");
 
-        address tsbTokenAddr = address(tsbAsset.token);
-        require(tsbTokenAddr != address(0), "tsbToken is zero address");
-
-        //TODO: old and new maturity time
-        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
-        require(maturityTime > block.timestamp, "maturityTime is too small");
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        // reuse asset memory
+        AssetConfig memory asset = tsl.getAssetConfig(rollOver.collateralTokenId);
+        Utils.notZeroAddr(address(asset.token));
 
         bytes12 loanId = LoanLib.calcLoanId(
             rollOver.accountId,
-            maturityTime,
-            rollOver.borrowTokenId,
+            rollOver.oldMaturityTime,
+            rollOver.debtTokenId,
             rollOver.collateralTokenId
         );
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
-        require(rollOver.collateralAmt <= loan.lockedCollateralAmt, "collateralAmt is too large");
+        uint8 decimals = asset.decimals;
+        uint128 collateralAmt = SafeCast.toUint128(rollOver.collateralAmt.toL1Amt(decimals));
+        require(collateralAmt <= loan.lockedCollateralAmt, "collateralAmt is too large");
 
-        loan = loan.repay(rollOver.collateralAmt, rollOver.borrowAmt);
+        asset = tsl.getAssetConfig(rollOver.debtTokenId);
+        Utils.notZeroAddr(address(asset.token));
+
+        decimals = asset.decimals;
+        uint128 borrowAmt = SafeCast.toUint128(rollOver.borrowAmt.toL1Amt(decimals));
+        loan = loan.repay(collateralAmt, borrowAmt);
         lsl.loans[loanId] = loan;
 
-        // reuse the original memory of `loan` to sava gas, it represent the `newLoan` here
-        loan = Loan({collateralAmt: rollOver.collateralAmt, debtAmt: rollOver.debtAmt, lockedCollateralAmt: 0});
+        uint128 newDebtAmt = SafeCast.toUint128(rollOver.debtAmt.toL1Amt(decimals));
+        loan = Loan({collateralAmt: collateralAmt, debtAmt: newDebtAmt, lockedCollateralAmt: 0});
         bytes12 newLoanId = LoanLib.calcLoanId(
             rollOver.accountId,
-            maturityTime, // using maturity time of new tsbToken to calculate the `newLoanId`
-            rollOver.borrowTokenId,
+            rollOver.newMaturityTime,
+            rollOver.debtTokenId,
             rollOver.collateralTokenId
         );
-        lsl.loans[loanId] = loan;
+        lsl.loans[newLoanId] = loan;
 
-        emit RollOver(loanId, newLoanId, rollOver.collateralAmt, rollOver.debtAmt);
+        emit RollOver(loanId, newLoanId, collateralAmt, borrowAmt, newDebtAmt);
     }
 
     /// @notice Internal function to add the pending balance of an account
@@ -954,14 +960,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal, ReentrancyGuard {
         AssetConfig memory assetConfig = tsl.getAssetConfig(collateralTokenId);
         Utils.notZeroAddr(address(assetConfig.token));
 
+        //TODO: remove loan memory and return collateral and debt amount directly
         Loan memory loan;
         uint8 decimals = assetConfig.decimals;
         loan.collateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(decimals));
 
         // debt token config
-        (IERC20 underlyingAsset, uint32 maturityTime) = tsbToken.tokenInfo();
-        (uint16 debtTokenId, AssetConfig memory underlyingAssetConfig) = tsl.getAssetConfig(underlyingAsset);
-        decimals = underlyingAssetConfig.decimals;
+        (IERC20 underlyingToken, uint32 maturityTime) = tsbToken.tokenInfo();
+        (uint16 debtTokenId, AssetConfig memory underlyingAsset) = tsl.getAssetConfig(underlyingToken);
+        decimals = underlyingAsset.decimals;
         loan.debtAmt = SafeCast.toUint128(auctionEnd.debtAmt.toL1Amt(decimals));
         bytes12 loanId = LoanLib.calcLoanId(auctionEnd.accountId, maturityTime, debtTokenId, collateralTokenId);
 

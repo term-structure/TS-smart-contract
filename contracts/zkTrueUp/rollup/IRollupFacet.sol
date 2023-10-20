@@ -123,7 +123,13 @@ interface IRollupFacet {
     /// @param accountId The id of the account
     event AccountDeregistered(address accountAddr, uint32 indexed accountId);
 
-    event RollOver(bytes12 indexed loanId, bytes12 indexed newLoanId, uint128 collateralAmt, uint128 debtAmt);
+    event RollOver(
+        bytes12 indexed loanId,
+        bytes12 indexed newLoanId,
+        uint128 collateralAmt,
+        uint128 borrowAmt,
+        uint128 debtAmt
+    );
 
     /// @notice Commit blocks
     /// @param lastCommittedBlock The last committed block
