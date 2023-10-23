@@ -42,6 +42,9 @@ interface ILoanFacet {
     /// @notice Error for use roll when it is not activated
     error RollIsNotActivated();
 
+    /// @notice Error for roll borrow a locked loan
+    error LoanIsLocked(bytes12 loanId);
+
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
     /// @param sender The address of the sender

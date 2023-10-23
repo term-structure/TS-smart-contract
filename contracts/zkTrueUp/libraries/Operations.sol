@@ -105,10 +105,10 @@ library Operations {
         uint32 accountId;
         uint16 collateralTokenId;
         uint16 borrowTokenId;
-        uint32 maturityTime;
+        uint32 newMaturityTime;
         uint32 expiredTime;
         uint32 feeRate; // base is 1e8
-        uint32 annualPercentageRate; // base is 1e8 (APR)
+        uint32 principalAndInterestRate; // base is 1e8 (PIR)
         uint128 maxCollateralAmt;
         uint128 maxBorrowAmt;
     }
@@ -158,10 +158,10 @@ library Operations {
                 rollBorrow.accountId,
                 rollBorrow.collateralTokenId,
                 rollBorrow.borrowTokenId,
-                rollBorrow.maturityTime,
+                rollBorrow.newMaturityTime,
                 rollBorrow.expiredTime,
                 rollBorrow.feeRate,
-                rollBorrow.annualPercentageRate,
+                rollBorrow.principalAndInterestRate,
                 rollBorrow.maxCollateralAmt,
                 rollBorrow.maxBorrowAmt
             );
@@ -291,10 +291,10 @@ library Operations {
         (offset, rollBorrow.accountId) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.collateralTokenId) = Bytes.readUInt16(data, offset);
         (offset, rollBorrow.borrowTokenId) = Bytes.readUInt16(data, offset);
-        (offset, rollBorrow.maturityTime) = Bytes.readUInt32(data, offset);
+        (offset, rollBorrow.newMaturityTime) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.expiredTime) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.feeRate) = Bytes.readUInt32(data, offset);
-        (offset, rollBorrow.annualPercentageRate) = Bytes.readUInt32(data, offset);
+        (offset, rollBorrow.principalAndInterestRate) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.maxCollateralAmt) = Bytes.readUInt128(data, offset);
         (, rollBorrow.maxBorrowAmt) = Bytes.readUInt128(data, offset);
         return rollBorrow;

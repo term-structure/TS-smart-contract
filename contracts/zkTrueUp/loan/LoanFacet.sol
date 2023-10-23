@@ -132,7 +132,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         bytes12 loanId = rollBorrowOrder.loanId;
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         msg.sender.requireLoanOwner(loanInfo.accountId);
-        require(loanInfo.loan.lockedCollateralAmt == 0, "loan is locked");
+        if (loanInfo.loan.lockedCollateralAmt > 0) revert LoanIsLocked(loanId);
 
         // check the tsb token is exist
         TokenStorage.Layout storage tsl = TokenStorage.layout();
@@ -142,6 +142,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
         // expireTime + 1 day should be less than or equal to maturityTime
         (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+        // solhint-disable-next-line not-rely-on-time
         if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
         if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > maturityTime)
             revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
@@ -209,10 +210,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             accountId: loanInfo.accountId,
             collateralTokenId: collateralTokenId,
             borrowTokenId: debtTokenId,
-            maturityTime: maturityTime, //TODO: ??
+            newMaturityTime: maturityTime,
             expiredTime: rollBorrowOrder.expiredTime,
             feeRate: rollBorrowOrder.feeRate,
-            annualPercentageRate: rollBorrowOrder.annualPercentageRate,
+            principalAndInterestRate: (rollBorrowOrder.annualPercentageRate + Config.SYSTEM_DECIMALS_BASE).toUint32(),
             maxCollateralAmt: rollBorrowOrder.maxCollateralAmt.toL2Amt(collateralAsset.decimals),
             maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals)
         });

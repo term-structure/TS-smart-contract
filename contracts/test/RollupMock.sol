@@ -44,7 +44,7 @@ contract RollupMock is RollupFacet {
         loan = loan.updateLoan(collateralAmt, debtAmt);
         lsl.loans[loanId] = loan;
 
-        emit UpdateLoan(loanId, accountId, collateralAmt, debtAmt);
+        emit UpdateLoan(loanId, collateralAmt, debtAmt);
     }
 
     function _getAuctionInfo(
