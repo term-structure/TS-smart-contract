@@ -12,6 +12,7 @@ import { EMPTY_HASH, MIN_DEPOSIT_AMOUNT, TsTokenId } from "term-structure-sdk";
 import { register } from "../../utils/register";
 import {
   AccountFacet,
+  EvacuationFacet,
   RollupFacet,
   TokenFacet,
   TsbFacet,
@@ -61,6 +62,7 @@ describe("Activating evacuation", function () {
   let diamondRollup: RollupFacet;
   let diamondToken: TokenFacet;
   let diamondTsb: TsbFacet;
+  let diamondEvacuation: EvacuationFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   const genesisBlock: StoredBlockStruct = {
     blockNumber: BigNumber.from("0"),
@@ -88,6 +90,10 @@ describe("Activating evacuation", function () {
     )) as RollupFacet;
     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
+    diamondEvacuation = (await useFacet(
+      "EvacuationFacet",
+      zkTrueUpAddr
+    )) as EvacuationFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     storedBlocks.push(genesisBlock);
     let committedBlockNum: number = 0;
@@ -182,8 +188,8 @@ describe("Activating evacuation", function () {
 
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    expect(await diamondRollup.isEvacuMode()).to.equal(false);
-    await diamondRollup.activateEvacuation();
+    expect(await diamondEvacuation.isEvacuMode()).to.equal(false);
+    await diamondEvacuation.activateEvacuation();
 
     const [newCommittedBlockNum, newVerifiedBlockNum, newExecutedBlockNum] =
       await diamondRollup.getBlockNum();
@@ -195,7 +201,7 @@ describe("Activating evacuation", function () {
     ] = await diamondRollup.getL1RequestNum();
 
     // check the contract is in evacuation mode
-    expect(await diamondRollup.isEvacuMode()).to.equal(true);
+    expect(await diamondEvacuation.isEvacuMode()).to.equal(true);
     // check the committed block num and verified block num are rollbacked to executed block num
     expect(oldCommittedBlockNum - newCommittedBlockNum).to.equal(2);
     expect(oldVerifiedBlockNum - newVerifiedBlockNum).to.equal(2);
@@ -222,10 +228,10 @@ describe("Activating evacuation", function () {
 
     // expiration period = 14 days
     await time.increase(time.duration.days(13));
-    expect(await diamondRollup.isEvacuMode()).to.equal(false);
+    expect(await diamondEvacuation.isEvacuMode()).to.equal(false);
     await expect(
-      diamondRollup.activateEvacuation()
-    ).to.be.revertedWithCustomError(diamondRollup, "TimeStampIsNotExpired");
+      diamondEvacuation.activateEvacuation()
+    ).to.be.revertedWithCustomError(diamondEvacuation, "TimeStampIsNotExpired");
   });
 
   it("Failed to activate evacuation, because the system is in evacuation mode", async function () {
@@ -241,12 +247,11 @@ describe("Activating evacuation", function () {
 
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    expect(await diamondRollup.isEvacuMode()).to.equal(false);
-    await diamondRollup.activateEvacuation();
-    expect(await diamondRollup.isEvacuMode()).to.equal(true);
-    expect(diamondRollup.activateEvacuation()).to.be.revertedWithCustomError(
-      diamondRollup,
-      "EvacuModeActivated"
-    );
+    expect(await diamondEvacuation.isEvacuMode()).to.equal(false);
+    await diamondEvacuation.activateEvacuation();
+    expect(await diamondEvacuation.isEvacuMode()).to.equal(true);
+    expect(
+      diamondEvacuation.activateEvacuation()
+    ).to.be.revertedWithCustomError(diamondEvacuation, "EvacuModeActivated");
   });
 });

@@ -40,6 +40,7 @@ export const LIBRARY_NAMES = [
   "RollupLib",
   "TokenLib",
   "TsbLib",
+  "EvacuationLib",
 ];
 
 export const FACET_NAMES = [
@@ -51,6 +52,7 @@ export const FACET_NAMES = [
   "RollupFacet",
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 export const DEFAULT_ZERO_ADDR = "0x0000000000000000000000000000000000000000";

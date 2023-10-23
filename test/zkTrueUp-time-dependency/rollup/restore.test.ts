@@ -18,6 +18,7 @@ import {
 } from "term-structure-sdk";
 import {
   AccountFacet,
+  EvacuationFacet,
   RollupFacet,
   TokenFacet,
   TsbFacet,
@@ -88,6 +89,7 @@ describe("Restore protocol", function () {
   let diamondRollup: RollupFacet;
   let diamondTsb: TsbFacet;
   let diamondToken: TokenFacet;
+  let diamondEvacuation: EvacuationFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   let case01: typeof _case01;
   let case02: typeof _case02;
@@ -124,6 +126,10 @@ describe("Restore protocol", function () {
     )) as RollupFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
+    diamondEvacuation = (await useFacet(
+      "EvacuationFacet",
+      zkTrueUpAddr
+    )) as EvacuationFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     const EXECUTE_BLOCK_NUMBER = 21;
 
@@ -223,7 +229,7 @@ describe("Restore protocol", function () {
 
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     // collect deposit request public data
     const user1AccountId = await diamondAcc.getAccountId(user1Addr);
@@ -240,7 +246,7 @@ describe("Restore protocol", function () {
     const depositPubDataBytes = utils.hexlify(depositPubData);
 
     // consume l1 request
-    await diamondRollup.consumeL1RequestInEvacuMode([depositPubDataBytes]);
+    await diamondEvacuation.consumeL1RequestInEvacuMode([depositPubDataBytes]);
 
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const evacuBlock1 = case01.newBlock;
@@ -256,11 +262,11 @@ describe("Restore protocol", function () {
 
     // evacuate
     await time.increaseTo(Number(evacuBlock1.timestamp));
-    await diamondRollup.evacuate(lastExecutedBlock, evacuBlock1, proof1);
-    await diamondRollup.evacuate(lastExecutedBlock, evacuBlock2, proof2);
-    await diamondRollup.evacuate(lastExecutedBlock, evacuBlock3, proof3);
-    await diamondRollup.evacuate(lastExecutedBlock, evacuBlock4, proof4);
-    await diamondRollup.evacuate(lastExecutedBlock, evacuBlock5, proof5);
+    await diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock1, proof1);
+    await diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock2, proof2);
+    await diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock3, proof3);
+    await diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock4, proof4);
+    await diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock5, proof5);
   });
 
   it("Success to restore protocol", async function () {
@@ -333,7 +339,7 @@ describe("Restore protocol", function () {
 
     // check state
     // have not executed all evacuation request so the protocol is still in evacu mode
-    expect(await diamondRollup.isEvacuMode()).to.be.true;
+    expect(await diamondEvacuation.isEvacuMode()).to.be.true;
 
     // generate new blocks
     const restoreBlock2Data = restoreData[1];
@@ -408,7 +414,7 @@ describe("Restore protocol", function () {
     );
 
     // check state
-    expect(await diamondRollup.isEvacuMode()).to.be.false;
+    expect(await diamondEvacuation.isEvacuMode()).to.be.false;
     expect(afterCommittedBlockNum - beforeCommittedBlockNum).to.equal(2);
     expect(afterVerifiedBlockNum - beforeVerifiedBlockNum).to.equal(2);
     expect(afterExecutedBlockNum - beforeExecutedBlockNum).to.equal(2);
