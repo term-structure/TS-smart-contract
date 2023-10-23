@@ -36,6 +36,15 @@ interface IRollupFacet {
     error InvalidEvacuBlockPubData(uint256 evacuationRequestNum);
     /// @notice Error for invalid chunk id delta when commit evacublock in evacuation mode
     error InvalidChunkIdDelta(uint16[] chunkIdDeltas);
+    /// @notice Error for removed collateral amount is greater than locked collateral amount
+    error RemovedCollateralAmtGtLockedCollateralAmt(uint128 removedCollateralAmt, uint128 lockedCollateralAmt);
+    /// @notice Error for invalid matched time when rollup a roll borrow operation
+    error InvalidMatchedTime(uint32 matchedTime, uint256 blockTimestamp);
+    /// @notice Error for invalid old maturity time, the old maturity time should be greater than the block timestamp
+    ///         i.e. cannot roll a matured loan
+    error InvalidOldMaturityTime(uint32 oldMaturityTime, uint256 blockTimestamp);
+    /// @notice Error for invalid new maturity time, the new maturity time should be greater than the old maturity time
+    error InvalidNewMaturityTime(uint32 newMaturityTime, uint32 oldMaturityTime);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block

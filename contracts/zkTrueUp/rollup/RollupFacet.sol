@@ -641,15 +641,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             } else if (opType == Operations.OpType.ROLL_OVER_END) {
                 Operations.RollOverEnd memory rollOver = pubData.readRollOverEndPubdata();
                 _rollOver(rollOver);
-            } else if (opType == Operations.OpType.USER_CANCEL_ROLL_BORROW) {
-                Operations.CancelRollBorrow memory userCancelRollBorrow = pubData.readCancelRollBorrowPubdata();
-                _cancelRollBorrow(userCancelRollBorrow);
-            } else if (opType == Operations.OpType.ADMIN_CANCEL_ROLL_BORROW) {
-                Operations.CancelRollBorrow memory adminCancelRollBorrow = pubData.readCancelRollBorrowPubdata();
-                _cancelRollBorrow(adminCancelRollBorrow);
-            } else if (opType == Operations.OpType.FORCE_CANCEL_ROLL_BORROW) {
-                Operations.CancelRollBorrow memory forceCancelRollBorrow = pubData.readCancelRollBorrowPubdata();
-                _cancelRollBorrow(forceCancelRollBorrow);
+            } else if (
+                opType == Operations.OpType.USER_CANCEL_ROLL_BORROW ||
+                opType == Operations.OpType.ADMIN_CANCEL_ROLL_BORROW ||
+                opType == Operations.OpType.FORCE_CANCEL_ROLL_BORROW
+            ) {
+                Operations.CancelRollBorrow memory cancelRollBorrow = pubData.readCancelRollBorrowPubdata();
+                _cancelRollBorrow(cancelRollBorrow);
             } else if (opType == Operations.OpType.WITHDRAW_FEE) {
                 Operations.WithdrawFee memory withdrawFee = pubData.readWithdrawFeePubdata();
                 _withdrawFee(rsl, withdrawFee);
@@ -684,9 +682,14 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     }
 
     function _rollOver(Operations.RollOverEnd memory rollOver) internal {
-        require(rollOver.matchedTime < block.timestamp, "matchedTime is too large");
-        require(rollOver.oldMaturityTime > block.timestamp, "maturityTime is too small");
-        require(rollOver.newMaturityTime > rollOver.oldMaturityTime, "newMaturityTime is too small");
+        // solhint-disable-next-line not-rely-on-time
+        if (rollOver.matchedTime >= block.timestamp) revert InvalidMatchedTime(rollOver.matchedTime, block.timestamp);
+        // solhint-disable-next-line not-rely-on-time
+        if (rollOver.oldMaturityTime <= block.timestamp)
+            // solhint-disable-next-line not-rely-on-time
+            revert InvalidOldMaturityTime(rollOver.oldMaturityTime, block.timestamp);
+        if (rollOver.newMaturityTime <= rollOver.oldMaturityTime)
+            revert InvalidNewMaturityTime(rollOver.newMaturityTime, rollOver.oldMaturityTime);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         // reuse asset memory
@@ -703,7 +706,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Loan memory loan = lsl.getLoan(loanId);
         uint8 decimals = asset.decimals;
         uint128 collateralAmt = SafeCast.toUint128(rollOver.collateralAmt.toL1Amt(decimals));
-        require(collateralAmt <= loan.lockedCollateralAmt, "collateralAmt is too large");
+        if (collateralAmt > loan.lockedCollateralAmt)
+            revert RemovedCollateralAmtGtLockedCollateralAmt(collateralAmt, loan.lockedCollateralAmt);
 
         asset = tsl.getAssetConfig(rollOver.debtTokenId);
         Utils.notZeroAddr(address(asset.token));
