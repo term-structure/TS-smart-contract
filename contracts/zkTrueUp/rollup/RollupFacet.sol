@@ -675,8 +675,12 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             cancelRollBorrow.collateralTokenId
         );
         Loan memory loan = lsl.getLoan(loanId);
-        loan = loan.removeLockedCollateral(loan.lockedCollateralAmt);
+        // remove all locked collateral
+        uint128 removedCollateralAmt = loan.lockedCollateralAmt;
+        loan = loan.removeLockedCollateral(removedCollateralAmt);
         lsl.loans[loanId] = loan;
+
+        emit RollBorrowCancel(loanId, removedCollateralAmt);
     }
 
     function _rollOver(Operations.RollOverEnd memory rollOver) internal {
@@ -725,8 +729,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Internal function to update the onchain loan info
     /// @param auctionEnd The auction end request
     function _updateLoan(Operations.AuctionEnd memory auctionEnd) internal {
-        uint32 accountId = auctionEnd.accountId;
-        address accountAddr = AccountStorage.layout().getAccountAddr(accountId);
+        address accountAddr = AccountStorage.layout().getAccountAddr(auctionEnd.accountId);
         Utils.notZeroAddr(accountAddr);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
@@ -746,7 +749,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         loan = loan.updateLoan(collateralAmt, debtAmt);
         lsl.loans[loanId] = loan;
 
-        emit UpdateLoan(loanId, accountId, collateralAmt, debtAmt);
+        emit UpdateLoan(loanId, collateralAmt, debtAmt);
     }
 
     /// @notice Internal function to get the auction info

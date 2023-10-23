@@ -349,7 +349,6 @@ describe("Health factor", () => {
           .to.emit(diamondRollupMock, "UpdateLoan")
           .withArgs(
             loanId,
-            loan.accountId,
             BigNumber.from(collateralAmt),
             BigNumber.from(debtAmt)
           );
@@ -466,7 +465,6 @@ describe("Health factor", () => {
           .to.emit(diamondRollupMock, "UpdateLoan")
           .withArgs(
             loanId,
-            loan.accountId,
             BigNumber.from(collateralAmt),
             BigNumber.from(debtAmt)
           );

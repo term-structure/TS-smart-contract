@@ -73,15 +73,9 @@ interface IRollupFacet {
 
     /// @notice Emit when there is a new loan created
     /// @param loanId The id of the loan
-    /// @param accountId The account id of the loan owner
     /// @param addedCollateralAmt  The added collateral amount of the loan
     /// @param addedDebtAmt The added debt amount of the loan
-    event UpdateLoan(
-        bytes12 indexed loanId,
-        uint32 indexed accountId,
-        uint128 addedCollateralAmt,
-        uint128 addedDebtAmt
-    );
+    event UpdateLoan(bytes12 indexed loanId, uint128 addedCollateralAmt, uint128 addedDebtAmt);
 
     event RollOver(
         bytes12 indexed loanId,
@@ -90,6 +84,8 @@ interface IRollupFacet {
         uint128 borrowAmt,
         uint128 debtAmt
     );
+
+    event RollBorrowCancel(bytes12 indexed loanId, uint128 removedLockedCollateralAmt);
 
     /// @notice Commit blocks
     /// @param lastCommittedBlock The last committed block
