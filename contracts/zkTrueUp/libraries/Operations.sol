@@ -118,8 +118,6 @@ library Operations {
         uint32 matchedTime;
         uint16 collateralTokenId;
         uint16 debtTokenId;
-        // uint16 oldTsbTokenId; // TODO: remove
-        // uint16 newTsbTokenId; // TODO: remove
         uint32 oldMaturityTime;
         uint32 newMaturityTime;
         uint128 collateralAmt;

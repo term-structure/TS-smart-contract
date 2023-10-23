@@ -3,7 +3,6 @@ pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
-import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {IEvacuationFacet} from "./IEvacuationFacet.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {EvacuationStorage} from "./EvacuationStorage.sol";
@@ -24,7 +23,7 @@ import {Utils} from "../libraries/Utils.sol";
  * @author Term Structure Labs
  * @notice The EvacuationFacet contract is used to handle the evacuation-related functions
  */
-contract EvacuationFacet is IEvacuationFacet, AccessControlInternal, ReentrancyGuard {
+contract EvacuationFacet is IEvacuationFacet, ReentrancyGuard {
     using EvacuationLib for EvacuationStorage.Layout;
     using AddressLib for AddressStorage.Layout;
     using AccountLib for AccountStorage.Layout;
@@ -198,6 +197,8 @@ contract EvacuationFacet is IEvacuationFacet, AccessControlInternal, ReentrancyG
         uint32 accountId = AccountStorage.layout().getAccountId(addr);
         return EvacuationStorage.layout().isEvacuated(accountId, tokenId);
     }
+
+    /* ============ Internal Functions ============ */
 
     /// @notice Internal function to check whether the chunk id delta is valid when commit evacuation block
     /// @dev The evacuation block only includes the evacuation request or noop,
