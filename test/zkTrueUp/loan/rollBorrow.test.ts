@@ -261,6 +261,14 @@ describe("Roll Borrow", () => {
       expect(
         afterLoan.lockedCollateralAmt.sub(beforeLoan.lockedCollateralAmt)
       ).to.equal(rollBorrowOrder.maxCollateralAmt);
+      // check roll borrow order in L1 request queue
+      const [, , requestNum] = await diamondRollupMock.getL1RequestNum();
+      expect(
+        await diamondRollupMock.isRollBorrowInL1RequestQueue(
+          rollBorrowReq,
+          requestNum.sub(1)
+        )
+      ).to.be.true;
     });
 
     it("Fail to roll, original loan will be not strict healthy (ETH case)", async () => {

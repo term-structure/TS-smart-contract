@@ -172,6 +172,24 @@ interface IRollupFacet {
         uint64 requestId
     ) external view returns (bool isExisted);
 
+    /// @notice Check whether the roll borrow request is in the L1 request queue
+    /// @param rollBorrow The roll borrow request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isRollBorrowInL1RequestQueue(
+        Operations.RollBorrow memory rollBorrow,
+        uint64 requestId
+    ) external view returns (bool);
+
+    /// @notice Check whether the force cancel roll borrow request is in the L1 request queue
+    /// @param forceCancelRollBorrow The force cancel roll borrow request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isForceCancelRollBorrowInL1RequestQueue(
+        Operations.CancelRollBorrow memory forceCancelRollBorrow,
+        uint64 requestId
+    ) external view returns (bool);
+
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request
     /// @return request The request of the specified id

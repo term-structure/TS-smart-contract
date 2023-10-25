@@ -220,6 +220,32 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /**
      * @inheritdoc IRollupFacet
      */
+    function isRollBorrowInL1RequestQueue(
+        Operations.RollBorrow memory rollBorrow,
+        uint64 requestId
+    ) external view returns (bool) {
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
+        Request memory request = rsl.getL1Request(requestId);
+        return request.isRollBorrowInL1RequestQueue(rollBorrow);
+    }
+
+    /**
+     * @inheritdoc IRollupFacet
+     */
+    function isForceCancelRollBorrowInL1RequestQueue(
+        Operations.CancelRollBorrow memory forceCancelRollBorrow,
+        uint64 requestId
+    ) external view returns (bool) {
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        if (rsl.isRequestIdGtOrEqCurRequestNum(requestId)) return false;
+        Request memory request = rsl.getL1Request(requestId);
+        return request.isForceCancelRollBorrowInL1RequestQueue(forceCancelRollBorrow);
+    }
+
+    /**
+     * @inheritdoc IRollupFacet
+     */
     function getL1Request(uint64 requestId) external view returns (Request memory) {
         return RollupStorage.layout().getL1Request(requestId);
     }

@@ -331,6 +331,20 @@ library RollupLib {
         return false;
     }
 
+    /// @notice Internal function to check whether the force cancel roll borrow request is in the L1 request queue
+    /// @param request The L1 request
+    /// @param forceCancelRollBorrow The force cancel roll borrow request
+    /// @return bool if the force cancel roll borrow request is in the L1 request queue
+    function isForceCancelRollBorrowInL1RequestQueue(
+        Request memory request,
+        Operations.CancelRollBorrow memory forceCancelRollBorrow
+    ) internal pure returns (bool) {
+        requireMatchedOpType(request.opType, Operations.OpType.FORCE_CANCEL_ROLL_BORROW);
+        if (Operations.isForceCancelRollBorrowHashedPubDataMatched(forceCancelRollBorrow, request.hashedPubData))
+            return true;
+        return false;
+    }
+
     /// @notice Internal function check if the operation type is matched
     /// @param opType The operation type of the request
     /// @param expectedOpType The expected operation type

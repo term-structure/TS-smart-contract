@@ -211,6 +211,13 @@ library Operations {
         return keccak256(encodeRollBorrowPubData(op)) == hashedPubData;
     }
 
+    function isForceCancelRollBorrowHashedPubDataMatched(
+        CancelRollBorrow memory op,
+        bytes32 hashedPubData
+    ) internal pure returns (bool) {
+        return keccak256(encodeForceCancelRollBorrowPubData(op)) == hashedPubData;
+    }
+
     /* ============ Read public data function ============ */
 
     function readRegisterPubData(bytes memory data) internal pure returns (Register memory) {
