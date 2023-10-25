@@ -128,8 +128,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         if (!lsl.getRollerState()) revert RollIsNotActivated();
 
-        //TODO: calculate rollup gas cost
-        require(msg.value == 0.01 ether, "roll fee is not correct");
+        //TODO: calculate rollup gas cost not 0.01 eth, waiting for test in roll up
+        if (msg.value != 0.01 ether) revert InvalidRollBorrowFee(msg.value);
 
         bytes12 loanId = rollBorrowOrder.loanId;
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);

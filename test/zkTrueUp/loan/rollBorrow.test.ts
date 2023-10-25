@@ -194,6 +194,7 @@ describe("Roll Borrow", () => {
         BigNumber.from(nextTsbTokenData.maturity)
       );
     });
+
     it("Success to roll (ETH case)", async () => {
       const beforeLoan = await diamondLoan.getLoan(loanId);
 
@@ -210,6 +211,7 @@ describe("Roll Borrow", () => {
       )
         .mul(90)
         .div(100);
+
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
@@ -222,7 +224,7 @@ describe("Roll Borrow", () => {
       const rollBorrowTx = await diamondLoan
         .connect(user1)
         .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") });
-      const rollBorrowReceipt = await rollBorrowTx.wait();
+      await rollBorrowTx.wait();
 
       // check event
       const rollBorrowReq = [
@@ -252,13 +254,229 @@ describe("Roll Borrow", () => {
         .to.emit(diamondLoan, "RollBorrowOrderPlaced")
         .withArgs(user1Addr, rollBorrowReq);
 
-      // check storage change
+      // check loan
       const afterLoan = await diamondLoan.getLoan(loanId);
       expect(afterLoan.collateralAmt.sub(beforeLoan.collateralAmt)).to.equal(0);
       expect(afterLoan.debtAmt.sub(beforeLoan.debtAmt)).to.equal(0);
       expect(
         afterLoan.lockedCollateralAmt.sub(beforeLoan.lockedCollateralAmt)
       ).to.equal(rollBorrowOrder.maxCollateralAmt);
+    });
+
+    it("Fail to roll, original loan will be not strict healthy (ETH case)", async () => {
+      // remain 50% of debt but move all collateral to new loan, it make the original loan not strict healthy
+      // 50% of debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      )
+        .mul(50)
+        .div(100);
+      // all of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      );
+
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1732896000", // 2024/11/30
+        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      // want to roll again but loan is locked
+      await expect(
+        diamondLoan
+          .connect(user1)
+          .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") })
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotStrictHealthy");
+    });
+
+    it("Fail to roll, new loan will be not strict healthy (ETH case)", async () => {
+      // remain 50% of collateral but move all debt to new loan, it make the new loan not strict healthy
+      // all of debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      );
+      // 50% of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      )
+        .mul(50)
+        .div(100);
+
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1732896000", // 2024/11/30
+        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      // want to roll again but loan is locked
+      await expect(
+        diamondLoan
+          .connect(user1)
+          .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") })
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotStrictHealthy");
+    });
+
+    it("Fail to roll, invalid roll borrow fee (ETH case)", async () => {
+      // borrow order data
+      // all debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      );
+      // 90% of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      )
+        .mul(90)
+        .div(100);
+
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1732896000", // 2024/11/30
+        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      // set invalid roll borrow fee 0.005 ETH
+      await expect(
+        diamondLoan
+          .connect(user1)
+          .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.005") })
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidRollBorrowFee");
+    });
+
+    it("Fail to roll, loan is locked (ETH case)", async () => {
+      // borrow order data
+      // all debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      );
+      // 90% of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      )
+        .mul(90)
+        .div(100);
+
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1732896000", // 2024/11/30
+        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      // success to roll
+      const rollBorrowTx = await diamondLoan
+        .connect(user1)
+        .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") });
+      await rollBorrowTx.wait();
+
+      // want to roll again but loan is locked
+      await expect(
+        diamondLoan
+          .connect(user1)
+          .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") })
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsLocked");
+    });
+
+    it("Fail to roll, invalid TSB token (ETH case)", async () => {
+      // borrow order data
+      // all debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      );
+      // 90% of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      )
+        .mul(90)
+        .div(100);
+
+      const invalidTsbTokenAddr = utils.hexlify(utils.randomBytes(20));
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1732896000", // 2024/11/30
+        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: invalidTsbTokenAddr,
+      };
+
+      // roll to an invalid TSB token address
+      await expect(
+        diamondLoan
+          .connect(user1)
+          .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") })
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidTsbTokenAddr");
+    });
+
+    it("Fail to roll, invalid expired time (ETH case)", async () => {
+      // borrow order data
+      // all debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      );
+      // 90% of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      )
+        .mul(90)
+        .div(100);
+
+      // invalid expired time < block.timestamp
+      const invalidExpiredTime1 = "1609430400"; // 2021/1/1 00:00:00
+      let rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: invalidExpiredTime1,
+        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      await expect(
+        diamondLoan
+          .connect(user1)
+          .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") })
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidExpiredTime");
+
+      // within one day to maturity time
+      const invalidExpiredTime2 = BigNumber.from(nextTsbTokenData.maturity)
+        .sub(1)
+        .toString();
+      rollBorrowOrder = {
+        ...rollBorrowOrder,
+        expiredTime: invalidExpiredTime2,
+      };
+
+      //
+      await expect(
+        diamondLoan
+          .connect(user1)
+          .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") })
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidExpiredTime");
     });
   });
   // describe("RollBorrow (stable coin pairs case)", () => {
