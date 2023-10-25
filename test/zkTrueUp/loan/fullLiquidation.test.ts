@@ -69,6 +69,7 @@ export const FACET_NAMES_MOCK = [
   "RollupMock", // replace RollupFacet with RollupMock
   "TokenFacet",
   "TsbMock", // replace TsbFacet with TsbMock
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {

@@ -36,6 +36,7 @@ export const FACET_NAMES_MOCK = [
   "RollupFacet",
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {
