@@ -28,6 +28,8 @@ import {Operations} from "../libraries/Operations.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Term Structure Loan Facet Contract
  * @author Term Structure Labs
@@ -126,7 +128,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         if (!lsl.getRollerState()) revert RollIsNotActivated();
 
-        //TODO: rollup gas cost * gas price
+        //TODO: calculate rollup gas cost
         require(msg.value == 0.01 ether, "roll fee is not correct");
 
         bytes12 loanId = rollBorrowOrder.loanId;
@@ -140,8 +142,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(tsbTokenAddr));
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
 
-        // expireTime + 1 day should be less than or equal to maturityTime
         (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+        // block.timestamp < expireTime + 1 day <= maturityTime
         // solhint-disable-next-line not-rely-on-time
         if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
         if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > maturityTime)
@@ -159,11 +161,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ) internal {
         AssetConfig memory collateralAsset;
         AssetConfig memory debtAsset;
+        uint32 borrowFeeRate = lsl.getBorrowFeeRate();
         // {} scope to avoid stack too deep error
         {
             // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
             uint32 interestRate = rollBorrowOrder
                 .annualPercentageRate
+                // solhint-disable-next-line not-rely-on-time
                 .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
                 .toUint32();
 
@@ -172,7 +176,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             uint128 maxBorrowFee = rollBorrowOrder
                 .maxBorrowAmt
                 .mulDiv(interestRate, Config.SYSTEM_DECIMALS_BASE)
-                .mulDiv(rollBorrowOrder.feeRate, Config.SYSTEM_DECIMALS_BASE)
+                .mulDiv(borrowFeeRate, Config.SYSTEM_DECIMALS_BASE)
                 .toUint128();
 
             // debtAmt = borrowAmt + interest
@@ -202,6 +206,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             // if the roll borrow order is executed in L2 then the position is be rollup to L1
             loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
         }
+
         // add the locked collateral to the original loan
         lsl.loans[loanId].lockedCollateralAmt = rollBorrowOrder.maxCollateralAmt;
 
@@ -212,14 +217,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             borrowTokenId: debtTokenId,
             newMaturityTime: maturityTime,
             expiredTime: rollBorrowOrder.expiredTime,
-            feeRate: rollBorrowOrder.feeRate,
+            feeRate: borrowFeeRate,
             principalAndInterestRate: (rollBorrowOrder.annualPercentageRate + Config.SYSTEM_DECIMALS_BASE).toUint32(),
             maxCollateralAmt: rollBorrowOrder.maxCollateralAmt.toL2Amt(collateralAsset.decimals),
             maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals)
         });
 
         LoanLib.addRollBorrowReq(RollupStorage.layout(), msg.sender, rollBorrowReq);
-        emit RollBorrowOrderPlaced(msg.sender, rollBorrowOrder);
+        emit RollBorrowOrderPlaced(msg.sender, rollBorrowReq);
     }
 
     function forceCancelRollBorrow(bytes12 loanId) external {
@@ -305,6 +310,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit SetActivatedRoller(isActivated);
     }
 
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function setBorrowFeeRate(uint32 borrowFeeRate) external onlyRole(Config.ADMIN_ROLE) {
+        LoanStorage.layout().borrowerFeeRate = borrowFeeRate;
+        emit SetBorrowFeeRate(borrowFeeRate);
+    }
+
     /* ============ External View Functions ============ */
 
     /**
@@ -364,6 +377,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             .calcMaxRepayAmt(loan.debtAmt, loanInfo.maturityTime, halfLiquidationThreshold);
 
         return (_isLiquidable, loanInfo.debtAsset.token, maxRepayAmt);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getBorrowFeeRate() external view returns (uint32) {
+        return LoanStorage.layout().getBorrowFeeRate();
     }
 
     /**

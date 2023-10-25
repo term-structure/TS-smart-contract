@@ -52,7 +52,6 @@ struct LiquidationAmt {
 struct RollBorrowOrder {
     bytes12 loanId;
     uint32 expiredTime;
-    uint32 feeRate; // base is 1e8
     uint32 annualPercentageRate; // base is 1e8 (APR)
     uint128 maxCollateralAmt;
     uint128 maxBorrowAmt;
