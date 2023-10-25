@@ -126,6 +126,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
     /**
      * @inheritdoc ILoanFacet
+     * @dev Cannot roll total collateral amount because the original loan will be not strict healthy if success
      */
     function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable {
         LoanStorage.Layout storage lsl = LoanStorage.layout();

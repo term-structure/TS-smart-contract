@@ -16,30 +16,19 @@ import { loanDataJSON, stableCoinPairLoanDataJSON } from "../../data/loanData";
 import { updateRoundData } from "../../utils/updateRoundData";
 import { toL1Amt, toL2Amt } from "../../utils/amountConvertor";
 import { roundDataJSON } from "../../data/roundData";
-import { getExpectedHealthFactor } from "../../utils/getHealthFactor";
 import {
   createAndWhiteListTsbToken,
   whiteListBaseTokens,
 } from "../../utils/whitelistToken";
 import {
   AccountFacet,
-  ERC20Mock,
   LoanFacet,
   RollupMock,
   TokenFacet,
   TsbFacet,
-  TsbToken,
-  WETH9,
   ZkTrueUp,
 } from "../../../typechain-types";
-import {
-  DEFAULT_ETH_ADDRESS,
-  LIQUIDATION_FACTOR,
-  STABLECOIN_PAIR_LIQUIDATION_FACTOR,
-  TS_BASE_TOKEN,
-  TS_DECIMALS,
-  TsTokenId,
-} from "term-structure-sdk";
+import { TS_BASE_TOKEN, TsTokenId } from "term-structure-sdk";
 import {
   RollBorrowOrderStruct,
   Operations,
@@ -75,8 +64,8 @@ const fixture = async () => {
 };
 
 describe("Roll Borrow", () => {
-  let [user1]: Signer[] = [];
-  let [user1Addr]: string[] = [];
+  let [user1, user2]: Signer[] = [];
+  let [user1Addr, user2Addr]: string[] = [];
   let admin: Signer;
   let operator: Signer;
   let zkTrueUp: ZkTrueUp;
@@ -90,8 +79,11 @@ describe("Roll Borrow", () => {
 
   beforeEach(async () => {
     const res = await loadFixture(fixture);
-    [user1] = await ethers.getSigners();
-    [user1Addr] = await Promise.all([user1.getAddress()]);
+    [user1, user2] = await ethers.getSigners();
+    [user1Addr, user2Addr] = await Promise.all([
+      user1.getAddress(),
+      user2.getAddress(),
+    ]);
     admin = res.admin;
     operator = res.operator;
     zkTrueUp = res.zkTrueUp;
@@ -106,6 +98,7 @@ describe("Roll Borrow", () => {
     diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     priceFeeds = res.priceFeeds;
+    await diamondLoan.connect(admin).setActivatedRoller(true);
   });
 
   describe("Roll borrow (ETH case)", () => {
@@ -170,8 +163,6 @@ describe("Roll Borrow", () => {
         loan.collateralTokenId
       );
 
-      await diamondLoan.connect(admin).setActivatedRoller(true);
-
       nextTsbTokenData = {
         name: "tsbUSDC20241230",
         symbol: "tsbUSDC",
@@ -197,6 +188,8 @@ describe("Roll Borrow", () => {
 
     it("Success to roll (ETH case)", async () => {
       const beforeLoan = await diamondLoan.getLoan(loanId);
+      // original loan:
+      // collateral: 1 ETH debt: 500 USDC
 
       // borrow order data
       // all debt
@@ -272,7 +265,7 @@ describe("Roll Borrow", () => {
     });
 
     it("Fail to roll, original loan will be not strict healthy (ETH case)", async () => {
-      // remain 50% of debt but move all collateral to new loan, it make the original loan not strict healthy
+      // move 100% collateral and 50% debt to new loan, it make the original loan not strict healthy
       // 50% of debt
       const debtAmt = toL1Amt(
         BigNumber.from(loanData.debtAmt),
@@ -304,7 +297,7 @@ describe("Roll Borrow", () => {
     });
 
     it("Fail to roll, new loan will be not strict healthy (ETH case)", async () => {
-      // remain 50% of collateral but move all debt to new loan, it make the new loan not strict healthy
+      // move 50% collateral and 100% debt to new loan, it make the new loan not strict healthy
       // all of debt
       const debtAmt = toL1Amt(
         BigNumber.from(loanData.debtAmt),
@@ -335,7 +328,7 @@ describe("Roll Borrow", () => {
       ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotStrictHealthy");
     });
 
-    it("Fail to roll, invalid roll borrow fee (ETH case)", async () => {
+    it("Fail to roll, invalid roll borrow fee", async () => {
       // borrow order data
       // all debt
       const debtAmt = toL1Amt(
@@ -367,7 +360,7 @@ describe("Roll Borrow", () => {
       ).to.be.revertedWithCustomError(diamondLoan, "InvalidRollBorrowFee");
     });
 
-    it("Fail to roll, loan is locked (ETH case)", async () => {
+    it("Fail to roll, loan is locked", async () => {
       // borrow order data
       // all debt
       const debtAmt = toL1Amt(
@@ -405,7 +398,7 @@ describe("Roll Borrow", () => {
       ).to.be.revertedWithCustomError(diamondLoan, "LoanIsLocked");
     });
 
-    it("Fail to roll, invalid TSB token (ETH case)", async () => {
+    it("Fail to roll, invalid TSB token", async () => {
       // borrow order data
       // all debt
       const debtAmt = toL1Amt(
@@ -438,7 +431,7 @@ describe("Roll Borrow", () => {
       ).to.be.revertedWithCustomError(diamondLoan, "InvalidTsbTokenAddr");
     });
 
-    it("Fail to roll, invalid expired time (ETH case)", async () => {
+    it("Fail to roll, invalid expired time", async () => {
       // borrow order data
       // all debt
       const debtAmt = toL1Amt(
@@ -487,106 +480,246 @@ describe("Roll Borrow", () => {
       ).to.be.revertedWithCustomError(diamondLoan, "InvalidExpiredTime");
     });
   });
-  // describe("RollBorrow (stable coin pairs case)", () => {
-  //   const ltvThreshold = STABLECOIN_PAIR_LIQUIDATION_FACTOR.ltvThreshold;
-  //   const tsbTokenData = tsbTokensJSON.filter(
-  //     (token) => token.underlyingAsset === "DAI"
-  //   )[0];
-  //   const loanData = stableCoinPairLoanDataJSON[1]; // USDT -> DAI, loan owner is user2
-  //   const loan: LoanData = {
-  //     accountId: loanData.accountId,
-  //     tsbTokenId: loanData.tsbTokenId,
-  //     collateralTokenId: loanData.collateralTokenId,
-  //     collateralAmt: BigNumber.from(loanData.collateralAmt),
-  //     debtAmt: BigNumber.from(loanData.debtAmt),
-  //   };
-  //   let loanId: string;
-  //   let usdtAnswer: BigNumber;
-  //   let daiAnswer: BigNumber;
-  //   let usdt: ERC20Mock;
-  //   let dai: ERC20Mock;
+  describe("RollBorrow (stable coin pairs case)", () => {
+    const tsbTokenData = tsbTokensJSON.filter(
+      (token) => token.underlyingAsset === "USDT"
+    )[0];
+    const loanData = stableCoinPairLoanDataJSON[2]; // DAI -> USDT, loan owner is user2
+    const loan: LoanData = {
+      accountId: loanData.accountId,
+      tsbTokenId: loanData.tsbTokenId,
+      collateralTokenId: loanData.collateralTokenId,
+      collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtAmt: BigNumber.from(loanData.debtAmt),
+    };
+    let loanId: string;
+    let nextTsbTokenData: TsbTokenData;
+    let nextTsbTokenAddr: string;
 
-  //   beforeEach(async () => {
-  //     // tsb USDC
-  //     await createAndWhiteListTsbToken(
-  //       diamondToken,
-  //       diamondTsb,
-  //       operator,
-  //       tsbTokenData
-  //     );
+    beforeEach(async () => {
+      // tsb USDC
+      await createAndWhiteListTsbToken(
+        diamondToken,
+        diamondTsb,
+        operator,
+        tsbTokenData
+      );
 
-  //     // USDT decimals = 6
-  //     const decimals = TS_BASE_TOKEN.USDT.decimals;
-  //     // register by USDT
-  //     const registerAmt = utils.parseUnits("1000", decimals);
-  //     // register user1
-  //     await register(
-  //       user1,
-  //       Number(TsTokenId.USDT),
-  //       registerAmt,
-  //       baseTokenAddresses,
-  //       diamondAcc
-  //     );
+      // USDT decimals = 6
+      const decimals = TS_BASE_TOKEN.USDT.decimals;
+      // register by USDT
+      const registerAmt = utils.parseUnits("1000", decimals);
+      // register user1
+      await register(
+        user1,
+        Number(TsTokenId.USDT),
+        registerAmt,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
-  //     // DAI decimals = 18
-  //     const decimals2 = TS_BASE_TOKEN.DAI.decimals;
-  //     // register by DAI
-  //     const registerAmt2 = utils.parseUnits("10", decimals2);
-  //     // register user2
-  //     await register(
-  //       user2,
-  //       Number(TsTokenId.DAI),
-  //       registerAmt2,
-  //       baseTokenAddresses,
-  //       diamondAcc
-  //     );
+      // DAI decimals = 18
+      const decimals2 = TS_BASE_TOKEN.DAI.decimals;
+      // register by DAI
+      const registerAmt2 = utils.parseUnits("10", decimals2);
+      // register user2
+      await register(
+        user2,
+        Number(TsTokenId.DAI),
+        registerAmt2,
+        baseTokenAddresses,
+        diamondAcc
+      );
 
-  //     // update test loan data
-  //     const updateLoanTx = await diamondRollupMock
-  //       .connect(operator)
-  //       .updateLoanMock(loan);
-  //     await updateLoanTx.wait();
+      // update test loan data
+      const updateLoanTx = await diamondRollupMock
+        .connect(operator)
+        .updateLoanMock(loan);
+      await updateLoanTx.wait();
 
-  //     // get usdt price with 8 decimals from test oracle
-  //     const usdtPriceFeed = priceFeeds[TsTokenId.USDT];
-  //     const usdtRoundDataJSON = roundDataJSON[Number(TsTokenId.USDT)][0];
-  //     usdtAnswer = await (
-  //       await updateRoundData(operator, usdtPriceFeed, usdtRoundDataJSON)
-  //     ).answer;
+      // get usdt price with 8 decimals from test oracle
+      const usdtPriceFeed = priceFeeds[TsTokenId.USDT];
+      const usdtRoundDataJSON = roundDataJSON[Number(TsTokenId.USDT)][0];
+      await updateRoundData(operator, usdtPriceFeed, usdtRoundDataJSON);
 
-  //     // get dai price with 8 decimals from test oracle
-  //     const daiPriceFeed = priceFeeds[TsTokenId.DAI];
-  //     const daiRoundDataJSON = roundDataJSON[Number(TsTokenId.DAI)][0];
-  //     daiAnswer = await (
-  //       await updateRoundData(operator, daiPriceFeed, daiRoundDataJSON)
-  //     ).answer;
+      // get dai price with 8 decimals from test oracle
+      const daiPriceFeed = priceFeeds[TsTokenId.DAI];
+      const daiRoundDataJSON = roundDataJSON[Number(TsTokenId.DAI)][0];
+      await updateRoundData(operator, daiPriceFeed, daiRoundDataJSON);
 
-  //     // get loan id
-  //     loanId = await diamondLoan.getLoanId(
-  //       loan.accountId,
-  //       BigNumber.from(tsbTokenData.maturity),
-  //       tsbTokenData.underlyingTokenId,
-  //       loan.collateralTokenId
-  //     );
+      // get loan id
+      loanId = await diamondLoan.getLoanId(
+        loan.accountId,
+        BigNumber.from(tsbTokenData.maturity),
+        tsbTokenData.underlyingTokenId,
+        loan.collateralTokenId
+      );
 
-  //     // get usdt contract
-  //     usdt = await ethers.getContractAt(
-  //       "ERC20Mock",
-  //       baseTokenAddresses[TsTokenId.USDT]
-  //     );
+      nextTsbTokenData = {
+        name: "tsbUSDT20241230",
+        symbol: "tsbUSDT",
+        underlyingAsset: "USDT",
+        underlyingTokenId: 3,
+        maturity: "1735488000", // 2024/12/30
+        isStableCoin: false,
+        minDepositAmt: "0",
+      };
 
-  //     // give user2 10000 DAI for repay test
-  //     dai = await ethers.getContractAt(
-  //       "ERC20Mock",
-  //       baseTokenAddresses[TsTokenId.DAI]
-  //     );
-  //     const amount = utils.parseUnits("10000", TS_BASE_TOKEN.DAI.decimals);
-  //     await dai.connect(user2).mint(user2Addr, amount);
+      await createAndWhiteListTsbToken(
+        diamondToken,
+        diamondTsb,
+        operator,
+        nextTsbTokenData
+      );
 
-  //     // user2 approve to ZkTrueUp
-  //     await dai
-  //       .connect(user2)
-  //       .approve(zkTrueUp.address, ethers.constants.MaxUint256);
-  //   });
-  // });
+      nextTsbTokenAddr = await diamondTsb.getTsbToken(
+        nextTsbTokenData.underlyingTokenId,
+        BigNumber.from(nextTsbTokenData.maturity)
+      );
+    });
+
+    it("Success to roll (stable coin pairs case)", async () => {
+      const beforeLoan = await diamondLoan.getLoan(loanId);
+      // original loan:
+      // collateral: 1000 DAI debt: 80 USDT
+
+      // borrow order data
+      // all debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDT
+      );
+      // 50% of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.DAI
+      )
+        .mul(50)
+        .div(100);
+
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1732896000", // 2024/11/30
+        annualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      const rollBorrowTx = await diamondLoan
+        .connect(user2)
+        .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") });
+      await rollBorrowTx.wait();
+
+      // check event
+      const rollBorrowReq = [
+        loan.accountId,
+        loan.collateralTokenId,
+        nextTsbTokenData.underlyingTokenId,
+        Number(nextTsbTokenData.maturity),
+        Number(rollBorrowOrder.expiredTime),
+        await diamondLoan.getBorrowFeeRate(),
+        Number(
+          BigNumber.from(rollBorrowOrder.annualPercentageRate).add(
+            SYSTEM_DECIMALS_BASE
+          )
+        ),
+        toL2Amt(
+          BigNumber.from(rollBorrowOrder.maxCollateralAmt),
+          TS_BASE_TOKEN.ETH
+        ),
+        toL2Amt(
+          BigNumber.from(rollBorrowOrder.maxBorrowAmt),
+          TS_BASE_TOKEN.USDC
+        ),
+      ] as Operations.RollBorrowStructOutput;
+
+      // check event
+      await expect(rollBorrowTx)
+        .to.emit(diamondLoan, "RollBorrowOrderPlaced")
+        .withArgs(user2Addr, rollBorrowReq);
+
+      // check loan
+      const afterLoan = await diamondLoan.getLoan(loanId);
+      expect(afterLoan.collateralAmt.sub(beforeLoan.collateralAmt)).to.equal(0);
+      expect(afterLoan.debtAmt.sub(beforeLoan.debtAmt)).to.equal(0);
+      expect(
+        afterLoan.lockedCollateralAmt.sub(beforeLoan.lockedCollateralAmt)
+      ).to.equal(rollBorrowOrder.maxCollateralAmt);
+      // check roll borrow order in L1 request queue
+      const [, , requestNum] = await diamondRollupMock.getL1RequestNum();
+      expect(
+        await diamondRollupMock.isRollBorrowInL1RequestQueue(
+          rollBorrowReq,
+          requestNum.sub(1)
+        )
+      ).to.be.true;
+    });
+
+    it("Fail to roll, original loan will be not strict healthy (stable coin pairs case)", async () => {
+      // move 99% collateral and 10% debt to new loan, it make the original loan not strict healthy
+      // 90% of debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      )
+        .mul(10)
+        .div(100);
+      // all of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      )
+        .mul(99)
+        .div(100);
+
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1732896000", // 2024/11/30
+        annualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      // want to roll again but loan is locked
+      await expect(
+        diamondLoan
+          .connect(user2)
+          .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") })
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotStrictHealthy");
+    });
+
+    it("Fail to roll, new loan will be not strict healthy (stable coin pairs case)", async () => {
+      // move 1% of collateral and all debt to new loan, it make the new loan not strict healthy
+      // all of debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      );
+      // 1% of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      )
+        .mul(1)
+        .div(100);
+
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1732896000", // 2024/11/30
+        annualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      // want to roll again but loan is locked
+      await expect(
+        diamondLoan
+          .connect(user2)
+          .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") })
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotStrictHealthy");
+    });
+  });
 });
