@@ -225,6 +225,13 @@ library LoanLib {
         return s.stableCoinPairLiquidationFactor;
     }
 
+    /// @notice Internal function to get the borrower fee rate
+    /// @param s The loan storage
+    /// @return borrowerFeeRate The borrower fee rate
+    function getBorrowFeeRate(LoanStorage.Layout storage s) internal view returns (uint32) {
+        return s.borrowerFeeRate;
+    }
+
     /// @notice Internal function to check if the roll function is activated
     /// @param s The loan storage
     /// @return isRollActivated True if the roll function is activated, otherwise false

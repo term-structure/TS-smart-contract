@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LiquidationFactor, Loan, RollBorrowOrder} from "./LoanStorage.sol";
+import {Operations} from "../libraries/Operations.sol";
 
 /**
  * @title Term Structure Loan Facet Interface
@@ -103,7 +104,10 @@ interface ILoanFacet {
         uint128 debtAmt
     );
 
-    event RollBorrowOrderPlaced(address indexed sender, RollBorrowOrder rollBorrowOrder);
+    /// @notice Emitted when the borrower place a roll borrow order
+    /// @param sender The address of the sender
+    /// @param rollBorrowReq The roll borrow request
+    event RollBorrowOrderPlaced(address indexed sender, Operations.RollBorrow rollBorrowReq);
 
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
@@ -131,6 +135,10 @@ interface ILoanFacet {
     /// @notice Emitted when the roll activation is set
     /// @param isActivatedRoll Whether the roll activation is set
     event SetActivatedRoller(bool isActivatedRoll);
+
+    /// @notice Emitted when the borrow fee rate is set
+    /// @param borrowFeeRate The borrow fee rate
+    event SetBorrowFeeRate(uint32 indexed borrowFeeRate);
 
     /// @notice Add collateral to the loan
     /// @param loanId The id of the loan
@@ -180,6 +188,10 @@ interface ILoanFacet {
     /// @param isActivated The roll function activation
     function setActivatedRoller(bool isActivated) external;
 
+    /// @notice Set the borrow fee rate
+    /// @param borrowFeeRate The borrow fee rate
+    function setBorrowFeeRate(uint32 borrowFeeRate) external;
+
     /// @notice Return the health factor of the loan
     /// @param loanId The id of the loan
     /// @return healthFactor The health factor of the loan
@@ -210,6 +222,10 @@ interface ILoanFacet {
     function getLiquidationInfo(
         bytes12 loanId
     ) external view returns (bool _isLiquidable, IERC20 debtToken, uint128 maxRepayAmt);
+
+    /// @notice Return the borrower fee rate
+    /// @return borrowFeeRate The borrower fee rate
+    function getBorrowFeeRate() external view returns (uint32);
 
     /// @notice Check if the roll function is activated
     /// @return isActivate If the roll function is activated
