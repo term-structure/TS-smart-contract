@@ -124,6 +124,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return (liquidatorRewardAmt, protocolPenaltyAmt);
     }
 
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         if (!lsl.getRollerState()) revert RollIsNotActivated();
@@ -152,81 +155,11 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         _rollBorrow(lsl, rollBorrowOrder, loanInfo, loanId, maturityTime);
     }
 
-    function _rollBorrow(
-        LoanStorage.Layout storage lsl,
-        RollBorrowOrder memory rollBorrowOrder,
-        LoanInfo memory loanInfo,
-        bytes12 loanId,
-        uint32 maturityTime
-    ) internal {
-        AssetConfig memory collateralAsset;
-        AssetConfig memory debtAsset;
-        uint32 borrowFeeRate = lsl.getBorrowFeeRate();
-        // {} scope to avoid stack too deep error
-        {
-            // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
-            uint32 interestRate = rollBorrowOrder
-                .annualPercentageRate
-                // solhint-disable-next-line not-rely-on-time
-                .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
-                .toUint32();
-
-            // borrowFee = borrowAmt * (interestRate / SYSTEM_DECIMALS_BASE) * (borrowFeeRate / SYSTEM_DECIMALS_BASE)
-            // ==> maxBorrowFee = maxBorrowAmt * (interestRate / SYSTEM_DECIMALS_BASE) * (borrowFeeRate / SYSTEM_DECIMALS_BASE)
-            uint128 maxBorrowFee = rollBorrowOrder
-                .maxBorrowAmt
-                .mulDiv(interestRate, Config.SYSTEM_DECIMALS_BASE)
-                .mulDiv(borrowFeeRate, Config.SYSTEM_DECIMALS_BASE)
-                .toUint128();
-
-            // debtAmt = borrowAmt + interest
-            // ==> maxDebtAmt = maxBorrowAmt + maxBorrowAmt * interestRate / SYSTEM_DECIMALS_BASE
-            uint128 maxDebtAmt = rollBorrowOrder.maxBorrowAmt +
-                rollBorrowOrder.maxBorrowAmt.mulDiv(interestRate, Config.SYSTEM_DECIMALS_BASE).toUint128();
-
-            // check the original loan will be strictly healthy after roll over
-            Loan memory loan = loanInfo.loan;
-            collateralAsset = loanInfo.collateralAsset;
-            debtAsset = loanInfo.debtAsset;
-            loan = loan.repay(rollBorrowOrder.maxCollateralAmt, (rollBorrowOrder.maxBorrowAmt - maxBorrowFee));
-            loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
-
-            // reuse the original memory of `loan` and `loanInfo` to sava gas
-            // those represent the `newLoan` and `newLoanInfo` here
-            loan = Loan({collateralAmt: rollBorrowOrder.maxCollateralAmt, lockedCollateralAmt: 0, debtAmt: maxDebtAmt});
-            loanInfo = LoanInfo({
-                loan: loan,
-                maturityTime: maturityTime,
-                accountId: loanInfo.accountId,
-                liquidationFactor: loanInfo.liquidationFactor,
-                collateralAsset: collateralAsset,
-                debtAsset: debtAsset
-            });
-            // check the new loan will be also strictly healthy
-            // if the roll borrow order is executed in L2 then the position is be rollup to L1
-            loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
-        }
-
-        // add the locked collateral to the original loan
-        lsl.loans[loanId].lockedCollateralAmt = rollBorrowOrder.maxCollateralAmt;
-
-        (, , uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(loanId);
-        Operations.RollBorrow memory rollBorrowReq = Operations.RollBorrow({
-            accountId: loanInfo.accountId,
-            collateralTokenId: collateralTokenId,
-            borrowTokenId: debtTokenId,
-            newMaturityTime: maturityTime,
-            expiredTime: rollBorrowOrder.expiredTime,
-            feeRate: borrowFeeRate,
-            principalAndInterestRate: (rollBorrowOrder.annualPercentageRate + Config.SYSTEM_DECIMALS_BASE).toUint32(),
-            maxCollateralAmt: rollBorrowOrder.maxCollateralAmt.toL2Amt(collateralAsset.decimals),
-            maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals)
-        });
-
-        LoanLib.addRollBorrowReq(RollupStorage.layout(), msg.sender, rollBorrowReq);
-        emit RollBorrowOrderPlaced(msg.sender, rollBorrowReq);
-    }
-
+    /**
+     * @inheritdoc ILoanFacet
+     * @dev The force cancel roll borrow action will add this request in L1 request queue,
+     *      to force this transaction to be packaged in rollup block
+     */
     function forceCancelRollBorrow(bytes12 loanId) external {
         (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(
             loanId
@@ -579,6 +512,89 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             repayValueEquivCollateralAmt.mulDiv(protocolPenalty, Config.LTV_BASE)
         );
         return LiquidationAmt({liquidatorRewardAmt: liquidatorRewardAmt, protocolPenaltyAmt: protocolPenaltyAmt});
+    }
+
+    /// @notice Internal function to roll borrow
+    /// @dev Simulate this roll borrow order matched in L2,
+    ///      the original and new loan should be strictly healthy (buffering to liquidation threshold)
+    /// @param lsl The loan storage layout
+    /// @param rollBorrowOrder The roll borrow order
+    /// @param loanInfo The loan info
+    /// @param loanId The loan id
+    /// @param maturityTime The maturity time of the loan
+    function _rollBorrow(
+        LoanStorage.Layout storage lsl,
+        RollBorrowOrder memory rollBorrowOrder,
+        LoanInfo memory loanInfo,
+        bytes12 loanId,
+        uint32 maturityTime
+    ) internal {
+        AssetConfig memory collateralAsset;
+        AssetConfig memory debtAsset;
+        uint32 borrowFeeRate = lsl.getBorrowFeeRate();
+        // {} scope to avoid stack too deep error
+        {
+            // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
+            uint32 interestRate = rollBorrowOrder
+                .annualPercentageRate
+                // solhint-disable-next-line not-rely-on-time
+                .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
+                .toUint32();
+
+            // borrowFee = borrowAmt * (interestRate / SYSTEM_DECIMALS_BASE) * (borrowFeeRate / SYSTEM_DECIMALS_BASE)
+            // ==> maxBorrowFee = maxBorrowAmt * (interestRate / SYSTEM_DECIMALS_BASE) * (borrowFeeRate / SYSTEM_DECIMALS_BASE)
+            uint128 maxBorrowFee = rollBorrowOrder
+                .maxBorrowAmt
+                .mulDiv(interestRate, Config.SYSTEM_DECIMALS_BASE)
+                .mulDiv(borrowFeeRate, Config.SYSTEM_DECIMALS_BASE)
+                .toUint128();
+
+            // debtAmt = borrowAmt + interest
+            // ==> maxDebtAmt = maxBorrowAmt + maxBorrowAmt * interestRate / SYSTEM_DECIMALS_BASE
+            uint128 maxDebtAmt = rollBorrowOrder.maxBorrowAmt +
+                rollBorrowOrder.maxBorrowAmt.mulDiv(interestRate, Config.SYSTEM_DECIMALS_BASE).toUint128();
+
+            // check the original loan will be strictly healthy after roll over
+            Loan memory loan = loanInfo.loan;
+            collateralAsset = loanInfo.collateralAsset;
+            debtAsset = loanInfo.debtAsset;
+            loan = loan.repay(rollBorrowOrder.maxCollateralAmt, (rollBorrowOrder.maxBorrowAmt - maxBorrowFee));
+            loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
+
+            // reuse the original memory of `loan` and `loanInfo` to sava gas
+            // those represent the `newLoan` and `newLoanInfo` here
+            loan = Loan({collateralAmt: rollBorrowOrder.maxCollateralAmt, lockedCollateralAmt: 0, debtAmt: maxDebtAmt});
+            loanInfo = LoanInfo({
+                loan: loan,
+                maturityTime: maturityTime,
+                accountId: loanInfo.accountId,
+                liquidationFactor: loanInfo.liquidationFactor,
+                collateralAsset: collateralAsset,
+                debtAsset: debtAsset
+            });
+            // check the new loan will be also strictly healthy
+            // if the roll borrow order is executed in L2 then the position is be rollup to L1
+            loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
+        }
+
+        // add the locked collateral to the original loan
+        lsl.loans[loanId].lockedCollateralAmt = rollBorrowOrder.maxCollateralAmt;
+
+        (, , uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(loanId);
+        Operations.RollBorrow memory rollBorrowReq = Operations.RollBorrow({
+            accountId: loanInfo.accountId,
+            collateralTokenId: collateralTokenId,
+            borrowTokenId: debtTokenId,
+            newMaturityTime: maturityTime,
+            expiredTime: rollBorrowOrder.expiredTime,
+            feeRate: borrowFeeRate,
+            principalAndInterestRate: (rollBorrowOrder.annualPercentageRate + Config.SYSTEM_DECIMALS_BASE).toUint32(),
+            maxCollateralAmt: rollBorrowOrder.maxCollateralAmt.toL2Amt(collateralAsset.decimals),
+            maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals)
+        });
+
+        LoanLib.addRollBorrowReq(RollupStorage.layout(), msg.sender, rollBorrowReq);
+        emit RollBorrowOrderPlaced(msg.sender, rollBorrowReq);
     }
 
     /// @notice Internal function to supply collateral to AAVE V3 then borrow debt from AAVE V3

@@ -70,6 +70,10 @@ library LoanLib {
         return loan;
     }
 
+    /// @notice Internal function to remove locked collateral to the loan
+    /// @dev The locked collateral amount must be greater than or equal to the removed amount
+    /// @param loan The loan to be removed locked collateral
+    /// @param amount The amount of the locked collateral to be removed
     function removeLockedCollateral(Loan memory loan, uint128 amount) internal pure returns (Loan memory) {
         if (loan.lockedCollateralAmt < amount) revert LockedCollateralAmtIsNotEnough(loan.lockedCollateralAmt, amount);
 
@@ -80,6 +84,10 @@ library LoanLib {
         return loan;
     }
 
+    /// @notice Internal function to add roll borrow request in reuqest queue
+    /// @param rsl The rollup storage
+    /// @param sender The sender of the roll borrow request
+    /// @param rollBorrowReq The roll borrow request to be added
     function addRollBorrowReq(
         RollupStorage.Layout storage rsl,
         address sender,
@@ -89,6 +97,10 @@ library LoanLib {
         rsl.addL1Request(sender, Operations.OpType.ROLL_BORROW_ORDER, pubData);
     }
 
+    /// @notice Internal function to add force cancel roll borrow request in reuqest queue
+    /// @param rsl The rollup storage
+    /// @param sender The sender of the force cancel roll borrow request
+    /// @param forceCancelRollBorrowReq The force cancel roll borrow request to be added
     function addForceCancelRollBorrowReq(
         RollupStorage.Layout storage rsl,
         address sender,
@@ -289,6 +301,12 @@ library LoanLib {
         if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert LoanIsNotHealthy(healthFactor);
     }
 
+    /// @notice Internal function to check if the loan is strict healthy (buffering to liquidation threshold)
+    /// @dev Using strict healthy when place order to reserve some buffer to prevent users being liquidated immediately
+    /// @param loan The loan to be checked
+    /// @param liquidationFactor The liquidation factor of the loan
+    /// @param collateralAsset The collateral asset of the loan
+    /// @param debtAsset The debt asset of the loan
     function requireStrictHealthy(
         Loan memory loan,
         LiquidationFactor memory liquidationFactor,

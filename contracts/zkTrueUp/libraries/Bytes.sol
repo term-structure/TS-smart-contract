@@ -158,17 +158,4 @@ library Bytes {
         newOffset = _offset + 16;
         r = bytesToUInt128(_data, _offset);
     }
-
-    function readAddress(bytes memory _data, uint256 _offset) internal pure returns (uint256 newOffset, address r) {
-        newOffset = _offset + 20;
-        r = bytesToAddress(_data, _offset);
-    }
-
-    function bytesToAddress(bytes memory _bytes, uint256 _start) internal pure returns (address r) {
-        uint256 offset = _start + 0x14;
-        if (_bytes.length < offset) revert InvalidBytesLength(_bytes.length, offset);
-        assembly {
-            r := mload(add(_bytes, offset))
-        }
-    }
 }

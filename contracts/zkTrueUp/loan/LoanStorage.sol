@@ -49,13 +49,17 @@ struct LiquidationAmt {
     uint128 protocolPenaltyAmt;
 }
 
+/// @notice The data of the roll borrow order
+/// @dev maxCollateralAmt and maxBorrowAmt means the maximum amount that user want to roll,
+///      but the actual amount of the roll borrow order may be less than the maximum amount
+///      because of the partial fill in L2
 struct RollBorrowOrder {
     bytes12 loanId;
     uint32 expiredTime;
     uint32 annualPercentageRate; // base is 1e8 (APR)
     uint128 maxCollateralAmt;
     uint128 maxBorrowAmt;
-    address tsbTokenAddr;
+    address tsbTokenAddr; // the roll target maturity time of tsbToken
 }
 
 /**

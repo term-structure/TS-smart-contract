@@ -164,6 +164,19 @@ interface ILoanFacet {
     /// @param debtAmt The amount of debt to be repaid
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external;
 
+    /// @notice Place a roll borrow order
+    /// @notice User want to roll the original loan to a new loan without repay
+    /// @notice The roll borrow is an action to place a boorow order on L1,
+    ///         and the order is waiting for being matched on L2 and rollup to create a new loan on L1
+    /// @param rollBorrowOrder The roll borrow order
+    function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable;
+
+    /// @notice Cancel the roll borrow order
+    /// @notice User can force cancel their roll borrow order on L1
+    ///         to avoid sequencor ingore their cancel request in L2
+    /// @param loanId The id of the loan
+    function forceCancelRollBorrow(bytes12 loanId) external;
+
     /// @notice Liquidate the loan
     /// @param loanId The id of the loan to be liquidated
     /// @param repayAmt The amount of debt to be repaid
