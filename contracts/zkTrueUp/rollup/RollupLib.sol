@@ -318,6 +318,10 @@ library RollupLib {
         return false;
     }
 
+    /// @notice Internal function to check whether the roll borrow request is in the L1 request queue
+    /// @param request The L1 request
+    /// @param rollBorrow The roll borrow request
+    /// @return bool if the roll borrow request is in the L1 request queue
     function isRollBorrowInL1RequestQueue(
         Request memory request,
         Operations.RollBorrow memory rollBorrow

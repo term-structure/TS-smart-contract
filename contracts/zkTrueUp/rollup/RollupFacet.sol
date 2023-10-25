@@ -664,6 +664,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert PendingRollupTxHashIsNotMatched(pendingRollupTxHash, executeBlock.storedBlock.pendingRollupTxHash);
     }
 
+    //TODO: not completed and test
     function _cancelRollBorrow(Operations.CancelRollBorrow memory cancelRollBorrow) internal {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         bytes12 loanId = LoanLib.calcLoanId(
@@ -681,6 +682,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         emit RollBorrowCancel(loanId, removedCollateralAmt);
     }
 
+    //TODO: not completed and test
     function _rollOver(Operations.RollOverEnd memory rollOver) internal {
         // solhint-disable-next-line not-rely-on-time
         if (rollOver.matchedTime >= block.timestamp) revert InvalidMatchedTime(rollOver.matchedTime, block.timestamp);

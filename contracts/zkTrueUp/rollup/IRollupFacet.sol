@@ -86,6 +86,12 @@ interface IRollupFacet {
     /// @param addedDebtAmt The added debt amount of the loan
     event UpdateLoan(bytes12 indexed loanId, uint128 addedCollateralAmt, uint128 addedDebtAmt);
 
+    /// @notice Emit when there is a loan is roll over
+    /// @param loanId The id of the original loan
+    /// @param newLoanId The id of the new loan
+    /// @param collateralAmt The collateral amount roll over from the original loan to the new loan
+    /// @param borrowAmt The borrow amount used to remove the debt amount of the original loan
+    /// @param debtAmt The debt amount to the new loan
     event RollOver(
         bytes12 indexed loanId,
         bytes12 indexed newLoanId,
@@ -94,6 +100,9 @@ interface IRollupFacet {
         uint128 debtAmt
     );
 
+    /// @notice Emit when there is a roll borrow order is cancelled
+    /// @param loanId The id of the loan
+    /// @param removedLockedCollateralAmt The removed locked collateral amount of the loan
     event RollBorrowCancel(bytes12 indexed loanId, uint128 removedLockedCollateralAmt);
 
     /// @notice Commit blocks
