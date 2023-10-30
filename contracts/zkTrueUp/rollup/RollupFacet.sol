@@ -703,7 +703,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Loan memory loan = lsl.getLoan(loanId);
         // remove all locked collateral
         uint128 removedCollateralAmt = loan.lockedCollateralAmt;
-        loan = loan.removeLockedCollateral(removedCollateralAmt);
+        loan.removeLockedCollateral(removedCollateralAmt);
         lsl.loans[loanId] = loan;
 
         emit RollBorrowCancel(loanId, removedCollateralAmt);
