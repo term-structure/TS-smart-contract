@@ -720,7 +720,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert InvalidNewMaturityTime(rollOver.newMaturityTime, rollOver.oldMaturityTime);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        // reuse asset memory
         AssetConfig memory asset = tsl.getAssetConfig(rollOver.collateralTokenId);
         Utils.notZeroAddr(address(asset.token));
 
@@ -737,6 +736,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (collateralAmt > loan.lockedCollateralAmt)
             revert RemovedCollateralAmtGtLockedCollateralAmt(collateralAmt, loan.lockedCollateralAmt);
 
+        // reuse memory of asset to save gas
         asset = tsl.getAssetConfig(rollOver.debtTokenId);
         Utils.notZeroAddr(address(asset.token));
 
