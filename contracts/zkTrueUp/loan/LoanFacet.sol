@@ -57,7 +57,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         Utils.transferFrom(collateralToken, msg.sender, amount, msg.value);
 
         Loan memory loan = loanInfo.loan;
-        loan = loan.addCollateral(amount);
+        loan.addCollateral(amount);
         lsl.loans[loanId] = loan;
         emit CollateralAdded(loanId, msg.sender, collateralToken, amount);
     }
@@ -72,7 +72,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
         Loan memory loan = loanInfo.loan;
         AssetConfig memory collateralAsset = loanInfo.collateralAsset;
-        loan = loan.removeCollateral(amount);
+        loan.removeCollateral(amount);
         loan.requireHealthy(loanInfo.liquidationFactor, collateralAsset, loanInfo.debtAsset);
 
         lsl.loans[loanId] = loan;
@@ -193,7 +193,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         Loan memory loan = loanInfo.loan;
         AssetConfig memory collateralAsset = loanInfo.collateralAsset;
         AssetConfig memory debtAsset = loanInfo.debtAsset;
-        loan = loan.repay(collateralAmt, debtAmt);
+        loan.repay(collateralAmt, debtAmt);
         loan.requireHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
 
         lsl.loans[loanId] = loan;
@@ -369,7 +369,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         AssetConfig memory debtAsset = loanInfo.debtAsset;
         Utils.transferFrom(debtAsset.token, msg.sender, debtAmt, msg.value);
 
-        loan = loan.repay(collateralAmt, debtAmt);
+        loan.repay(collateralAmt, debtAmt);
         loan.requireHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
 
         lsl.loans[loanId] = loan;
@@ -558,7 +558,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             Loan memory loan = loanInfo.loan;
             collateralAsset = loanInfo.collateralAsset;
             debtAsset = loanInfo.debtAsset;
-            loan = loan.repay(rollBorrowOrder.maxCollateralAmt, (rollBorrowOrder.maxBorrowAmt - maxBorrowFee));
+            loan.repay(rollBorrowOrder.maxCollateralAmt, (rollBorrowOrder.maxBorrowAmt - maxBorrowFee));
             loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
 
             // reuse the original memory of `loan` and `loanInfo` to sava gas

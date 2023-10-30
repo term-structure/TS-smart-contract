@@ -41,7 +41,7 @@ contract RollupMock is RollupFacet {
         // update loan
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
-        loan = loan.updateLoan(collateralAmt, debtAmt);
+        loan.updateLoan(collateralAmt, debtAmt);
         lsl.loans[loanId] = loan;
 
         emit UpdateLoan(loanId, collateralAmt, debtAmt);

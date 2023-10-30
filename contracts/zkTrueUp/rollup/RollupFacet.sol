@@ -743,8 +743,8 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
         decimals = asset.decimals;
         uint128 borrowAmt = rollOver.borrowAmt.toL1Amt(decimals).toUint128();
-        loan = loan.repay(collateralAmt, borrowAmt);
-        loan = loan.removeLockedCollateral(loan.lockedCollateralAmt);
+        loan.repay(collateralAmt, borrowAmt);
+        loan.removeLockedCollateral(loan.lockedCollateralAmt);
         lsl.loans[loanId] = loan;
 
         uint128 newDebtAmt = rollOver.debtAmt.toL1Amt(decimals).toUint128();
@@ -780,7 +780,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         // update loan
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
-        loan = loan.updateLoan(collateralAmt, debtAmt);
+        loan.updateLoan(collateralAmt, debtAmt);
         lsl.loans[loanId] = loan;
 
         emit UpdateLoan(loanId, collateralAmt, debtAmt);
