@@ -166,8 +166,8 @@ interface ILoanFacet {
 
     /// @notice Place a roll borrow order
     /// @notice User want to roll the original loan to a new loan without repay
-    /// @notice The roll borrow is an action to place a boorow order on L1,
-    ///         and the order is waiting for being matched on L2 and rollup to create a new loan on L1
+    /// @notice The roll borrow is an action to place a borrow order on L1,
+    ///         and the order is waiting to be matched on L2 and rollup will create a new loan on L1 once matched
     /// @param rollBorrowOrder The roll borrow order
     function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable;
 
