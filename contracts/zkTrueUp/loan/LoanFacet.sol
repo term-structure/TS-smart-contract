@@ -28,8 +28,6 @@ import {Operations} from "../libraries/Operations.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title Term Structure Loan Facet Contract
  * @author Term Structure Labs
@@ -133,6 +131,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (!lsl.getRollerState()) revert RollIsNotActivated();
 
         //TODO: calculate rollup gas cost not 0.01 eth, waiting for test in roll up
+        //TODO: need to handle this fee
         if (msg.value != 0.01 ether) revert InvalidRollBorrowFee(msg.value);
 
         bytes12 loanId = rollBorrowOrder.loanId;
@@ -147,7 +146,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
 
         (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
-        // block.timestamp < expireTime + 1 day <= maturityTime
+        // assert: block.timestamp < expireTime + 1 day <= maturityTime
         // solhint-disable-next-line not-rely-on-time
         if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
         if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > maturityTime)
@@ -407,7 +406,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         IERC20 debtToken = loanInfo.debtAsset.token;
         Utils.transferFrom(debtToken, msg.sender, repayAmt, msg.value);
 
-        /// remove all locked collateral (forced cancel the roll over borrow order)
+        /// remove all locked collateral (equivalent to cancelling any roll borrow order)
         if (loan.lockedCollateralAmt > 0) loan.removeLockedCollateral(loan.lockedCollateralAmt);
 
         loan.repay(totalRemovedCollateralAmt, repayAmt);
@@ -516,8 +515,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     }
 
     /// @notice Internal function to roll borrow
-    /// @dev Simulate this roll borrow order matched in L2,
-    ///      the original and new loan should be strictly healthy (buffering to liquidation threshold)
+    /// @dev Should simulate this roll borrow order before being matched in L2,
+    ///      to make sure both the original and new loan are strictly healthy (buffering to liquidation threshold)
     /// @param lsl The loan storage layout
     /// @param rollBorrowOrder The roll borrow order
     /// @param loanInfo The loan info
