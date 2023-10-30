@@ -146,7 +146,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
 
         (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
-        // assert: block.timestamp < expireTime + 1 day <= maturityTime
+        // assert: expireTime > block.timestamp && expireTime + 1 day <= maturityTime
         // solhint-disable-next-line not-rely-on-time
         if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
         if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > maturityTime)
