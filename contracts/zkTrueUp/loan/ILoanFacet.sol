@@ -10,8 +10,8 @@ import {Operations} from "../libraries/Operations.sol";
  * @author Term Structure Labs
  */
 interface ILoanFacet {
-    /// @notice Error for not the tsb token address
-    error InvalidTsbTokenAddr(address invalidTsbTokenAddr);
+    /// @notice Error for invalid tsb token address
+    error InvalidTsbTokenAddr(address tsbTokenAddr);
     /// @notice Error for invalid expiration time
     error InvalidExpiredTime(uint32 expiredTime);
     /// @notice Error for setting invalid liquidation factor
