@@ -543,10 +543,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
             // borrowFee = borrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
             // ==> maxBorrowFee = maxBorrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
+            // ==> maxBorrowFee = maxBorrowAmt * interestRate * borrowFeeRate / SYSTEM_UNIT_BASE / SYSTEM_UNIT_BASE
             uint128 maxBorrowFee = rollBorrowOrder
                 .maxBorrowAmt
-                .mulDiv(interestRate, Config.SYSTEM_UNIT_BASE)
-                .mulDiv(borrowFeeRate, Config.SYSTEM_UNIT_BASE)
+                .mulDiv(interestRate * borrowFeeRate, Config.SYSTEM_UNIT_BASE * Config.SYSTEM_UNIT_BASE)
                 .toUint128();
 
             // debtAmt = borrowAmt + interest
