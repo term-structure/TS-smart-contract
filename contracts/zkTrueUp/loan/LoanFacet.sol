@@ -542,18 +542,18 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                 .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
                 .toUint32();
 
-            // borrowFee = borrowAmt * (interestRate / SYSTEM_DECIMALS_BASE) * (borrowFeeRate / SYSTEM_DECIMALS_BASE)
-            // ==> maxBorrowFee = maxBorrowAmt * (interestRate / SYSTEM_DECIMALS_BASE) * (borrowFeeRate / SYSTEM_DECIMALS_BASE)
+            // borrowFee = borrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
+            // ==> maxBorrowFee = maxBorrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
             uint128 maxBorrowFee = rollBorrowOrder
                 .maxBorrowAmt
-                .mulDiv(interestRate, Config.SYSTEM_DECIMALS_BASE)
-                .mulDiv(borrowFeeRate, Config.SYSTEM_DECIMALS_BASE)
+                .mulDiv(interestRate, Config.SYSTEM_UNIT_BASE)
+                .mulDiv(borrowFeeRate, Config.SYSTEM_UNIT_BASE)
                 .toUint128();
 
             // debtAmt = borrowAmt + interest
-            // ==> maxDebtAmt = maxBorrowAmt + maxBorrowAmt * interestRate / SYSTEM_DECIMALS_BASE
+            // ==> maxDebtAmt = maxBorrowAmt + maxBorrowAmt * interestRate / SYSTEM_UNIT_BASE
             uint128 maxDebtAmt = rollBorrowOrder.maxBorrowAmt +
-                rollBorrowOrder.maxBorrowAmt.mulDiv(interestRate, Config.SYSTEM_DECIMALS_BASE).toUint128();
+                rollBorrowOrder.maxBorrowAmt.mulDiv(interestRate, Config.SYSTEM_UNIT_BASE).toUint128();
 
             // check the original loan will be strictly healthy after roll over
             Loan memory loan = loanInfo.loan;
@@ -589,7 +589,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             newMaturityTime: maturityTime,
             expiredTime: rollBorrowOrder.expiredTime,
             feeRate: borrowFeeRate,
-            principalAndInterestRate: (rollBorrowOrder.annualPercentageRate + Config.SYSTEM_DECIMALS_BASE).toUint32(),
+            principalAndInterestRate: (rollBorrowOrder.annualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32(),
             maxCollateralAmt: rollBorrowOrder.maxCollateralAmt.toL2Amt(collateralAsset.decimals),
             maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals)
         });

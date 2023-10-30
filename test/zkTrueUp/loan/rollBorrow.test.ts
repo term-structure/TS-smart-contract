@@ -33,7 +33,7 @@ import {
   RollBorrowOrderStruct,
   Operations,
 } from "../../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
-import { SYSTEM_DECIMALS_BASE } from "../../../utils/config";
+import { SYSTEM_UNIT_BASE } from "../../../utils/config";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -229,7 +229,7 @@ describe("Roll Borrow", () => {
         await diamondLoan.getBorrowFeeRate(),
         Number(
           BigNumber.from(rollBorrowOrder.annualPercentageRate).add(
-            SYSTEM_DECIMALS_BASE
+            SYSTEM_UNIT_BASE
           )
         ),
         toL2Amt(
@@ -621,7 +621,7 @@ describe("Roll Borrow", () => {
         await diamondLoan.getBorrowFeeRate(),
         Number(
           BigNumber.from(rollBorrowOrder.annualPercentageRate).add(
-            SYSTEM_DECIMALS_BASE
+            SYSTEM_UNIT_BASE
           )
         ),
         toL2Amt(

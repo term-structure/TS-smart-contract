@@ -89,7 +89,7 @@ library Config {
     uint8 internal constant SYSTEM_DECIMALS = 8;
 
     /// @notice The base of L2 system unit
-    uint256 internal constant SYSTEM_DECIMALS_BASE = 10 ** SYSTEM_DECIMALS;
+    uint256 internal constant SYSTEM_UNIT_BASE = 10 ** SYSTEM_DECIMALS;
 
     /// @notice Role for admin
     bytes32 internal constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
