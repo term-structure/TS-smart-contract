@@ -173,7 +173,7 @@ interface ILoanFacet {
 
     /// @notice Cancel the roll borrow order
     /// @notice User can force cancel their roll borrow order on L1
-    ///         to avoid sequencor ingore their cancel request in L2
+    ///         to avoid sequencer ignore his cancel request in L2
     /// @param loanId The id of the loan
     function forceCancelRollBorrow(bytes12 loanId) external;
 
@@ -237,8 +237,8 @@ interface ILoanFacet {
         bytes12 loanId
     ) external view returns (bool _isLiquidable, IERC20 debtToken, uint128 maxRepayAmt);
 
-    /// @notice Return the borrower fee rate
-    /// @return borrowFeeRate The borrower fee rate
+    /// @notice Return the borrow fee rate
+    /// @return borrowFeeRate The borrow fee rate
     function getBorrowFeeRate() external view returns (uint32);
 
     /// @notice Check if the roll function is activated
