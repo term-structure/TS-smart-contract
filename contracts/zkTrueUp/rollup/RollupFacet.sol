@@ -39,6 +39,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     using EvacuationLib for EvacuationStorage.Layout;
     using Bytes for bytes;
     using Operations for bytes;
+    using SafeCast for uint256;
     using RollupLib for *;
     using LoanLib for *;
     using Utils for *;
@@ -732,7 +733,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
         uint8 decimals = asset.decimals;
-        uint128 collateralAmt = SafeCast.toUint128(rollOver.collateralAmt.toL1Amt(decimals));
+        uint128 collateralAmt = rollOver.collateralAmt.toL1Amt(decimals).toUint128();
         if (collateralAmt > loan.lockedCollateralAmt)
             revert RemovedCollateralAmtGtLockedCollateralAmt(collateralAmt, loan.lockedCollateralAmt);
 
@@ -741,11 +742,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Utils.notZeroAddr(address(asset.token));
 
         decimals = asset.decimals;
-        uint128 borrowAmt = SafeCast.toUint128(rollOver.borrowAmt.toL1Amt(decimals));
+        uint128 borrowAmt = rollOver.borrowAmt.toL1Amt(decimals).toUint128();
         loan = loan.repay(collateralAmt, borrowAmt);
         lsl.loans[loanId] = loan;
 
-        uint128 newDebtAmt = SafeCast.toUint128(rollOver.debtAmt.toL1Amt(decimals));
+        uint128 newDebtAmt = rollOver.debtAmt.toL1Amt(decimals).toUint128();
         loan = Loan({collateralAmt: collateralAmt, debtAmt: newDebtAmt, lockedCollateralAmt: 0});
         bytes12 newLoanId = LoanLib.calcLoanId(
             rollOver.accountId,
@@ -802,13 +803,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             (IERC20 underlyingToken, uint32 maturityTime) = tsbToken.tokenInfo();
             (uint16 debtTokenId, AssetConfig memory underlyingAsset) = tsl.getAssetConfig(underlyingToken);
             loanId = LoanLib.calcLoanId(auctionEnd.accountId, maturityTime, debtTokenId, auctionEnd.collateralTokenId);
-            debtAmt = SafeCast.toUint128(auctionEnd.debtAmt.toL1Amt(underlyingAsset.decimals));
+            debtAmt = auctionEnd.debtAmt.toL1Amt(underlyingAsset.decimals).toUint128();
         }
 
         // collateral token config
         AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.collateralTokenId);
         Utils.notZeroAddr(address(assetConfig.token));
-        uint128 collateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(assetConfig.decimals));
+        uint128 collateralAmt = auctionEnd.collateralAmt.toL1Amt(assetConfig.decimals).toUint128();
 
         return (loanId, collateralAmt, debtAmt);
     }
