@@ -59,7 +59,7 @@ struct RollBorrowOrder {
     uint32 annualPercentageRate; // base is 1e8 (APR)
     uint128 maxCollateralAmt;
     uint128 maxBorrowAmt;
-    address tsbTokenAddr; // the roll target maturity time of tsbToken
+    address tsbTokenAddr; // the tsb token address of the new term of the loan
 }
 
 /**

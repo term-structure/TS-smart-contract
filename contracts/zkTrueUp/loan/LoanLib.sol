@@ -33,9 +33,10 @@ library LoanLib {
     error DebtAmtLtRepayAmt(uint128 debtAmt, uint128 repayAmt);
     /// @notice Error for addr is not the loan owner
     error isNotLoanOwner(address addr, address loanOwner);
-    /// @notice Error for loan is not healthy
+    /// @notice Error for loan is not healthy (loan is liquidable)
     error LoanIsNotHealthy(uint256 healthFactor);
     /// @notice Error for loan is not strict healthy
+    ///         (when place order, strict healthy is required to reserve some buffer to prevent users being liquidated immediately)
     error LoanIsNotStrictHealthy(uint256 healthFactor);
     /// @notice Error for get loan which is not exist
     error LoanIsNotExist(bytes12 loanId);
