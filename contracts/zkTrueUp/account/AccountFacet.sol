@@ -138,7 +138,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getAccountNum();
         if (accountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT) revert AccountNumExceedLimit(accountId);
-        if (asl.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);
+        if (asl.getAccountId(sender) != 0) revert AccountIsRegistered(sender);
 
         asl.accountIds[sender] = accountId;
         asl.accountAddresses[accountId] = sender;
