@@ -585,6 +585,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         }
 
         // add the locked collateral to the original loan
+        // however we only allow one roll borrow order existing for each loan
         lsl.loans[loanId].lockedCollateralAmt += rollBorrowOrder.maxCollateralAmt;
 
         (, , uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(loanId);
