@@ -542,24 +542,24 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         // {} scope to avoid stack too deep error
         {
             // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
-            uint32 interestRate = rollBorrowOrder
+            uint32 maxInterestRate = rollBorrowOrder
                 .annualPercentageRate
                 // solhint-disable-next-line not-rely-on-time
                 .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
                 .toUint32();
 
             // borrowFee = borrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
-            // ==> maxBorrowFee = maxBorrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
-            // ==> maxBorrowFee = maxBorrowAmt * interestRate * borrowFeeRate / SYSTEM_UNIT_BASE / SYSTEM_UNIT_BASE
+            // ==> maxBorrowFee = maxBorrowAmt * (maxInterestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
+            // ==> maxBorrowFee = maxBorrowAmt * maxInterestRate * borrowFeeRate / SYSTEM_UNIT_BASE / SYSTEM_UNIT_BASE
             uint128 maxBorrowFee = rollBorrowOrder
                 .maxBorrowAmt
-                .mulDiv(uint256(interestRate) * borrowFeeRate, Config.SYSTEM_UNIT_BASE * Config.SYSTEM_UNIT_BASE)
+                .mulDiv(uint256(maxInterestRate) * borrowFeeRate, Config.SYSTEM_UNIT_BASE * Config.SYSTEM_UNIT_BASE)
                 .toUint128();
 
             // debtAmt = borrowAmt + interest
-            // ==> maxDebtAmt = maxBorrowAmt + maxBorrowAmt * interestRate / SYSTEM_UNIT_BASE
+            // ==> maxDebtAmt = maxBorrowAmt + maxBorrowAmt * maxInterestRate / SYSTEM_UNIT_BASE
             uint128 maxDebtAmt = rollBorrowOrder.maxBorrowAmt +
-                rollBorrowOrder.maxBorrowAmt.mulDiv(interestRate, Config.SYSTEM_UNIT_BASE).toUint128();
+                rollBorrowOrder.maxBorrowAmt.mulDiv(maxInterestRate, Config.SYSTEM_UNIT_BASE).toUint128();
 
             // check the original loan will be strictly healthy after roll over
             Loan memory loan = loanInfo.loan;
