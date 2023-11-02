@@ -208,7 +208,7 @@ describe("Roll Borrow", () => {
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
-        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
@@ -228,7 +228,7 @@ describe("Roll Borrow", () => {
         Number(rollBorrowOrder.expiredTime),
         await diamondLoan.getBorrowFeeRate(),
         Number(
-          BigNumber.from(rollBorrowOrder.annualPercentageRate).add(
+          BigNumber.from(rollBorrowOrder.maxAnnualPercentageRate).add(
             SYSTEM_UNIT_BASE
           )
         ),
@@ -282,7 +282,7 @@ describe("Roll Borrow", () => {
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
-        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
@@ -314,7 +314,7 @@ describe("Roll Borrow", () => {
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
-        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
@@ -346,7 +346,7 @@ describe("Roll Borrow", () => {
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
-        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
@@ -378,7 +378,7 @@ describe("Roll Borrow", () => {
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
-        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
@@ -417,7 +417,7 @@ describe("Roll Borrow", () => {
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
-        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: invalidTsbTokenAddr,
@@ -451,7 +451,7 @@ describe("Roll Borrow", () => {
       let rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: invalidExpiredTime1,
-        annualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
@@ -600,7 +600,7 @@ describe("Roll Borrow", () => {
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
-        annualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
@@ -620,7 +620,7 @@ describe("Roll Borrow", () => {
         Number(rollBorrowOrder.expiredTime),
         await diamondLoan.getBorrowFeeRate(),
         Number(
-          BigNumber.from(rollBorrowOrder.annualPercentageRate).add(
+          BigNumber.from(rollBorrowOrder.maxAnnualPercentageRate).add(
             SYSTEM_UNIT_BASE
           )
         ),
@@ -676,7 +676,7 @@ describe("Roll Borrow", () => {
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
-        annualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
@@ -708,7 +708,7 @@ describe("Roll Borrow", () => {
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
         expiredTime: "1732896000", // 2024/11/30
-        annualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
+        maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
