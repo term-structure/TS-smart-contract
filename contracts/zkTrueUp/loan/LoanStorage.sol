@@ -50,13 +50,15 @@ struct LiquidationAmt {
 }
 
 /// @notice The data of the roll borrow order
+/// @dev maxAnnualPercentageRate means the maximum annual percentage rate that borrower can accept,
+///      the actual annual percentage rate may be less than or equal to it when the order matched in L2
 /// @dev maxCollateralAmt and maxBorrowAmt means the maximum amount that user want to roll,
-///      but the actual amount of the roll borrow order may be less than the maximum amount
+///      but the actual amount of the roll borrow order may be less than or equal to the maximum amount
 ///      because of the partial fill in L2
 struct RollBorrowOrder {
     bytes12 loanId;
     uint32 expiredTime;
-    uint32 annualPercentageRate; // base is 1e8 (APR)
+    uint32 maxAnnualPercentageRate; // base is 1e8 (APR)
     uint128 maxCollateralAmt;
     uint128 maxBorrowAmt;
     address tsbTokenAddr; // the tsb token address of the new term of the loan

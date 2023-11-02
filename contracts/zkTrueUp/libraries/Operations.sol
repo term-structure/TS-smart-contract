@@ -108,7 +108,7 @@ library Operations {
         uint32 newMaturityTime;
         uint32 expiredTime;
         uint32 feeRate; // base is 1e8
-        uint32 principalAndInterestRate; // base is 1e8 (PIR)
+        uint32 maxPrincipalAndInterestRate; // base is 1e8 (maxPIR)
         uint128 maxCollateralAmt;
         uint128 maxBorrowAmt;
     }
@@ -161,7 +161,7 @@ library Operations {
                 rollBorrow.newMaturityTime,
                 rollBorrow.expiredTime,
                 rollBorrow.feeRate,
-                rollBorrow.principalAndInterestRate,
+                rollBorrow.maxPrincipalAndInterestRate,
                 rollBorrow.maxCollateralAmt,
                 rollBorrow.maxBorrowAmt
             );
@@ -301,7 +301,7 @@ library Operations {
         (offset, rollBorrow.newMaturityTime) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.expiredTime) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.feeRate) = Bytes.readUInt32(data, offset);
-        (offset, rollBorrow.principalAndInterestRate) = Bytes.readUInt32(data, offset);
+        (offset, rollBorrow.maxPrincipalAndInterestRate) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.maxCollateralAmt) = Bytes.readUInt128(data, offset);
         (, rollBorrow.maxBorrowAmt) = Bytes.readUInt128(data, offset);
         return rollBorrow;

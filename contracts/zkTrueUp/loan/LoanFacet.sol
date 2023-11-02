@@ -543,7 +543,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         {
             // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
             uint32 maxInterestRate = rollBorrowOrder
-                .annualPercentageRate
+                .maxAnnualPercentageRate
                 // solhint-disable-next-line not-rely-on-time
                 .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
                 .toUint32();
@@ -596,7 +596,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             newMaturityTime: maturityTime,
             expiredTime: rollBorrowOrder.expiredTime,
             feeRate: borrowFeeRate,
-            principalAndInterestRate: (rollBorrowOrder.annualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32(),
+            maxPrincipalAndInterestRate: (rollBorrowOrder.maxAnnualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32(),
             maxCollateralAmt: rollBorrowOrder.maxCollateralAmt.toL2Amt(collateralAsset.decimals),
             maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals)
         });
