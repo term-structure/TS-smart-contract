@@ -46,6 +46,8 @@ interface ILoanFacet {
     error LoanIsLocked(bytes12 loanId);
     /// @notice Error for roll borrow with invalid roll borrow fee
     error InvalidRollBorrowFee(uint256 rollBorrowFee);
+    /// @notice Error for roll borrow with invalid maturity time
+    error InvalidMaturityTime(uint32 maturityTime);
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan

@@ -143,6 +143,11 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         bytes12 loanId = rollBorrowOrder.loanId;
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         msg.sender.requireLoanOwner(loanInfo.accountId);
+        // assert: expireTime > block.timestamp && expireTime + 1 day <= maturityTime
+        // solhint-disable-next-line not-rely-on-time
+        if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
+        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > loanInfo.maturityTime)
+            revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
         if (loanInfo.loan.lockedCollateralAmt > 0) revert LoanIsLocked(loanId);
 
         // check the tsb token is exist
@@ -150,13 +155,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         address tsbTokenAddr = rollBorrowOrder.tsbTokenAddr;
         (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(tsbTokenAddr));
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
-
+        // check new maturity time is valid (new maturity time > old maturity time)
         (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
-        // assert: expireTime > block.timestamp && expireTime + 1 day <= maturityTime
-        // solhint-disable-next-line not-rely-on-time
-        if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
-        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > maturityTime)
-            revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
+        if (maturityTime <= loanInfo.maturityTime) revert InvalidMaturityTime(maturityTime);
 
         _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanId, maturityTime);
     }
