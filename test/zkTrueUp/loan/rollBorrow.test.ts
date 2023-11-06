@@ -207,7 +207,7 @@ describe("Roll Borrow", () => {
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
-        expiredTime: "1732896000", // 2024/11/30
+        expiredTime: "1703462400", // 2023/12/25
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
@@ -281,7 +281,7 @@ describe("Roll Borrow", () => {
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
-        expiredTime: "1732896000", // 2024/11/30
+        expiredTime: "1703462400", // 2024/12/25
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
@@ -313,7 +313,7 @@ describe("Roll Borrow", () => {
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
-        expiredTime: "1732896000", // 2024/11/30
+        expiredTime: "1703462400", // 2024/12/25
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
@@ -345,7 +345,7 @@ describe("Roll Borrow", () => {
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
-        expiredTime: "1732896000", // 2024/11/30
+        expiredTime: "1703462400", // 2024/12/25
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
@@ -377,7 +377,7 @@ describe("Roll Borrow", () => {
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
-        expiredTime: "1732896000", // 2024/11/30
+        expiredTime: "1703462400", // 2024/12/25
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
@@ -416,7 +416,7 @@ describe("Roll Borrow", () => {
       const invalidTsbTokenAddr = utils.hexlify(utils.randomBytes(20));
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
-        expiredTime: "1732896000", // 2024/11/30
+        expiredTime: "1703462400", // 2024/12/25
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
@@ -599,7 +599,7 @@ describe("Roll Borrow", () => {
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
-        expiredTime: "1732896000", // 2024/11/30
+        expiredTime: "1703462400", // 2024/12/25
         maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
@@ -675,7 +675,7 @@ describe("Roll Borrow", () => {
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
-        expiredTime: "1732896000", // 2024/11/30
+        expiredTime: "1703462400", // 2024/12/25
         maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
@@ -707,7 +707,7 @@ describe("Roll Borrow", () => {
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
-        expiredTime: "1732896000", // 2024/11/30
+        expiredTime: "1703462400", // 2024/12/25
         maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
