@@ -5,13 +5,14 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {AccountStorage} from "./AccountStorage.sol";
 import {RollupStorage} from "../rollup/RollupStorage.sol";
-import {TokenStorage} from "../token/TokenStorage.sol";
+import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
+import {EvacuationStorage} from "../evacuation/EvacuationStorage.sol";
 import {IAccountFacet} from "./IAccountFacet.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountLib} from "./AccountLib.sol";
 import {TsbLib} from "../tsb/TsbLib.sol";
-import {AssetConfig} from "../token/TokenStorage.sol";
+import {EvacuationLib} from "../evacuation/EvacuationLib.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
@@ -27,6 +28,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     using AccountLib for AccountStorage.Layout;
     using RollupLib for RollupStorage.Layout;
     using TokenLib for TokenStorage.Layout;
+    using EvacuationLib for EvacuationStorage.Layout;
 
     /* ============ External Functions ============ */
 
@@ -35,12 +37,13 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev The account is registered by depositing Ether or whitelisted ERC20 to ZkTrueUp
      */
     function register(uint256 tsPubKeyX, uint256 tsPubKeyY, IERC20 token, uint128 amount) external payable {
-        RollupStorage.Layout storage rsl = RollupStorage.layout();
-        rsl.requireActive();
+        EvacuationStorage.Layout storage esl = EvacuationStorage.layout();
+        esl.requireActive();
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         tsl.requireBaseToken(token);
 
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         uint32 accountId = _register(rsl, msg.sender, tsPubKeyX, tsPubKeyY);
         _deposit(rsl, tsl, msg.sender, msg.sender, accountId, token, amount);
     }
@@ -50,12 +53,13 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @dev Only registered accounts can deposit
      */
     function deposit(address to, IERC20 token, uint128 amount) external payable {
-        RollupStorage.Layout storage rsl = RollupStorage.layout();
-        rsl.requireActive();
+        EvacuationStorage.Layout storage esl = EvacuationStorage.layout();
+        esl.requireActive();
 
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getValidAccount(to);
 
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         _deposit(rsl, tsl, msg.sender, to, accountId, token, amount);
     }
@@ -80,8 +84,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      */
     function forceWithdraw(IERC20 token) external {
-        RollupStorage.Layout storage rsl = RollupStorage.layout();
-        rsl.requireActive();
+        EvacuationStorage.Layout storage esl = EvacuationStorage.layout();
+        esl.requireActive();
 
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getValidAccount(msg.sender);
@@ -89,7 +93,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         (uint16 tokenId, ) = tsl.getValidToken(token);
 
-        AccountLib.addForceWithdrawReq(rsl, msg.sender, accountId, token, tokenId);
+        AccountLib.addForceWithdrawReq(RollupStorage.layout(), msg.sender, accountId, token, tokenId);
     }
 
     /* ============ External View Functions ============ */
@@ -134,7 +138,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getAccountNum();
         if (accountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT) revert AccountNumExceedLimit(accountId);
-        if (asl.getAccountId(msg.sender) != 0) revert AccountIsRegistered(msg.sender);
+        if (asl.getAccountId(sender) != 0) revert AccountIsRegistered(sender);
 
         asl.accountIds[sender] = accountId;
         asl.accountAddresses[accountId] = sender;

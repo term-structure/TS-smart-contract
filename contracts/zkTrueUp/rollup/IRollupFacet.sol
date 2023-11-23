@@ -16,8 +16,6 @@ interface IRollupFacet {
     error VerifiedBlockNumExceedCommittedNum(uint256 verifyingBlockNum);
     /// @notice Error for executed block number exceed proved block number
     error ExecutedBlockNumExceedProvedNum(uint256 pendingBlockNum);
-    /// @notice Error for invalid evacuate public data length
-    error InvalidEvacuatePubDataLength(uint256 pubDataLength);
     /// @notice Error for offset is greater than public data length
     error OffsetGtPubDataLength(uint256 offset);
     /// @notice Error for offset is already set
@@ -26,38 +24,27 @@ interface IRollupFacet {
     error MaturityTimeIsNotMatched(uint32 tsbTokenMaturityTime, uint32 createTsbReqMaturityTime);
     /// @notice Error for invalid op type
     error InvalidOpType(Operations.OpType opType);
-    /// @notice Error for inconsistent commitment
-    error CommitmentInconsistant(uint256 proofCommitment, uint256 committedBlockcommitment);
-    /// @notice Error for invalid proof
-    error InvalidProof(Proof proof);
     /// @notice Error for invalid executed block number
     error InvalidExecutedBlockNum(uint32 executedBlockNum);
     /// @notice Error for redeem with invalid tsb token address
     error InvalidTsbTokenAddr(address invalidTokenAddr);
     /// @notice Error for pending rollup tx hash is not matched
     error PendingRollupTxHashIsNotMatched(bytes32 pendingRollupTxHash, bytes32 executeBlockPendingRollupTxHash);
-    /// @notice Error for the specified accountId and tokenId is already evacuated
-    error Evacuated(uint32 accountId, uint16 tokenId);
-    /// @notice Error for activate evacuation mode, but the timestamp is not expired
-    error TimeStampIsNotExpired(uint256 curTimestamp, uint256 expirationTime);
     /// @notice Error for underlyingAsset token and base token is not matched
     error TokenIsNotMatched(IERC20 underlyingAsset, IERC20 baseToken);
-    /// @notice Error for consumed request number exceed total request number
-    error ConsumedRequestNumExceedTotalNum(uint256 consumedRequestNum);
-    /// @notice Error for invalid consumed public data mismatch the data in the request queue
-    error InvalidConsumedPubData(uint64 l1RequestNum, bytes pubData);
-    /// @notice Error for invalid chunk id delta when commit evacublock in evacuation mode
-    error InvalidChunkIdDelta(uint16[] chunkIdDeltas);
-    /// @notice Error for evacuate but haven't consumed all L1 requests
-    error NotConsumedAllL1Requests(uint64 executedL1RequestNum, uint64 totalL1RequestNum);
-    /// @notice Error for consume L1 request but the request is evacuation (already consumed all L1 requests)
-    error LastL1RequestIsEvacuation(uint64 totalL1RequestNum);
     /// @notice Error for invalid public data when commit evacublock in evacuation mode
     error InvalidEvacuBlockPubData(uint256 evacuationRequestNum);
-    /// @notice Error for account address is not the msg.sender
-    error AccountAddrIsNotSender(address accountAddr, address sender);
-    /// @notice Error for refund deregistered address but the account is not deregistered
-    error NotDeregisteredAddr(address accountAddr, uint32 accountId);
+    /// @notice Error for invalid chunk id delta when commit evacublock in evacuation mode
+    error InvalidChunkIdDelta(uint16[] chunkIdDeltas);
+    /// @notice Error for removed collateral amount is greater than locked collateral amount
+    error RemovedCollateralAmtGtLockedCollateralAmt(uint128 removedCollateralAmt, uint128 lockedCollateralAmt);
+    /// @notice Error for invalid matched time when rollup a roll borrow operation
+    error InvalidMatchedTime(uint32 matchedTime, uint256 blockTimestamp);
+    /// @notice Error for invalid old maturity time, the old maturity time should be greater than the block timestamp
+    ///         i.e. cannot roll a matured loan
+    error InvalidOldMaturityTime(uint32 oldMaturityTime, uint256 blockTimestamp);
+    /// @notice Error for invalid new maturity time, the new maturity time should be greater than the old maturity time
+    error InvalidNewMaturityTime(uint32 newMaturityTime, uint32 oldMaturityTime);
 
     /// @notice Emit when there is a new block committed
     /// @param blockNumber The number of the committed block
@@ -90,38 +77,33 @@ interface IRollupFacet {
         uint256 amount
     );
 
-    /// @notice Emitted when evacuation mode is activated
-    event EvacuModeActivation();
-
     /// @notice Emitted when evacuation mode is deactivated
     event EvacuModeDeactivation();
 
-    /// @notice Emit when there is a new L1 request consumed
-    /// @dev Consumed number is the number of the executed L1 request - 1
-    /// @param executedL1RequestNum The number of the executed L1 request
-    /// @param opType The type of the L1 request
-    /// @param pubData The public data of the L1 request
-    event L1RequestConsumed(uint64 executedL1RequestNum, Operations.OpType opType, bytes pubData);
-
     /// @notice Emit when there is a new loan created
     /// @param loanId The id of the loan
-    /// @param accountId The account id of the loan owner
     /// @param addedCollateralAmt  The added collateral amount of the loan
     /// @param addedDebtAmt The added debt amount of the loan
-    event UpdateLoan(
+    event UpdateLoan(bytes12 indexed loanId, uint128 addedCollateralAmt, uint128 addedDebtAmt);
+
+    /// @notice Emit when there is a loan is roll over
+    /// @param loanId The id of the original loan
+    /// @param newLoanId The id of the new loan
+    /// @param collateralAmt The collateral amount roll over from the original loan to the new loan
+    /// @param borrowAmt The borrow amount used to remove the debt amount of the original loan
+    /// @param debtAmt The debt amount to the new loan
+    event RollOver(
         bytes12 indexed loanId,
-        uint32 indexed accountId,
-        uint128 addedCollateralAmt,
-        uint128 addedDebtAmt
+        bytes12 indexed newLoanId,
+        uint128 collateralAmt,
+        uint128 borrowAmt,
+        uint128 debtAmt
     );
 
-    /// @notice Emit when an account is de-registered
-    /// @notice De-registered only remove the accountAddr -> accountId mapping,
-    ///         but not remove the accountId -> accountAddr mapping,
-    ///         this is for user can still refund their asset by `refundDeregisteredAddr`
-    /// @param accountAddr The address of the account
-    /// @param accountId The id of the account
-    event AccountDeregistered(address accountAddr, uint32 indexed accountId);
+    /// @notice Emit when there is a roll borrow order is cancelled
+    /// @param loanId The id of the loan
+    /// @param removedLockedCollateralAmt The removed locked collateral amount of the loan
+    event RollBorrowCancel(bytes12 indexed loanId, uint128 removedLockedCollateralAmt);
 
     /// @notice Commit blocks
     /// @param lastCommittedBlock The last committed block
@@ -141,23 +123,6 @@ interface IRollupFacet {
     /// @param revertedBlocks The blocks to be reverted
     function revertBlocks(StoredBlock[] calldata revertedBlocks) external;
 
-    /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
-    function activateEvacuation() external;
-
-    /// @notice Consume the L1 non-executed requests in the evacuation mode
-    /// @param consumedTxPubData The public data of the non-executed L1 requests which in the request queue
-    function consumeL1RequestInEvacuMode(bytes[] calldata consumedTxPubData) external;
-
-    /// @notice Evacuate the funds of a specified user and token in the evacuMode
-    /// @param lastExecutedBlock The last executed block
-    /// @param newBlock A pseudo block to create block commitment for verification but not to be commited
-    /// @param proof The proof of the newBlock
-    function evacuate(
-        StoredBlock memory lastExecutedBlock,
-        CommitBlock calldata newBlock,
-        Proof calldata proof
-    ) external;
-
     /// @notice Commit evacuation blocks
     /// @param lastCommittedBlock The last committed block
     /// @param evacuBlocks The evacuation blocks to be committed
@@ -170,22 +135,6 @@ interface IRollupFacet {
     /// @notice Execute evacuation blocks
     /// @param evacuBlocks The evacuation blocks to be executed
     function executeEvacuBlocks(ExecuteBlock[] calldata evacuBlocks) external;
-
-    /// @notice Refund the deregistered address
-    /// @param token The token to be refunded
-    /// @param amount The amount of the token to be refunded
-    /// @param accountId The account id to be refunded
-    function refundDeregisteredAddr(IERC20 token, uint256 amount, uint32 accountId) external;
-
-    /// @notice Return the evacuation mode is activated or not
-    /// @return evacuMode The evacuation mode status
-    function isEvacuMode() external view returns (bool evacuMode);
-
-    /// @notice Return the specified address and token is evacuated or not
-    /// @param addr The address to be checked
-    /// @param tokenId The id of the token
-    /// @return isEvacuted Return true is the token is evacuated, else return false
-    function isEvacuted(address addr, uint16 tokenId) external view returns (bool);
 
     /// @notice Check whether the register request is in the L1 request queue
     /// @param register The register request
@@ -222,6 +171,24 @@ interface IRollupFacet {
         Operations.Evacuation memory evacuation,
         uint64 requestId
     ) external view returns (bool isExisted);
+
+    /// @notice Check whether the roll borrow request is in the L1 request queue
+    /// @param rollBorrow The roll borrow request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isRollBorrowInL1RequestQueue(
+        Operations.RollBorrow memory rollBorrow,
+        uint64 requestId
+    ) external view returns (bool);
+
+    /// @notice Check whether the force cancel roll borrow request is in the L1 request queue
+    /// @param forceCancelRollBorrow The force cancel roll borrow request
+    /// @param requestId The id of the request
+    /// @return isExisted Return true is the request is existed in the L1 request queue, else return false
+    function isForceCancelRollBorrowInL1RequestQueue(
+        Operations.CancelRollBorrow memory forceCancelRollBorrow,
+        uint64 requestId
+    ) external view returns (bool);
 
     /// @notice Return the L1 request of the specified id
     /// @param requestId The id of the specified request

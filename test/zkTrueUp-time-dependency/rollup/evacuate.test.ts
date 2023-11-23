@@ -18,6 +18,7 @@ import {
 } from "term-structure-sdk";
 import {
   AccountFacet,
+  EvacuationFacet,
   RollupFacet,
   TokenFacet,
   TsbFacet,
@@ -88,6 +89,7 @@ describe("Evacuate", function () {
   let diamondRollup: RollupFacet;
   let diamondTsb: TsbFacet;
   let diamondToken: TokenFacet;
+  let diamondEvacuation: EvacuationFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   let case01: typeof _case01;
   let case02: typeof _case02;
@@ -115,6 +117,10 @@ describe("Evacuate", function () {
       "RollupFacet",
       zkTrueUpAddr
     )) as RollupFacet;
+    diamondEvacuation = (await useFacet(
+      "EvacuationFacet",
+      zkTrueUpAddr
+    )) as EvacuationFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     const EXECUTE_BLOCK_NUMBER = 21;
 
@@ -216,7 +222,7 @@ describe("Evacuate", function () {
       });
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     req = await diamondRollup.getL1RequestNum();
 
@@ -235,7 +241,7 @@ describe("Evacuate", function () {
     const depositPubDataBytes = utils.hexlify(depositPubData);
 
     // consume l1 request
-    await diamondRollup.consumeL1RequestInEvacuMode([depositPubDataBytes]);
+    await diamondEvacuation.consumeL1RequestInEvacuMode([depositPubDataBytes]);
     req = await diamondRollup.getL1RequestNum();
 
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
@@ -287,19 +293,19 @@ describe("Evacuate", function () {
 
     // test 3 user evacuate
     time.increaseTo(Number(evacuBlock1.timestamp));
-    const evacuateTx1 = await diamondRollup.evacuate(
+    const evacuateTx1 = await diamondEvacuation.evacuate(
       lastExecutedBlock,
       evacuBlock1,
       proof1
     );
     time.increaseTo(Number(evacuBlock2.timestamp));
-    const evacuateTx2 = await diamondRollup.evacuate(
+    const evacuateTx2 = await diamondEvacuation.evacuate(
       lastExecutedBlock,
       evacuBlock2,
       proof2
     );
     time.increaseTo(Number(evacuBlock3.timestamp));
-    const evacuateTx3 = await diamondRollup.evacuate(
+    const evacuateTx3 = await diamondEvacuation.evacuate(
       lastExecutedBlock,
       evacuBlock3,
       proof3
@@ -371,9 +377,12 @@ describe("Evacuate", function () {
     );
 
     // check is evacuated
-    expect(await diamondRollup.isEvacuted(account1Addr, token1Id)).to.be.true;
-    expect(await diamondRollup.isEvacuted(account2Addr, token2Id)).to.be.true;
-    expect(await diamondRollup.isEvacuted(account3Addr, tsbTokenId)).to.be.true;
+    expect(await diamondEvacuation.isEvacuted(account1Addr, token1Id)).to.be
+      .true;
+    expect(await diamondEvacuation.isEvacuted(account2Addr, token2Id)).to.be
+      .true;
+    expect(await diamondEvacuation.isEvacuted(account3Addr, tsbTokenId)).to.be
+      .true;
     // check evacuation request in L1 request queue
     expect(
       await diamondRollup.isEvacuationInL1RequestQueue(
@@ -401,8 +410,8 @@ describe("Evacuate", function () {
     const proof: ProofStruct = case01.proof as ProofStruct;
 
     await expect(
-      diamondRollup.evacuate(lastExecutedBlock, evacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "NotEvacuMode");
+      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof)
+    ).to.be.revertedWithCustomError(diamondEvacuation, "NotEvacuMode");
   });
 
   it("Failed to evacuate, not consume all L1 request", async function () {
@@ -418,35 +427,38 @@ describe("Evacuate", function () {
       });
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const evacuBlock = case01.newBlock;
     const proof: ProofStruct = case01.proof as ProofStruct;
 
     await expect(
-      diamondRollup.evacuate(lastExecutedBlock, evacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "NotConsumedAllL1Requests");
+      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof)
+    ).to.be.revertedWithCustomError(
+      diamondEvacuation,
+      "NotConsumedAllL1Requests"
+    );
   });
 
   it("Failed to evacuate, invalid last executed block", async function () {
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     const invalidLastExecutedBlock = storedBlocks[executedBlockNum - 2]; // not last executed block
     const evacuBlock = case01.newBlock;
     const proof: ProofStruct = case01.proof as ProofStruct;
 
     await expect(
-      diamondRollup.evacuate(invalidLastExecutedBlock, evacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "BlockHashIsNotEq");
+      diamondEvacuation.evacuate(invalidLastExecutedBlock, evacuBlock, proof)
+    ).to.be.revertedWithCustomError(diamondEvacuation, "BlockHashIsNotEq");
   });
 
   it("Failed to evacuate, invalid block timestamp", async function () {
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const invalidEvacuBlock = case01.newBlock;
@@ -454,14 +466,17 @@ describe("Evacuate", function () {
     const proof: ProofStruct = case01.proof as ProofStruct;
 
     await expect(
-      diamondRollup.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "TimestampLtPreviousBlock");
+      diamondEvacuation.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
+    ).to.be.revertedWithCustomError(
+      diamondEvacuation,
+      "TimestampLtPreviousBlock"
+    );
   });
 
   it("Failed to evacuate, invalid block number", async function () {
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const invalidEvacuBlock = case01.newBlock;
@@ -469,14 +484,14 @@ describe("Evacuate", function () {
     const proof: ProofStruct = case01.proof as ProofStruct;
 
     await expect(
-      diamondRollup.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "InvalidBlockNum");
+      diamondEvacuation.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
+    ).to.be.revertedWithCustomError(diamondEvacuation, "InvalidBlockNum");
   });
 
   it("Failed to evacuate, invalid public data length", async function () {
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const invalidEvacuBlock = case01.newBlock;
@@ -485,9 +500,9 @@ describe("Evacuate", function () {
 
     await time.increaseTo(Number(invalidEvacuBlock.timestamp));
     await expect(
-      diamondRollup.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
+      diamondEvacuation.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
     ).to.be.revertedWithCustomError(
-      diamondRollup,
+      diamondEvacuation,
       "InvalidEvacuatePubDataLength"
     );
   });
@@ -495,7 +510,7 @@ describe("Evacuate", function () {
   it("Failed to evacuate, invalid commitment", async function () {
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const evacuBlock = case01.newBlock;
@@ -504,14 +519,17 @@ describe("Evacuate", function () {
 
     await time.increaseTo(Number(evacuBlock.timestamp));
     await expect(
-      diamondRollup.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
-    ).to.be.revertedWithCustomError(diamondRollup, "CommitmentInconsistant");
+      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
+    ).to.be.revertedWithCustomError(
+      diamondEvacuation,
+      "CommitmentInconsistant"
+    );
   });
 
   it("Failed to evacuate, invalid proof", async function () {
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const evacuBlock = case01.newBlock;
@@ -520,24 +538,24 @@ describe("Evacuate", function () {
 
     await time.increaseTo(Number(evacuBlock.timestamp));
     await expect(
-      diamondRollup.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
-    ).to.be.revertedWithCustomError(diamondRollup, "InvalidProof");
+      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
+    ).to.be.revertedWithCustomError(diamondEvacuation, "InvalidProof");
   });
 
   it("Failed to evacuate, the specified user and token is already evacuated", async function () {
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
     const evacuBlock = case01.newBlock;
     const proof: ProofStruct = case01.proof as ProofStruct;
 
     await time.increaseTo(Number(evacuBlock.timestamp));
-    await diamondRollup.evacuate(lastExecutedBlock, evacuBlock, proof);
+    await diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof);
     // evacuate again
     await expect(
-      diamondRollup.evacuate(lastExecutedBlock, evacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondRollup, "Evacuated");
+      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof)
+    ).to.be.revertedWithCustomError(diamondEvacuation, "Evacuated");
   });
 });

@@ -40,6 +40,7 @@
     "test:repayAndDeposit": "hardhat test test/zkTrueUp/loan/repayAndDeposit.test.ts",
     "test:fullLiquidation": "hardhat test test/zkTrueUp/loan/fullLiquidation.test.ts",
     "test:halfLiquidation": "hardhat test test/zkTrueUp/loan/halfLiquidation.test.ts",
+    "test:rollBorrow": "hardhat test test/zkTrueUp/loan/rollBorrow.test.ts",
     "test:token": "hardhat test test/zkTrueUp/token/token.test.ts",
     "test:oracleMock": "hardhat test test/zkTrueUp/testnet/oracleMock/oracleMock.test.ts",
     "test:tsFaucet": "hardhat test test/zkTrueUp/testnet/tsFaucet/tsFaucet.test.ts",
@@ -98,6 +99,6 @@
     "@safe-global/protocol-kit": "^1.2.0",
     "@safe-global/safe-core-sdk-types": "^2.2.0",
     "circomlibjs": "^0.1.7",
-    "term-structure-sdk": "^0.1.30"
+    "term-structure-sdk": "^0.2.4"
   }
 }

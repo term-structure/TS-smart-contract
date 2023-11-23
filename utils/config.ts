@@ -1,4 +1,4 @@
-import { utils } from "ethers";
+import { BigNumber, utils } from "ethers";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 
 export const DIAMOND_CUT_ACTION = {
@@ -40,6 +40,7 @@ export const LIBRARY_NAMES = [
   "RollupLib",
   "TokenLib",
   "TsbLib",
+  "EvacuationLib",
 ];
 
 export const FACET_NAMES = [
@@ -51,6 +52,7 @@ export const FACET_NAMES = [
   "RollupFacet",
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 export const DEFAULT_ZERO_ADDR = "0x0000000000000000000000000000000000000000";
@@ -134,3 +136,5 @@ export const AUCTION_END_BYTES = 4 * BYTES_OF_CHUNK;
 export const WITHDRAW_FEE_BYTES = 2 * BYTES_OF_CHUNK;
 
 export const EVACUATION_BYTES = 2 * BYTES_OF_CHUNK;
+
+export const SYSTEM_UNIT_BASE = BigNumber.from(10).pow(8);

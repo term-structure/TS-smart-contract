@@ -353,6 +353,7 @@ export const checkStates = async (
       const loan: LoanStruct = {
         debtAmt: debtAmt,
         collateralAmt: collateralAmt,
+        lockedCollateralAmt: BigNumber.from("0"),
       };
 
       if (!deltaStates[accountId]) {

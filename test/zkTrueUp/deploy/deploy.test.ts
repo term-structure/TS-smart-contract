@@ -670,16 +670,25 @@ describe("Deploy", () => {
     expect((await diamondProtocolParams.getFundWeight()).vault).to.equal(4000);
 
     // check loan facet init
-    const diamondLoan = await useFacet("LoanFacet", zkTrueUpMockAddr);
+    const diamondLoan = (await useFacet(
+      "LoanFacet",
+      zkTrueUpMockAddr
+    )) as LoanFacet;
 
     expect(await diamondLoan.getHalfLiquidationThreshold()).to.equal(10000);
     const liquidationFactor = await diamondLoan.getLiquidationFactor(false);
-    expect(liquidationFactor.ltvThreshold).to.equal(800);
+    expect(liquidationFactor.liquidationLtvThreshold).to.equal(800);
+    expect(liquidationFactor.borrowOrderLtvThreshold).to.equal(750);
     expect(liquidationFactor.liquidatorIncentive).to.equal(50);
     expect(liquidationFactor.protocolPenalty).to.equal(50);
     const stableCoinPairLiquidationFactor =
       await diamondLoan.getLiquidationFactor(true);
-    expect(stableCoinPairLiquidationFactor.ltvThreshold).to.equal(925);
+    expect(stableCoinPairLiquidationFactor.liquidationLtvThreshold).to.equal(
+      925
+    );
+    expect(stableCoinPairLiquidationFactor.borrowOrderLtvThreshold).to.equal(
+      900
+    );
     expect(stableCoinPairLiquidationFactor.liquidatorIncentive).to.equal(30);
     expect(stableCoinPairLiquidationFactor.protocolPenalty).to.equal(15);
 

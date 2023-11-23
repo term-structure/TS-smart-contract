@@ -104,16 +104,19 @@ contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         lsl.halfLiquidationThreshold = InitialConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
+        lsl.borrowerFeeRate = InitialConfig.INIT_BORROWER_FEE_RATE;
 
         LiquidationFactor memory initLiquidationFactor = LiquidationFactor({
-            ltvThreshold: InitialConfig.INIT_LTV_THRESHOLD,
+            liquidationLtvThreshold: InitialConfig.INIT_LIQUIDATION_LTV_THRESHOLD,
+            borrowOrderLtvThreshold: InitialConfig.INIT_BORROW_ORDER_LTV_THRESHOLD,
             liquidatorIncentive: InitialConfig.INIT_LIQUIDATOR_INCENTIVE,
             protocolPenalty: InitialConfig.INIT_PROTOCOL_PENALTY
         });
         lsl.liquidationFactor = initLiquidationFactor;
 
         LiquidationFactor memory initStableCoinPairLiquidationFactor = LiquidationFactor({
-            ltvThreshold: InitialConfig.INIT_STABLECOIN_PAIR_LTV_THRESHOLD,
+            liquidationLtvThreshold: InitialConfig.INIT_STABLECOIN_PAIR_LIQUIDATION_LTV_THRESHOLD,
+            borrowOrderLtvThreshold: InitialConfig.INIT_STABLECOIN_PAIR_BORROW_ORDER_LTV_THRESHOLD,
             liquidatorIncentive: InitialConfig.INIT_STABLECOIN_PAIR_LIQUIDATOR_INCENTIVE,
             protocolPenalty: InitialConfig.INIT_STABLECOIN_PAIR_PROTOCOL_PENALTY
         });

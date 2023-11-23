@@ -48,6 +48,7 @@ export const FACET_NAMES_MOCK = [
   "RollupMock", // replace RollupFacet with RollupMock
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {
@@ -212,7 +213,7 @@ describe("Roll to Aave", () => {
 
       await expect(
         diamondLoan.connect(user1).rollToAave(loanId, collateralAmt, debtAmt)
-      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsUnhealthy");
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotHealthy");
     });
     it("Fail roll to Aave, supply amount is zero", async () => {
       // 0 USDC
@@ -586,7 +587,8 @@ describe("Roll to Aave", () => {
       // set new liquidation factor to make loan unhealthy
       const newLtvThreshold = 250;
       const newLiquidationFactor: LiquidationFactorStruct = {
-        ltvThreshold: BigNumber.from(newLtvThreshold),
+        liquidationLtvThreshold: BigNumber.from(newLtvThreshold),
+        borrowOrderLtvThreshold: BigNumber.from(newLtvThreshold),
         liquidatorIncentive: BigNumber.from(10),
         protocolPenalty: BigNumber.from(10),
       };

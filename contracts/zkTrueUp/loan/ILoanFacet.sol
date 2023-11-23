@@ -2,13 +2,18 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {LiquidationFactor, Loan} from "./LoanStorage.sol";
+import {LiquidationFactor, Loan, RollBorrowOrder} from "./LoanStorage.sol";
+import {Operations} from "../libraries/Operations.sol";
 
 /**
  * @title Term Structure Loan Facet Interface
  * @author Term Structure Labs
  */
 interface ILoanFacet {
+    /// @notice Error for invalid tsb token address
+    error InvalidTsbTokenAddr(address tsbTokenAddr);
+    /// @notice Error for invalid expiration time
+    error InvalidExpiredTime(uint32 expiredTime);
     /// @notice Error for setting invalid liquidation factor
     error InvalidLiquidationFactor(LiquidationFactor liquidationFactor);
     /// @notice Error for liquidate the loan which is safe
@@ -37,6 +42,12 @@ interface ILoanFacet {
     );
     /// @notice Error for use roll when it is not activated
     error RollIsNotActivated();
+    /// @notice Error for roll borrow a locked loan
+    error LoanIsLocked(bytes12 loanId);
+    /// @notice Error for roll borrow with invalid roll borrow fee
+    error InvalidRollBorrowFee(uint256 rollBorrowFee);
+    /// @notice Error for roll borrow with invalid maturity time
+    error InvalidMaturityTime(uint32 maturityTime);
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
@@ -96,6 +107,11 @@ interface ILoanFacet {
         uint128 debtAmt
     );
 
+    /// @notice Emitted when the borrower place a roll borrow order
+    /// @param sender The address of the sender
+    /// @param rollBorrowReq The roll borrow request
+    event RollBorrowOrderPlaced(address indexed sender, Operations.RollBorrow rollBorrowReq);
+
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
     /// @param liquidator The address of the liquidator
@@ -123,6 +139,10 @@ interface ILoanFacet {
     /// @param isActivatedRoll Whether the roll activation is set
     event SetActivatedRoller(bool isActivatedRoll);
 
+    /// @notice Emitted when the borrow fee rate is set
+    /// @param borrowFeeRate The borrow fee rate
+    event SetBorrowFeeRate(uint32 indexed borrowFeeRate);
+
     /// @notice Add collateral to the loan
     /// @param loanId The id of the loan
     /// @param amount The amount of the collateral
@@ -145,6 +165,19 @@ interface ILoanFacet {
     /// @param collateralAmt The amount of collateral to be returned
     /// @param debtAmt The amount of debt to be repaid
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external;
+
+    /// @notice Place a roll borrow order
+    /// @notice User want to roll the original loan to a new loan without repay
+    /// @notice The roll borrow is an action to place a borrow order on L1,
+    ///         and the order is waiting to be matched on L2 and rollup will create a new loan on L1 once matched
+    /// @param rollBorrowOrder The roll borrow order
+    function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable;
+
+    /// @notice Cancel the roll borrow order
+    /// @notice User can force cancel their roll borrow order on L1
+    ///         to avoid sequencer ignore his cancel request in L2
+    /// @param loanId The id of the loan
+    function forceCancelRollBorrow(bytes12 loanId) external;
 
     /// @notice Liquidate the loan
     /// @param loanId The id of the loan to be liquidated
@@ -170,6 +203,10 @@ interface ILoanFacet {
     /// @notice Set the roll function activation
     /// @param isActivated The roll function activation
     function setActivatedRoller(bool isActivated) external;
+
+    /// @notice Set the borrow fee rate
+    /// @param borrowFeeRate The borrow fee rate
+    function setBorrowFeeRate(uint32 borrowFeeRate) external;
 
     /// @notice Return the health factor of the loan
     /// @param loanId The id of the loan
@@ -201,6 +238,10 @@ interface ILoanFacet {
     function getLiquidationInfo(
         bytes12 loanId
     ) external view returns (bool _isLiquidable, IERC20 debtToken, uint128 maxRepayAmt);
+
+    /// @notice Return the borrow fee rate
+    /// @return borrowFeeRate The borrow fee rate
+    function getBorrowFeeRate() external view returns (uint32);
 
     /// @notice Check if the roll function is activated
     /// @return isActivate If the roll function is activated

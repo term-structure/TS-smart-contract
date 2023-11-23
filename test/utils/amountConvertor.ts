@@ -1,7 +1,10 @@
 import { BigNumber } from "ethers";
-import { TS_DECIMALS, TsTokenType } from "term-structure-sdk";
+import {
+  LiquidationFactorType,
+  TS_DECIMALS,
+  TsTokenType,
+} from "term-structure-sdk";
 import { MAX_LTV_RATIO } from "../../utils/config";
-import { LiquidationFactorStruct } from "../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 
 export const toL2Amt = (
   l1Amt: BigNumber,
@@ -40,7 +43,7 @@ export const calcRepayValueEquivCollateralAmt = (
 
 export const calcLiquidatorRewardAmt = (
   repayValueEquivCollateralAmt: BigNumber,
-  liquidationFactor: LiquidationFactorStruct
+  liquidationFactor: LiquidationFactorType
 ): BigNumber => {
   return repayValueEquivCollateralAmt
     .mul(

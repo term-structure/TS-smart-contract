@@ -45,6 +45,7 @@ export const FACET_NAMES_MOCK = [
   "RollupMock", // replace RollupFacet with RollupMock
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {
@@ -349,7 +350,6 @@ describe("Health factor", () => {
           .to.emit(diamondRollupMock, "UpdateLoan")
           .withArgs(
             loanId,
-            loan.accountId,
             BigNumber.from(collateralAmt),
             BigNumber.from(debtAmt)
           );
@@ -466,7 +466,6 @@ describe("Health factor", () => {
           .to.emit(diamondRollupMock, "UpdateLoan")
           .withArgs(
             loanId,
-            loan.accountId,
             BigNumber.from(collateralAmt),
             BigNumber.from(debtAmt)
           );

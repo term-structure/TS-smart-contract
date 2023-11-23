@@ -7,7 +7,10 @@ import {AccountLib} from "../account/AccountLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {LoanStorage, Loan, LiquidationFactor, LoanInfo} from "./LoanStorage.sol";
+import {RollupStorage} from "../rollup/RollupStorage.sol";
+import {RollupLib} from "../rollup/RollupLib.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
+import {Operations} from "../libraries/Operations.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {Config} from "../libraries/Config.sol";
 
@@ -19,18 +22,26 @@ library LoanLib {
     using Math for uint256;
     using AccountLib for AccountStorage.Layout;
     using TokenLib for TokenStorage.Layout;
+    using RollupLib for RollupStorage.Layout;
     using LoanLib for *;
 
     /// @notice Error for collateral amount is not enough when removing collateral
     error CollateralAmtIsNotEnough(uint128 collateralAmt, uint128 amount);
+    /// @notice Error for locked collateral amount is not enough when removing locked collateral
+    error LockedCollateralAmtIsNotEnough(uint128 lockedCollateralAmt, uint128 amount);
     /// @notice Error for debt amount less than repay amount when repaying
     error DebtAmtLtRepayAmt(uint128 debtAmt, uint128 repayAmt);
     /// @notice Error for addr is not the loan owner
     error isNotLoanOwner(address addr, address loanOwner);
-    /// @notice Error for health factor is under thresholds
-    error LoanIsUnhealthy(uint256 healthFactor);
+    /// @notice Error for loan is not healthy (loan is liquidable)
+    error LoanIsNotHealthy(uint256 healthFactor);
+    /// @notice Error for loan is not strict healthy
+    ///         (when place order, strict healthy is required to reserve some buffer to prevent users being liquidated immediately)
+    error LoanIsNotStrictHealthy(uint256 healthFactor);
     /// @notice Error for get loan which is not exist
     error LoanIsNotExist(bytes12 loanId);
+    /// @notice Error for collateral amount is less than locked collateral amount
+    error CollateralAmtLtLockedCollateralAmt(uint128 collateralAmt, uint128 lockedCollateralAmt);
 
     /// @notice Internal function to add collateral to the loan
     /// @param loan The loan to be added collateral
@@ -42,18 +53,66 @@ library LoanLib {
     }
 
     /// @notice Internal function to remove collateral from the loan
+    /// @dev The collateral amount must be greater than the locked collateral amount at any time
     /// @param loan The loan to be removed collateral
     /// @param amount The amount of the collateral to be removed
     /// @return newLoan The new loan with removed collateral
     function removeCollateral(Loan memory loan, uint128 amount) internal pure returns (Loan memory) {
         if (loan.collateralAmt < amount) revert CollateralAmtIsNotEnough(loan.collateralAmt, amount);
+
         unchecked {
             loan.collateralAmt -= amount;
         }
+
+        // The collateral amount must be greater than the locked collateral amount at any time
+        if (loan.collateralAmt < loan.lockedCollateralAmt)
+            revert CollateralAmtLtLockedCollateralAmt(loan.collateralAmt, loan.lockedCollateralAmt);
+
         return loan;
     }
 
+    /// @notice Internal function to remove locked collateral to the loan
+    /// @dev The locked collateral amount must be greater than or equal to the removed amount
+    /// @param loan The loan to be removed locked collateral
+    /// @param amount The amount of the locked collateral to be removed
+    function removeLockedCollateral(Loan memory loan, uint128 amount) internal pure returns (Loan memory) {
+        if (loan.lockedCollateralAmt < amount) revert LockedCollateralAmtIsNotEnough(loan.lockedCollateralAmt, amount);
+
+        unchecked {
+            loan.lockedCollateralAmt -= amount;
+        }
+
+        return loan;
+    }
+
+    /// @notice Internal function to add roll borrow request in reuqest queue
+    /// @param rsl The rollup storage
+    /// @param sender The sender of the roll borrow request
+    /// @param rollBorrowReq The roll borrow request to be added
+    function addRollBorrowReq(
+        RollupStorage.Layout storage rsl,
+        address sender,
+        Operations.RollBorrow memory rollBorrowReq
+    ) internal {
+        bytes memory pubData = Operations.encodeRollBorrowPubData(rollBorrowReq);
+        rsl.addL1Request(sender, Operations.OpType.ROLL_BORROW_ORDER, pubData);
+    }
+
+    /// @notice Internal function to add force cancel roll borrow request in reuqest queue
+    /// @param rsl The rollup storage
+    /// @param sender The sender of the force cancel roll borrow request
+    /// @param forceCancelRollBorrowReq The force cancel roll borrow request to be added
+    function addForceCancelRollBorrowReq(
+        RollupStorage.Layout storage rsl,
+        address sender,
+        Operations.CancelRollBorrow memory forceCancelRollBorrowReq
+    ) internal {
+        bytes memory pubData = Operations.encodeForceCancelRollBorrowPubData(forceCancelRollBorrowReq);
+        rsl.addL1Request(sender, Operations.OpType.FORCE_CANCEL_ROLL_BORROW, pubData);
+    }
+
     /// @notice Internal function to repay the debt of the loan and remove collateral from the loan
+    /// @dev The collateral amount must be greater than the locked collateral amount at any time
     /// @param loan The loan to be repaid
     /// @param collateralAmt The amount of the collateral to be removed
     /// @param repayAmt The amount of the debt to be repaid
@@ -61,10 +120,16 @@ library LoanLib {
     function repay(Loan memory loan, uint128 collateralAmt, uint128 repayAmt) internal pure returns (Loan memory) {
         if (loan.collateralAmt < collateralAmt) revert CollateralAmtIsNotEnough(loan.collateralAmt, collateralAmt);
         if (loan.debtAmt < repayAmt) revert DebtAmtLtRepayAmt(loan.debtAmt, repayAmt);
+
         unchecked {
             loan.collateralAmt -= collateralAmt;
             loan.debtAmt -= repayAmt;
         }
+
+        // The collateral amount must be greater than the locked collateral amount at any time
+        if (loan.collateralAmt < loan.lockedCollateralAmt)
+            revert CollateralAmtLtLockedCollateralAmt(loan.collateralAmt, loan.lockedCollateralAmt);
+
         return loan;
     }
 
@@ -173,6 +238,13 @@ library LoanLib {
         return s.stableCoinPairLiquidationFactor;
     }
 
+    /// @notice Internal function to get the borrower fee rate
+    /// @param s The loan storage
+    /// @return borrowerFeeRate The borrower fee rate
+    function getBorrowFeeRate(LoanStorage.Layout storage s) internal view returns (uint32) {
+        return s.borrowerFeeRate;
+    }
+
     /// @notice Internal function to check if the roll function is activated
     /// @param s The loan storage
     /// @return isRollActivated True if the roll function is activated, otherwise false
@@ -205,22 +277,49 @@ library LoanLib {
 
     /// @notice Internal function to check if the address is the loan owner
     /// @param addr The address to be checked
-    /// @param loanInfo The loan info
-    function requireLoanOwner(address addr, LoanInfo memory loanInfo) internal view {
-        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
+    /// @param accountId The account id
+    function requireLoanOwner(address addr, uint32 accountId) internal view {
+        address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
         if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
     }
 
-    /// @notice Internal function to check if the loan is healthy
+    /// @notice Internal function to check if the loan is healthy (not liquidable)
     /// @param loan The loan to be checked
-    /// @param loanInfo The loan info
-    function requireHealthy(Loan memory loan, LoanInfo memory loanInfo) internal view {
+    /// @param liquidationFactor The liquidation factor of the loan
+    /// @param collateralAsset The collateral asset of the loan
+    /// @param debtAsset The debt asset of the loan
+    function requireHealthy(
+        Loan memory loan,
+        LiquidationFactor memory liquidationFactor,
+        AssetConfig memory collateralAsset,
+        AssetConfig memory debtAsset
+    ) internal view {
         (uint256 healthFactor, , ) = loan.getHealthFactor(
-            loanInfo.liquidationFactor.ltvThreshold,
-            loanInfo.collateralAsset,
-            loanInfo.debtAsset
+            liquidationFactor.liquidationLtvThreshold, // use liquidation LTV threshold
+            collateralAsset,
+            debtAsset
         );
-        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert LoanIsUnhealthy(healthFactor);
+        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert LoanIsNotHealthy(healthFactor);
+    }
+
+    /// @notice Internal function to check if the loan is strict healthy (buffering to liquidation threshold)
+    /// @dev Using strict healthy when place order to reserve some buffer to prevent users being liquidated immediately
+    /// @param loan The loan to be checked
+    /// @param liquidationFactor The liquidation factor of the loan
+    /// @param collateralAsset The collateral asset of the loan
+    /// @param debtAsset The debt asset of the loan
+    function requireStrictHealthy(
+        Loan memory loan,
+        LiquidationFactor memory liquidationFactor,
+        AssetConfig memory collateralAsset,
+        AssetConfig memory debtAsset
+    ) internal view {
+        (uint256 healthFactor, , ) = loan.getHealthFactor(
+            liquidationFactor.borrowOrderLtvThreshold, // use borrow order LTV threshold
+            collateralAsset,
+            debtAsset
+        );
+        if (healthFactor < Config.HEALTH_FACTOR_THRESHOLD) revert LoanIsNotStrictHealthy(healthFactor);
     }
 
     /// @notice Return the max repayable amount of the loan

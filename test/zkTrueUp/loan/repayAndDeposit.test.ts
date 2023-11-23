@@ -45,6 +45,7 @@ export const FACET_NAMES_MOCK = [
   "RollupMock", // replace RollupFacet with RollupMock
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {
@@ -668,7 +669,7 @@ describe("Repay and deposit", () => {
           .repay(loanId, depositCollateralAmt, repayDebtAmt, true, {
             value: repayDebtAmt,
           })
-      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsUnhealthy");
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotHealthy");
 
       // after health factor
       const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
@@ -1332,7 +1333,7 @@ describe("Repay and deposit", () => {
       // check revert
       await expect(
         diamondLoan.connect(user2).repay(loanId, collateralAmt, debtAmt, true)
-      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsUnhealthy");
+      ).to.be.revertedWithCustomError(diamondLoan, "LoanIsNotHealthy");
     });
   });
 });

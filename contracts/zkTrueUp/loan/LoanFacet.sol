@@ -13,6 +13,7 @@ import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
 import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
@@ -20,8 +21,10 @@ import {AddressLib} from "../address/AddressLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {LoanLib} from "./LoanLib.sol";
+import {TsbLib} from "../tsb/TsbLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
-import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo} from "./LoanStorage.sol";
+import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo, RollBorrowOrder} from "./LoanStorage.sol";
+import {Operations} from "../libraries/Operations.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 
@@ -36,8 +39,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using AddressLib for AddressStorage.Layout;
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
     using TokenLib for TokenStorage.Layout;
+    using SafeCast for uint256;
     using Math for *;
     using LoanLib for *;
+    using Utils for *;
 
     /* ============ External Functions ============ */
 
@@ -52,7 +57,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         Utils.transferFrom(collateralToken, msg.sender, amount, msg.value);
 
         Loan memory loan = loanInfo.loan;
-        loan = loan.addCollateral(amount);
+        loan.addCollateral(amount);
         lsl.loans[loanId] = loan;
         emit CollateralAdded(loanId, msg.sender, collateralToken, amount);
     }
@@ -63,14 +68,15 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     function removeCollateral(bytes12 loanId, uint128 amount) external nonReentrant {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.requireLoanOwner(loanInfo);
+        msg.sender.requireLoanOwner(loanInfo.accountId);
 
         Loan memory loan = loanInfo.loan;
-        loan = loan.removeCollateral(amount);
-        loan.requireHealthy(loanInfo);
+        AssetConfig memory collateralAsset = loanInfo.collateralAsset;
+        loan.removeCollateral(amount);
+        loan.requireHealthy(loanInfo.liquidationFactor, collateralAsset, loanInfo.debtAsset);
 
         lsl.loans[loanId] = loan;
-        IERC20 collateralToken = loanInfo.collateralAsset.token;
+        IERC20 collateralToken = collateralAsset.token;
         Utils.transfer(collateralToken, payable(msg.sender), amount);
         emit CollateralRemoved(loanId, msg.sender, collateralToken, amount);
     }
@@ -79,7 +85,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable {
-        (IERC20 collateralToken, uint32 accountId) = _repay(loanId, collateralAmt, debtAmt, repayAndDeposit);
+        (IERC20 collateralToken, uint32 accountId) = _repay(
+            msg.sender,
+            loanId,
+            collateralAmt,
+            debtAmt,
+            repayAndDeposit
+        );
 
         if (repayAndDeposit) {
             TokenStorage.Layout storage tsl = TokenStorage.layout();
@@ -103,7 +115,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function liquidate(bytes12 loanId, uint128 repayAmt) external payable returns (uint128, uint128) {
-        (LiquidationAmt memory liquidationAmt, IERC20 collateralToken) = _liquidate(loanId, repayAmt);
+        (LiquidationAmt memory liquidationAmt, IERC20 collateralToken) = _liquidate(msg.sender, loanId, repayAmt);
 
         uint128 liquidatorRewardAmt = liquidationAmt.liquidatorRewardAmt;
         uint128 protocolPenaltyAmt = liquidationAmt.protocolPenaltyAmt;
@@ -118,6 +130,61 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
     /**
      * @inheritdoc ILoanFacet
+     * @dev Cannot roll total collateral amount because the original loan will be not strict healthy if success
+     */
+    function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable {
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
+
+        //TODO: calculate rollup gas cost not 0.01 eth, waiting for test in roll up
+        //TODO: need to handle this fee
+        if (msg.value != 0.01 ether) revert InvalidRollBorrowFee(msg.value);
+
+        bytes12 loanId = rollBorrowOrder.loanId;
+        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
+        msg.sender.requireLoanOwner(loanInfo.accountId);
+        // assert: expireTime > block.timestamp && expireTime + 1 day <= maturityTime
+        // solhint-disable-next-line not-rely-on-time
+        if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
+        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > loanInfo.maturityTime)
+            revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
+        if (loanInfo.loan.lockedCollateralAmt > 0) revert LoanIsLocked(loanId);
+
+        // check the tsb token is exist
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        address tsbTokenAddr = rollBorrowOrder.tsbTokenAddr;
+        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(tsbTokenAddr));
+        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
+        // check new maturity time is valid (new maturity time > old maturity time)
+        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+        if (maturityTime <= loanInfo.maturityTime) revert InvalidMaturityTime(maturityTime);
+
+        _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanId, maturityTime);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     * @dev The force cancel roll borrow action will add this request in L1 request queue,
+     *      to force this transaction to be packaged in rollup block
+     */
+    function forceCancelRollBorrow(bytes12 loanId) external {
+        (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(
+            loanId
+        );
+        msg.sender.requireLoanOwner(accountId);
+
+        Operations.CancelRollBorrow memory forceCancelRollBorrowReq = Operations.CancelRollBorrow({
+            accountId: accountId,
+            maturityTime: maturityTime,
+            collateralTokenId: collateralTokenId,
+            debtTokenId: debtTokenId
+        });
+
+        LoanLib.addForceCancelRollBorrowReq(RollupStorage.layout(), msg.sender, forceCancelRollBorrowReq);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
      * @notice Should be `approveDelegation` before `borrow from AAVE V3 pool`
      * @dev Roll the loan to AAVE V3 pool,
      *      the user can transfer the loan of fixed rate and date from term structure
@@ -128,15 +195,17 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (!lsl.getRollerState()) revert RollIsNotActivated();
 
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.requireLoanOwner(loanInfo);
+        msg.sender.requireLoanOwner(loanInfo.accountId);
 
         Loan memory loan = loanInfo.loan;
-        loan = loan.repay(collateralAmt, debtAmt);
-        loan.requireHealthy(loanInfo);
+        AssetConfig memory collateralAsset = loanInfo.collateralAsset;
+        AssetConfig memory debtAsset = loanInfo.debtAsset;
+        loan.repay(collateralAmt, debtAmt);
+        loan.requireHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
 
         lsl.loans[loanId] = loan;
 
-        _supplyToBorrow(loanId, loanInfo.collateralAsset.token, loanInfo.debtAsset.token, collateralAmt, debtAmt);
+        _supplyToBorrow(msg.sender, loanId, collateralAsset.token, debtAsset.token, collateralAmt, debtAmt);
     }
 
     /* ============ Admin Functions ============ */
@@ -156,9 +225,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LiquidationFactor memory liquidationFactor,
         bool isStableCoinPair
     ) external onlyRole(Config.ADMIN_ROLE) {
+        uint16 borrowOrderLtvThreshold = liquidationFactor.borrowOrderLtvThreshold;
+        uint16 liquidationLtvThreshold = liquidationFactor.liquidationLtvThreshold;
+        if (borrowOrderLtvThreshold == 0) revert InvalidLiquidationFactor(liquidationFactor);
+        if (liquidationLtvThreshold == 0) revert InvalidLiquidationFactor(liquidationFactor);
+        if (borrowOrderLtvThreshold > liquidationLtvThreshold) revert InvalidLiquidationFactor(liquidationFactor);
         if (
-            liquidationFactor.ltvThreshold == 0 ||
-            liquidationFactor.ltvThreshold + liquidationFactor.liquidatorIncentive + liquidationFactor.protocolPenalty >
+            liquidationLtvThreshold + liquidationFactor.liquidatorIncentive + liquidationFactor.protocolPenalty >
             Config.MAX_LTV_RATIO
         ) revert InvalidLiquidationFactor(liquidationFactor);
 
@@ -177,6 +250,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit SetActivatedRoller(isActivated);
     }
 
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function setBorrowFeeRate(uint32 borrowFeeRate) external onlyRole(Config.ADMIN_ROLE) {
+        LoanStorage.layout().borrowerFeeRate = borrowFeeRate;
+        emit SetBorrowFeeRate(borrowFeeRate);
+    }
+
     /* ============ External View Functions ============ */
 
     /**
@@ -187,7 +268,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         Loan memory loan = loanInfo.loan;
         (uint256 healthFactor, , ) = loan.getHealthFactor(
-            loanInfo.liquidationFactor.ltvThreshold,
+            loanInfo.liquidationFactor.liquidationLtvThreshold,
             loanInfo.collateralAsset,
             loanInfo.debtAsset
         );
@@ -224,7 +305,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         Loan memory loan = loanInfo.loan;
         (uint256 healthFactor, uint256 normalizedCollateralPrice, ) = loan.getHealthFactor(
-            loanInfo.liquidationFactor.ltvThreshold,
+            loanInfo.liquidationFactor.liquidationLtvThreshold,
             loanInfo.collateralAsset,
             loanInfo.debtAsset
         );
@@ -236,6 +317,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             .calcMaxRepayAmt(loan.debtAmt, loanInfo.maturityTime, halfLiquidationThreshold);
 
         return (_isLiquidable, loanInfo.debtAsset.token, maxRepayAmt);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getBorrowFeeRate() external view returns (uint32) {
+        return LoanStorage.layout().getBorrowFeeRate();
     }
 
     /**
@@ -267,6 +355,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /* ============ Internal Functions ============ */
 
     /// @notice Internal repay function
+    /// @param sender The sender to repay the loan
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of the collateral to be repaid
     /// @param debtAmt The amount of the debt to be repaid
@@ -274,6 +363,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @return collateralToken The token of the collateral
     /// @return accountId The account id of the loan
     function _repay(
+        address sender,
         bytes12 loanId,
         uint128 collateralAmt,
         uint128 debtAmt,
@@ -281,27 +371,32 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ) internal returns (IERC20, uint32) {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.requireLoanOwner(loanInfo);
+        sender.requireLoanOwner(loanInfo.accountId);
 
         Loan memory loan = loanInfo.loan;
-        IERC20 collateralToken = loanInfo.collateralAsset.token;
-        IERC20 debtToken = loanInfo.debtAsset.token;
-        Utils.transferFrom(debtToken, msg.sender, debtAmt, msg.value);
+        AssetConfig memory collateralAsset = loanInfo.collateralAsset;
+        AssetConfig memory debtAsset = loanInfo.debtAsset;
+        Utils.transferFrom(debtAsset.token, sender, debtAmt, msg.value);
 
-        loan = loan.repay(collateralAmt, debtAmt);
-        loan.requireHealthy(loanInfo);
+        loan.repay(collateralAmt, debtAmt);
+        loan.requireHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
 
         lsl.loans[loanId] = loan;
-        emit Repayment(loanId, msg.sender, collateralToken, debtToken, collateralAmt, debtAmt, repayAndDeposit);
-        return (collateralToken, loanInfo.accountId);
+        emit Repayment(loanId, sender, collateralAsset.token, debtAsset.token, collateralAmt, debtAmt, repayAndDeposit);
+        return (collateralAsset.token, loanInfo.accountId);
     }
 
     /// @notice Internal liquidate function
+    /// @param sender The sender to liquidate the loan
     /// @param loanId The loan id to be liquidated
     /// @param repayAmt The amount of the loan to be repaid
     /// @return liquidationAmt The amount of the loan to be liquidated
     /// @return collateralToken The collateral token of the loan
-    function _liquidate(bytes12 loanId, uint128 repayAmt) internal returns (LiquidationAmt memory, IERC20) {
+    function _liquidate(
+        address sender,
+        bytes12 loanId,
+        uint128 repayAmt
+    ) internal returns (LiquidationAmt memory, IERC20) {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         Loan memory loan = loanInfo.loan;
@@ -315,12 +410,15 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint128 totalRemovedCollateralAmt = liquidationAmt.liquidatorRewardAmt + liquidationAmt.protocolPenaltyAmt;
         IERC20 collateralToken = loanInfo.collateralAsset.token;
         IERC20 debtToken = loanInfo.debtAsset.token;
-        Utils.transferFrom(debtToken, msg.sender, repayAmt, msg.value);
+        Utils.transferFrom(debtToken, sender, repayAmt, msg.value);
+
+        /// remove all locked collateral (equivalent to cancelling any roll borrow order)
+        if (loan.lockedCollateralAmt > 0) loan.removeLockedCollateral(loan.lockedCollateralAmt);
 
         loan.repay(totalRemovedCollateralAmt, repayAmt);
         lsl.loans[loanId] = loan;
 
-        emit Repayment(loanId, msg.sender, collateralToken, debtToken, totalRemovedCollateralAmt, repayAmt, false);
+        emit Repayment(loanId, sender, collateralToken, debtToken, totalRemovedCollateralAmt, repayAmt, false);
 
         return (liquidationAmt, collateralToken);
     }
@@ -355,7 +453,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             AssetConfig memory collateralAsset = loanInfo.collateralAsset;
             AssetConfig memory debtAsset = loanInfo.debtAsset;
             (uint256 healthFactor, uint256 normalizedCollateralPrice, uint256 normalizedDebtPrice) = loan
-                .getHealthFactor(liquidationFactor.ltvThreshold, collateralAsset, debtAsset);
+                .getHealthFactor(liquidationFactor.liquidationLtvThreshold, collateralAsset, debtAsset);
             if (!LoanLib.isLiquidable(healthFactor, loanInfo.maturityTime))
                 revert LoanIsSafe(healthFactor, loanInfo.maturityTime);
 
@@ -422,14 +520,102 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return LiquidationAmt({liquidatorRewardAmt: liquidatorRewardAmt, protocolPenaltyAmt: protocolPenaltyAmt});
     }
 
+    /// @notice Internal function to roll borrow
+    /// @dev Should simulate this roll borrow order before being matched in L2,
+    ///      to make sure both the original and new loan are strictly healthy (buffering to liquidation threshold)
+    /// @param lsl The loan storage layout
+    /// @param rollBorrowOrder The roll borrow order
+    /// @param loanInfo The loan info
+    /// @param loanOwner The loan owner
+    /// @param loanId The loan id
+    /// @param maturityTime The maturity time of the loan
+    function _rollBorrow(
+        LoanStorage.Layout storage lsl,
+        RollBorrowOrder memory rollBorrowOrder,
+        LoanInfo memory loanInfo,
+        address loanOwner,
+        bytes12 loanId,
+        uint32 maturityTime
+    ) internal {
+        AssetConfig memory collateralAsset;
+        AssetConfig memory debtAsset;
+        uint32 borrowFeeRate = lsl.getBorrowFeeRate();
+        // {} scope to avoid stack too deep error
+        {
+            // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
+            uint32 maxInterestRate = rollBorrowOrder
+                .maxAnnualPercentageRate
+                // solhint-disable-next-line not-rely-on-time
+                .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
+                .toUint32();
+
+            // borrowFee = borrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
+            // ==> maxBorrowFee = maxBorrowAmt * (maxInterestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
+            // ==> maxBorrowFee = maxBorrowAmt * maxInterestRate * borrowFeeRate / SYSTEM_UNIT_BASE / SYSTEM_UNIT_BASE
+            uint128 maxBorrowFee = rollBorrowOrder
+                .maxBorrowAmt
+                .mulDiv(uint256(maxInterestRate) * borrowFeeRate, Config.SYSTEM_UNIT_BASE * Config.SYSTEM_UNIT_BASE)
+                .toUint128();
+
+            // debtAmt = borrowAmt + interest
+            // ==> maxDebtAmt = maxBorrowAmt + maxBorrowAmt * maxInterestRate / SYSTEM_UNIT_BASE
+            uint128 maxDebtAmt = rollBorrowOrder.maxBorrowAmt +
+                rollBorrowOrder.maxBorrowAmt.mulDiv(maxInterestRate, Config.SYSTEM_UNIT_BASE).toUint128();
+
+            // check the original loan will be strictly healthy after roll over
+            Loan memory loan = loanInfo.loan;
+            collateralAsset = loanInfo.collateralAsset;
+            debtAsset = loanInfo.debtAsset;
+            loan.repay(rollBorrowOrder.maxCollateralAmt, (rollBorrowOrder.maxBorrowAmt - maxBorrowFee));
+            loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
+
+            // reuse the original memory of `loan` and `loanInfo` to sava gas
+            // those represent the `newLoan` and `newLoanInfo` here
+            loan = Loan({collateralAmt: rollBorrowOrder.maxCollateralAmt, lockedCollateralAmt: 0, debtAmt: maxDebtAmt});
+            loanInfo = LoanInfo({
+                loan: loan,
+                maturityTime: maturityTime,
+                accountId: loanInfo.accountId,
+                liquidationFactor: loanInfo.liquidationFactor,
+                collateralAsset: collateralAsset,
+                debtAsset: debtAsset
+            });
+            // check the new loan will be also strictly healthy
+            // if the roll borrow order is executed in L2 then the position is be rollup to L1
+            loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
+        }
+
+        // add the locked collateral to the original loan
+        // however we only allow one roll borrow order existing for each loan
+        lsl.loans[loanId].lockedCollateralAmt += rollBorrowOrder.maxCollateralAmt;
+
+        (, , uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(loanId);
+        Operations.RollBorrow memory rollBorrowReq = Operations.RollBorrow({
+            accountId: loanInfo.accountId,
+            collateralTokenId: collateralTokenId,
+            borrowTokenId: debtTokenId,
+            newMaturityTime: maturityTime,
+            expiredTime: rollBorrowOrder.expiredTime,
+            feeRate: borrowFeeRate,
+            maxPrincipalAndInterestRate: (rollBorrowOrder.maxAnnualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32(),
+            maxCollateralAmt: rollBorrowOrder.maxCollateralAmt.toL2Amt(collateralAsset.decimals),
+            maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals)
+        });
+
+        LoanLib.addRollBorrowReq(RollupStorage.layout(), loanOwner, rollBorrowReq);
+        emit RollBorrowOrderPlaced(loanOwner, rollBorrowReq);
+    }
+
     /// @notice Internal function to supply collateral to AAVE V3 then borrow debt from AAVE V3
     /// @dev    The collateral token is WETH if the collateral token is ETH
+    /// @param loanOwner The loan owner
     /// @param loanId The loan id to be rolled over
     /// @param collateralToken The collateral token to be supplied
     /// @param debtToken The debt token to be borrowed
     /// @param collateralAmt The amount of the collateral token to be supplied
     /// @param debtAmt The amount of the debt token to be borrowed
     function _supplyToBorrow(
+        address loanOwner,
         bytes12 loanId,
         IERC20 collateralToken,
         IERC20 debtToken,
@@ -444,7 +630,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         supplyToken.safeApprove(address(aaveV3Pool), collateralAmt);
         // referralCode: 0
         // (see https://docs.aave.com/developers/core-contracts/pool#supply)
-        try aaveV3Pool.supply(address(supplyToken), collateralAmt, msg.sender, Config.AAVE_V3_REFERRAL_CODE) {
+        try aaveV3Pool.supply(address(supplyToken), collateralAmt, loanOwner, Config.AAVE_V3_REFERRAL_CODE) {
             // variable rate mode: 2
             // referralCode: 0
             // (see https://docs.aave.com/developers/core-contracts/pool#borrow)
@@ -454,11 +640,11 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                     debtAmt,
                     Config.AAVE_V3_INTEREST_RATE_MODE,
                     Config.AAVE_V3_REFERRAL_CODE,
-                    msg.sender
+                    loanOwner
                 )
             {
-                emit Repayment(loanId, msg.sender, collateralToken, debtToken, collateralAmt, debtAmt, false);
-                emit RollToAave(loanId, msg.sender, supplyToken, debtToken, collateralAmt, debtAmt);
+                emit Repayment(loanId, loanOwner, collateralToken, debtToken, collateralAmt, debtAmt, false);
+                emit RollToAave(loanId, loanOwner, supplyToken, debtToken, collateralAmt, debtAmt);
             } catch Error(string memory err) {
                 revert BorrowFromAaveFailedLogString(supplyToken, collateralAmt, debtToken, debtAmt, err);
             } catch (bytes memory err) {
