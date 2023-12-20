@@ -36,10 +36,4 @@ contract TsERC20 is ERC20 {
         require(spender == zkTrueUp, "Invalid spender");
         return super.approve(spender, amount);
     }
-
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal view override {
-        if (to != zkTrueUp || to != exchange) {
-            require(from == zkTrueUp || from == address(0), "Invalid recipient");
-        }
-    }
 }
