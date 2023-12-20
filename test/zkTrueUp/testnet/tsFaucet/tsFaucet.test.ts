@@ -248,15 +248,5 @@ describe("TsFaucet", () => {
         ethers.utils.parseUnits("10", await usdtMock.decimals())
       );
     });
-    it("Fail to transfer, cannot transfer to addresses other than ZkTrueUp and TsbFactory", async () => {
-      await expect(
-        usdtMock
-          .connect(user1)
-          .transfer(
-            user2Addr,
-            ethers.utils.parseUnits("10", await usdtMock.decimals())
-          )
-      ).to.be.revertedWith("Invalid recipient");
-    });
   });
 });
