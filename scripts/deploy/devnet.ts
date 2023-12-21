@@ -15,8 +15,15 @@ import {
   FACET_NAMES,
   INIT_FUNCTION_NAME,
 } from "../../utils/config";
+import {
+  getCurrentBranch,
+  getLatestCommit,
+  createDirectoryIfNotExists,
+} from "../../utils/deployHelper";
 import { safeInitFacet } from "diamond-engraver";
 import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
+import fs from "fs";
+
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
@@ -35,13 +42,6 @@ export const main = async () => {
   const vaultAddr = getString(process.env.DEVNET_VAULT_ADDRESS);
   const genesisStateRoot = getString(process.env.DEVNET_GENESIS_STATE_ROOT);
   const exchangeAddr = getString(process.env.DEVNET_EXCHANGE_ADDRESS);
-
-  console.log(
-    "Deploying contracts with deployer:",
-    await deployer.getAddress()
-  );
-
-  console.log("Genesis state root: ", genesisStateRoot);
 
   // Deploy WETH
   console.log("Deploying WETH...");
@@ -73,7 +73,11 @@ export const main = async () => {
 
   // deploy facet contracts
   console.log("Deploying facets...");
-  const { facetFactories, facets } = await deployFacets(FACET_NAMES, deployer);
+  const { facetFactories, facets } = await deployFacets(
+    FACET_NAMES,
+    deployer,
+    await deployer.getTransactionCount()
+  );
 
   // deploy diamond contract
   console.log("Deploying ZkTrueUp...");
@@ -99,7 +103,7 @@ export const main = async () => {
   const priceFeeds: PriceFeeds = {};
 
   // add ETH as base token
-  baseTokenAddresses[TsTokenId.ETH] = DEFAULT_ETH_ADDRESS;
+  baseTokenAddresses[TsTokenId.ETH] = await tsFaucet.tsERC20s(0);
   baseTokenAddresses[TsTokenId.WBTC] = await tsFaucet.tsERC20s(1);
   baseTokenAddresses[TsTokenId.USDT] = await tsFaucet.tsERC20s(2);
   baseTokenAddresses[TsTokenId.USDC] = await tsFaucet.tsERC20s(3);
@@ -180,6 +184,14 @@ export const main = async () => {
   console.log("Diamond initialized successfully 💎💎💎");
 
   // log addresses
+  console.log("Current branch:", getCurrentBranch());
+  console.log("Latest commit:", getLatestCommit());
+  console.log(
+    "Deploying contracts with deployer:",
+    await deployer.getAddress()
+  );
+
+  console.log("Genesis state root: ", genesisStateRoot);
   for (const token of BASE_TOKEN_ASSET_CONFIG) {
     console.log(
       `${token.symbol} address: ${baseTokenAddresses[token.tokenId]}`,
@@ -196,6 +208,41 @@ export const main = async () => {
   }
   console.log("ZkTrueUp address:", zkTrueUp.address);
   console.log("ZkTrueUpInit address:", zkTrueUpInit.address);
+
+  const creationTx = await zkTrueUp.provider.getTransactionReceipt(
+    zkTrueUp.deployTransaction.hash
+  );
+
+  const result: { [key: string]: any } = {};
+  result["current_branch"] = getCurrentBranch();
+  result["latest_commit"] = getLatestCommit();
+  result["deployer"] = await deployer.getAddress();
+  result["genesis_state_root"] = genesisStateRoot;
+  for (const token of BASE_TOKEN_ASSET_CONFIG) {
+    result[`${token.symbol}_address`] = baseTokenAddresses[token.tokenId];
+    result[`${token.symbol}_price_feed`] = priceFeeds[token.tokenId];
+  }
+  result["ts_faucet"] = tsFaucet.address;
+  result["weth"] = weth.address;
+  result["poseidon_unit_2"] = poseidonUnit2Contract.address;
+  result["verifier"] = verifier.address;
+  result["evacu_verifier"] = evacuVerifier.address;
+  for (const facetName of Object.keys(facets)) {
+    result[facetName] = facets[facetName].address;
+  }
+  result["zk_true_up_init"] = zkTrueUpInit.address;
+  result["zk_true_up"] = zkTrueUp.address;
+  result["creation_block_number"] = creationTx.blockNumber.toString();
+
+  const jsonString = JSON.stringify(result, null, 2);
+  await createDirectoryIfNotExists("tmp");
+  fs.writeFile("tmp/deploy_devnet.json", jsonString, "utf8", (err: any) => {
+    if (err) {
+      console.error("An error occurred:", err);
+    } else {
+      console.log("JSON saved to tmp/deploy_devnet.json");
+    }
+  });
 };
 
 main().catch((error) => {
