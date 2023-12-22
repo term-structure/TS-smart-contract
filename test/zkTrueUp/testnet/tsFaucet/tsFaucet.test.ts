@@ -129,36 +129,36 @@ describe("TsFaucet", () => {
 
       // check balance
       expect(await tsethMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("10000", 18)
       );
       expect(await wbtcMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 8)
+        ethers.utils.parseUnits("10000", 8)
       );
       expect(await usdtMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 6)
+        ethers.utils.parseUnits("10000", 6)
       );
       expect(await usdcMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 6)
+        ethers.utils.parseUnits("10000", 6)
       );
       expect(await daiMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("10000", 18)
       );
 
       // check total supply
       expect(afterWethTotalSupply.sub(beforeWethTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("10000", 18)
       );
       expect(afterWbtcTotalSupply.sub(beforeWbtcTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 8)
+        ethers.utils.parseUnits("10000", 8)
       );
       expect(afterUsdtTotalSupply.sub(beforeUsdtTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 6)
+        ethers.utils.parseUnits("10000", 6)
       );
       expect(afterUsdcTotalSupply.sub(beforeUsdcTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 6)
+        ethers.utils.parseUnits("10000", 6)
       );
       expect(afterDaiTotalSupply.sub(beforeDaiTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("10000", 18)
       );
     });
 
