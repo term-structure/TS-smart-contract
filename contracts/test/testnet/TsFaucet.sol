@@ -18,7 +18,7 @@ contract TsFaucet is Ownable {
     address public immutable exchange;
 
     uint8 internal constant TS_ERC20_NUMBERS = 5; // tsETH WBTC USDT USDC DAI
-    uint16 internal constant MINT_AMOUNT = 1000;
+    uint16 internal constant MINT_AMOUNT = 10000;
 
     TokenMetadata internal _tseth = TokenMetadata("Term Structure Ether", "TSETH", 18);
     TokenMetadata internal _wbtc = TokenMetadata("Wrapped Bitcoin", "WBTC", 8);
