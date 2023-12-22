@@ -20,7 +20,7 @@ contract TsFaucet is Ownable {
     uint8 internal constant TS_ERC20_NUMBERS = 5; // tsETH WBTC USDT USDC DAI
     uint16 internal constant MINT_AMOUNT = 1000;
 
-    TokenMetadata internal _weth = TokenMetadata("Wrapped Ether", "WETH", 18);
+    TokenMetadata internal _tseth = TokenMetadata("Term Structure Ether", "TSETH", 18);
     TokenMetadata internal _wbtc = TokenMetadata("Wrapped Bitcoin", "WBTC", 8);
     TokenMetadata internal _usdt = TokenMetadata("Tether USD", "USDT", 6);
     TokenMetadata internal _usdc = TokenMetadata("USD Coin", "USDC", 6);
@@ -43,7 +43,7 @@ contract TsFaucet is Ownable {
     constructor(address _zkTrueUpAddr, address _exchangeAddr) {
         zkTrueUp = _zkTrueUpAddr;
         exchange = _exchangeAddr;
-        tsERC20s[0] = _createTsERC20(_weth);
+        tsERC20s[0] = _createTsERC20(_tseth);
         tsERC20s[1] = _createTsERC20(_wbtc);
         tsERC20s[2] = _createTsERC20(_usdt);
         tsERC20s[3] = _createTsERC20(_usdc);
