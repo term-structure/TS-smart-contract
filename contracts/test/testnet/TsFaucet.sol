@@ -20,7 +20,7 @@ contract TsFaucet is Ownable {
     uint8 internal constant TS_ERC20_NUMBERS = 5; // tsETH WBTC USDT USDC DAI
     uint16 internal constant MINT_AMOUNT = 1000;
 
-    TokenMetadata internal _weth = TokenMetadata("Wrapped Ether", "WETH", 18);
+    TokenMetadata internal _weth = TokenMetadata("Term Structure ETH", "TSETH", 18);
     TokenMetadata internal _wbtc = TokenMetadata("Wrapped Bitcoin", "WBTC", 8);
     TokenMetadata internal _usdt = TokenMetadata("Tether USD", "USDT", 6);
     TokenMetadata internal _usdc = TokenMetadata("USD Coin", "USDC", 6);
