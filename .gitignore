@@ -18,4 +18,5 @@ reports/**/*
 # others
 log
 *.log
-
+tmp
+tmp/*
