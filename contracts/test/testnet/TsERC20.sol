@@ -31,9 +31,4 @@ contract TsERC20 is ERC20 {
     function decimals() public view override returns (uint8) {
         return _decimals;
     }
-
-    function approve(address spender, uint256 amount) public override returns (bool) {
-        require(spender == zkTrueUp, "Invalid spender");
-        return super.approve(spender, amount);
-    }
 }

@@ -184,13 +184,6 @@ describe("TsFaucet", () => {
         amount
       );
     });
-
-    it("Fail to approve, cannot approve to addresses other than ZkTrueUp", async () => {
-      const amount = ethers.constants.MaxUint256;
-      await expect(
-        wbtcMock.connect(user1).approve(user2Addr, amount)
-      ).to.be.revertedWith("Invalid spender");
-    });
   });
 
   describe("Transfer TsERC20", () => {
