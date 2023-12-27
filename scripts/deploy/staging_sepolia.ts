@@ -363,13 +363,18 @@ export const main = async () => {
 
   await createDirectoryIfNotExists("tmp");
   const jsonString = JSON.stringify(result, null, 2);
-  fs.writeFile("tmp/deploy_sepolia.json", jsonString, "utf8", (err: any) => {
-    if (err) {
-      console.error("An error occurred:", err);
-    } else {
-      console.log("JSON saved to tmp/deploy_staging_sepolia.json");
+  fs.writeFile(
+    "tmp/deploy_staging_sepolia.json",
+    jsonString,
+    "utf8",
+    (err: any) => {
+      if (err) {
+        console.error("An error occurred:", err);
+      } else {
+        console.log("JSON saved to tmp/deploy_staging_sepolia.json");
+      }
     }
-  });
+  );
 };
 
 main().catch((error) => {
