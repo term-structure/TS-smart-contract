@@ -26,6 +26,9 @@ export const deployFacets = async (
         ethers.utils.parseUnits("3", "gwei")
       ),
     });
+    console.log(
+      `Deployed ${facet}... (tx: ${deployedFacet.deployTransaction.hash})`
+    );
     await deployedFacet.deployed();
     facetFactories[facet] = facetFactory;
     deployedFacets[facet] = deployedFacet;

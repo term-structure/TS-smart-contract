@@ -60,7 +60,6 @@ export const main = async () => {
   const deltaMaxPriorityFeePerGas = ethers.utils.parseUnits("3", "gwei");
 
   // Deploy WETH
-  console.log("Deploying WETH...");
   const WETH = await ethers.getContractFactory("WETH9");
   const weth = await WETH.connect(deployer).deploy({
     nonce: currentDeployerNonce++,
@@ -71,10 +70,10 @@ export const main = async () => {
       ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
       : ethers.utils.parseUnits("2", "gwei"),
   });
+  console.log(`Deploying WETH... (tx:${weth.deployTransaction.hash})`);
   await weth.deployed();
 
   // deploy poseidonUnit2
-  console.log("Deploying PoseidonUnit2...");
   const PoseidonFactory = new ethers.ContractFactory(
     generateABI(2),
     createCode(2),
@@ -89,10 +88,12 @@ export const main = async () => {
       ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
       : ethers.utils.parseUnits("2", "gwei"),
   });
+  console.log(
+    `Deploying PoseidonUnit2... (tx:${poseidonUnit2Contract.deployTransaction.hash})`
+  );
   await poseidonUnit2Contract.deployed();
 
   // deploy verifier
-  console.log("Deploying Verifier...");
   const Verifier = await ethers.getContractFactory("Verifier");
   const verifier = await Verifier.connect(deployer).deploy({
     nonce: currentDeployerNonce++,
@@ -103,10 +104,10 @@ export const main = async () => {
       ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
       : ethers.utils.parseUnits("2", "gwei"),
   });
+  console.log(`Deploying Verifier... (tx:${verifier.deployTransaction.hash})`);
   await verifier.deployed();
 
   // deploy evacuVerifier
-  console.log("Deploying EvacuVerifier...");
   const EvacuVerifier = await ethers.getContractFactory("EvacuVerifier");
   const evacuVerifier = await EvacuVerifier.connect(deployer).deploy({
     nonce: currentDeployerNonce++,
@@ -117,6 +118,9 @@ export const main = async () => {
       ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
       : ethers.utils.parseUnits("2", "gwei"),
   });
+  console.log(
+    `Deploying EvacuVerifier... (tx: ${evacuVerifier.deployTransaction.hash})`
+  );
   await evacuVerifier.deployed();
 
   // deploy facet contracts
@@ -131,7 +135,6 @@ export const main = async () => {
     : currentDeployerNonce;
 
   // deploy diamond contract
-  console.log("Deploying ZkTrueUp...");
   const ZkTrueUp = await ethers.getContractFactory("ZkTrueUp");
   const zkTrueUp = await ZkTrueUp.connect(deployer).deploy({
     nonce: currentDeployerNonce++,
@@ -142,10 +145,10 @@ export const main = async () => {
       ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
       : ethers.utils.parseUnits("2", "gwei"),
   });
+  console.log(`Deploying ZkTrueUp... (tx: ${zkTrueUp.deployTransaction.hash})`);
   await zkTrueUp.deployed();
 
   // deploy diamond init contract
-  console.log("Deploying ZkTrueUpInit...");
   const ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
   const zkTrueUpInit = await ZkTrueUpInit.connect(deployer).deploy({
     nonce: currentDeployerNonce++,
@@ -156,10 +159,12 @@ export const main = async () => {
       ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
       : ethers.utils.parseUnits("2", "gwei"),
   });
+  console.log(
+    `Deploying ZkTrueUpInit... (tx: ${zkTrueUpInit.deployTransaction.hash})`
+  );
   await zkTrueUpInit.deployed();
 
   // Deploy faucet and base tokens for test
-  console.log("Deploying TsFaucet and base tokens...");
   const TsFaucet = await ethers.getContractFactory("TsFaucet");
   const tsFaucet = await TsFaucet.connect(deployer).deploy(
     zkTrueUp.address,
@@ -174,9 +179,11 @@ export const main = async () => {
         : ethers.utils.parseUnits("2", "gwei"),
     }
   );
+  console.log(
+    `Deploying TsFaucet and base tokens... (tx: ${tsFaucet.deployTransaction.hash})`
+  );
   await tsFaucet.deployed();
 
-  console.log("Transfering ownership of TsFaucet...");
   const tx = await tsFaucet
     .connect(deployer)
     .transferOwnership(faucetOwnerAddr, {
@@ -188,6 +195,7 @@ export const main = async () => {
         ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
         : ethers.utils.parseUnits("2", "gwei"),
     });
+  console.log(`Transfering ownership of TsFaucet... (tx: ${tx.hash})`);
   await tx.wait();
 
   const baseTokenAddresses: BaseTokenAddresses = {};
@@ -204,7 +212,6 @@ export const main = async () => {
   console.log("Deploying OracleMock...");
   const OracleMock = await ethers.getContractFactory("OracleMock");
   for (const tokenId of Object.keys(baseTokenAddresses)) {
-    console.log("Deploying oracle mock for token: ", tokenId);
     const oracleMock = await OracleMock.connect(deployer).deploy({
       nonce: currentDeployerNonce++,
       maxFeePerGas: feeData.maxFeePerGas
@@ -214,9 +221,11 @@ export const main = async () => {
         ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
         : ethers.utils.parseUnits("2", "gwei"),
     });
+    console.log(
+      `Deploying oracle mock for ${tokenId}... (tx: ${oracleMock.deployTransaction.hash})`
+    );
     await oracleMock.deployed();
 
-    console.log("Transfering ownership of OracleMock...");
     const tx = await oracleMock
       .connect(deployer)
       .transferOwnership(oracleOwnerAddr, {
@@ -228,6 +237,7 @@ export const main = async () => {
           ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
           : ethers.utils.parseUnits("2", "gwei"),
       });
+    console.log(`Transfering ownership of OracleMock... (tx: ${tx.hash})`);
     await tx.wait();
     priceFeeds[tokenId] = oracleMock.address;
   }
@@ -295,49 +305,52 @@ export const main = async () => {
     initData,
     onlyCall
   );
-  console.log("Diamond initialized successfully 💎💎💎");
+  console.log("Diamond initialized successfully 💎💎💎\n");
 
   // log addresses
   console.log("Current branch:", getCurrentBranch());
   console.log("Latest commit:", getLatestCommit());
-  console.log(
-    "Deploying contracts with deployer:",
-    await deployer.getAddress()
-  );
+  console.log("Deployer address:", await deployer.getAddress());
+  console.log("Operator address:", operatorAddr);
+  console.log("Faucet owner address:", faucetOwnerAddr);
+  console.log("Oracle owner address:", oracleOwnerAddr);
   console.log("Genesis state root: ", genesisStateRoot);
+  console.log("WETH address:", weth.address);
+  console.log("TsFaucet address:", tsFaucet.address);
   for (const token of BASE_TOKEN_ASSET_CONFIG) {
     console.log(
       `${token.symbol} address: ${baseTokenAddresses[token.tokenId]}`,
       `with price feed ${priceFeeds[token.tokenId]}`
     );
   }
-  console.log("TsFaucet address:", tsFaucet.address);
-  console.log("WETH address:", weth.address);
   console.log("PoseidonUnit2 address:", poseidonUnit2Contract.address);
   console.log("Verifier address:", verifier.address);
   console.log("EvacuVerifier address:", evacuVerifier.address);
   for (const facetName of Object.keys(facets)) {
     console.log(`${facetName} address: ${facets[facetName].address}`);
   }
-  console.log("ZkTrueUp address:", zkTrueUp.address);
   console.log("ZkTrueUpInit address:", zkTrueUpInit.address);
+  console.log("ZkTrueUp address:", zkTrueUp.address);
 
   const creationTx = await zkTrueUp.provider.getTransactionReceipt(
     zkTrueUp.deployTransaction.hash
   );
-  console.log("ZkTrueUp is created at:", creationTx.blockNumber);
+  console.log("Created block of zkTrueUp:", creationTx.blockNumber);
 
   const result: { [key: string]: any } = {};
   result["current_branch"] = getCurrentBranch();
   result["latest_commit"] = getLatestCommit();
   result["deployer"] = await deployer.getAddress();
+  result["operator"] = operatorAddr;
+  result["faucet_owner"] = faucetOwnerAddr;
+  result["oracle_owner"] = oracleOwnerAddr;
+  result["weth"] = weth.address;
+  result["ts_faucet"] = tsFaucet.address;
   result["genesis_state_root"] = genesisStateRoot;
   for (const token of BASE_TOKEN_ASSET_CONFIG) {
     result[`${token.symbol}_address`] = baseTokenAddresses[token.tokenId];
     result[`${token.symbol}_price_feed`] = priceFeeds[token.tokenId];
   }
-  result["ts_faucet"] = tsFaucet.address;
-  result["weth"] = weth.address;
   result["poseidon_unit_2"] = poseidonUnit2Contract.address;
   result["verifier"] = verifier.address;
   result["evacu_verifier"] = evacuVerifier.address;
@@ -354,7 +367,7 @@ export const main = async () => {
     if (err) {
       console.error("An error occurred:", err);
     } else {
-      console.log("JSON saved to tmp/deploy_sepolia.json");
+      console.log("JSON saved to tmp/deploy_staging_sepolia.json");
     }
   });
 };
