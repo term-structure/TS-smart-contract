@@ -47,7 +47,6 @@ library Operations {
         USER_CANCEL_ROLL_BORROW, // 30
         ADMIN_CANCEL_ROLL_BORROW, // 31
         FORCE_CANCEL_ROLL_BORROW // 32
-        //TODO: check latest op type
     }
 
     /// @notice Public data struct definition
