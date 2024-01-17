@@ -137,6 +137,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (!lsl.getRollerState()) revert RollIsNotActivated();
         if (msg.value != lsl.getRollOverFee()) revert InvalidRollBorrowFee(msg.value);
 
+        Utils.transferNativeToken(ProtocolParamsStorage.layout().getVaultAddr(), msg.value);
+
         bytes12 loanId = rollBorrowOrder.loanId;
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         msg.sender.requireLoanOwner(loanInfo.accountId);

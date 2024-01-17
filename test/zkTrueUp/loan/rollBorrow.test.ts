@@ -23,6 +23,7 @@ import {
 import {
   AccountFacet,
   LoanFacet,
+  ProtocolParamsFacet,
   RollupMock,
   TokenFacet,
   TsbFacet,
@@ -75,6 +76,7 @@ describe("Roll Borrow", () => {
   let diamondRollupMock: RollupMock;
   let diamondToken: TokenFacet;
   let diamondTsb: TsbFacet;
+  let diamondProtocolParams: ProtocolParamsFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   let priceFeeds: PriceFeeds;
 
@@ -97,6 +99,10 @@ describe("Roll Borrow", () => {
     )) as RollupMock;
     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
+    diamondProtocolParams = (await useFacet(
+      "ProtocolParamsFacet",
+      zkTrueUpAddr
+    )) as ProtocolParamsFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     priceFeeds = res.priceFeeds;
     await diamondLoan.connect(admin).setActivatedRoller(true);
@@ -189,6 +195,8 @@ describe("Roll Borrow", () => {
 
     it("Success to roll (ETH case)", async () => {
       const beforeLoan = await diamondLoan.getLoan(loanId);
+      const vaultAddr = await diamondProtocolParams.getVaultAddr();
+      const beforeVaultEtherAmt = await ethers.provider.getBalance(vaultAddr);
       // original loan:
       // collateral: 1 ETH debt: 500 USDC
 
@@ -249,6 +257,12 @@ describe("Roll Borrow", () => {
       await expect(rollBorrowTx)
         .to.emit(diamondLoan, "RollBorrowOrderPlaced")
         .withArgs(user1Addr, rollBorrowReq);
+
+      // check vault ether amount
+      const afterVaultEtherAmt = await ethers.provider.getBalance(vaultAddr);
+      const rollBorrowFee = await diamondLoan.getRollOverFee();
+      expect(afterVaultEtherAmt.sub(beforeVaultEtherAmt).eq(rollBorrowFee)).to
+        .be.true;
 
       // check loan
       const afterLoan = await diamondLoan.getLoan(loanId);

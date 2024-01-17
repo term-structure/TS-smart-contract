@@ -64,8 +64,7 @@ library Utils {
     function transfer(IERC20 token, address payable receiver, uint256 amount) internal {
         if (address(token) == Config.ETH_ADDRESS) {
             AddressStorage.layout().getWETH().withdraw(amount);
-            (bool success, bytes memory data) = receiver.call{value: amount}("");
-            if (!success) revert TransferFailed(receiver, amount, data);
+            transferNativeToken(receiver, amount);
         } else {
             token.safeTransfer(receiver, amount);
         }
@@ -89,6 +88,14 @@ library Utils {
             uint256 transferredAmt = balanceAfter - balanceBefore;
             if (amount != transferredAmt) revert AmountInconsistent(amount, transferredAmt);
         }
+    }
+
+    /// @notice Internal transfer native token function
+    /// @param receiver The address of receiver
+    /// @param amount The amount of the token
+    function transferNativeToken(address payable receiver, uint256 amount) internal {
+        (bool success, bytes memory data) = receiver.call{value: amount}("");
+        if (!success) revert TransferFailed(receiver, amount, data);
     }
 
     /// @notice Internal function to get the price from price feed contract
