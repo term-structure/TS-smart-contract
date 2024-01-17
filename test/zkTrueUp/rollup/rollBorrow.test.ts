@@ -30,6 +30,7 @@ import {
   preprocessBlocks,
 } from "../../utils/rollBorrowRollupHelper";
 import { toL1Amt } from "../../utils/amountConvertor";
+import { calcLoanId } from "../../utils/loanHelper";
 
 const fixture = async () => {
   const res = await deployAndInit(FACET_NAMES, false, "RollBorrowVerifier");
@@ -184,24 +185,23 @@ describe("Roll borrow", function () {
     const BLOCK_NUMBER = 5;
     const block = rollupData.blocks[BLOCK_NUMBER - 1];
     const userCancelRollBorrowPubData = block.pendingRollupTxPubData[0];
-    const accountId = BigNumber.from(
-      "0x" + userCancelRollBorrowPubData.slice(4, 12)
-    );
-    const debtTokenId = BigNumber.from(
+    const accountId = Number("0x" + userCancelRollBorrowPubData.slice(4, 12));
+    const debtTokenId = Number(
       "0x" + userCancelRollBorrowPubData.slice(12, 16)
     );
-    const collateralTokenId = BigNumber.from(
+    const collateralTokenId = Number(
       "0x" + userCancelRollBorrowPubData.slice(16, 20)
     );
-    const maturityTime = BigNumber.from(
-      "0x" + userCancelRollBorrowPubData.slice(20, 28)
+    const maturityTime = Number(
+      "0x" + userCancelRollBorrowPubData.slice(20, 28).toString()
     );
-    const loanId = await diamondLoan.getLoanId(
+    const loanId = calcLoanId(
       accountId,
       maturityTime,
       debtTokenId,
       collateralTokenId
     );
+
     const beforeLoan = await diamondLoan.getLoan(loanId);
     const beforeLockedCollateralAmt = beforeLoan.lockedCollateralAmt;
     // expect locked collateral amount is not zero
@@ -289,19 +289,17 @@ describe("Roll borrow", function () {
     const numOfAdminCancelRollBorrowRequest = 0;
     const adminCancelRollBorrowPubData =
       block.pendingRollupTxPubData[numOfAdminCancelRollBorrowRequest];
-    const accountId = BigNumber.from(
-      "0x" + adminCancelRollBorrowPubData.slice(4, 12)
-    );
-    const debtTokenId = BigNumber.from(
+    const accountId = Number("0x" + adminCancelRollBorrowPubData.slice(4, 12));
+    const debtTokenId = Number(
       "0x" + adminCancelRollBorrowPubData.slice(12, 16)
     );
-    const collateralTokenId = BigNumber.from(
+    const collateralTokenId = Number(
       "0x" + adminCancelRollBorrowPubData.slice(16, 20)
     );
-    const maturityTime = BigNumber.from(
+    const maturityTime = Number(
       "0x" + adminCancelRollBorrowPubData.slice(20, 28)
     );
-    const loanId = await diamondLoan.getLoanId(
+    const loanId = calcLoanId(
       accountId,
       maturityTime,
       debtTokenId,
@@ -379,36 +377,28 @@ describe("Roll borrow", function () {
     const BLOCK_NUMBER = 8;
     const block = rollupData.blocks[BLOCK_NUMBER - 1];
     const rollOverEndPubData = block.pendingRollupTxPubData[0];
-    const accountId = BigNumber.from("0x" + rollOverEndPubData.slice(4, 12));
-    const collateralTokenId = BigNumber.from(
-      "0x" + rollOverEndPubData.slice(12, 16)
-    );
+    const accountId = Number("0x" + rollOverEndPubData.slice(4, 12));
+    const collateralTokenId = Number("0x" + rollOverEndPubData.slice(12, 16));
     const collateralAmt = BigNumber.from(
       "0x" + rollOverEndPubData.slice(16, 48)
     );
     const l1CollateralAmt = toL1Amt(collateralAmt, TS_BASE_TOKEN.WBTC);
-    const debtTokenId = BigNumber.from("0x" + rollOverEndPubData.slice(48, 52));
-    const oldMaturityTime = BigNumber.from(
-      "0x" + rollOverEndPubData.slice(52, 60)
-    );
-    const newMaturityTime = BigNumber.from(
-      "0x" + rollOverEndPubData.slice(60, 68)
-    );
+    const debtTokenId = Number("0x" + rollOverEndPubData.slice(48, 52));
+    const oldMaturityTime = Number("0x" + rollOverEndPubData.slice(52, 60));
+    const newMaturityTime = Number("0x" + rollOverEndPubData.slice(60, 68));
     const debtAmt = BigNumber.from("0x" + rollOverEndPubData.slice(68, 100));
     const l1DebtAmt = toL1Amt(debtAmt, TS_BASE_TOKEN.USDC);
-    const matchedTime = BigNumber.from(
-      "0x" + rollOverEndPubData.slice(100, 108)
-    );
+    const matchedTime = Number("0x" + rollOverEndPubData.slice(100, 108));
     const borrowAmt = BigNumber.from("0x" + rollOverEndPubData.slice(108, 140));
     const l1BorrowAmt = toL1Amt(borrowAmt, TS_BASE_TOKEN.USDC);
 
-    const oldLoanId = await diamondLoan.getLoanId(
+    const oldLoanId = calcLoanId(
       accountId,
       oldMaturityTime,
       debtTokenId,
       collateralTokenId
     );
-    const newLoanId = await diamondLoan.getLoanId(
+    const newLoanId = calcLoanId(
       accountId,
       newMaturityTime,
       debtTokenId,
@@ -504,18 +494,12 @@ describe("Roll borrow", function () {
     const BLOCK_NUMBER = 8; // force cancel roll-borrow in the 8th block
     const block = rollupData.blocks[BLOCK_NUMBER - 1];
     const cancelRollBorrowPubData = block.pendingRollupTxPubData[1];
-    const accountId = BigNumber.from(
-      "0x" + cancelRollBorrowPubData.slice(4, 12)
-    );
-    const debtTokenId = BigNumber.from(
-      "0x" + cancelRollBorrowPubData.slice(12, 16)
-    );
-    const collateralTokenId = BigNumber.from(
+    const accountId = Number("0x" + cancelRollBorrowPubData.slice(4, 12));
+    const debtTokenId = Number("0x" + cancelRollBorrowPubData.slice(12, 16));
+    const collateralTokenId = Number(
       "0x" + cancelRollBorrowPubData.slice(16, 20)
     );
-    const maturityTime = BigNumber.from(
-      "0x" + cancelRollBorrowPubData.slice(20, 28)
-    );
+    const maturityTime = Number("0x" + cancelRollBorrowPubData.slice(20, 28));
 
     const loanId = await diamondLoan.getLoanId(
       accountId,
@@ -596,18 +580,12 @@ describe("Roll borrow", function () {
     const BLOCK_NUMBER = 8; // force cancel roll-borrow in the 8th block
     const block = rollupData.blocks[BLOCK_NUMBER - 1];
     const cancelRollBorrowPubData = block.pendingRollupTxPubData[1];
-    const accountId = BigNumber.from(
-      "0x" + cancelRollBorrowPubData.slice(4, 12)
-    );
-    const debtTokenId = BigNumber.from(
-      "0x" + cancelRollBorrowPubData.slice(12, 16)
-    );
-    const collateralTokenId = BigNumber.from(
+    const accountId = Number("0x" + cancelRollBorrowPubData.slice(4, 12));
+    const debtTokenId = Number("0x" + cancelRollBorrowPubData.slice(12, 16));
+    const collateralTokenId = Number(
       "0x" + cancelRollBorrowPubData.slice(16, 20)
     );
-    const maturityTime = BigNumber.from(
-      "0x" + cancelRollBorrowPubData.slice(20, 28)
-    );
+    const maturityTime = Number("0x" + cancelRollBorrowPubData.slice(20, 28));
 
     const loanId = await diamondLoan.getLoanId(
       accountId,

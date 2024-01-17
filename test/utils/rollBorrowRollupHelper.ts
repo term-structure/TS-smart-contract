@@ -13,7 +13,6 @@ import {
 } from "../../typechain-types";
 import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 import { RollBorrowOrderStruct } from "../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
-import { parseEther } from "ethers/lib/utils";
 import {
   CommitBlockStruct,
   ProofStruct,
@@ -109,7 +108,6 @@ export class User {
 
   async addCollateral(
     diamondLoan: LoanFacet,
-    diamondAcc: AccountFacet,
     tokenAddr: string,
     collateralTokenId: BigNumber,
     l2_amount: BigNumber,
@@ -288,7 +286,6 @@ export const handler = async (
       await user.mint(tokenId, tokenAddr, collateralAmt.toString());
       await user.addCollateral(
         diamondLoan,
-        diamondAcc,
         tokenAddr,
         collateralTokenId,
         collateralAmt,

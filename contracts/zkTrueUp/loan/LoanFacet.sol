@@ -143,7 +143,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         // assert: expireTime > block.timestamp && expireTime + 1 day <= maturityTime
         // solhint-disable-next-line not-rely-on-time
         if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
-        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > loanInfo.maturityTime)
+        uint32 oldMaturityTime = loanInfo.maturityTime;
+        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > oldMaturityTime)
             revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
         if (loanInfo.loan.lockedCollateralAmt > 0) revert LoanIsLocked(loanId);
 
@@ -154,10 +155,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
 
         // check new maturity time is valid (new maturity time > old maturity time)
-        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
-        if (maturityTime <= loanInfo.maturityTime) revert InvalidMaturityTime(maturityTime);
+        (, uint32 newMaturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+        if (newMaturityTime <= oldMaturityTime) revert InvalidMaturityTime(newMaturityTime);
 
-        _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanId, maturityTime);
+        _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanId, oldMaturityTime, newMaturityTime);
     }
 
     /**
@@ -543,14 +544,16 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @param loanInfo The loan info
     /// @param loanOwner The loan owner
     /// @param loanId The loan id
-    /// @param maturityTime The maturity time of the loan
+    /// @param oldMaturityTime The maturity time of the old loan
+    /// @param newMaturityTime The maturity time of the new loan after roll borrow
     function _rollBorrow(
         LoanStorage.Layout storage lsl,
         RollBorrowOrder memory rollBorrowOrder,
         LoanInfo memory loanInfo,
         address loanOwner,
         bytes12 loanId,
-        uint32 maturityTime
+        uint32 oldMaturityTime,
+        uint32 newMaturityTime
     ) internal {
         AssetConfig memory collateralAsset;
         AssetConfig memory debtAsset;
@@ -561,7 +564,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             uint32 maxInterestRate = rollBorrowOrder
                 .maxAnnualPercentageRate
                 // solhint-disable-next-line not-rely-on-time
-                .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
+                .mulDiv(newMaturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
                 .toUint32();
 
             // borrowFee = borrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
@@ -589,7 +592,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             loan = Loan({collateralAmt: rollBorrowOrder.maxCollateralAmt, lockedCollateralAmt: 0, debtAmt: maxDebtAmt});
             loanInfo = LoanInfo({
                 loan: loan,
-                maturityTime: maturityTime,
+                maturityTime: newMaturityTime,
                 accountId: loanInfo.accountId,
                 liquidationFactor: loanInfo.liquidationFactor,
                 collateralAsset: collateralAsset,
@@ -612,8 +615,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             feeRate: borrowFeeRate,
             borrowTokenId: debtTokenId,
             maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals),
-            oldMaturityTime: loanInfo.maturityTime,
-            newMaturityTime: maturityTime,
+            oldMaturityTime: oldMaturityTime,
+            newMaturityTime: newMaturityTime,
             expiredTime: rollBorrowOrder.expiredTime,
             maxPrincipalAndInterestRate: (rollBorrowOrder.maxAnnualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32()
         });
