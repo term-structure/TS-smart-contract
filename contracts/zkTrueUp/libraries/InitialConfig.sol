@@ -49,4 +49,7 @@ library InitialConfig {
 
     /// @notice Initial borrow fee rate of interest rate for borrower
     uint32 internal constant INIT_BORROWER_FEE_RATE = 0.1e8; // 10% of interest rate
+
+    /// @notice Initial roll over fee
+    uint256 internal constant INIT_ROLL_OVER_FEE = 0.01 ether;
 }

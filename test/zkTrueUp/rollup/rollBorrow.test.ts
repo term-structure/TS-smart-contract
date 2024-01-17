@@ -1,0 +1,633 @@
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
+import { ethers } from "hardhat";
+import { BigNumber, Signer, utils } from "ethers";
+import { BaseTokenAddresses, RoundData } from "../../../utils/type";
+import { deployAndInit } from "../../utils/deployAndInit";
+import { whiteListBaseTokens } from "../../utils/whitelistToken";
+import { useFacet } from "../../../utils/useFacet";
+import { FACET_NAMES } from "../../../utils/config";
+import { EMPTY_HASH, TS_BASE_TOKEN, TsTokenId } from "term-structure-sdk";
+import {
+  AccountFacet,
+  LoanFacet,
+  RollupFacet,
+  TokenFacet,
+  TsbFacet,
+  ZkTrueUp,
+} from "../../../typechain-types";
+import {
+  CommitBlockStruct,
+  ProofStruct,
+  StoredBlockStruct,
+} from "../../../typechain-types/contracts/zkTrueUp/rollup/IRollupFacet";
+import initStates from "../../data/rollupData/rollup/initStates.json";
+import { updateRoundData } from "../../utils/updateRoundData";
+import { rollupData } from "../../data/rollupData/rollBorrow/rollup";
+import {
+  Users,
+  handler,
+  preprocessBlocks,
+} from "../../utils/rollBorrowRollupHelper";
+import { toL1Amt } from "../../utils/amountConvertor";
+
+const fixture = async () => {
+  const res = await deployAndInit(FACET_NAMES, false, "RollBorrowVerifier");
+  const diamondToken = (await useFacet(
+    "TokenFacet",
+    res.zkTrueUp.address
+  )) as TokenFacet;
+  await whiteListBaseTokens(
+    res.baseTokenAddresses,
+    res.priceFeeds,
+    diamondToken,
+    res.operator
+  );
+  return res;
+};
+
+describe("Roll borrow", function () {
+  let [user1, user2]: Signer[] = [];
+  let accounts: Users;
+  let storedBlocks: StoredBlockStruct[] = [];
+  let zkTrueUp: ZkTrueUp;
+  let admin: Signer;
+  let operator: Signer;
+  let diamondAcc: AccountFacet;
+  let diamondRollup: RollupFacet;
+  let diamondToken: TokenFacet;
+  let diamondTsb: TsbFacet;
+  let diamondLoan: LoanFacet;
+  let baseTokenAddresses: BaseTokenAddresses;
+  const genesisBlock: StoredBlockStruct = {
+    blockNumber: BigNumber.from("0"),
+    stateRoot: initStates.stateRoot,
+    l1RequestNum: BigNumber.from("0"),
+    pendingRollupTxHash: EMPTY_HASH,
+    commitment: utils.defaultAbiCoder.encode(
+      ["bytes32"],
+      [String("0x").padEnd(66, "0")]
+    ),
+    timestamp: BigNumber.from("0"),
+  };
+
+  beforeEach(async function () {
+    const res = await loadFixture(fixture);
+    [user1, user2] = await ethers.getSigners();
+    accounts = new Users(await ethers.getSigners());
+    rollupData.user_data.forEach((user) =>
+      accounts.addUser(user.tsPubKeyX, user.tsPubKeyY)
+    );
+
+    zkTrueUp = res.zkTrueUp;
+    admin = res.admin;
+    operator = res.operator;
+    const zkTrueUpAddr = zkTrueUp.address;
+    diamondAcc = (await useFacet("AccountFacet", zkTrueUpAddr)) as AccountFacet;
+    diamondRollup = (await useFacet(
+      "RollupFacet",
+      zkTrueUpAddr
+    )) as RollupFacet;
+    diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
+    diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
+    diamondLoan = (await useFacet("LoanFacet", zkTrueUpAddr)) as LoanFacet;
+    baseTokenAddresses = res.baseTokenAddresses;
+    storedBlocks.push(genesisBlock);
+
+    // activate the roll-borrow function
+    await diamondLoan.connect(admin).setActivatedRoller(true);
+
+    // mock token price
+    const wbtcPriceFeed = res.priceFeeds[TsTokenId.WBTC];
+    const wbtcRoundDataJSON: RoundData = {
+      roundId: 1,
+      answer: "3000000000000",
+      startedAt: 0,
+      updatedAt: 0,
+      answeredInRound: 0,
+    };
+    await (await updateRoundData(
+        operator,
+        wbtcPriceFeed,
+        wbtcRoundDataJSON
+      )).answer;
+    const usdcPriceFeed = res.priceFeeds[TsTokenId.USDC];
+    const usdcRoundDataJSON: RoundData = {
+      roundId: 1,
+      answer: "100000000",
+      startedAt: 0,
+      updatedAt: 0,
+      answeredInRound: 0,
+    };
+    await (await updateRoundData(
+        operator,
+        usdcPriceFeed,
+        usdcRoundDataJSON
+      )).answer;
+
+    // test data `rollupData`
+    // |-----------------------------------------------------------------------------------------------------------|
+    // |           | block 1               | block 2               | block 3               | block 4               |
+    // |-----------|-----------------------|-----------------------|-----------------------|-----------------------|
+    // | Request 1 | Register              | AuctionLend           | AuctionStart          | AuctionLend           |
+    // |- - - - - -|-----------------------|-----------------------|-----------------------|-----------------------|
+    // | Request 2 | Deposit               | AuctionBorrow         | AuctionMatch          | RollBorrowOrder       |
+    // |- - - - - -|-----------------------|-----------------------|-----------------------|-----------------------|
+    // | Request 3 | Deposit               | Noop                  | AuctionEnd            | Noop                  |
+    // |- - - - - -|-----------------------|-----------------------|-----------------------|-----------------------|
+    // | Request 4 | CreateTsbToken        | Noop                  | CreateTsbToken        | Noop                  |
+    // |-----------------------------------------------------------------------------------------------------------|
+    // |                                                                                                           |
+    // |-----------------------------------------------------------------------------------------------------------|
+    // |           | block 5               | block 6               | block 7               | block 8               |
+    // |-----------|-----------------------|-----------------------|-----------------------|-----------------------|
+    // | Request 1 | UserCancelRollBorrow  | RollBorrowOrder       | RollBorrowOrder       | RollOverStart         |
+    // |- - - - - -|-----------------------|-----------------------|-----------------------|-----------------------|
+    // | Request 2 | Noop                  | AdminCancelRollBorrow | Noop                  | RollOverMatch         |
+    // |- - - - - -|-----------------------|-----------------------|-----------------------|-----------------------|
+    // | Request 3 | Noop                  | Noop                  | Noop                  | RollOverEnd           |
+    // |- - - - - -|-----------------------|-----------------------|-----------------------|-----------------------|
+    // | Request 4 | Noop                  | Noop                  | Noop                  | ForceCancelRollBorrow |
+    // |-----------|-----------------------------------------------------------------------------------------------|
+  });
+
+  it("Success to rollup l2 user cancel roll borrow order", async function () {
+    // |-----------------------------------|
+    // |           | block 5               |
+    // |-----------|-----------------------|
+    // | Request 1 | UserCancelRollBorrow  |
+    // |- - - - - -|-----------------------|
+    // | Request 2 | Noop                  |
+    // |- - - - - -|-----------------------|
+    // | Request 3 | Noop                  |
+    // |- - - - - -|-----------------------|
+    // | Request 4 | Noop                  |
+    // |-----------|-----------------------|
+
+    // preprocess 4 blocks
+    const NumOfPreProcessBlocks = 4;
+    let latestStoredBlock = await preprocessBlocks(
+      NumOfPreProcessBlocks,
+      rollupData,
+      diamondAcc,
+      diamondRollup,
+      diamondTsb,
+      diamondToken,
+      diamondLoan,
+      operator,
+      accounts,
+      baseTokenAddresses,
+      genesisBlock
+    );
+
+    // user cancel roll-borrow order in the 5th block
+    const BLOCK_NUMBER = 5;
+    const block = rollupData.blocks[BLOCK_NUMBER - 1];
+    const userCancelRollBorrowPubData = block.pendingRollupTxPubData[0];
+    const accountId = BigNumber.from(
+      "0x" + userCancelRollBorrowPubData.slice(4, 12)
+    );
+    const debtTokenId = BigNumber.from(
+      "0x" + userCancelRollBorrowPubData.slice(12, 16)
+    );
+    const collateralTokenId = BigNumber.from(
+      "0x" + userCancelRollBorrowPubData.slice(16, 20)
+    );
+    const maturityTime = BigNumber.from(
+      "0x" + userCancelRollBorrowPubData.slice(20, 28)
+    );
+    const loanId = await diamondLoan.getLoanId(
+      accountId,
+      maturityTime,
+      debtTokenId,
+      collateralTokenId
+    );
+    const beforeLoan = await diamondLoan.getLoan(loanId);
+    const beforeLockedCollateralAmt = beforeLoan.lockedCollateralAmt;
+    // expect locked collateral amount is not zero
+    expect(beforeLockedCollateralAmt).to.not.eq(0);
+
+    await time.increaseTo(Number(block.commitBlock.timestamp));
+    await diamondRollup
+      .connect(operator)
+      .commitBlocks(latestStoredBlock as StoredBlockStruct, [
+        block.commitBlock as CommitBlockStruct,
+      ]);
+    latestStoredBlock = block.storedBlock as StoredBlockStruct;
+
+    await diamondRollup.connect(operator).verifyBlocks([
+      {
+        storedBlock: latestStoredBlock,
+        proof: block.proof as ProofStruct,
+      },
+    ]);
+
+    const executeBlocksTx = await diamondRollup
+      .connect(operator)
+      .executeBlocks([
+        {
+          storedBlock: latestStoredBlock,
+          pendingRollupTxPubData: block.pendingRollupTxPubData,
+        },
+      ]);
+    await executeBlocksTx.wait();
+
+    const afterLoan = await diamondLoan.getLoan(loanId);
+    expect(afterLoan.lockedCollateralAmt).to.eq(0);
+
+    // check event
+    await expect(executeBlocksTx)
+      .to.emit(diamondRollup, "RollBorrowCancel")
+      .withArgs(loanId, beforeLockedCollateralAmt);
+  });
+
+  it("Success to rollup l2 admin cancel roll borrow order", async function () {
+    // |-----------------------------------|
+    // |           | block 6               |
+    // |-----------|-----------------------|
+    // | Request 1 | RollBorrowOrder       |
+    // |- - - - - -|-----------------------|
+    // | Request 2 | AdminCancelRollBorrow |
+    // |- - - - - -|-----------------------|
+    // | Request 3 | Noop                  |
+    // |- - - - - -|-----------------------|
+    // | Request 4 | Noop                  |
+    // |-----------------------------------|
+
+    // preprocess 5 blocks
+    const NumOfPreProcessBlocks = 5;
+    let latestStoredBlock = await preprocessBlocks(
+      NumOfPreProcessBlocks,
+      rollupData,
+      diamondAcc,
+      diamondRollup,
+      diamondTsb,
+      diamondToken,
+      diamondLoan,
+      operator,
+      accounts,
+      baseTokenAddresses,
+      genesisBlock
+    );
+
+    // admin cancel roll-borrow order in the 6th block
+    const BLOCK_NUMBER = 6;
+    const block = rollupData.blocks[BLOCK_NUMBER - 1];
+    const numOfRollBorrowOrderRequest = 0;
+    await handler(
+      diamondTsb,
+      diamondToken,
+      diamondLoan,
+      diamondAcc,
+      operator,
+      block.l1RequestPubData[numOfRollBorrowOrderRequest],
+      block.l1RequestPubData[numOfRollBorrowOrderRequest + 1],
+      accounts,
+      baseTokenAddresses
+    );
+
+    const numOfAdminCancelRollBorrowRequest = 0;
+    const adminCancelRollBorrowPubData =
+      block.pendingRollupTxPubData[numOfAdminCancelRollBorrowRequest];
+    const accountId = BigNumber.from(
+      "0x" + adminCancelRollBorrowPubData.slice(4, 12)
+    );
+    const debtTokenId = BigNumber.from(
+      "0x" + adminCancelRollBorrowPubData.slice(12, 16)
+    );
+    const collateralTokenId = BigNumber.from(
+      "0x" + adminCancelRollBorrowPubData.slice(16, 20)
+    );
+    const maturityTime = BigNumber.from(
+      "0x" + adminCancelRollBorrowPubData.slice(20, 28)
+    );
+    const loanId = await diamondLoan.getLoanId(
+      accountId,
+      maturityTime,
+      debtTokenId,
+      collateralTokenId
+    );
+    const beforeLoan = await diamondLoan.getLoan(loanId);
+    const beforeLockedCollateralAmt = beforeLoan.lockedCollateralAmt;
+    // expect locked collateral amount is not zero
+    expect(beforeLockedCollateralAmt).to.not.eq(0);
+
+    await time.increaseTo(Number(block.commitBlock.timestamp));
+    await diamondRollup
+      .connect(operator)
+      .commitBlocks(latestStoredBlock as StoredBlockStruct, [
+        block.commitBlock as CommitBlockStruct,
+      ]);
+    latestStoredBlock = block.storedBlock as StoredBlockStruct;
+
+    await diamondRollup.connect(operator).verifyBlocks([
+      {
+        storedBlock: latestStoredBlock,
+        proof: block.proof as ProofStruct,
+      },
+    ]);
+
+    const executeBlocksTx = await diamondRollup
+      .connect(operator)
+      .executeBlocks([
+        {
+          storedBlock: latestStoredBlock,
+          pendingRollupTxPubData: block.pendingRollupTxPubData,
+        },
+      ]);
+    await executeBlocksTx.wait();
+
+    const afterLoan = await diamondLoan.getLoan(loanId);
+    expect(afterLoan.lockedCollateralAmt).to.eq(0);
+
+    // check event
+    await expect(executeBlocksTx)
+      .to.emit(diamondRollup, "RollBorrowCancel")
+      .withArgs(loanId, beforeLockedCollateralAmt);
+  });
+
+  it("Success to rollup roll-over-end", async function () {
+    // |-----------------------------------|
+    // |           | block 8               |
+    // |-----------|-----------------------|
+    // | Request 1 | RollOverStart         |
+    // |- - - - - -|-----------------------|
+    // | Request 2 | RollOverMatch         |
+    // |- - - - - -|-----------------------|
+    // | Request 3 | RollOverEnd           |
+    // |- - - - - -|-----------------------|
+    // | Request 4 | ForceCancelRollBorrow |
+    // |-----------------------------------|
+
+    // preprocess 7 blocks
+    const NumOfPreProcessBlocks = 7;
+    let latestStoredBlock = await preprocessBlocks(
+      NumOfPreProcessBlocks,
+      rollupData,
+      diamondAcc,
+      diamondRollup,
+      diamondTsb,
+      diamondToken,
+      diamondLoan,
+      operator,
+      accounts,
+      baseTokenAddresses,
+      genesisBlock
+    );
+
+    // roll-over-end in the 8th block
+    const BLOCK_NUMBER = 8;
+    const block = rollupData.blocks[BLOCK_NUMBER - 1];
+    const rollOverEndPubData = block.pendingRollupTxPubData[0];
+    const accountId = BigNumber.from("0x" + rollOverEndPubData.slice(4, 12));
+    const collateralTokenId = BigNumber.from(
+      "0x" + rollOverEndPubData.slice(12, 16)
+    );
+    const collateralAmt = BigNumber.from(
+      "0x" + rollOverEndPubData.slice(16, 48)
+    );
+    const l1CollateralAmt = toL1Amt(collateralAmt, TS_BASE_TOKEN.WBTC);
+    const debtTokenId = BigNumber.from("0x" + rollOverEndPubData.slice(48, 52));
+    const oldMaturityTime = BigNumber.from(
+      "0x" + rollOverEndPubData.slice(52, 60)
+    );
+    const newMaturityTime = BigNumber.from(
+      "0x" + rollOverEndPubData.slice(60, 68)
+    );
+    const debtAmt = BigNumber.from("0x" + rollOverEndPubData.slice(68, 100));
+    const l1DebtAmt = toL1Amt(debtAmt, TS_BASE_TOKEN.USDC);
+    const matchedTime = BigNumber.from(
+      "0x" + rollOverEndPubData.slice(100, 108)
+    );
+    const borrowAmt = BigNumber.from("0x" + rollOverEndPubData.slice(108, 140));
+    const l1BorrowAmt = toL1Amt(borrowAmt, TS_BASE_TOKEN.USDC);
+
+    const oldLoanId = await diamondLoan.getLoanId(
+      accountId,
+      oldMaturityTime,
+      debtTokenId,
+      collateralTokenId
+    );
+    const newLoanId = await diamondLoan.getLoanId(
+      accountId,
+      newMaturityTime,
+      debtTokenId,
+      collateralTokenId
+    );
+    // state before rollup roll over end
+    const beforeOldLoan = await diamondLoan.getLoan(oldLoanId);
+    const beforeNewLoan = await diamondLoan.getLoan(newLoanId);
+
+    // do L1 request in block 8
+    for (let i = 0; i < block.l1RequestPubData.length; i++) {
+      await handler(
+        diamondTsb,
+        diamondToken,
+        diamondLoan,
+        diamondAcc,
+        operator,
+        block.l1RequestPubData[i],
+        block.l1RequestPubData[i + 1],
+        accounts,
+        baseTokenAddresses
+      );
+    }
+
+    // Mock timestamp to test case timestamp
+    await time.increaseTo(Number(block.commitBlock.timestamp));
+    await diamondRollup
+      .connect(operator)
+      .commitBlocks(latestStoredBlock as StoredBlockStruct, [
+        block.commitBlock as CommitBlockStruct,
+      ]);
+    latestStoredBlock = block.storedBlock as StoredBlockStruct;
+    await diamondRollup.connect(operator).verifyBlocks([
+      {
+        storedBlock: latestStoredBlock,
+        proof: block.proof as ProofStruct,
+      },
+    ]);
+    const executeBlockTx = await diamondRollup.connect(operator).executeBlocks([
+      {
+        storedBlock: latestStoredBlock,
+        pendingRollupTxPubData: block.pendingRollupTxPubData,
+      },
+    ]);
+    await executeBlockTx.wait();
+    const afterOldLoan = await diamondLoan.getLoan(oldLoanId);
+    const afterNewLoan = await diamondLoan.getLoan(newLoanId);
+
+    // check state
+    expect(beforeOldLoan.collateralAmt.sub(afterOldLoan.collateralAmt)).to.eq(
+      l1CollateralAmt
+    );
+    expect(afterNewLoan.collateralAmt.sub(beforeNewLoan.collateralAmt)).to.eq(
+      l1CollateralAmt
+    );
+    expect(afterNewLoan.debtAmt.sub(beforeNewLoan.debtAmt)).to.eq(l1DebtAmt);
+    expect(beforeOldLoan.debtAmt.sub(afterOldLoan.debtAmt)).to.eq(l1BorrowAmt);
+
+    // check event
+    await expect(executeBlockTx)
+      .to.emit(diamondRollup, "RollOver")
+      .withArgs(oldLoanId, newLoanId, l1CollateralAmt, l1BorrowAmt, l1DebtAmt);
+  });
+  it("Success to force cancel roll-borrow order and rollup force cancel roll-borrow", async function () {
+    // |-----------------------------------|
+    // |           | block 8               |
+    // |-----------|-----------------------|
+    // | Request 1 | RollOverStart         |
+    // |- - - - - -|-----------------------|
+    // | Request 2 | RollOverMatch         |
+    // |- - - - - -|-----------------------|
+    // | Request 3 | RollOverEnd           |
+    // |- - - - - -|-----------------------|
+    // | Request 4 | ForceCancelRollBorrow |
+    // |-----------------------------------|
+
+    // preprocess 7 blocks
+    const NumOfPreProcessBlocks = 7;
+    let latestStoredBlock = await preprocessBlocks(
+      NumOfPreProcessBlocks,
+      rollupData,
+      diamondAcc,
+      diamondRollup,
+      diamondTsb,
+      diamondToken,
+      diamondLoan,
+      operator,
+      accounts,
+      baseTokenAddresses,
+      genesisBlock
+    );
+
+    const BLOCK_NUMBER = 8; // force cancel roll-borrow in the 8th block
+    const block = rollupData.blocks[BLOCK_NUMBER - 1];
+    const cancelRollBorrowPubData = block.pendingRollupTxPubData[1];
+    const accountId = BigNumber.from(
+      "0x" + cancelRollBorrowPubData.slice(4, 12)
+    );
+    const debtTokenId = BigNumber.from(
+      "0x" + cancelRollBorrowPubData.slice(12, 16)
+    );
+    const collateralTokenId = BigNumber.from(
+      "0x" + cancelRollBorrowPubData.slice(16, 20)
+    );
+    const maturityTime = BigNumber.from(
+      "0x" + cancelRollBorrowPubData.slice(20, 28)
+    );
+
+    const loanId = await diamondLoan.getLoanId(
+      accountId,
+      maturityTime,
+      debtTokenId,
+      collateralTokenId
+    );
+
+    const user = accounts.getUser(Number(accountId));
+    const forceCancelRollBorrowTx = await diamondLoan
+      .connect(user.signer)
+      .forceCancelRollBorrow(loanId);
+
+    // check event
+    await expect(forceCancelRollBorrowTx)
+      .to.emit(diamondLoan, "RollBorrowOrderForceCancelPlaced")
+      .withArgs(await user.signer.getAddress(), loanId);
+
+    // Mock timestamp to test case timestamp
+    await time.increaseTo(Number(block.commitBlock.timestamp));
+    await diamondRollup
+      .connect(operator)
+      .commitBlocks(latestStoredBlock as StoredBlockStruct, [
+        block.commitBlock as CommitBlockStruct,
+      ]);
+    latestStoredBlock = block.storedBlock as StoredBlockStruct;
+
+    await diamondRollup.connect(operator).verifyBlocks([
+      {
+        storedBlock: latestStoredBlock,
+        proof: block.proof as ProofStruct,
+      },
+    ]);
+
+    const executeBlockTx = await diamondRollup.connect(operator).executeBlocks([
+      {
+        storedBlock: latestStoredBlock,
+        pendingRollupTxPubData: block.pendingRollupTxPubData,
+      },
+    ]);
+    await executeBlockTx.wait();
+
+    const afterLoan = await diamondLoan.getLoan(loanId);
+
+    // check state
+    // expect locked collateral amount is zero after force cancel roll-borrow
+    expect(afterLoan.lockedCollateralAmt).to.eq(0);
+  });
+  it("Fail to force cancel roll-borrow order, (not the loan owner)", async function () {
+    // |-----------------------------------|
+    // |           | block 8               |
+    // |-----------|-----------------------|
+    // | Request 1 | RollOverStart         |
+    // |- - - - - -|-----------------------|
+    // | Request 2 | RollOverMatch         |
+    // |- - - - - -|-----------------------|
+    // | Request 3 | RollOverEnd           |
+    // |- - - - - -|-----------------------|
+    // | Request 4 | ForceCancelRollBorrow |
+    // |-----------------------------------|
+
+    // preprocess 7 blocks
+    const NumOfPreProcessBlocks = 7;
+    await preprocessBlocks(
+      NumOfPreProcessBlocks,
+      rollupData,
+      diamondAcc,
+      diamondRollup,
+      diamondTsb,
+      diamondToken,
+      diamondLoan,
+      operator,
+      accounts,
+      baseTokenAddresses,
+      genesisBlock
+    );
+
+    const BLOCK_NUMBER = 8; // force cancel roll-borrow in the 8th block
+    const block = rollupData.blocks[BLOCK_NUMBER - 1];
+    const cancelRollBorrowPubData = block.pendingRollupTxPubData[1];
+    const accountId = BigNumber.from(
+      "0x" + cancelRollBorrowPubData.slice(4, 12)
+    );
+    const debtTokenId = BigNumber.from(
+      "0x" + cancelRollBorrowPubData.slice(12, 16)
+    );
+    const collateralTokenId = BigNumber.from(
+      "0x" + cancelRollBorrowPubData.slice(16, 20)
+    );
+    const maturityTime = BigNumber.from(
+      "0x" + cancelRollBorrowPubData.slice(20, 28)
+    );
+
+    const loanId = await diamondLoan.getLoanId(
+      accountId,
+      maturityTime,
+      debtTokenId,
+      collateralTokenId
+    );
+
+    const fakeUser = user2;
+    await expect(
+      diamondLoan.connect(fakeUser).forceCancelRollBorrow(loanId)
+    ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
+  });
+  it("Success to set and get roll-over fee", async function () {
+    const newRollOverFee = utils.parseEther("0.05");
+    await expect(diamondLoan.connect(admin).setRollOverFee(newRollOverFee))
+      .to.emit(diamondLoan, "SetRollOverFee")
+      .withArgs(newRollOverFee);
+
+    const rollOverFee = await diamondLoan.getRollOverFee();
+    expect(rollOverFee).to.eq(newRollOverFee);
+  });
+});

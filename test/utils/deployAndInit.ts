@@ -21,7 +21,8 @@ const genesisStateRoot = initStates.stateRoot;
 
 export const deployAndInit = async (
   facetNames?: string[],
-  isMainnetForkTesting?: boolean
+  isMainnetForkTesting?: boolean,
+  verifierContractName?: string
 ) => {
   const [deployer, admin, operator] = await ethers.getSigners();
   const provider = ethers.provider;
@@ -93,7 +94,8 @@ export const deployAndInit = async (
   await poseidonUnit2Contract.deployed();
 
   // deploy verifier
-  const Verifier = await ethers.getContractFactory("Verifier");
+  const verifierName = verifierContractName ?? "Verifier";
+  const Verifier = await ethers.getContractFactory(verifierName);
   const verifier = await Verifier.connect(deployer).deploy();
   await verifier.deployed();
 

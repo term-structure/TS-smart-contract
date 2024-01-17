@@ -112,6 +112,11 @@ interface ILoanFacet {
     /// @param rollBorrowReq The roll borrow request
     event RollBorrowOrderPlaced(address indexed sender, Operations.RollBorrow rollBorrowReq);
 
+    /// @notice Emitted when the borrower force cancel a roll borrow order on L1
+    /// @param sender The address of the sender
+    /// @param loanId The id of the loan
+    event RollBorrowOrderForceCancelPlaced(address indexed sender, bytes12 indexed loanId);
+
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
     /// @param liquidator The address of the liquidator
@@ -142,6 +147,10 @@ interface ILoanFacet {
     /// @notice Emitted when the borrow fee rate is set
     /// @param borrowFeeRate The borrow fee rate
     event SetBorrowFeeRate(uint32 indexed borrowFeeRate);
+
+    /// @notice Emitted when the roll over fee is set
+    /// @param rollOverFee The roll over fee
+    event SetRollOverFee(uint256 indexed rollOverFee);
 
     /// @notice Add collateral to the loan
     /// @param loanId The id of the loan
@@ -208,6 +217,10 @@ interface ILoanFacet {
     /// @param borrowFeeRate The borrow fee rate
     function setBorrowFeeRate(uint32 borrowFeeRate) external;
 
+    /// @notice Set the fee of the roll borrow service
+    /// @param rollOverFee The roll over fee
+    function setRollOverFee(uint256 rollOverFee) external;
+
     /// @notice Return the health factor of the loan
     /// @param loanId The id of the loan
     /// @return healthFactor The health factor of the loan
@@ -242,6 +255,10 @@ interface ILoanFacet {
     /// @notice Return the borrow fee rate
     /// @return borrowFeeRate The borrow fee rate
     function getBorrowFeeRate() external view returns (uint32);
+
+    /// @notice Return the fee of the roll borrow service
+    /// @return rollOverFee The roll over fee
+    function getRollOverFee() external view returns (uint256);
 
     /// @notice Check if the roll function is activated
     /// @return isActivate If the roll function is activated

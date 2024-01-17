@@ -676,6 +676,12 @@ describe("Deploy", () => {
     )) as LoanFacet;
 
     expect(await diamondLoan.getHalfLiquidationThreshold()).to.equal(10000);
+    expect(await diamondLoan.getBorrowFeeRate()).to.equal(
+      utils.parseUnits("0.1", 8)
+    );
+    expect(await diamondLoan.getRollOverFee()).to.equal(
+      utils.parseEther("0.01")
+    );
     const liquidationFactor = await diamondLoan.getLiquidationFactor(false);
     expect(liquidationFactor.liquidationLtvThreshold).to.equal(800);
     expect(liquidationFactor.borrowOrderLtvThreshold).to.equal(750);

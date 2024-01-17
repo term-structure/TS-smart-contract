@@ -14,39 +14,39 @@ import {Bytes} from "./Bytes.sol";
 library Operations {
     /// @notice circuit operation type
     enum OpType {
-        NOOP,
-        REGISTER,
-        DEPOSIT,
-        FORCE_WITHDRAW,
-        TRANSFER,
-        WITHDRAW,
-        AUCTION_LEND,
-        AUCTION_BORROW,
-        AUCTION_START,
-        AUCTION_MATCH,
-        AUCTION_END,
-        SECOND_LIMIT_ORDER,
-        SECOND_LIMIT_START,
-        SECOND_LIMIT_EXCHANGE,
-        SECOND_LIMIT_END,
-        SECOND_MARKET_ORDER,
-        SECOND_MARKET_EXCHANGE,
-        SECOND_MARKET_END,
-        ADMIN_CANCEL_ORDER,
-        USER_CANCEL_ORDER,
-        INCREASE_EPOCH,
-        CREATE_TSB_TOKEN,
-        REDEEM,
-        WITHDRAW_FEE,
-        EVACUATION,
-        SET_ADMIN_TS_ADDR,
-        ROLL_BORROW_ORDER,
-        ROLL_OVER_START,
-        ROLL_OVER_MATCH,
-        ROLL_OVER_END,
-        USER_CANCEL_ROLL_BORROW,
-        ADMIN_CANCEL_ROLL_BORROW,
-        FORCE_CANCEL_ROLL_BORROW
+        NOOP, // 0
+        REGISTER, // 1
+        DEPOSIT, // 2
+        FORCE_WITHDRAW, // 3
+        TRANSFER, // 4
+        WITHDRAW, // 5
+        AUCTION_LEND, // 6
+        AUCTION_BORROW, // 7
+        AUCTION_START, // 8
+        AUCTION_MATCH, // 9
+        AUCTION_END, // 10
+        SECOND_LIMIT_ORDER, // 11
+        SECOND_LIMIT_START, // 12
+        SECOND_LIMIT_EXCHANGE, // 13
+        SECOND_LIMIT_END, // 14
+        SECOND_MARKET_ORDER, // 15
+        SECOND_MARKET_EXCHANGE, // 16
+        SECOND_MARKET_END, // 17
+        ADMIN_CANCEL_ORDER, // 18
+        USER_CANCEL_ORDER, // 19
+        INCREASE_EPOCH, // 20
+        CREATE_TSB_TOKEN, // 21
+        REDEEM, // 22
+        WITHDRAW_FEE, // 23
+        EVACUATION, // 24
+        SET_ADMIN_TS_ADDR, // 25
+        ROLL_BORROW_ORDER, // 26
+        ROLL_OVER_START, // 27
+        ROLL_OVER_MATCH, // 28
+        ROLL_OVER_END, // 29
+        USER_CANCEL_ROLL_BORROW, // 30
+        ADMIN_CANCEL_ROLL_BORROW, // 31
+        FORCE_CANCEL_ROLL_BORROW // 32
         //TODO: check latest op type
     }
 
@@ -104,32 +104,33 @@ library Operations {
     struct RollBorrow {
         uint32 accountId;
         uint16 collateralTokenId;
+        uint128 maxCollateralAmt;
+        uint32 feeRate; // base is 1e8
         uint16 borrowTokenId;
+        uint128 maxBorrowAmt;
+        uint32 oldMaturityTime;
         uint32 newMaturityTime;
         uint32 expiredTime;
-        uint32 feeRate; // base is 1e8
         uint32 maxPrincipalAndInterestRate; // base is 1e8 (maxPIR)
-        uint128 maxCollateralAmt;
-        uint128 maxBorrowAmt;
     }
 
     struct RollOverEnd {
         uint32 accountId;
-        uint32 matchedTime;
         uint16 collateralTokenId;
+        uint128 collateralAmt;
         uint16 debtTokenId;
         uint32 oldMaturityTime;
         uint32 newMaturityTime;
-        uint128 collateralAmt;
-        uint128 borrowAmt;
         uint128 debtAmt;
+        uint32 matchedTime;
+        uint128 borrowAmt;
     }
 
     struct CancelRollBorrow {
         uint32 accountId;
-        uint32 maturityTime;
-        uint16 collateralTokenId;
         uint16 debtTokenId;
+        uint16 collateralTokenId;
+        uint32 maturityTime;
     }
 
     /* ============ Encode public data function ============ */
@@ -157,13 +158,14 @@ library Operations {
                 uint8(OpType.ROLL_BORROW_ORDER),
                 rollBorrow.accountId,
                 rollBorrow.collateralTokenId,
+                rollBorrow.maxCollateralAmt,
+                rollBorrow.feeRate,
                 rollBorrow.borrowTokenId,
+                rollBorrow.maxBorrowAmt,
+                rollBorrow.oldMaturityTime,
                 rollBorrow.newMaturityTime,
                 rollBorrow.expiredTime,
-                rollBorrow.feeRate,
-                rollBorrow.maxPrincipalAndInterestRate,
-                rollBorrow.maxCollateralAmt,
-                rollBorrow.maxBorrowAmt
+                rollBorrow.maxPrincipalAndInterestRate
             );
     }
 
@@ -174,9 +176,9 @@ library Operations {
             abi.encodePacked(
                 uint8(OpType.FORCE_CANCEL_ROLL_BORROW),
                 forceCancelRollBorrow.accountId,
-                forceCancelRollBorrow.maturityTime,
+                forceCancelRollBorrow.debtTokenId,
                 forceCancelRollBorrow.collateralTokenId,
-                forceCancelRollBorrow.debtTokenId
+                forceCancelRollBorrow.maturityTime
             );
     }
 
@@ -297,13 +299,14 @@ library Operations {
         RollBorrow memory rollBorrow;
         (offset, rollBorrow.accountId) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.collateralTokenId) = Bytes.readUInt16(data, offset);
+        (offset, rollBorrow.maxCollateralAmt) = Bytes.readUInt128(data, offset);
+        (offset, rollBorrow.feeRate) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.borrowTokenId) = Bytes.readUInt16(data, offset);
+        (offset, rollBorrow.maxBorrowAmt) = Bytes.readUInt128(data, offset);
+        (offset, rollBorrow.oldMaturityTime) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.newMaturityTime) = Bytes.readUInt32(data, offset);
         (offset, rollBorrow.expiredTime) = Bytes.readUInt32(data, offset);
-        (offset, rollBorrow.feeRate) = Bytes.readUInt32(data, offset);
-        (offset, rollBorrow.maxPrincipalAndInterestRate) = Bytes.readUInt32(data, offset);
-        (offset, rollBorrow.maxCollateralAmt) = Bytes.readUInt128(data, offset);
-        (, rollBorrow.maxBorrowAmt) = Bytes.readUInt128(data, offset);
+        (, rollBorrow.maxPrincipalAndInterestRate) = Bytes.readUInt32(data, offset);
         return rollBorrow;
     }
 
@@ -311,14 +314,14 @@ library Operations {
         uint256 offset = Config.BYTES_OF_OP_TYPE;
         RollOverEnd memory rollOverEnd;
         (offset, rollOverEnd.accountId) = Bytes.readUInt32(data, offset);
-        (offset, rollOverEnd.matchedTime) = Bytes.readUInt32(data, offset);
         (offset, rollOverEnd.collateralTokenId) = Bytes.readUInt16(data, offset);
+        (offset, rollOverEnd.collateralAmt) = Bytes.readUInt128(data, offset);
         (offset, rollOverEnd.debtTokenId) = Bytes.readUInt16(data, offset);
         (offset, rollOverEnd.oldMaturityTime) = Bytes.readUInt32(data, offset);
         (offset, rollOverEnd.newMaturityTime) = Bytes.readUInt32(data, offset);
-        (offset, rollOverEnd.collateralAmt) = Bytes.readUInt128(data, offset);
-        (offset, rollOverEnd.borrowAmt) = Bytes.readUInt128(data, offset);
-        (, rollOverEnd.debtAmt) = Bytes.readUInt128(data, offset);
+        (offset, rollOverEnd.debtAmt) = Bytes.readUInt128(data, offset);
+        (offset, rollOverEnd.matchedTime) = Bytes.readUInt32(data, offset);
+        (, rollOverEnd.borrowAmt) = Bytes.readUInt128(data, offset);
         return rollOverEnd;
     }
 
@@ -326,9 +329,9 @@ library Operations {
         uint256 offset = Config.BYTES_OF_OP_TYPE;
         CancelRollBorrow memory cancelRollBorrow;
         (offset, cancelRollBorrow.accountId) = Bytes.readUInt32(data, offset);
-        (offset, cancelRollBorrow.maturityTime) = Bytes.readUInt32(data, offset);
+        (offset, cancelRollBorrow.debtTokenId) = Bytes.readUInt16(data, offset);
         (offset, cancelRollBorrow.collateralTokenId) = Bytes.readUInt16(data, offset);
-        (, cancelRollBorrow.debtTokenId) = Bytes.readUInt16(data, offset);
+        (, cancelRollBorrow.maturityTime) = Bytes.readUInt32(data, offset);
         return cancelRollBorrow;
     }
 }
