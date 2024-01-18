@@ -717,7 +717,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     }
 
     /// @notice Internal function to roll over (successfully roll a loan to the next maturity time)
-    /// @dev The function will update the original loan and create a new loan
+    /// @dev The function will move the original loan position to the new loan position
     /// @param rollOver The roll over request
     function _rollOver(Operations.RollOverEnd memory rollOver) internal {
         // solhint-disable-next-line not-rely-on-time
@@ -733,6 +733,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         AssetConfig memory asset = tsl.getAssetConfig(rollOver.collateralTokenId);
         Utils.notZeroAddr(address(asset.token));
 
+        // repay old loan position
         bytes12 loanId = LoanLib.calcLoanId(
             rollOver.accountId,
             rollOver.oldMaturityTime,
@@ -746,7 +747,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (collateralAmt > loan.lockedCollateralAmt)
             revert RemovedCollateralAmtGtLockedCollateralAmt(collateralAmt, loan.lockedCollateralAmt);
 
-        // reuse memory of `asset` to save gas
         asset = tsl.getAssetConfig(rollOver.debtTokenId);
         Utils.notZeroAddr(address(asset.token));
 
@@ -756,14 +756,16 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         loan.removeLockedCollateral(collateralAmt);
         lsl.loans[loanId] = loan;
 
-        uint128 newDebtAmt = rollOver.debtAmt.toL1Amt(decimals).toUint128();
-        loan = Loan({collateralAmt: collateralAmt, debtAmt: newDebtAmt, lockedCollateralAmt: 0});
+        // update new loan position
         bytes12 newLoanId = LoanLib.calcLoanId(
             rollOver.accountId,
             rollOver.newMaturityTime,
             rollOver.debtTokenId,
             rollOver.collateralTokenId
         );
+        loan = lsl.getLoan(newLoanId);
+        uint128 newDebtAmt = rollOver.debtAmt.toL1Amt(decimals).toUint128();
+        loan.updateLoan(collateralAmt, newDebtAmt);
         lsl.loans[newLoanId] = loan;
 
         emit RollOver(loanId, newLoanId, collateralAmt, borrowAmt, newDebtAmt);
