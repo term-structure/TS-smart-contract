@@ -29,29 +29,29 @@ const { createCode, generateABI } = circomlibjs.poseidonContract;
 
 export const main = async () => {
   const provider = new ethers.providers.JsonRpcProvider(
-    process.env.STAGING_SEPOLIA_RPC_URL
+    process.env.TESTNET_SEPOLIA_RPC_URL
   );
 
   const deployerPrivKey = getString(
-    process.env.STAGING_SEPOLIA_DEPLOYER_PRIVATE_KEY
+    process.env.TESTNET_SEPOLIA_DEPLOYER_PRIVATE_KEY
   );
   const deployer = new Wallet(deployerPrivKey, provider);
-  const operatorAddr = getString(process.env.STAGING_SEPOLIA_OPERATOR_ADDRESS);
-  const adminAddr = getString(process.env.STAGING_SEPOLIA_ADMIN_ADDRESS);
-  const treasuryAddr = getString(process.env.STAGING_SEPOLIA_TREASURY_ADDRESS);
+  const operatorAddr = getString(process.env.TESTNET_SEPOLIA_OPERATOR_ADDRESS);
+  const adminAddr = getString(process.env.TESTNET_SEPOLIA_ADMIN_ADDRESS);
+  const treasuryAddr = getString(process.env.TESTNET_SEPOLIA_TREASURY_ADDRESS);
   const insuranceAddr = getString(
-    process.env.STAGING_SEPOLIA_INSURANCE_ADDRESS
+    process.env.TESTNET_SEPOLIA_INSURANCE_ADDRESS
   );
-  const vaultAddr = getString(process.env.STAGING_SEPOLIA_VAULT_ADDRESS);
+  const vaultAddr = getString(process.env.TESTNET_SEPOLIA_VAULT_ADDRESS);
   const faucetOwnerAddr = getString(
-    process.env.STAGING_SEPOLIA_FAUCET_OWNER_ADDRESS
+    process.env.TESTNET_SEPOLIA_FAUCET_OWNER_ADDRESS
   );
   const oracleOwnerAddr = getString(
-    process.env.STAGING_SEPOLIA_ORACLE_OWNER_ADDRESS
+    process.env.TESTNET_SEPOLIA_ORACLE_OWNER_ADDRESS
   );
-  const exchangeAddr = getString(process.env.STAGING_SEPOLIA_EXCHANGE_ADDRESS);
+  const exchangeAddr = getString(process.env.TESTNET_SEPOLIA_EXCHANGE_ADDRESS);
   const genesisStateRoot = getString(
-    process.env.STAGING_SEPOLIA_GENESIS_STATE_ROOT
+    process.env.TESTNET_SEPOLIA_GENESIS_STATE_ROOT
   );
 
   let currentDeployerNonce = await deployer.getTransactionCount();
