@@ -216,14 +216,22 @@ export const main = async () => {
   const result: { [key: string]: any } = {};
   result["current_branch"] = getCurrentBranch();
   result["latest_commit"] = getLatestCommit();
-  result["deployer"] = await deployer.getAddress();
   result["genesis_state_root"] = genesisStateRoot;
+  result["deployer"] = await deployer.getAddress();
+  result["operator"] = operatorAddr;
+  result["faucet_owner"] = await deployer.getAddress();
+  result["oracle_owner"] = await deployer.getAddress();
+  result["exchange"] = exchangeAddr;
+  result["admin"] = adminAddr;
+  result["treasury"] = treasuryAddr;
+  result["insurance"] = insuranceAddr;
+  result["vault"] = vaultAddr;
+  result["weth"] = weth.address;
+  result["ts_faucet"] = tsFaucet.address;
   for (const token of BASE_TOKEN_ASSET_CONFIG) {
     result[`${token.symbol}_address`] = baseTokenAddresses[token.tokenId];
     result[`${token.symbol}_price_feed`] = priceFeeds[token.tokenId];
   }
-  result["ts_faucet"] = tsFaucet.address;
-  result["weth"] = weth.address;
   result["poseidon_unit_2"] = poseidonUnit2Contract.address;
   result["verifier"] = verifier.address;
   result["evacu_verifier"] = evacuVerifier.address;
@@ -234,15 +242,26 @@ export const main = async () => {
   result["zk_true_up"] = zkTrueUp.address;
   result["creation_block_number"] = creationTx.blockNumber.toString();
 
+  const currentDate = new Date();
+  const year = currentDate.getFullYear().toString();
+  const month = (currentDate.getMonth() + 1).toString().padStart(2, "0"); // Month is 0-indexed, add 1 to it, pad with zero if needed
+  const day = currentDate.getDate().toString().padStart(2, "0"); // Pad the day with zero if needed
+  const dateString = `${year}${month}${day}`;
+
   const jsonString = JSON.stringify(result, null, 2);
   await createDirectoryIfNotExists("tmp");
-  fs.writeFile("tmp/deploy_devnet.json", jsonString, "utf8", (err: any) => {
-    if (err) {
-      console.error("An error occurred:", err);
-    } else {
-      console.log("JSON saved to tmp/deploy_devnet.json");
+  fs.writeFile(
+    `tmp/deploy_dev_devnet_${dateString}.json`,
+    jsonString,
+    "utf8",
+    (err: any) => {
+      if (err) {
+        console.error("An error occurred:", err);
+      } else {
+        console.log(`JSON saved to tmp/deploy_dev_devnet_${dateString}.json`);
+      }
     }
-  });
+  );
 };
 
 main().catch((error) => {

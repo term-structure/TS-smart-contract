@@ -149,7 +149,7 @@ export const main = async () => {
   await zkTrueUp.deployed();
 
   // deploy diamond init contract
-  const ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
+  const ZkTrueUpInit = await ethers.getContractFactory("SepoliaZkTrueUpInit");
   const zkTrueUpInit = await ZkTrueUpInit.connect(deployer).deploy({
     nonce: currentDeployerNonce++,
     maxFeePerGas: feeData.maxFeePerGas
@@ -340,13 +340,18 @@ export const main = async () => {
   const result: { [key: string]: any } = {};
   result["current_branch"] = getCurrentBranch();
   result["latest_commit"] = getLatestCommit();
+  result["genesis_state_root"] = genesisStateRoot;
   result["deployer"] = await deployer.getAddress();
   result["operator"] = operatorAddr;
   result["faucet_owner"] = faucetOwnerAddr;
   result["oracle_owner"] = oracleOwnerAddr;
+  result["exchange"] = exchangeAddr;
+  result["admin"] = adminAddr;
+  result["treasury"] = treasuryAddr;
+  result["insurance"] = insuranceAddr;
+  result["vault"] = vaultAddr;
   result["weth"] = weth.address;
   result["ts_faucet"] = tsFaucet.address;
-  result["genesis_state_root"] = genesisStateRoot;
   for (const token of BASE_TOKEN_ASSET_CONFIG) {
     result[`${token.symbol}_address`] = baseTokenAddresses[token.tokenId];
     result[`${token.symbol}_price_feed`] = priceFeeds[token.tokenId];
@@ -363,15 +368,22 @@ export const main = async () => {
 
   await createDirectoryIfNotExists("tmp");
   const jsonString = JSON.stringify(result, null, 2);
+  const currentDate = new Date();
+  const year = currentDate.getFullYear().toString();
+  const month = (currentDate.getMonth() + 1).toString().padStart(2, "0"); // Month is 0-indexed, add 1 to it, pad with zero if needed
+  const day = currentDate.getDate().toString().padStart(2, "0"); // Pad the day with zero if needed
+  const dateString = `${year}${month}${day}`;
   fs.writeFile(
-    "tmp/deploy_staging_sepolia.json",
+    `tmp/deploy_staging_sepolia_${dateString}.json`,
     jsonString,
     "utf8",
     (err: any) => {
       if (err) {
         console.error("An error occurred:", err);
       } else {
-        console.log("JSON saved to tmp/deploy_staging_sepolia.json");
+        console.log(
+          `JSON saved to tmp/deploy_staging_sepolia_${dateString}.json`
+        );
       }
     }
   );
