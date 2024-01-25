@@ -86,7 +86,7 @@ const config: HardhatUserConfig = {
         ? { url: getString(process.env.MAINNET_RPC_URL), blockNumber: 17426510 }
         : undefined,
     },
-    // dev: {
+    // devnet: {
     //   url: getString(process.env.DEVNET_RPC_URL) || "",
     //   accounts: [getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY)],
     // },
