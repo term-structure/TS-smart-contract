@@ -18,7 +18,5 @@ interface ITsFaucet {
 
     function exchange() external view returns (address);
 
-    function setZkTrueUp(address _zkTrueUpAddr) external;
-
-    function setExchange(address _exchangeAddr) external;
+    function transferEnabled() external view returns (bool);
 }

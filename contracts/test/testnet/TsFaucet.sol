@@ -30,6 +30,7 @@ contract TsFaucet is ITsFaucet, Ownable {
     TokenMetadata internal _usdc = TokenMetadata("USD Coin", "USDC", 6);
     TokenMetadata internal _dai = TokenMetadata("Dai Stablecoin", "DAI", 18);
 
+    bool public transferEnabled;
     bool internal _isFreeMint;
     address[TS_ERC20_NUMBERS] public tsERC20s;
     mapping(address => bool) public isMinted;
@@ -50,6 +51,10 @@ contract TsFaucet is ITsFaucet, Ownable {
 
     function setExchange(address _exchangeAddr) external onlyOwner {
         exchange = _exchangeAddr;
+    }
+
+    function setTransferEnabled(bool _transferEnabled) external onlyOwner {
+        transferEnabled = _transferEnabled;
     }
 
     function _createTsERC20(TokenMetadata memory tokenMetadata) internal returns (address) {
