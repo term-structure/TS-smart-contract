@@ -107,8 +107,7 @@ library Config {
     bytes32 internal constant EXECUTER_ROLE = keccak256("EXECUTER_ROLE");
 
     /// @notice Aave V3 pool address
-    //! The current address is for sepolia testnet, need to update to mainnet address
-    address internal constant AAVE_V3_POOL_ADDRESS = 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951;
+    address internal constant AAVE_V3_POOL_ADDRESS = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
 
     /// @notice Aave V3 referral code
     uint16 internal constant AAVE_V3_REFERRAL_CODE = 0;
