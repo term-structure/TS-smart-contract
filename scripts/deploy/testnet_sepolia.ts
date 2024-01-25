@@ -340,13 +340,18 @@ export const main = async () => {
   const result: { [key: string]: any } = {};
   result["current_branch"] = getCurrentBranch();
   result["latest_commit"] = getLatestCommit();
+  result["genesis_state_root"] = genesisStateRoot;
   result["deployer"] = await deployer.getAddress();
   result["operator"] = operatorAddr;
   result["faucet_owner"] = faucetOwnerAddr;
   result["oracle_owner"] = oracleOwnerAddr;
+  result["exchange"] = exchangeAddr;
+  result["admin"] = adminAddr;
+  result["treasury"] = treasuryAddr;
+  result["insurance"] = insuranceAddr;
+  result["vault"] = vaultAddr;
   result["weth"] = weth.address;
   result["ts_faucet"] = tsFaucet.address;
-  result["genesis_state_root"] = genesisStateRoot;
   for (const token of BASE_TOKEN_ASSET_CONFIG) {
     result[`${token.symbol}_address`] = baseTokenAddresses[token.tokenId];
     result[`${token.symbol}_price_feed`] = priceFeeds[token.tokenId];
