@@ -90,12 +90,14 @@ const config: HardhatUserConfig = {
     //   url: getString(process.env.DEVNET_RPC_URL) || "",
     //   accounts: [getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY)],
     // },
-    // goerli: {
-    //   url: getString(process.env.GOERLI_RPC_URL),
+    // sepolia: {
+    //   url: getString(process.env.STAGING_SEPOLIA_RPC_URL),
     //   accounts: [
-    //     getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY),
-    //     getString(process.env.GOERLI_FAUCET_OPERATOR_PRIVATE_KEY),
-    //     getString(process.env.GOERLI_ORACLE_OPERATOR_PRIVATE_KEY),
+    //     getString(process.env.STAGING_SEPOLIA_DEPLOYER_PRIVATE_KEY),
+    //     getString(process.env.STAGING_SEPOLIA_FAUCET_OPERATOR_PRIVATE_KEY),
+    //     getString(process.env.TESTNET_SEPOLIA_FAUCET_OPERATOR_PRIVATE_KEY),
+    //     getString(process.env.STAGING_SEPOLIA_ORACLE_OPERATOR_PRIVATE_KEY),
+    //     getString(process.env.TESTNET_SEPOLIA_ORACLE_OPERATOR_PRIVATE_KEY),
     //   ],
     // },
   },

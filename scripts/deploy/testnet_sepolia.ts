@@ -369,7 +369,7 @@ export const main = async () => {
   const day = currentDate.getDate().toString().padStart(2, "0"); // Pad the day with zero if needed
   const dateString = `${year}${month}${day}`;
   fs.writeFile(
-    `tmp/deploy_staging_sepolia_${dateString}.json`,
+    `tmp/deploy_testnet_sepolia_${dateString}.json`,
     jsonString,
     "utf8",
     (err: any) => {
@@ -377,7 +377,7 @@ export const main = async () => {
         console.error("An error occurred:", err);
       } else {
         console.log(
-          `JSON saved to tmp/deploy_staging_sepolia_${dateString}.json`
+          `JSON saved to tmp/deploy_testnet_sepolia_${dateString}.json`
         );
       }
     }

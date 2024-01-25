@@ -234,15 +234,26 @@ export const main = async () => {
   result["zk_true_up"] = zkTrueUp.address;
   result["creation_block_number"] = creationTx.blockNumber.toString();
 
+  const currentDate = new Date();
+  const year = currentDate.getFullYear().toString();
+  const month = (currentDate.getMonth() + 1).toString().padStart(2, "0"); // Month is 0-indexed, add 1 to it, pad with zero if needed
+  const day = currentDate.getDate().toString().padStart(2, "0"); // Pad the day with zero if needed
+  const dateString = `${year}${month}${day}`;
+
   const jsonString = JSON.stringify(result, null, 2);
   await createDirectoryIfNotExists("tmp");
-  fs.writeFile("tmp/deploy_devnet.json", jsonString, "utf8", (err: any) => {
-    if (err) {
-      console.error("An error occurred:", err);
-    } else {
-      console.log("JSON saved to tmp/deploy_devnet.json");
+  fs.writeFile(
+    `tmp/deploy_dev_devnet_${dateString}.json`,
+    jsonString,
+    "utf8",
+    (err: any) => {
+      if (err) {
+        console.error("An error occurred:", err);
+      } else {
+        console.log(`JSON saved to tmp/deploy_dev_devnet_${dateString}.json`);
+      }
     }
-  });
+  );
 };
 
 main().catch((error) => {
