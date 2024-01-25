@@ -149,7 +149,7 @@ export const main = async () => {
   await zkTrueUp.deployed();
 
   // deploy diamond init contract
-  const ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
+  const ZkTrueUpInit = await ethers.getContractFactory("SepoliaZkTrueUpInit");
   const zkTrueUpInit = await ZkTrueUpInit.connect(deployer).deploy({
     nonce: currentDeployerNonce++,
     maxFeePerGas: feeData.maxFeePerGas
