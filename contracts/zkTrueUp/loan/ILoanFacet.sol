@@ -185,7 +185,7 @@ interface ILoanFacet {
     /// @notice Cancel the roll borrow order
     /// @notice User can force cancel their roll borrow order on L1
     ///         to avoid sequencer ignore his cancel request in L2
-    /// @param loanId The id of the loan
+    /// @param loanId The id of the loan to be cancelled
     function forceCancelRollBorrow(bytes12 loanId) external;
 
     /// @notice Liquidate the loan

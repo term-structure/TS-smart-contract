@@ -179,7 +179,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             accountId: accountId,
             debtTokenId: debtTokenId,
             collateralTokenId: collateralTokenId,
-            maturityTime: maturityTime
+            maturityTime: maturityTime // the maturity time of the original loan to be rolled over
         });
 
         LoanLib.addForceCancelRollBorrowReq(RollupStorage.layout(), msg.sender, forceCancelRollBorrowReq);
