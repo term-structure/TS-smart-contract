@@ -747,10 +747,10 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (collateralAmt > loan.lockedCollateralAmt)
             revert RemovedCollateralAmtGtLockedCollateralAmt(collateralAmt, loan.lockedCollateralAmt);
 
-        asset = tsl.getAssetConfig(rollOver.debtTokenId);
+        asset = tsl.getAssetConfig(rollOver.debtTokenId); // re-assign asset to debt token
         Utils.notZeroAddr(address(asset.token));
 
-        decimals = asset.decimals;
+        decimals = asset.decimals; // re-assign decimals to debt token decimals
         uint128 borrowAmt = rollOver.borrowAmt.toL1Amt(decimals).toUint128();
         loan.repay(collateralAmt, borrowAmt);
         loan.removeLockedCollateral(collateralAmt);
