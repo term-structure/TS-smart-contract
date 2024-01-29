@@ -693,7 +693,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
 
     /// @notice Internal function to cancel roll borrow
     /// @dev The function will remove all locked collateral
-    /// @dev Including the 3 request types:
+    /// @dev The function will be triggered by these 3 request types:
     ///      1. `USER_CANCEL_ROLL_BORROW`
     ///      2. `ADMIN_CANCEL_ROLL_BORROW`
     ///      3. `FORCE_CANCEL_ROLL_BORROW`

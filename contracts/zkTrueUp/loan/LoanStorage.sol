@@ -81,10 +81,10 @@ library LoanStorage {
         ///         i.e. 0.1e8 means 10% of the interest
         /// @dev    The fee rate is adjustable, it will be the same as borrow order fee rate in L2
         uint32 borrowFeeRate;
-        /// @notice The fee for roll over service, unit is wei
+        /// @notice The fee for roll over service
         ///         charged by the protocol for rollup gas cost of roll-borrow request
-        ///         and avoid user send many roll over request to sybil attack
-        ///         i.e. 0.01e18 means 0.01 ether
+        ///         and avoid user send many roll over request to spam the rollup
+        ///         unit is wei （i.e. 0.01e18 means 0.01 ether）
         uint256 rollOverFee;
         /// @notice LTV threshold for loans
         LiquidationFactor liquidationFactor;
