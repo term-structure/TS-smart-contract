@@ -255,7 +255,7 @@ describe("Roll borrow", function () {
     const BLOCK_NUMBER = 6;
     const block = rollupData.blocks[BLOCK_NUMBER - 1];
     const rollBorrowOrderRequestIndex = 0;
-    // do `RollBorrow` behavior in L1 fist
+    // do `RollBorrow` behavior in L1 first
     await handler(
       diamondTsb,
       diamondToken,
@@ -363,7 +363,7 @@ describe("Roll borrow", function () {
     const beforeOldLoan = await diamondLoan.getLoan(oldLoanId);
     const beforeNewLoan = await diamondLoan.getLoan(newLoanId);
 
-    // do `ForceCancelRollBorrow` behavior in L1 fist
+    // do `ForceCancelRollBorrow` behavior in L1 first
     for (let i = 0; i < block.l1RequestPubData.length; i++) {
       await handler(
         diamondTsb,
