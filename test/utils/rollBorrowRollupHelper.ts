@@ -290,15 +290,6 @@ export const handler = async (
       let tokenId = collateralTokenId.toNumber();
       let tokenAddr = baseTokenAddresses[tokenId];
       await user.mint(tokenId, tokenAddr, collateralAmt);
-      await user.addCollateral(
-        diamondAcc,
-        diamondLoan,
-        tokenAddr,
-        collateralTokenId,
-        collateralAmt,
-        borrowTokenId,
-        oldMaturityTime
-      );
       await user.rollBorrow(
         diamondAcc,
         diamondLoan,
