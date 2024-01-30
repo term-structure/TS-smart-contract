@@ -25,9 +25,11 @@ import initStates from "../../data/rollupData/rollup/initStates.json";
 import { updateRoundData } from "../../utils/updateRoundData";
 import { rollupData } from "../../data/rollupData/rollBorrow/rollup";
 import {
+  BlockData,
   Users,
   handler,
   preprocessBlocks,
+  rollupOneBlock,
 } from "../../utils/rollBorrowRollupHelper";
 import { toL1Amt } from "../../utils/amountConvertor";
 import { calcLoanId } from "../../utils/loanHelper";
@@ -204,36 +206,18 @@ describe("Roll borrow", function () {
     // expect locked collateral amount is not zero
     expect(beforeLockedCollateralAmt).to.not.eq(0);
 
-    await time.increaseTo(Number(block.commitBlock.timestamp));
-    await diamondRollup
-      .connect(operator)
-      .commitBlocks(latestStoredBlock as StoredBlockStruct, [
-        block.commitBlock as CommitBlockStruct,
-      ]);
-    latestStoredBlock = block.storedBlock as StoredBlockStruct;
-
-    await diamondRollup.connect(operator).verifyBlocks([
-      {
-        storedBlock: latestStoredBlock,
-        proof: block.proof as ProofStruct,
-      },
-    ]);
-
-    const executeBlocksTx = await diamondRollup
-      .connect(operator)
-      .executeBlocks([
-        {
-          storedBlock: latestStoredBlock,
-          pendingRollupTxPubData: block.pendingRollupTxPubData,
-        },
-      ]);
-    await executeBlocksTx.wait();
+    const { executeBlockTx } = await rollupOneBlock(
+      diamondRollup,
+      operator,
+      block as BlockData,
+      latestStoredBlock
+    );
 
     const afterLoan = await diamondLoan.getLoan(loanId);
     expect(afterLoan.lockedCollateralAmt).to.eq(0);
 
     // check event
-    await expect(executeBlocksTx)
+    await expect(executeBlockTx)
       .to.emit(diamondRollup, "RollBorrowCancel")
       .withArgs(loanId, beforeLockedCollateralAmt);
   });
@@ -271,6 +255,7 @@ describe("Roll borrow", function () {
     const BLOCK_NUMBER = 6;
     const block = rollupData.blocks[BLOCK_NUMBER - 1];
     const rollBorrowOrderRequestIndex = 0;
+    // do `RollBorrow` behavior in L1 fist
     await handler(
       diamondTsb,
       diamondToken,
@@ -299,36 +284,18 @@ describe("Roll borrow", function () {
     // expect locked collateral amount is not zero
     expect(beforeLockedCollateralAmt).to.not.eq(0);
 
-    await time.increaseTo(Number(block.commitBlock.timestamp));
-    await diamondRollup
-      .connect(operator)
-      .commitBlocks(latestStoredBlock as StoredBlockStruct, [
-        block.commitBlock as CommitBlockStruct,
-      ]);
-    latestStoredBlock = block.storedBlock as StoredBlockStruct;
-
-    await diamondRollup.connect(operator).verifyBlocks([
-      {
-        storedBlock: latestStoredBlock,
-        proof: block.proof as ProofStruct,
-      },
-    ]);
-
-    const executeBlocksTx = await diamondRollup
-      .connect(operator)
-      .executeBlocks([
-        {
-          storedBlock: latestStoredBlock,
-          pendingRollupTxPubData: block.pendingRollupTxPubData,
-        },
-      ]);
-    await executeBlocksTx.wait();
+    const { executeBlockTx } = await rollupOneBlock(
+      diamondRollup,
+      operator,
+      block as BlockData,
+      latestStoredBlock
+    );
 
     const afterLoan = await diamondLoan.getLoan(loanId);
     expect(afterLoan.lockedCollateralAmt).to.eq(0);
 
     // check event
-    await expect(executeBlocksTx)
+    await expect(executeBlockTx)
       .to.emit(diamondRollup, "RollBorrowCancel")
       .withArgs(loanId, beforeLockedCollateralAmt);
   });
@@ -396,7 +363,7 @@ describe("Roll borrow", function () {
     const beforeOldLoan = await diamondLoan.getLoan(oldLoanId);
     const beforeNewLoan = await diamondLoan.getLoan(newLoanId);
 
-    // do L1 request in block 8
+    // do `ForceCancelRollBorrow` behavior in L1 fist
     for (let i = 0; i < block.l1RequestPubData.length; i++) {
       await handler(
         diamondTsb,
@@ -411,27 +378,13 @@ describe("Roll borrow", function () {
       );
     }
 
-    // Mock timestamp to test case timestamp
-    await time.increaseTo(Number(block.commitBlock.timestamp));
-    await diamondRollup
-      .connect(operator)
-      .commitBlocks(latestStoredBlock as StoredBlockStruct, [
-        block.commitBlock as CommitBlockStruct,
-      ]);
-    latestStoredBlock = block.storedBlock as StoredBlockStruct;
-    await diamondRollup.connect(operator).verifyBlocks([
-      {
-        storedBlock: latestStoredBlock,
-        proof: block.proof as ProofStruct,
-      },
-    ]);
-    const executeBlockTx = await diamondRollup.connect(operator).executeBlocks([
-      {
-        storedBlock: latestStoredBlock,
-        pendingRollupTxPubData: block.pendingRollupTxPubData,
-      },
-    ]);
-    await executeBlockTx.wait();
+    const { executeBlockTx } = await rollupOneBlock(
+      diamondRollup,
+      operator,
+      block as BlockData,
+      latestStoredBlock
+    );
+
     const afterOldLoan = await diamondLoan.getLoan(oldLoanId);
     const afterNewLoan = await diamondLoan.getLoan(newLoanId);
 
@@ -502,29 +455,12 @@ describe("Roll borrow", function () {
       .to.emit(diamondLoan, "RollBorrowOrderForceCancelPlaced")
       .withArgs(await user.signer.getAddress(), loanId);
 
-    // Mock timestamp to test case timestamp
-    await time.increaseTo(Number(block.commitBlock.timestamp));
-    await diamondRollup
-      .connect(operator)
-      .commitBlocks(latestStoredBlock as StoredBlockStruct, [
-        block.commitBlock as CommitBlockStruct,
-      ]);
-    latestStoredBlock = block.storedBlock as StoredBlockStruct;
-
-    await diamondRollup.connect(operator).verifyBlocks([
-      {
-        storedBlock: latestStoredBlock,
-        proof: block.proof as ProofStruct,
-      },
-    ]);
-
-    const executeBlockTx = await diamondRollup.connect(operator).executeBlocks([
-      {
-        storedBlock: latestStoredBlock,
-        pendingRollupTxPubData: block.pendingRollupTxPubData,
-      },
-    ]);
-    await executeBlockTx.wait();
+    await rollupOneBlock(
+      diamondRollup,
+      operator,
+      block as BlockData,
+      latestStoredBlock
+    );
 
     const afterLoan = await diamondLoan.getLoan(loanId);
 

@@ -343,6 +343,7 @@ export const preprocessBlocks = async (
   for (let j = 0; j < blockNumber; j++) {
     const block = rollupData.blocks[j];
     for (let i = 0; i < block.l1RequestPubData.length; ) {
+      // do l1 behavior before rollup
       const numOfL1RequestToBeProcessed = await handler(
         diamondTsb,
         diamondToken,
@@ -356,30 +357,59 @@ export const preprocessBlocks = async (
       );
       i += numOfL1RequestToBeProcessed;
     }
-
-    // Mock timestamp to test case timestamp
-    await time.increaseTo(Number(block.commitBlock.timestamp));
-
-    await diamondRollup
-      .connect(operator)
-      .commitBlocks(latestStoredBlock as StoredBlockStruct, [
-        block.commitBlock as CommitBlockStruct,
-      ]);
-    latestStoredBlock = block.storedBlock as StoredBlockStruct;
-
-    await diamondRollup.connect(operator).verifyBlocks([
-      {
-        storedBlock: latestStoredBlock,
-        proof: block.proof as ProofStruct,
-      },
-    ]);
-
-    await diamondRollup.connect(operator).executeBlocks([
-      {
-        storedBlock: latestStoredBlock,
-        pendingRollupTxPubData: block.pendingRollupTxPubData,
-      },
-    ]);
+    const { newLatestStoredBlock } = await rollupOneBlock(
+      diamondRollup,
+      operator,
+      block,
+      latestStoredBlock
+    );
+    latestStoredBlock = newLatestStoredBlock;
   }
   return latestStoredBlock;
+};
+
+export const rollupOneBlock = async (
+  diamondRollup: RollupFacet,
+  operator: Signer,
+  block: BlockData,
+  latestStoredBlock: StoredBlockStruct
+) => {
+  // Mock timestamp to test case timestamp
+  await time.increaseTo(Number(block.commitBlock.timestamp));
+
+  // Commit block
+  const commitBlockTx = await diamondRollup
+    .connect(operator)
+    .commitBlocks(latestStoredBlock, [block.commitBlock]);
+  const newLatestStoredBlock = block.storedBlock;
+
+  await commitBlockTx.wait();
+
+  // Verify block
+  const verifyBlockTx = await diamondRollup.connect(operator).verifyBlocks([
+    {
+      storedBlock: newLatestStoredBlock,
+      proof: block.proof,
+    },
+  ]);
+  await verifyBlockTx.wait();
+
+  // Execute block
+  const executeBlockTx = await diamondRollup.connect(operator).executeBlocks([
+    {
+      storedBlock: newLatestStoredBlock,
+      pendingRollupTxPubData: block.pendingRollupTxPubData,
+    },
+  ]);
+  await executeBlockTx.wait();
+
+  return { commitBlockTx, verifyBlockTx, executeBlockTx, newLatestStoredBlock };
+};
+
+export type BlockData = {
+  commitBlock: CommitBlockStruct;
+  storedBlock: StoredBlockStruct;
+  pendingRollupTxPubData: string[];
+  l1RequestPubData: string[];
+  proof: ProofStruct;
 };
