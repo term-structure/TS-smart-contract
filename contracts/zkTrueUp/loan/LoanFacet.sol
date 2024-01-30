@@ -623,7 +623,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             oldMaturityTime: oldMaturityTime,
             newMaturityTime: newMaturityTime,
             expiredTime: rollBorrowOrder.expiredTime,
-            maxPrincipalAndInterestRate: (rollBorrowOrder.maxAnnualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32()
+            maxPrincipalAndInterestRate: (rollBorrowOrder.maxAnnualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32() // convert APR to PIR (e.g. 5% APR => 105% PIR)
         });
 
         LoanLib.addRollBorrowReq(RollupStorage.layout(), loanOwner, rollBorrowReq);

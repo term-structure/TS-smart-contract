@@ -182,7 +182,7 @@ export class User {
     const rollBorrowOrder: RollBorrowOrderStruct = {
       loanId,
       expiredTime,
-      maxAnnualPercentageRate: pIR.sub(100000000),
+      maxAnnualPercentageRate: pIR.sub(100000000), // convert PIR to APR (i.e. 105% PIR -> 5% APR)
       maxCollateralAmt,
       maxBorrowAmt,
       tsbTokenAddr,
