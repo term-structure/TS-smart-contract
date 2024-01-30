@@ -18,18 +18,30 @@ import {
   ProofStruct,
   StoredBlockStruct,
 } from "../../typechain-types/contracts/test/RollupMock";
+import { calcLoanId } from "./loanHelper";
+import {
+  resolveCancelRollBorrowPubData,
+  resolveCreateTsbTokenPubData,
+  resolveDepositPubData,
+  resolveRegisterPubData,
+  resolveRollBorrowOrderPubData,
+} from "./publicDataHelper";
 
-export const getDecimals = (tokenId: number) => {
+export const getDecimals = (tokenId: number): number => {
   let tokenDecimals;
   Object.values(TS_BASE_TOKEN).forEach((token) => {
     if (tokenId.toString() == token.tokenId.toString()) {
       tokenDecimals = token.decimals;
     }
   });
-  if (!tokenDecimals) {
-    throw new Error("invalid tokenId");
-  }
+  if (!tokenDecimals) throw new Error("Token not found");
   return tokenDecimals;
+};
+
+export const toL1Amt = (l2Amt: BigNumber, l1Dec: number) => {
+  return BigNumber.from(l2Amt)
+    .mul(BigNumber.from(10).pow(l1Dec))
+    .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
 };
 
 export class User {
@@ -39,35 +51,37 @@ export class User {
     public tsPubKeyX: string,
     public tsPubKeyY: string
   ) {}
-  async mint(tokenId: number, tokenAddr: string, l2_amount: string) {
+  async mint(tokenId: number, tokenAddr: string, l2_amount: BigNumber) {
     const tokenDecimals = getDecimals(tokenId);
 
-    const amount = BigNumber.from(l2_amount)
-      .mul(BigNumber.from(10).pow(tokenDecimals))
-      .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+    const amount = toL1Amt(l2_amount, tokenDecimals);
 
-    if (tokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString())
+    if (tokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString()) {
       await (await ethers.getContractAt("ERC20Mock", tokenAddr))
         .connect(this.signer)
         .mint(await this.signer.getAddress(), amount);
+    } else {
+      // do nothing, ETH is already in the account
+    }
   }
   async register(
     diamondAcc: AccountFacet,
     tokenId: number,
     tokenAddr: string,
-    l2_amount: string
+    l2_amount: BigNumber
   ) {
     if (this.registered) throw new Error("User already registered");
 
     const tokenDecimals = getDecimals(tokenId);
-    const amount = BigNumber.from(l2_amount)
-      .mul(BigNumber.from(10).pow(tokenDecimals))
-      .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+    const amount = toL1Amt(l2_amount, tokenDecimals);
 
-    if (tokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString())
+    if (tokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString()) {
       await (await ethers.getContractAt("ERC20Mock", tokenAddr))
         .connect(this.signer)
         .approve(diamondAcc.address, amount);
+    } else {
+      // do nothing, ETH doesn't need to be approved
+    }
 
     await diamondAcc
       .connect(this.signer)
@@ -83,14 +97,12 @@ export class User {
     diamondAcc: AccountFacet,
     tokenId: number,
     tokenAddr: string,
-    l2_amount: string
+    l2_amount: BigNumber
   ) {
     if (!this.registered) throw new Error("User not registered");
 
     const tokenDecimals = getDecimals(tokenId);
-    const amount = BigNumber.from(l2_amount)
-      .mul(BigNumber.from(10).pow(tokenDecimals))
-      .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+    const amount = toL1Amt(l2_amount, tokenDecimals);
 
     if (tokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString())
       await (await ethers.getContractAt("ERC20Mock", tokenAddr))
@@ -107,6 +119,7 @@ export class User {
   }
 
   async addCollateral(
+    diamondAcc: AccountFacet,
     diamondLoan: LoanFacet,
     tokenAddr: string,
     collateralTokenId: BigNumber,
@@ -116,20 +129,18 @@ export class User {
   ) {
     if (!this.registered) throw new Error("User not registered");
 
-    const loanId =
-      "0x" +
-      BigNumber.from(collateralTokenId)
-        .add(BigNumber.from(borrowTokenId).mul(BigNumber.from(2).pow(16)))
-        .add(BigNumber.from(oldMaturityTime).mul(BigNumber.from(2).pow(32)))
-        .add(BigNumber.from(1).mul(BigNumber.from(2).pow(64)))
-        .toHexString()
-        .slice(2)
-        .padStart(24, "0");
+    const accountId = await diamondAcc.getAccountId(
+      await this.signer.getAddress()
+    );
+    const loanId = calcLoanId(
+      accountId,
+      Number(oldMaturityTime),
+      Number(borrowTokenId),
+      Number(collateralTokenId)
+    );
 
     const collateralTokenDecimals = getDecimals(collateralTokenId.toNumber());
-    const amount = l2_amount
-      .mul(BigNumber.from(10).pow(collateralTokenDecimals))
-      .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+    const amount = toL1Amt(l2_amount, collateralTokenDecimals);
 
     if (collateralTokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString())
       await (await ethers.getContractAt("ERC20Mock", tokenAddr))
@@ -139,6 +150,7 @@ export class User {
   }
 
   async rollBorrow(
+    diamondAcc: AccountFacet,
     diamondLoan: LoanFacet,
     tsbTokenAddr: string,
     collateralTokenId: BigNumber,
@@ -151,25 +163,21 @@ export class User {
   ) {
     if (!this.registered) throw new Error("User not registered");
 
-    const loanId =
-      "0x" +
-      BigNumber.from(collateralTokenId)
-        .add(BigNumber.from(borrowTokenId).mul(BigNumber.from(2).pow(16)))
-        .add(BigNumber.from(oldMaturityTime).mul(BigNumber.from(2).pow(32)))
-        .add(BigNumber.from(1).mul(BigNumber.from(2).pow(64)))
-        .toHexString()
-        .slice(2)
-        .padStart(24, "0");
+    const accountId = await diamondAcc.getAccountId(
+      await this.signer.getAddress()
+    );
+    const loanId = calcLoanId(
+      accountId,
+      Number(oldMaturityTime),
+      Number(borrowTokenId),
+      Number(collateralTokenId)
+    );
 
     const borrowTokenDecimals = getDecimals(borrowTokenId.toNumber());
-    const maxBorrowAmt = borrowAmt
-      .mul(BigNumber.from(10).pow(borrowTokenDecimals))
-      .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+    const maxBorrowAmt = toL1Amt(borrowAmt, borrowTokenDecimals);
 
     const collateralTokenDecimals = getDecimals(collateralTokenId.toNumber());
-    const maxCollateralAmt = collateralAmt
-      .mul(BigNumber.from(10).pow(collateralTokenDecimals))
-      .div(BigNumber.from(10).pow(TS_SYSTEM_DECIMALS));
+    const maxCollateralAmt = toL1Amt(collateralAmt, collateralTokenDecimals);
 
     const rollBorrowOrder: RollBorrowOrderStruct = {
       loanId,
@@ -196,6 +204,7 @@ export class Users {
     );
   }
   getUser(index: number) {
+    if (index == 0) throw new Error("User index starts from 1");
     return this.users[index - 1];
   }
 }
@@ -216,30 +225,26 @@ export const handler = async (
 
   switch (opType) {
     case "01": {
-      let accountId = Number("0x" + req.slice(4, 12));
-      let user = accounts.getUser(accountId);
-      let tokenId = Number("0x" + nextReq.slice(12, 16));
-      let tokenAddr = baseTokenAddresses[tokenId];
-      let amount = BigNumber.from("0x" + nextReq.slice(16, 48)).toString();
-      await user.mint(tokenId, tokenAddr, amount);
-      await user.register(diamondAcc, tokenId, tokenAddr, amount);
+      const { accountId } = resolveRegisterPubData(req);
+      const { tokenId, amount } = resolveDepositPubData(nextReq);
+      let user = accounts.getUser(Number(accountId));
+      let tokenAddr = baseTokenAddresses[Number(tokenId)];
+      await user.mint(Number(tokenId), tokenAddr, amount);
+      await user.register(diamondAcc, Number(tokenId), tokenAddr, amount);
       numOfL1RequestToBeProcessed = 2;
       break;
     }
     case "02": {
-      let accountId = Number("0x" + req.slice(4, 12));
-      let user = accounts.getUser(accountId);
-      let tokenId = Number("0x" + req.slice(12, 16));
-      let tokenAddr = baseTokenAddresses[tokenId];
-      let amount = BigNumber.from("0x" + req.slice(16, 48)).toString();
-      await user.mint(tokenId, tokenAddr, amount);
-      await user.deposit(diamondAcc, tokenId, tokenAddr, amount);
+      const { accountId, tokenId, amount } = resolveDepositPubData(req);
+      let user = accounts.getUser(Number(accountId));
+      let tokenAddr = baseTokenAddresses[Number(tokenId)];
+      await user.mint(Number(tokenId), tokenAddr, amount);
+      await user.deposit(diamondAcc, Number(tokenId), tokenAddr, amount);
       numOfL1RequestToBeProcessed = 1;
       break;
     }
     case "15": {
-      const maturityTime = BigNumber.from("0x" + req.slice(4, 12));
-      const baseTokenId = BigNumber.from("0x" + req.slice(12, 16));
+      const { maturityTime, baseTokenId } = resolveCreateTsbTokenPubData(req);
       const name = "TslToken";
       const symbol = "TSL";
 
@@ -253,7 +258,7 @@ export const handler = async (
       );
 
       const assetConfig: AssetConfigStruct = {
-        isStableCoin: baseTokenId <= BigNumber.from("2") ? false : true,
+        isStableCoin: baseTokenId.lte(BigNumber.from("2")) ? false : true,
         isTsbToken: true,
         decimals: TS_SYSTEM_DECIMALS,
         minDepositAmt: "0",
@@ -265,26 +270,28 @@ export const handler = async (
       break;
     }
     case "1a": {
-      const accountId = Number("0x" + req.slice(4, 12));
-      const collateralTokenId = BigNumber.from("0x" + req.slice(12, 16));
-      const collateralAmt = BigNumber.from("0x" + req.slice(16, 48));
-      const feeRate = BigNumber.from("0x" + req.slice(48, 56));
-      const borrowTokenId = BigNumber.from("0x" + req.slice(56, 60));
-      const borrowAmt = BigNumber.from("0x" + req.slice(60, 92));
-      const oldMaturityTime = BigNumber.from("0x" + req.slice(92, 100));
-      const newMaturityTime = BigNumber.from("0x" + req.slice(100, 108));
-      const expiredTime = BigNumber.from("0x" + req.slice(108, 116));
-      const pIR = BigNumber.from("0x" + req.slice(116, 124));
+      const {
+        accountId,
+        collateralTokenId,
+        collateralAmt,
+        borrowTokenId,
+        borrowAmt,
+        oldMaturityTime,
+        newMaturityTime,
+        expiredTime,
+        pIR,
+      } = resolveRollBorrowOrderPubData(req);
       const tsbTokenAddr = await diamondTsb.getTsbToken(
         borrowTokenId,
         newMaturityTime
       );
-      const user = accounts.getUser(accountId);
+      const user = accounts.getUser(Number(accountId));
 
       let tokenId = collateralTokenId.toNumber();
       let tokenAddr = baseTokenAddresses[tokenId];
-      await user.mint(tokenId, tokenAddr, collateralAmt.toString());
+      await user.mint(tokenId, tokenAddr, collateralAmt);
       await user.addCollateral(
+        diamondAcc,
         diamondLoan,
         tokenAddr,
         collateralTokenId,
@@ -293,6 +300,7 @@ export const handler = async (
         oldMaturityTime
       );
       await user.rollBorrow(
+        diamondAcc,
         diamondLoan,
         tsbTokenAddr,
         collateralTokenId,
@@ -307,22 +315,17 @@ export const handler = async (
       break;
     }
     case "20": {
-      const accountId = Number("0x" + req.slice(4, 12));
-      const debtTokenId = BigNumber.from("0x" + req.slice(12, 16));
-      const collateralTokenId = BigNumber.from("0x" + req.slice(16, 20));
-      const maturityTime = BigNumber.from("0x" + req.slice(20, 28));
+      const { accountId, debtTokenId, collateralTokenId, maturityTime } =
+        resolveCancelRollBorrowPubData(req);
 
-      const loanId =
-        "0x" +
-        BigNumber.from(collateralTokenId)
-          .add(BigNumber.from(debtTokenId).mul(BigNumber.from(2).pow(16)))
-          .add(BigNumber.from(maturityTime).mul(BigNumber.from(2).pow(32)))
-          .add(BigNumber.from(1).mul(BigNumber.from(2).pow(64)))
-          .toHexString()
-          .slice(2)
-          .padStart(24, "0");
+      const loanId = calcLoanId(
+        Number(accountId),
+        Number(maturityTime),
+        Number(debtTokenId),
+        Number(collateralTokenId)
+      );
 
-      const user = accounts.getUser(accountId);
+      const user = accounts.getUser(Number(accountId));
       await diamondLoan.connect(user.signer).forceCancelRollBorrow(loanId);
       numOfL1RequestToBeProcessed = 1;
       break;
