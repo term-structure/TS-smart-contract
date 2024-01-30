@@ -174,6 +174,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             loanId
         );
         msg.sender.requireLoanOwner(accountId);
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
+        if (loanInfo.loan.lockedCollateralAmt == 0) revert LoanIsNotLocked(loanId);
 
         Operations.CancelRollBorrow memory forceCancelRollBorrowReq = Operations.CancelRollBorrow({
             accountId: accountId,
