@@ -42,6 +42,8 @@ library LoanLib {
     error LoanIsNotExist(bytes12 loanId);
     /// @notice Error for collateral amount is less than locked collateral amount
     error CollateralAmtLtLockedCollateralAmt(uint128 collateralAmt, uint128 lockedCollateralAmt);
+    /// @notice Error for invalid caller
+    error InvalidCaller(address caller, address loanOwner);
 
     /// @notice Internal function to add collateral to the loan
     /// @param loan The loan to be added collateral
@@ -281,6 +283,16 @@ library LoanLib {
     function requireLoanOwner(address addr, uint32 accountId) internal view {
         address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
         if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
+    }
+
+    function requireValidCaller(
+        address caller,
+        address loanOwner,
+        mapping(address => mapping(address => bool)) storage isDelegated
+    ) internal view {
+        if (caller == loanOwner) return;
+        if (isDelegated[loanOwner][caller]) return;
+        revert InvalidCaller(caller, loanOwner);
     }
 
     /// @notice Internal function to check if the loan is healthy (not liquidable)
