@@ -251,7 +251,8 @@ describe("Roll borrow", function () {
       genesisBlock
     );
 
-    // admin cancel roll-borrow order in the 6th block
+    // user send roll-borrow order,
+    // then admin cancel roll-borrow order in the 6th block
     const BLOCK_NUMBER = 6;
     const block = rollupData.blocks[BLOCK_NUMBER - 1];
     const rollBorrowOrderRequestIndex = 0;

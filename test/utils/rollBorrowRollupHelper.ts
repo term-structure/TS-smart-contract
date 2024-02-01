@@ -75,12 +75,15 @@ export class User {
     const tokenDecimals = getDecimals(tokenId);
     const amount = toL1Amt(l2_amount, tokenDecimals);
 
+    let msgValue;
     if (tokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString()) {
       await (await ethers.getContractAt("ERC20Mock", tokenAddr))
         .connect(this.signer)
         .approve(diamondAcc.address, amount);
+      msgValue = BigNumber.from(0);
     } else {
-      // do nothing, ETH doesn't need to be approved
+      // ETH doesn't need to be approved
+      msgValue = amount;
     }
 
     await diamondAcc
@@ -89,7 +92,8 @@ export class User {
         BigNumber.from(this.tsPubKeyX),
         BigNumber.from(this.tsPubKeyY),
         tokenAddr,
-        BigNumber.from(amount)
+        BigNumber.from(amount),
+        { value: msgValue }
       );
     this.registered = true;
   }
