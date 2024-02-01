@@ -29,11 +29,11 @@ contract FlashLoanToLiquidation is IFlashLoanReceiver {
     }
 
     function executeOperation(
-        address sender,
-        IERC20[] calldata assets,
-        uint256[] calldata amounts,
-        uint256[] calldata premiums,
-        bytes calldata data
+        address /* sender */,
+        IERC20[] calldata /* assets */,
+        uint256[] calldata /* amounts */,
+        uint256[] calldata /* premiums */,
+        bytes calldata /* data */
     ) external {
         (, , , uint16 collateralTokenId) = loanFacet.resolveLoanId(_loanId);
         IERC20 collateralToken = tokenFacet.getAssetConfig(collateralTokenId).token;

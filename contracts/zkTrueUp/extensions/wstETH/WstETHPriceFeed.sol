@@ -35,11 +35,17 @@ contract WstETHPriceFeed is AggregatorV3Interface {
      * @notice Revert this function because cannot get the chi (rate accumulator) at a specific round
      */
     function getRoundData(
-        uint80 _roundId
+        uint80 /* _roundId */
     )
         external
-        view
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+        pure
+        returns (
+            uint80 /* roundId */,
+            int256 /* answer */,
+            uint256 /* startedAt */,
+            uint256 /* updatedAt */,
+            uint80 /* answeredInRound */
+        )
     {
         // error to call this function because cannot get the stETH/wstETH ratio at a specific round
         revert GetRoundDataNotSupported();

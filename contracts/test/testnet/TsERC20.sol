@@ -30,7 +30,7 @@ contract TsERC20 is ERC20 {
         return super.approve(spender, amount);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal view override {
+    function _beforeTokenTransfer(address from, address to, uint256 /* amount */) internal view override {
         ITsFaucet faucet = ITsFaucet(tsFaucet);
         if (!faucet.transferEnabled()) {
             require(
