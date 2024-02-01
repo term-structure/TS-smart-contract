@@ -180,7 +180,7 @@ describe("Roll to Aave", () => {
 
       await expect(
         diamondLoan.connect(user2).rollToAave(loanId, collateralAmt, debtAmt)
-      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidCaller");
     });
     it("Fail roll to Aave, roll function is not activated", async () => {
       const debtAmt = toL1Amt(
@@ -353,6 +353,7 @@ describe("Roll to Aave", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           collateralAmt,
@@ -364,6 +365,7 @@ describe("Roll to Aave", () => {
         .to.emit(diamondLoan, "RollToAave")
         .withArgs(
           loanId,
+          user1Addr,
           user1Addr,
           weth.address,
           usdc.address,
@@ -520,6 +522,7 @@ describe("Roll to Aave", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           collateralAmt,
@@ -531,6 +534,7 @@ describe("Roll to Aave", () => {
         .to.emit(diamondLoan, "RollToAave")
         .withArgs(
           loanId,
+          user1Addr,
           user1Addr,
           weth.address,
           usdc.address,
@@ -704,6 +708,7 @@ describe("Roll to Aave", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           rollCollateralAmt,
@@ -715,6 +720,7 @@ describe("Roll to Aave", () => {
         .to.emit(diamondLoan, "RollToAave")
         .withArgs(
           loanId,
+          user1Addr,
           user1Addr,
           weth.address,
           usdc.address,
@@ -1112,6 +1118,7 @@ describe("Roll to Aave", () => {
         .withArgs(
           loanId,
           impersonatedSignerAddr,
+          impersonatedSignerAddr,
           dai.address,
           usdt.address,
           collateralAmt,
@@ -1123,6 +1130,7 @@ describe("Roll to Aave", () => {
         .to.emit(diamondLoan, "RollToAave")
         .withArgs(
           loanId,
+          impersonatedSignerAddr,
           impersonatedSignerAddr,
           dai.address,
           usdt.address,
@@ -1265,6 +1273,7 @@ describe("Roll to Aave", () => {
         .withArgs(
           loanId,
           impersonatedSignerAddr,
+          impersonatedSignerAddr,
           dai.address,
           usdt.address,
           collateralAmt,
@@ -1276,6 +1285,7 @@ describe("Roll to Aave", () => {
         .to.emit(diamondLoan, "RollToAave")
         .withArgs(
           loanId,
+          impersonatedSignerAddr,
           impersonatedSignerAddr,
           dai.address,
           usdt.address,

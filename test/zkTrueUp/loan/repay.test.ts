@@ -231,6 +231,7 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           collateralAmt,
@@ -326,6 +327,7 @@ describe("Repay", () => {
         .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
+          user1Addr,
           user1Addr,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
@@ -528,6 +530,7 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           removedCollateralAmt,
@@ -593,7 +596,7 @@ describe("Repay", () => {
         diamondLoan
           .connect(user2)
           .repay(loanId, removedCollateralAmt, repayDebtAmt, false)
-      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidCaller");
     });
     it("Fail to repay (ETH case), health factor under threshold", async () => {
       // before health factor
@@ -824,6 +827,7 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user2Addr,
+          user2Addr,
           usdt.address,
           dai.address,
           collateralAmt,
@@ -911,6 +915,7 @@ describe("Repay", () => {
         .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
+          user2Addr,
           user2Addr,
           usdt.address,
           dai.address,
@@ -1004,6 +1009,7 @@ describe("Repay", () => {
         .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
+          user2Addr,
           user2Addr,
           usdt.address,
           dai.address,

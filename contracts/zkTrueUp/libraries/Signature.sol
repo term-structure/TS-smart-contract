@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
 /**
  * @title Signature related library
  * @author Term Structure Labs
@@ -10,12 +12,20 @@ pragma solidity ^0.8.17;
  *         https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/utils/cryptography
  */
 library Signature {
+    error InvalidSignature(address signer, address expectedSigner);
+
     bytes32 internal constant EIP712_TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     bytes32 internal constant EIP712_NAME_HASH = keccak256(bytes("ZK_TRUE_UP"));
 
     bytes32 internal constant EIP712_VERSION_HASH = keccak256(bytes("1"));
+
+    function verifySignature(address expectedSigner, bytes32 structHash, uint8 v, bytes32 r, bytes32 s) internal view {
+        bytes32 digest = hashTypedDataV4(structHash);
+        address signer = ECDSA.recover(digest, v, r, s);
+        if (signer != expectedSigner) revert InvalidSignature(signer, expectedSigner);
+    }
 
     function hashTypedDataV4(bytes32 structHash) internal view returns (bytes32) {
         return toTypedDataHash(calcDomainSeparator(), structHash);
@@ -33,18 +43,6 @@ library Signature {
     }
 
     function calcDomainSeparator() internal view returns (bytes32 domainSeparator) {
-        // execute EIP-712 hashStruct procedure using assembly, equavalent to:
-        //
-        // domainSeparator = keccak256(
-        //   abi.encode(
-        //     EIP712_TYPE_HASH,
-        //     nameHash,
-        //     versionHash,
-        //     block.chainid,
-        //     address(this)
-        //   )
-        // );
-
         bytes32 typeHash = EIP712_TYPE_HASH;
         bytes32 nameHash = EIP712_NAME_HASH;
         bytes32 versionHash = EIP712_VERSION_HASH;
@@ -52,7 +50,7 @@ library Signature {
         // solhint-disable-next-line no-inline-assembly
         assembly {
             // load free memory pointer
-            let pointer := mload(64)
+            let pointer := mload(0x40)
 
             mstore(pointer, typeHash)
             mstore(add(pointer, 32), nameHash)
@@ -61,6 +59,17 @@ library Signature {
             mstore(add(pointer, 128), address())
 
             domainSeparator := keccak256(pointer, 160)
+
+            // equivalent solidity code:
+            // keccak256(
+            //   abi.encode(
+            //     typeHash,
+            //     nameHash,
+            //     versionHash,
+            //     block.chainid,
+            //     address(this)
+            //   )
+            // );
         }
     }
 }

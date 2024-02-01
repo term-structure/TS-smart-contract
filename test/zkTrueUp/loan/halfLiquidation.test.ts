@@ -144,6 +144,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       collateralAmt: BigNumber.from(loanData.collateralAmt),
       debtAmt: BigNumber.from(loanData.debtAmt),
     };
+    let loanOwner: string;
     let loanId: string;
     let wbtcAnswer: BigNumber;
     let ethAnswer: BigNumber;
@@ -174,6 +175,9 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
+
+      // get loan owner
+      loanOwner = await diamondAcc.getAccountAddr(loan.accountId);
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -322,6 +326,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           wbtc.address,
           DEFAULT_ETH_ADDRESS,
           removedCollateralAmt,
@@ -440,6 +445,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           wbtc.address,
           DEFAULT_ETH_ADDRESS,
           removedCollateralAmt2,
@@ -588,6 +594,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           wbtc.address,
           DEFAULT_ETH_ADDRESS,
           removedCollateralAmt,
@@ -659,6 +666,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       collateralAmt: BigNumber.from(loanData.collateralAmt),
       debtAmt: BigNumber.from(loanData.debtAmt),
     };
+    let loanOwner: string;
     let loanId: string;
     let usdtAnswer: BigNumber;
     let daiAnswer: BigNumber;
@@ -693,6 +701,9 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
+
+      // get loan owner
+      loanOwner = await diamondAcc.getAccountAddr(loan.accountId);
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -817,6 +828,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           dai.address,
           removedCollateralAmt,
@@ -963,6 +975,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           dai.address,
           removedCollateralAmt,

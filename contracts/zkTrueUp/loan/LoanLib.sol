@@ -254,6 +254,10 @@ library LoanLib {
         return s.isActivatedRoller;
     }
 
+    function getNonce(LoanStorage.Layout storage s, address addr) internal view returns (uint256) {
+        return s.nonces[addr];
+    }
+
     /// @notice Internal function to check if the loan is liquidable
     /// @param healthFactor The health factor of the loan
     /// @param maturityTime The maturity time of the loan

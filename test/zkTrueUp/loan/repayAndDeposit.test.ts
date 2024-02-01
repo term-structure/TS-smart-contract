@@ -226,6 +226,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           dai.address,
           DEFAULT_ETH_ADDRESS,
           collateralAmt,
@@ -327,6 +328,7 @@ describe("Repay and deposit", () => {
         .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
+          user1Addr,
           user1Addr,
           dai.address,
           DEFAULT_ETH_ADDRESS,
@@ -540,6 +542,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           dai.address,
           DEFAULT_ETH_ADDRESS,
           depositCollateralAmt,
@@ -616,7 +619,7 @@ describe("Repay and deposit", () => {
           .repay(loanId, depositCollateralAmt, repayDebtAmt, true, {
             value: repayDebtAmt,
           })
-      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidCaller");
     });
     it("Fail to repay and deposit (general case), health factor under threshold", async () => {
       // before health factor
@@ -833,6 +836,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
+          user2Addr,
           dai.address,
           usdt.address,
           collateralAmt,
@@ -929,6 +933,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
+          user2Addr,
           dai.address,
           usdt.address,
           depositCollateralAmt,
@@ -1019,6 +1024,7 @@ describe("Repay and deposit", () => {
         .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
+          user2Addr,
           user2Addr,
           dai.address,
           usdt.address,
@@ -1133,6 +1139,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
+          user2Addr,
           dai.address,
           usdt.address,
           depositCollateralAmt,
@@ -1226,6 +1233,7 @@ describe("Repay and deposit", () => {
         .to.emit(diamondLoan, "Repayment")
         .withArgs(
           loanId,
+          user2Addr,
           user2Addr,
           dai.address,
           usdt.address,

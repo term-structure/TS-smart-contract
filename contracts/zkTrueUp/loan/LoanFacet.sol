@@ -5,7 +5,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {AccessControlInternal} from "@solidstate/contracts/access/access_control/AccessControlInternal.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
@@ -42,7 +41,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     using ProtocolParamsLib for ProtocolParamsStorage.Layout;
     using TokenLib for TokenStorage.Layout;
     using SafeCast for uint256;
-    using Signature for bytes32;
     using Math for *;
     using LoanLib for *;
     using Utils for *;
@@ -76,14 +74,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
         msg.sender.requireValidCaller(loanOwner, lsl.isDelegated);
 
-        Loan memory loan = loanInfo.loan;
-        loan.removeCollateral(amount);
-        loan.requireHealthy(loanInfo.liquidationFactor, loanInfo.collateralAsset, loanInfo.debtAsset);
-
-        lsl.loans[loanId] = loan;
-        IERC20 collateralToken = loanInfo.collateralAsset.token;
-        Utils.transfer(collateralToken, payable(loanOwner), amount);
-        emit CollateralRemoved(loanId, msg.sender, loanOwner, collateralToken, amount);
+        _removeCollateral(lsl, loanInfo, loanId, msg.sender, loanOwner, amount);
     }
 
     bytes32 private constant REMOVE_COLLATERAL_TYPEHASH =
@@ -115,14 +106,24 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             msg.sender,
             loanId,
             amount,
-            lsl.nonces[loanOwner],
+            lsl.getNonce(loanOwner),
             deadline
         );
-        bytes32 digest = structHash.hashTypedDataV4();
-        address signer = ECDSA.recover(digest, v, r, s);
-        require(signer == loanOwner, "LoanFacet: invalid signature");
+        Signature.verifySignature(loanOwner, structHash, v, r, s);
+
         lsl.nonces[loanOwner] += 1;
 
+        _removeCollateral(lsl, loanInfo, loanId, msg.sender, loanOwner, amount);
+    }
+
+    function _removeCollateral(
+        LoanStorage.Layout storage lsl,
+        LoanInfo memory loanInfo,
+        bytes12 loanId,
+        address sender,
+        address loanOwner,
+        uint128 amount
+    ) internal {
         Loan memory loan = loanInfo.loan;
         loan.removeCollateral(amount);
         loan.requireHealthy(loanInfo.liquidationFactor, loanInfo.collateralAsset, loanInfo.debtAsset);
@@ -130,7 +131,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         lsl.loans[loanId] = loan;
         IERC20 collateralToken = loanInfo.collateralAsset.token;
         Utils.transfer(collateralToken, payable(loanOwner), amount);
-        emit CollateralRemoved(loanId, msg.sender, loanOwner, collateralToken, amount);
+        emit CollateralRemoved(loanId, sender, loanOwner, collateralToken, amount);
     }
 
     /**
