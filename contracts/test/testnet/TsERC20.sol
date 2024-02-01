@@ -32,9 +32,15 @@ contract TsERC20 is ERC20 {
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal view override {
         ITsFaucet faucet = ITsFaucet(tsFaucet);
-        if (!faucet.transferEnabled())
-            if (to != faucet.zkTrueUp() && to != faucet.exchange()) {
-                require(from == faucet.zkTrueUp() || from == address(0), "Invalid recipient");
-            }
+        if (!faucet.transferEnabled()) {
+            require(
+                from == faucet.zkTrueUp() ||
+                    from == faucet.exchange() ||
+                    from == address(0) ||
+                    to == faucet.zkTrueUp() ||
+                    to == faucet.exchange(),
+                "Invalid sender"
+            );
+        }
     }
 }
