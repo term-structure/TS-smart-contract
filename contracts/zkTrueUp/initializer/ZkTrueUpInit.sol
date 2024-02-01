@@ -64,6 +64,10 @@ contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
 
         // set roles
         _setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.OPERATOR_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.COMMITTER_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.VERIFIER_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.EXECUTER_ROLE, Config.ADMIN_ROLE);
         _grantRole(Config.ADMIN_ROLE, adminAddr);
         _grantRole(Config.OPERATOR_ROLE, operatorAddr);
         _grantRole(Config.COMMITTER_ROLE, operatorAddr);
