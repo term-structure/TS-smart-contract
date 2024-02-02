@@ -39,7 +39,7 @@ contract TsERC20 is ERC20 {
                     from == address(0) ||
                     to == faucet.zkTrueUp() ||
                     to == faucet.exchange(),
-                "Invalid sender"
+                "Invalid from or to"
             );
         }
     }
