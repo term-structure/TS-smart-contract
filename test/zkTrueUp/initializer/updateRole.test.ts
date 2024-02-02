@@ -58,94 +58,260 @@ const fixture = async () => {
 
 describe("Update Roles", function () {
   let [user1, user2]: Signer[] = [];
-  let [user1Addr, user2Addr]: string[] = [];
-  let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
   let admin: Signer;
-  let oriAdmin: Signer;
-  let newAdmin: Signer;
   let operator: Signer;
-  let diamondAccMock: AccountMock;
-  let diamondRollup: RollupFacet;
-  let diamondToken: TokenFacet;
-  let diamondTsb: TsbFacet;
-  let baseTokenAddresses: BaseTokenAddresses;
-  let usdt: ERC20Mock;
-  const INVALID_TOKEN_ADDRESS = "0x1234567890123456789012345678901234567890";
   const ADMIN_ROLE = utils.keccak256(utils.toUtf8Bytes("ADMIN_ROLE"));
   const OPERATOR_ROLE = utils.keccak256(utils.toUtf8Bytes("OPERATOR_ROLE"));
   const COMMITTER_ROLE = utils.keccak256(utils.toUtf8Bytes("COMMITTER_ROLE"));
   const VERIFIER_ROLE = utils.keccak256(utils.toUtf8Bytes("VERIFIER_ROLE"));
   const EXECUTER_ROLE = utils.keccak256(utils.toUtf8Bytes("EXECUTER_ROLE"));
-  // const provider = ethers.providers.getDefaultProvider();
-  const provider = new ethers.providers.JsonRpcProvider(
-    "http://localhost:8545"
-  );
 
   beforeEach(async function () {
     const res = await loadFixture(fixture);
-    [user1, user2] = await ethers.getSigners();
-    [user1Addr, user2Addr] = await Promise.all([
-      user1.getAddress(),
-      user2.getAddress(),
-    ]);
-    weth = res.weth;
+    const accounts = await ethers.getSigners();
+    user1 = accounts[3];
+    user2 = accounts[4];
     zkTrueUp = res.zkTrueUp;
     admin = res.admin;
     operator = res.operator;
-    const zkTrueUpAddr = zkTrueUp.address;
-    diamondAccMock = (await useFacet(
-      "AccountMock",
-      zkTrueUpAddr
-    )) as AccountMock;
-    diamondRollup = (await useFacet(
-      "RollupFacet",
-      zkTrueUpAddr
-    )) as RollupFacet;
-    diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
-    diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
-    baseTokenAddresses = res.baseTokenAddresses;
-    usdt = await ethers.getContractAt(
-      "ERC20Mock",
-      baseTokenAddresses[TsTokenId.USDT]
-    );
   });
 
-  describe("Update Admin", function () {
+  describe("Update admin", function () {
     it("Success to update admin", async function () {
-      newAdmin = await ethers.Wallet.createRandom();
-      newAdmin.connect(provider);
-      oriAdmin = admin;
-      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdmin.getAddress())).to.be
-        .true;
-      await zkTrueUp
-        .connect(oriAdmin)
-        .grantRole(ADMIN_ROLE, newAdmin.getAddress());
-      expect(await zkTrueUp.hasRole(ADMIN_ROLE, newAdmin.getAddress())).to.be
-        .true;
-      await zkTrueUp
-        .connect(oriAdmin)
-        .revokeRole(ADMIN_ROLE, oriAdmin.getAddress());
-      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdmin.getAddress())).to.be
-        .false;
+      const oriAdmin = admin;
+      const oriAdminAddr = await oriAdmin.getAddress();
+      const newAdmin = user1;
+      const newAdminAddr = await newAdmin.getAddress();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      await zkTrueUp.connect(oriAdmin).grantRole(ADMIN_ROLE, newAdminAddr);
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, newAdminAddr)).to.be.true;
+      await zkTrueUp.connect(oriAdmin).revokeRole(ADMIN_ROLE, oriAdminAddr);
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.false;
     });
 
     it("Failed to update admin", async function () {
-      oriAdmin = admin;
-      const notAdmin = await ethers.Wallet.createRandom();
-      notAdmin.connect(provider);
-      newAdmin = await ethers.Wallet.createRandom();
-      newAdmin.connect(provider);
-      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdmin.getAddress())).to.be
+      const oriAdmin = admin;
+      const oriAdminAddr = (await oriAdmin.getAddress()).toLowerCase();
+      const newAdmin = user1;
+      const newAdminAddr = (await newAdmin.getAddress()).toLowerCase();
+      const notAdmin = user2;
+      const notAdminAddr = (await notAdmin.getAddress()).toLowerCase();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, notAdminAddr)).to.be.false;
+      await expect(
+        zkTrueUp.connect(notAdmin).grantRole(ADMIN_ROLE, newAdminAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
+      await expect(
+        zkTrueUp.connect(notAdmin).revokeRole(ADMIN_ROLE, oriAdminAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
+    });
+  });
+
+  describe("Update operator", function () {
+    it("Success to update operator", async function () {
+      const oriAdmin = admin;
+      const oriAdminAddr = (await oriAdmin.getAddress()).toLowerCase();
+      const oriOperator = operator;
+      const oriOperatorAddr = (await oriOperator.getAddress()).toLowerCase();
+      const newOperator = user1;
+      const newOperatorAddr = (await newOperator.getAddress()).toLowerCase();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(OPERATOR_ROLE, oriOperatorAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(OPERATOR_ROLE, newOperatorAddr)).to.be
+        .false;
+      await zkTrueUp
+        .connect(oriAdmin)
+        .grantRole(OPERATOR_ROLE, newOperatorAddr);
+      expect(await zkTrueUp.hasRole(OPERATOR_ROLE, newOperatorAddr)).to.be.true;
+      await zkTrueUp
+        .connect(oriAdmin)
+        .revokeRole(OPERATOR_ROLE, oriOperatorAddr);
+      expect(await zkTrueUp.hasRole(OPERATOR_ROLE, oriOperatorAddr)).to.be
+        .false;
+    });
+
+    it("Failed to update operator", async function () {
+      const oriAdmin = admin;
+      const oriAdminAddr = (await oriAdmin.getAddress()).toLowerCase();
+      const notAdmin = user2;
+      const notAdminAddr = (await notAdmin.getAddress()).toLowerCase();
+      const oriOperator = operator;
+      const oriOperatorAddr = (await oriOperator.getAddress()).toLowerCase();
+      const newOperator = user1;
+      const newOperatorAddr = (await newOperator.getAddress()).toLowerCase();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, notAdminAddr)).to.be.false;
+      expect(await zkTrueUp.hasRole(OPERATOR_ROLE, oriOperatorAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(OPERATOR_ROLE, newOperatorAddr)).to.be
+        .false;
+      await expect(
+        zkTrueUp.connect(notAdmin).grantRole(OPERATOR_ROLE, newOperatorAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
+      await expect(
+        zkTrueUp.connect(notAdmin).revokeRole(OPERATOR_ROLE, oriOperatorAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
+    });
+  });
+
+  describe("Update committer", function () {
+    it("Success to update committer", async function () {
+      const oriAdmin = admin;
+      const oriAdminAddr = (await oriAdmin.getAddress()).toLowerCase();
+      const oriCommitter = operator;
+      const oriCommitterAddr = (await oriCommitter.getAddress()).toLowerCase();
+      const newCommitter = user1;
+      const newCommitterAddr = (await newCommitter.getAddress()).toLowerCase();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(COMMITTER_ROLE, oriCommitterAddr)).to.be
         .true;
-      expect(await zkTrueUp.hasRole(ADMIN_ROLE, await notAdmin.getAddress())).to
-        .be.false;
+      expect(await zkTrueUp.hasRole(COMMITTER_ROLE, newCommitterAddr)).to.be
+        .false;
+      await zkTrueUp
+        .connect(oriAdmin)
+        .grantRole(COMMITTER_ROLE, newCommitterAddr);
+      expect(await zkTrueUp.hasRole(COMMITTER_ROLE, newCommitterAddr)).to.be
+        .true;
+      await zkTrueUp
+        .connect(oriAdmin)
+        .revokeRole(COMMITTER_ROLE, oriCommitterAddr);
+      expect(await zkTrueUp.hasRole(COMMITTER_ROLE, oriCommitterAddr)).to.be
+        .false;
+    });
+
+    it("Failed to update committer", async function () {
+      const oriAdmin = admin;
+      const oriAdminAddr = (await oriAdmin.getAddress()).toLowerCase();
+      const notAdmin = user2;
+      const notAdminAddr = (await notAdmin.getAddress()).toLowerCase();
+      const oriCommitter = operator;
+      const oriCommitterAddr = (await oriCommitter.getAddress()).toLowerCase();
+      const newCommitter = user1;
+      const newCommitterAddr = (await newCommitter.getAddress()).toLowerCase();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, notAdminAddr)).to.be.false;
+      expect(await zkTrueUp.hasRole(COMMITTER_ROLE, oriCommitterAddr)).to.be
+        .true;
+      expect(await zkTrueUp.hasRole(COMMITTER_ROLE, newCommitterAddr)).to.be
+        .false;
       await expect(
-        zkTrueUp.connect(notAdmin).grantRole(ADMIN_ROLE, newAdmin.getAddress())
-      ).to.be.revertedWith("AccessControl: sender must be an admin to grant");
+        zkTrueUp.connect(notAdmin).grantRole(COMMITTER_ROLE, newCommitterAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
       await expect(
-        zkTrueUp.connect(notAdmin).revokeRole(ADMIN_ROLE, oriAdmin.getAddress())
-      ).to.be.revertedWith("AccessControl: sender must be an admin to revoke");
+        zkTrueUp.connect(notAdmin).revokeRole(COMMITTER_ROLE, oriCommitterAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
+    });
+  });
+
+  describe("Update verifier", function () {
+    it("Success to update verifier", async function () {
+      const oriAdmin = admin;
+      const oriAdminAddr = (await oriAdmin.getAddress()).toLowerCase();
+      const oriVerifier = operator;
+      const oriVerifierAddr = (await oriVerifier.getAddress()).toLowerCase();
+      const newVerifier = user1;
+      const newVerifierAddr = (await newVerifier.getAddress()).toLowerCase();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(VERIFIER_ROLE, oriVerifierAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(VERIFIER_ROLE, newVerifierAddr)).to.be
+        .false;
+      await zkTrueUp
+        .connect(oriAdmin)
+        .grantRole(VERIFIER_ROLE, newVerifierAddr);
+      expect(await zkTrueUp.hasRole(VERIFIER_ROLE, newVerifierAddr)).to.be.true;
+      await zkTrueUp
+        .connect(oriAdmin)
+        .revokeRole(VERIFIER_ROLE, oriVerifierAddr);
+      expect(await zkTrueUp.hasRole(VERIFIER_ROLE, oriVerifierAddr)).to.be
+        .false;
+    });
+
+    it("Failed to update verifier", async function () {
+      const oriAdmin = admin;
+      const oriAdminAddr = (await oriAdmin.getAddress()).toLowerCase();
+      const notAdmin = user2;
+      const notAdminAddr = (await notAdmin.getAddress()).toLowerCase();
+      const oriVerifier = operator;
+      const oriVerifierAddr = (await oriVerifier.getAddress()).toLowerCase();
+      const newVerifier = user1;
+      const newVerifierAddr = (await newVerifier.getAddress()).toLowerCase();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, notAdminAddr)).to.be.false;
+      expect(await zkTrueUp.hasRole(VERIFIER_ROLE, oriVerifierAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(VERIFIER_ROLE, newVerifierAddr)).to.be
+        .false;
+      await expect(
+        zkTrueUp.connect(notAdmin).grantRole(VERIFIER_ROLE, newVerifierAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
+      await expect(
+        zkTrueUp.connect(notAdmin).revokeRole(VERIFIER_ROLE, oriVerifierAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
+    });
+  });
+
+  describe("Update executer", function () {
+    it("Success to update executer", async function () {
+      const oriAdmin = admin;
+      const oriAdminAddr = (await oriAdmin.getAddress()).toLowerCase();
+      const oriExecuter = operator;
+      const oriExecuterAddr = (await oriExecuter.getAddress()).toLowerCase();
+      const newExecuter = user1;
+      const newExecuterAddr = (await newExecuter.getAddress()).toLowerCase();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(EXECUTER_ROLE, oriExecuterAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(EXECUTER_ROLE, newExecuterAddr)).to.be
+        .false;
+      await zkTrueUp
+        .connect(oriAdmin)
+        .grantRole(EXECUTER_ROLE, newExecuterAddr);
+      expect(await zkTrueUp.hasRole(EXECUTER_ROLE, newExecuterAddr)).to.be.true;
+      await zkTrueUp
+        .connect(oriAdmin)
+        .revokeRole(EXECUTER_ROLE, oriExecuterAddr);
+      expect(await zkTrueUp.hasRole(EXECUTER_ROLE, oriExecuterAddr)).to.be
+        .false;
+    });
+
+    it("Failed to update executer", async function () {
+      const oriAdmin = admin;
+      const oriAdminAddr = (await oriAdmin.getAddress()).toLowerCase();
+      const notAdmin = user2;
+      const notAdminAddr = (await notAdmin.getAddress()).toLowerCase();
+      const oriExecuter = operator;
+      const oriExecuterAddr = (await oriExecuter.getAddress()).toLowerCase();
+      const newExecuter = user1;
+      const newExecuterAddr = (await newExecuter.getAddress()).toLowerCase();
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, oriAdminAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(ADMIN_ROLE, notAdminAddr)).to.be.false;
+      expect(await zkTrueUp.hasRole(EXECUTER_ROLE, oriExecuterAddr)).to.be.true;
+      expect(await zkTrueUp.hasRole(EXECUTER_ROLE, newExecuterAddr)).to.be
+        .false;
+      await expect(
+        zkTrueUp.connect(notAdmin).grantRole(EXECUTER_ROLE, newExecuterAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
+      await expect(
+        zkTrueUp.connect(notAdmin).revokeRole(EXECUTER_ROLE, oriExecuterAddr)
+      ).to.be.revertedWith(
+        `AccessControl: account ${notAdminAddr} is missing role ${ADMIN_ROLE}`
+      );
     });
   });
 });
