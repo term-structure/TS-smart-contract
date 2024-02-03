@@ -59,7 +59,7 @@ export class User {
     if (tokenId.toString() == TS_BASE_TOKEN.ETH.tokenId.toString()) {
       await network.provider.send("hardhat_setBalance", [
         await this.signer.getAddress(),
-        amount,
+        (await this.signer.getBalance()).add(amount),
       ]);
     } else {
       await (await ethers.getContractAt("ERC20Mock", tokenAddr))
