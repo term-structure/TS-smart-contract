@@ -1,6 +1,6 @@
 import { BigNumber, Signer } from "ethers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { TS_BASE_TOKEN, TS_SYSTEM_DECIMALS } from "term-structure-sdk";
 import { DEFAULT_ZERO_ADDR } from "../../utils/config";
 import { BaseTokenAddresses } from "../../utils/type";
@@ -51,19 +51,23 @@ export class User {
     public tsPubKeyX: string,
     public tsPubKeyY: string
   ) {}
-  async mint(tokenId: number, tokenAddr: string, l2_amount: BigNumber) {
-    const tokenDecimals = getDecimals(tokenId);
 
+  async prepareToken(tokenId: number, tokenAddr: string, l2_amount: BigNumber) {
+    const tokenDecimals = getDecimals(tokenId);
     const amount = toL1Amt(l2_amount, tokenDecimals);
 
-    if (tokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString()) {
+    if (tokenId.toString() == TS_BASE_TOKEN.ETH.tokenId.toString()) {
+      await network.provider.send("hardhat_setBalance", [
+        await this.signer.getAddress(),
+        amount,
+      ]);
+    } else {
       await (await ethers.getContractAt("ERC20Mock", tokenAddr))
         .connect(this.signer)
         .mint(await this.signer.getAddress(), amount);
-    } else {
-      // do nothing, ETH is already in the account
     }
   }
+
   async register(
     diamondAcc: AccountFacet,
     tokenId: number,
@@ -233,7 +237,7 @@ export const handler = async (
       const { tokenId, amount } = resolveDepositPubData(nextReq);
       let user = accounts.getUser(Number(accountId));
       let tokenAddr = baseTokenAddresses[Number(tokenId)];
-      await user.mint(Number(tokenId), tokenAddr, amount);
+      await user.prepareToken(Number(tokenId), tokenAddr, amount);
       await user.register(diamondAcc, Number(tokenId), tokenAddr, amount);
       numOfL1RequestToBeProcessed = 2;
       break;
@@ -242,7 +246,7 @@ export const handler = async (
       const { accountId, tokenId, amount } = resolveDepositPubData(req);
       let user = accounts.getUser(Number(accountId));
       let tokenAddr = baseTokenAddresses[Number(tokenId)];
-      await user.mint(Number(tokenId), tokenAddr, amount);
+      await user.prepareToken(Number(tokenId), tokenAddr, amount);
       await user.deposit(diamondAcc, Number(tokenId), tokenAddr, amount);
       numOfL1RequestToBeProcessed = 1;
       break;
@@ -293,7 +297,7 @@ export const handler = async (
 
       let tokenId = collateralTokenId.toNumber();
       let tokenAddr = baseTokenAddresses[tokenId];
-      await user.mint(tokenId, tokenAddr, collateralAmt);
+      await user.prepareToken(tokenId, tokenAddr, collateralAmt);
       await user.rollBorrow(
         diamondAcc,
         diamondLoan,

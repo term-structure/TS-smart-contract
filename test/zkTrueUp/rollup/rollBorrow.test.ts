@@ -1,4 +1,4 @@
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BigNumber, Signer, utils } from "ethers";
@@ -16,11 +16,7 @@ import {
   TsbFacet,
   ZkTrueUp,
 } from "../../../typechain-types";
-import {
-  CommitBlockStruct,
-  ProofStruct,
-  StoredBlockStruct,
-} from "../../../typechain-types/contracts/zkTrueUp/rollup/IRollupFacet";
+import { StoredBlockStruct } from "../../../typechain-types/contracts/zkTrueUp/rollup/IRollupFacet";
 import initStates from "../../data/rollupData/rollup/initStates.json";
 import { updateRoundData } from "../../utils/updateRoundData";
 import { rollupData } from "../../data/rollupData/rollBorrow/rollup";
