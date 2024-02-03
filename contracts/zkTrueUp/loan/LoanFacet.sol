@@ -134,6 +134,10 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit CollateralRemoved(loanId, sender, loanOwner, collateralToken, amount);
     }
 
+    function getNonce(address account) external view returns (uint256) {
+        return LoanStorage.layout().getNonce(account);
+    }
+
     /**
      * @inheritdoc ILoanFacet
      */

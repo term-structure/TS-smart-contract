@@ -17,7 +17,7 @@ library Signature {
     bytes32 internal constant EIP712_TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
-    bytes32 internal constant EIP712_NAME_HASH = keccak256(bytes("ZK_TRUE_UP"));
+    bytes32 internal constant EIP712_NAME_HASH = keccak256(bytes("ZkTrueUp"));
 
     bytes32 internal constant EIP712_VERSION_HASH = keccak256(bytes("1"));
 

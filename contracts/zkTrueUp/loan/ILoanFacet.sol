@@ -252,6 +252,10 @@ interface ILoanFacet {
     /// @return borrowFeeRate The borrow fee rate
     function getBorrowFeeRate() external view returns (uint32);
 
+    /// @notice Return the nonce of the account
+    /// @param account The address of the account
+    function getNonce(address account) external view returns (uint256);
+
     /// @notice Check if the roll function is activated
     /// @return isActivate If the roll function is activated
     function isActivatedRoller() external view returns (bool isActivate);
