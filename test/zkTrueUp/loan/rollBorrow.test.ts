@@ -23,6 +23,7 @@ import {
 import {
   AccountFacet,
   LoanFacet,
+  ProtocolParamsFacet,
   RollupMock,
   TokenFacet,
   TsbFacet,
@@ -34,6 +35,7 @@ import {
   Operations,
 } from "../../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 import { SYSTEM_UNIT_BASE } from "../../../utils/config";
+import { resolveLoanId } from "../../utils/loanHelper";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -74,6 +76,7 @@ describe("Roll Borrow", () => {
   let diamondRollupMock: RollupMock;
   let diamondToken: TokenFacet;
   let diamondTsb: TsbFacet;
+  let diamondProtocolParams: ProtocolParamsFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   let priceFeeds: PriceFeeds;
 
@@ -96,6 +99,10 @@ describe("Roll Borrow", () => {
     )) as RollupMock;
     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
+    diamondProtocolParams = (await useFacet(
+      "ProtocolParamsFacet",
+      zkTrueUpAddr
+    )) as ProtocolParamsFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     priceFeeds = res.priceFeeds;
     await diamondLoan.connect(admin).setActivatedRoller(true);
@@ -188,6 +195,8 @@ describe("Roll Borrow", () => {
 
     it("Success to roll (ETH case)", async () => {
       const beforeLoan = await diamondLoan.getLoan(loanId);
+      const vaultAddr = await diamondProtocolParams.getVaultAddr();
+      const beforeVaultEtherAmt = await ethers.provider.getBalance(vaultAddr);
       // original loan:
       // collateral: 1 ETH debt: 500 USDC
 
@@ -219,26 +228,28 @@ describe("Roll Borrow", () => {
         .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") });
       await rollBorrowTx.wait();
 
+      const { maturityTime } = resolveLoanId(loanId);
       // check event
       const rollBorrowReq = [
         loan.accountId,
         loan.collateralTokenId,
-        nextTsbTokenData.underlyingTokenId,
-        Number(nextTsbTokenData.maturity),
-        Number(rollBorrowOrder.expiredTime),
-        await diamondLoan.getBorrowFeeRate(),
-        Number(
-          BigNumber.from(rollBorrowOrder.maxAnnualPercentageRate).add(
-            SYSTEM_UNIT_BASE
-          )
-        ),
         toL2Amt(
           BigNumber.from(rollBorrowOrder.maxCollateralAmt),
           TS_BASE_TOKEN.ETH
         ),
+        await diamondLoan.getBorrowFeeRate(),
+        nextTsbTokenData.underlyingTokenId,
         toL2Amt(
           BigNumber.from(rollBorrowOrder.maxBorrowAmt),
           TS_BASE_TOKEN.USDC
+        ),
+        maturityTime,
+        Number(nextTsbTokenData.maturity),
+        Number(rollBorrowOrder.expiredTime),
+        Number(
+          BigNumber.from(rollBorrowOrder.maxAnnualPercentageRate).add(
+            SYSTEM_UNIT_BASE
+          )
         ),
       ] as Operations.RollBorrowStructOutput;
 
@@ -246,6 +257,12 @@ describe("Roll Borrow", () => {
       await expect(rollBorrowTx)
         .to.emit(diamondLoan, "RollBorrowOrderPlaced")
         .withArgs(user1Addr, rollBorrowReq);
+
+      // check vault ether amount
+      const afterVaultEtherAmt = await ethers.provider.getBalance(vaultAddr);
+      const rollBorrowFee = await diamondLoan.getRollOverFee();
+      expect(afterVaultEtherAmt.sub(beforeVaultEtherAmt).eq(rollBorrowFee)).to
+        .be.true;
 
       // check loan
       const afterLoan = await diamondLoan.getLoan(loanId);
@@ -611,26 +628,28 @@ describe("Roll Borrow", () => {
         .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") });
       await rollBorrowTx.wait();
 
+      const { maturityTime } = resolveLoanId(loanId);
       // check event
       const rollBorrowReq = [
         loan.accountId,
         loan.collateralTokenId,
-        nextTsbTokenData.underlyingTokenId,
-        Number(nextTsbTokenData.maturity),
-        Number(rollBorrowOrder.expiredTime),
-        await diamondLoan.getBorrowFeeRate(),
-        Number(
-          BigNumber.from(rollBorrowOrder.maxAnnualPercentageRate).add(
-            SYSTEM_UNIT_BASE
-          )
-        ),
         toL2Amt(
           BigNumber.from(rollBorrowOrder.maxCollateralAmt),
           TS_BASE_TOKEN.ETH
         ),
+        await diamondLoan.getBorrowFeeRate(),
+        nextTsbTokenData.underlyingTokenId,
         toL2Amt(
           BigNumber.from(rollBorrowOrder.maxBorrowAmt),
           TS_BASE_TOKEN.USDC
+        ),
+        maturityTime,
+        Number(nextTsbTokenData.maturity),
+        Number(rollBorrowOrder.expiredTime),
+        Number(
+          BigNumber.from(rollBorrowOrder.maxAnnualPercentageRate).add(
+            SYSTEM_UNIT_BASE
+          )
         ),
       ] as Operations.RollBorrowStructOutput;
 

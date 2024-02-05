@@ -512,13 +512,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             data = pubData.sliceFourChunksBytes(offset); // 4 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.ROLL_OVER_END) {
-            data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+            data = pubData.sliceSixChunksBytes(offset); // 6 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.USER_CANCEL_ROLL_BORROW) {
-            data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+            data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.ADMIN_CANCEL_ROLL_BORROW) {
-            data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+            data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.WITHDRAW_FEE) {
             data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
@@ -547,11 +547,11 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
                 Operations.Deposit memory deposit = data.readDepositPubData();
                 request.isDepositInL1RequestQueue(deposit);
             } else if (opType == Operations.OpType.ROLL_BORROW_ORDER) {
-                data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+                data = pubData.sliceSixChunksBytes(offset); // 6 chunks
                 Operations.RollBorrow memory rollBorrowReq = data.readRollBorrowPubdata();
                 request.isRollBorrowInL1RequestQueue(rollBorrowReq);
             } else if (opType == Operations.OpType.FORCE_CANCEL_ROLL_BORROW) {
-                data = pubData.sliceTwoChunksBytes(offset); //TODO: check chunk size
+                data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
                 isToBeExecuted = true;
             } else if (opType == Operations.OpType.FORCE_WITHDRAW) {
                 data = pubData.sliceTwoChunksBytes(offset); // 2 chunks
@@ -691,7 +691,13 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             revert PendingRollupTxHashIsNotMatched(pendingRollupTxHash, executeBlock.storedBlock.pendingRollupTxHash);
     }
 
-    //TODO: not completed and test
+    /// @notice Internal function to cancel roll borrow
+    /// @dev The function will remove all locked collateral
+    /// @dev The function will be triggered by these 3 request types:
+    ///      1. `USER_CANCEL_ROLL_BORROW`
+    ///      2. `ADMIN_CANCEL_ROLL_BORROW`
+    ///      3. `FORCE_CANCEL_ROLL_BORROW`
+    /// @param cancelRollBorrow The cancel roll borrow request
     function _cancelRollBorrow(Operations.CancelRollBorrow memory cancelRollBorrow) internal {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         bytes12 loanId = LoanLib.calcLoanId(
@@ -701,6 +707,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             cancelRollBorrow.collateralTokenId
         );
         Loan memory loan = lsl.getLoan(loanId);
+
         // remove all locked collateral
         uint128 removedCollateralAmt = loan.lockedCollateralAmt;
         loan.removeLockedCollateral(removedCollateralAmt);
@@ -709,7 +716,9 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         emit RollBorrowCancel(loanId, removedCollateralAmt);
     }
 
-    //TODO: not completed and test
+    /// @notice Internal function to roll over (successfully roll a loan to the next maturity time)
+    /// @dev The function will move the original loan position to the new loan position
+    /// @param rollOver The roll over request
     function _rollOver(Operations.RollOverEnd memory rollOver) internal {
         // solhint-disable-next-line not-rely-on-time
         if (rollOver.matchedTime >= block.timestamp) revert InvalidMatchedTime(rollOver.matchedTime, block.timestamp);
@@ -724,6 +733,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         AssetConfig memory asset = tsl.getAssetConfig(rollOver.collateralTokenId);
         Utils.notZeroAddr(address(asset.token));
 
+        // repay old loan position
         bytes12 loanId = LoanLib.calcLoanId(
             rollOver.accountId,
             rollOver.oldMaturityTime,
@@ -737,30 +747,31 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         if (collateralAmt > loan.lockedCollateralAmt)
             revert RemovedCollateralAmtGtLockedCollateralAmt(collateralAmt, loan.lockedCollateralAmt);
 
-        // reuse memory of asset to save gas
-        asset = tsl.getAssetConfig(rollOver.debtTokenId);
+        asset = tsl.getAssetConfig(rollOver.debtTokenId); // re-assign asset to debt token
         Utils.notZeroAddr(address(asset.token));
 
-        decimals = asset.decimals;
+        decimals = asset.decimals; // re-assign decimals to debt token decimals
         uint128 borrowAmt = rollOver.borrowAmt.toL1Amt(decimals).toUint128();
         loan.repay(collateralAmt, borrowAmt);
-        loan.removeLockedCollateral(loan.lockedCollateralAmt);
+        loan.removeLockedCollateral(collateralAmt);
         lsl.loans[loanId] = loan;
 
-        uint128 newDebtAmt = rollOver.debtAmt.toL1Amt(decimals).toUint128();
-        loan = Loan({collateralAmt: collateralAmt, debtAmt: newDebtAmt, lockedCollateralAmt: 0});
+        // update new loan position
         bytes12 newLoanId = LoanLib.calcLoanId(
             rollOver.accountId,
             rollOver.newMaturityTime,
             rollOver.debtTokenId,
             rollOver.collateralTokenId
         );
+        loan = lsl.getLoan(newLoanId);
+        uint128 newDebtAmt = rollOver.debtAmt.toL1Amt(decimals).toUint128();
+        loan.updateLoan(collateralAmt, newDebtAmt);
         lsl.loans[newLoanId] = loan;
 
         emit RollOver(loanId, newLoanId, collateralAmt, borrowAmt, newDebtAmt);
     }
 
-    /// @notice Internal function to update the onchain loan info
+    /// @notice Internal function to update the on-chain loan info
     /// @param auctionEnd The auction end request
     function _updateLoan(Operations.AuctionEnd memory auctionEnd) internal {
         address accountAddr = AccountStorage.layout().getAccountAddr(auctionEnd.accountId);
