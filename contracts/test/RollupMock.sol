@@ -25,7 +25,7 @@ contract RollupMock is RollupFacet {
 
     function updateLoanMock(Operations.AuctionEnd memory auctionEnd) external {
         uint32 accountId = auctionEnd.accountId;
-        address accountAddr = AccountStorage.layout().getAccountAddr(accountId);
+        /* address accountAddr = */ AccountStorage.layout().getAccountAddr(accountId);
         // Utils.noneZeroAddr(accountAddr); //! ignore for test
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();

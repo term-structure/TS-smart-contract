@@ -79,7 +79,13 @@ library LoanStorage {
         uint16 halfLiquidationThreshold;
         /// @notice The fee rate for borrower, base is 1e8
         ///         i.e. 0.1e8 means 10% of the interest
-        uint32 borrowerFeeRate;
+        /// @dev    The fee rate is adjustable, it will be the same as borrow order fee rate in L2
+        uint32 borrowFeeRate;
+        /// @notice The fee for roll over service
+        ///         charged by the protocol for rollup gas cost of roll-borrow request
+        ///         and avoid user send many roll over request to spam the rollup
+        ///         unit is wei （i.e. 0.01e18 means 0.01 ether）
+        uint256 rollOverFee;
         /// @notice LTV threshold for loans
         LiquidationFactor liquidationFactor;
         /// @notice LTV threshold for stable coin pairs' loans

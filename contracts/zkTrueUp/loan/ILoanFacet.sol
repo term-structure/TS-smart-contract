@@ -48,6 +48,8 @@ interface ILoanFacet {
     error InvalidRollBorrowFee(uint256 rollBorrowFee);
     /// @notice Error for roll borrow with invalid maturity time
     error InvalidMaturityTime(uint32 maturityTime);
+    /// @notice Error for cancel roll borrow order with unlocked loan
+    error LoanIsNotLocked(bytes12 loanId);
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
@@ -63,19 +65,19 @@ interface ILoanFacet {
 
     /// @notice Emitted when borrower remove collateral
     /// @param loanId The id of the loan
-    /// @param sender The address of the sender
+    /// @param loanOwner The address of the loan owner
     /// @param collateralToken The collateral token to remove
     /// @param removedCollateralAmt The amount of the removed collateral
     event CollateralRemoved(
         bytes12 indexed loanId,
-        address indexed sender,
+        address indexed loanOwner,
         IERC20 collateralToken,
         uint128 removedCollateralAmt
     );
 
     /// @notice Emitted when the borrower repay the loan
     /// @param loanId The id of the loan
-    /// @param sender The address of the sender
+    /// @param loanOwner The address of the loan owner
     /// @param collateralToken The collateral token to be taken
     /// @param debtToken The debt token to be repaid
     /// @param removedCollateralAmt The amount of the removed collateral
@@ -83,7 +85,7 @@ interface ILoanFacet {
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
     event Repayment(
         bytes12 indexed loanId,
-        address indexed sender,
+        address indexed loanOwner,
         IERC20 collateralToken,
         IERC20 debtToken,
         uint128 removedCollateralAmt,
@@ -93,14 +95,14 @@ interface ILoanFacet {
 
     /// @notice Emitted when the loan is rolled to Aave
     /// @param loanId The id of the loan
-    /// @param sender The address of the sender
+    /// @param loanOwner The address of the loan owner
     /// @param supplyToken The token to be supplied to Aave
     /// @param borrowToken The token to be borrowed from Aave
     /// @param collateralAmt The amount of the collateral
     /// @param debtAmt The amount of the debt
     event RollToAave(
         bytes12 indexed loanId,
-        address indexed sender,
+        address indexed loanOwner,
         IERC20 supplyToken,
         IERC20 borrowToken,
         uint128 collateralAmt,
@@ -108,9 +110,14 @@ interface ILoanFacet {
     );
 
     /// @notice Emitted when the borrower place a roll borrow order
-    /// @param sender The address of the sender
+    /// @param loanOwner The address of the loan owner
     /// @param rollBorrowReq The roll borrow request
-    event RollBorrowOrderPlaced(address indexed sender, Operations.RollBorrow rollBorrowReq);
+    event RollBorrowOrderPlaced(address indexed loanOwner, Operations.RollBorrow rollBorrowReq);
+
+    /// @notice Emitted when the borrower force cancel a roll borrow order on L1
+    /// @param loanOwner The address of the loan owner
+    /// @param loanId The id of the loan
+    event RollBorrowOrderForceCancelPlaced(address indexed loanOwner, bytes12 indexed loanId);
 
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
@@ -142,6 +149,10 @@ interface ILoanFacet {
     /// @notice Emitted when the borrow fee rate is set
     /// @param borrowFeeRate The borrow fee rate
     event SetBorrowFeeRate(uint32 indexed borrowFeeRate);
+
+    /// @notice Emitted when the roll over fee is set
+    /// @param rollOverFee The roll over fee
+    event SetRollOverFee(uint256 indexed rollOverFee);
 
     /// @notice Add collateral to the loan
     /// @param loanId The id of the loan
@@ -176,7 +187,7 @@ interface ILoanFacet {
     /// @notice Cancel the roll borrow order
     /// @notice User can force cancel their roll borrow order on L1
     ///         to avoid sequencer ignore his cancel request in L2
-    /// @param loanId The id of the loan
+    /// @param loanId The id of the loan to be cancelled
     function forceCancelRollBorrow(bytes12 loanId) external;
 
     /// @notice Liquidate the loan
@@ -207,6 +218,10 @@ interface ILoanFacet {
     /// @notice Set the borrow fee rate
     /// @param borrowFeeRate The borrow fee rate
     function setBorrowFeeRate(uint32 borrowFeeRate) external;
+
+    /// @notice Set the fee of the roll borrow service
+    /// @param rollOverFee The roll over fee
+    function setRollOverFee(uint256 rollOverFee) external;
 
     /// @notice Return the health factor of the loan
     /// @param loanId The id of the loan
@@ -242,6 +257,10 @@ interface ILoanFacet {
     /// @notice Return the borrow fee rate
     /// @return borrowFeeRate The borrow fee rate
     function getBorrowFeeRate() external view returns (uint32);
+
+    /// @notice Return the fee of the roll borrow service
+    /// @return rollOverFee The roll over fee
+    function getRollOverFee() external view returns (uint256);
 
     /// @notice Check if the roll function is activated
     /// @return isActivate If the roll function is activated

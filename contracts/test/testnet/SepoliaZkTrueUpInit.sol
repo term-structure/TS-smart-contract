@@ -102,7 +102,7 @@ contract SepoliaZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         lsl.halfLiquidationThreshold = InitialConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
-        lsl.borrowerFeeRate = InitialConfig.INIT_BORROWER_FEE_RATE;
+        lsl.borrowFeeRate = InitialConfig.INIT_BORROW_FEE_RATE;
 
         LiquidationFactor memory initLiquidationFactor = LiquidationFactor({
             liquidationLtvThreshold: InitialConfig.INIT_LIQUIDATION_LTV_THRESHOLD,
