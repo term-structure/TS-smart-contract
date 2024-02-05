@@ -240,11 +240,18 @@ library LoanLib {
         return s.stableCoinPairLiquidationFactor;
     }
 
-    /// @notice Internal function to get the borrower fee rate
+    /// @notice Internal function to get the borrow fee rate
     /// @param s The loan storage
-    /// @return borrowerFeeRate The borrower fee rate
+    /// @return borrowFeeRate The borrow fee rate, base 1e18
     function getBorrowFeeRate(LoanStorage.Layout storage s) internal view returns (uint32) {
-        return s.borrowerFeeRate;
+        return s.borrowFeeRate;
+    }
+
+    /// @notice Internal function to get the roll over fee
+    /// @param s The loan storage
+    /// @return rollOverFee The roll over fee, unit is wei
+    function getRollOverFee(LoanStorage.Layout storage s) internal view returns (uint256) {
+        return s.rollOverFee;
     }
 
     /// @notice Internal function to check if the roll function is activated

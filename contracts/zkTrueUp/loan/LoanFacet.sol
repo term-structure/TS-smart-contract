@@ -201,10 +201,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         if (!lsl.getRollerState()) revert RollIsNotActivated();
+        if (msg.value != lsl.getRollOverFee()) revert InvalidRollBorrowFee(msg.value);
 
-        //TODO: calculate rollup gas cost not 0.01 eth, waiting for test in roll up
-        //TODO: need to handle this fee
-        if (msg.value != 0.01 ether) revert InvalidRollBorrowFee(msg.value);
+        Utils.transferNativeToken(ProtocolParamsStorage.layout().getVaultAddr(), msg.value);
 
         bytes12 loanId = rollBorrowOrder.loanId;
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
@@ -212,7 +211,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         // assert: expireTime > block.timestamp && expireTime + 1 day <= maturityTime
         // solhint-disable-next-line not-rely-on-time
         if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
-        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > loanInfo.maturityTime)
+        uint32 oldMaturityTime = loanInfo.maturityTime;
+        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > oldMaturityTime)
             revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
         if (loanInfo.loan.lockedCollateralAmt > 0) revert LoanIsLocked(loanId);
 
@@ -221,32 +221,38 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         address tsbTokenAddr = rollBorrowOrder.tsbTokenAddr;
         (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(tsbTokenAddr));
         if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
-        // check new maturity time is valid (new maturity time > old maturity time)
-        (, uint32 maturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
-        if (maturityTime <= loanInfo.maturityTime) revert InvalidMaturityTime(maturityTime);
 
-        _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanId, maturityTime);
+        // check new maturity time is valid (new maturity time > old maturity time)
+        (, uint32 newMaturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
+        if (newMaturityTime <= oldMaturityTime) revert InvalidMaturityTime(newMaturityTime);
+
+        _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanId, oldMaturityTime, newMaturityTime);
     }
 
     /**
      * @inheritdoc ILoanFacet
      * @dev The force cancel roll borrow action will add this request in L1 request queue,
-     *      to force this transaction to be packaged in rollup block
+     *      to force this transaction must to be packaged in rollup block
+     *      to avoid the `UserCancelRollBorrow` operation be maliciously ignored in L2
      */
     function forceCancelRollBorrow(bytes12 loanId) external {
         (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(
             loanId
         );
         msg.sender.requireLoanOwner(accountId);
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
+        if (loanInfo.loan.lockedCollateralAmt == 0) revert LoanIsNotLocked(loanId);
 
         Operations.CancelRollBorrow memory forceCancelRollBorrowReq = Operations.CancelRollBorrow({
             accountId: accountId,
-            maturityTime: maturityTime,
+            debtTokenId: debtTokenId,
             collateralTokenId: collateralTokenId,
-            debtTokenId: debtTokenId
+            maturityTime: maturityTime // the maturity time of the original loan to be rolled over
         });
 
         LoanLib.addForceCancelRollBorrowReq(RollupStorage.layout(), msg.sender, forceCancelRollBorrowReq);
+        emit RollBorrowOrderForceCancelPlaced(msg.sender, loanId);
     }
 
     /**
@@ -321,8 +327,16 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      */
     function setBorrowFeeRate(uint32 borrowFeeRate) external onlyRole(Config.ADMIN_ROLE) {
-        LoanStorage.layout().borrowerFeeRate = borrowFeeRate;
+        LoanStorage.layout().borrowFeeRate = borrowFeeRate;
         emit SetBorrowFeeRate(borrowFeeRate);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function setRollOverFee(uint256 rollOverFee) external onlyRole(Config.ADMIN_ROLE) {
+        LoanStorage.layout().rollOverFee = rollOverFee;
+        emit SetRollOverFee(rollOverFee);
     }
 
     /* ============ External View Functions ============ */
@@ -391,6 +405,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      */
     function getBorrowFeeRate() external view returns (uint32) {
         return LoanStorage.layout().getBorrowFeeRate();
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function getRollOverFee() external view returns (uint256) {
+        return LoanStorage.layout().getRollOverFee();
     }
 
     /**
@@ -595,14 +616,16 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @param loanInfo The loan info
     /// @param loanOwner The loan owner
     /// @param loanId The loan id
-    /// @param maturityTime The maturity time of the loan
+    /// @param oldMaturityTime The maturity time of the old loan
+    /// @param newMaturityTime The maturity time of the new loan after roll borrow
     function _rollBorrow(
         LoanStorage.Layout storage lsl,
         RollBorrowOrder memory rollBorrowOrder,
         LoanInfo memory loanInfo,
         address loanOwner,
         bytes12 loanId,
-        uint32 maturityTime
+        uint32 oldMaturityTime,
+        uint32 newMaturityTime
     ) internal {
         AssetConfig memory collateralAsset;
         AssetConfig memory debtAsset;
@@ -613,7 +636,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             uint32 maxInterestRate = rollBorrowOrder
                 .maxAnnualPercentageRate
                 // solhint-disable-next-line not-rely-on-time
-                .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
+                .mulDiv(newMaturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
                 .toUint32();
 
             // borrowFee = borrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
@@ -641,7 +664,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             loan = Loan({collateralAmt: rollBorrowOrder.maxCollateralAmt, lockedCollateralAmt: 0, debtAmt: maxDebtAmt});
             loanInfo = LoanInfo({
                 loan: loan,
-                maturityTime: maturityTime,
+                maturityTime: newMaturityTime,
                 accountId: loanInfo.accountId,
                 liquidationFactor: loanInfo.liquidationFactor,
                 collateralAsset: collateralAsset,
@@ -660,13 +683,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         Operations.RollBorrow memory rollBorrowReq = Operations.RollBorrow({
             accountId: loanInfo.accountId,
             collateralTokenId: collateralTokenId,
-            borrowTokenId: debtTokenId,
-            newMaturityTime: maturityTime,
-            expiredTime: rollBorrowOrder.expiredTime,
-            feeRate: borrowFeeRate,
-            maxPrincipalAndInterestRate: (rollBorrowOrder.maxAnnualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32(),
             maxCollateralAmt: rollBorrowOrder.maxCollateralAmt.toL2Amt(collateralAsset.decimals),
-            maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals)
+            feeRate: borrowFeeRate,
+            borrowTokenId: debtTokenId,
+            maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals),
+            oldMaturityTime: oldMaturityTime,
+            newMaturityTime: newMaturityTime,
+            expiredTime: rollBorrowOrder.expiredTime,
+            maxPrincipalAndInterestRate: (rollBorrowOrder.maxAnnualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32() // convert APR to PIR (e.g. 5% APR => 105% PIR)
         });
 
         LoanLib.addRollBorrowReq(RollupStorage.layout(), loanOwner, rollBorrowReq);

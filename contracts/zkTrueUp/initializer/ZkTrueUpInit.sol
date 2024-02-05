@@ -64,6 +64,10 @@ contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
 
         // set roles
         _setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.OPERATOR_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.COMMITTER_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.VERIFIER_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.EXECUTER_ROLE, Config.ADMIN_ROLE);
         _grantRole(Config.ADMIN_ROLE, adminAddr);
         _grantRole(Config.OPERATOR_ROLE, operatorAddr);
         _grantRole(Config.COMMITTER_ROLE, operatorAddr);
@@ -104,7 +108,8 @@ contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         lsl.halfLiquidationThreshold = InitialConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
-        lsl.borrowerFeeRate = InitialConfig.INIT_BORROWER_FEE_RATE;
+        lsl.borrowFeeRate = InitialConfig.INIT_BORROW_FEE_RATE;
+        lsl.rollOverFee = InitialConfig.INIT_ROLL_OVER_FEE;
 
         LiquidationFactor memory initLiquidationFactor = LiquidationFactor({
             liquidationLtvThreshold: InitialConfig.INIT_LIQUIDATION_LTV_THRESHOLD,

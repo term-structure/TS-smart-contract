@@ -26,6 +26,7 @@ export const deployFacets = async (
         ethers.utils.parseUnits("3", "gwei")
       ),
     });
+
     await deployedFacet.deployed();
     facetFactories[facet] = facetFactory;
     deployedFacets[facet] = deployedFacet;

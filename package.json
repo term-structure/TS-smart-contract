@@ -1,6 +1,6 @@
 {
   "name": "term-structure-protocol",
-  "version": "0.0.1",
+  "version": "0.2.1",
   "description": "Term Structure Protocol",
   "license": "MIT",
   "author": "Term Structure Labs",
@@ -47,6 +47,7 @@
     "test:oracleMock": "hardhat test test/zkTrueUp/testnet/oracleMock/oracleMock.test.ts",
     "test:tsFaucet": "hardhat test test/zkTrueUp/testnet/tsFaucet/tsFaucet.test.ts",
     "test:rollup": "hardhat test test/zkTrueUp-time-dependency/rollup/rollup.test.ts",
+    "test:rollup-rollBorrow": "hardhat test test/zkTrueUp/rollup/rollBorrow.test.ts",
     "test:evacuate": "hardhat test test/zkTrueUp-time-dependency/rollup/evacuate.test.ts",
     "test:activateEvacuation": "hardhat test test/zkTrueUp-time-dependency/rollup/activateEvacuation.test.ts",
     "test:consume": "hardhat test test/zkTrueUp-time-dependency/rollup/consumeL1Request.test.ts",
