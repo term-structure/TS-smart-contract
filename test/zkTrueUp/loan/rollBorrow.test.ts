@@ -256,7 +256,7 @@ describe("Roll Borrow", () => {
       // check event
       await expect(rollBorrowTx)
         .to.emit(diamondLoan, "RollBorrowOrderPlaced")
-        .withArgs(loanId, user1Addr, rollBorrowReq);
+        .withArgs(loanId, user1Addr, user1Addr, rollBorrowReq);
 
       // check vault ether amount
       const afterVaultEtherAmt = await ethers.provider.getBalance(vaultAddr);
@@ -656,7 +656,7 @@ describe("Roll Borrow", () => {
       // check event
       await expect(rollBorrowTx)
         .to.emit(diamondLoan, "RollBorrowOrderPlaced")
-        .withArgs(loanId, user2Addr, rollBorrowReq);
+        .withArgs(loanId, user2Addr, user2Addr, rollBorrowReq);
 
       // check loan
       const afterLoan = await diamondLoan.getLoan(loanId);

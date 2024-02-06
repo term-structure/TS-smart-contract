@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {AssetConfig} from "../token/TokenStorage.sol";
-import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 /// @notice Liquidation factor of the loan
 /// @dev liquidationLtvThreshold: the liquidation threshold of the loan-to-value ratio,
@@ -48,6 +47,33 @@ struct LiquidationAmt {
     uint128 liquidatorRewardAmt;
     uint128 protocolPenaltyAmt;
 }
+
+/* ============ The type hash of sign typed data v4 for permit functions ============ */
+
+// Remove collateral function type hash
+bytes32 constant REMOVE_COLLATERAL_TYPEHASH = keccak256(
+    "RemoveCollateral(address delegatee,bytes12 loanId,uint128 amount,uint256 nonce,uint256 deadline)"
+);
+
+// Repay function type hash
+bytes32 constant REPAY_TYPEHASH = keccak256(
+    "Repay(address delegatee,bytes12 loanId,uint128 collateralAmt,uint128 debtAmt,bool repayAndDeposit,uint256 nonce,uint256 deadline)"
+);
+
+// Borrow function type hash
+bytes32 constant ROLL_BORROW_TYPEHASH = keccak256(
+    "RollBorrow(address delegatee,bytes12 loanId,uint32 expiredTime,uint32 maxAnnualPercentageRate,uint128 maxCollateralAmt,uint128 maxBorrowAmt,address tsbTokenAddr,uint256 nonce,uint256 deadline)"
+);
+
+// Force cancel roll borrow function type hash
+bytes32 constant FORCE_CANCEL_ROLL_BORROW_TYPEHASH = keccak256(
+    "ForceCancelRollBorrow(address delegatee,bytes12 loanId,uint256 nonce,uint256 deadline)"
+);
+
+// Roll to Aave function type hash
+bytes32 constant ROLL_TO_AAVE_TYPEHASH = keccak256(
+    "RollToAave(address delegatee,bytes12 loanId,uint128 collateralAmt,uint128 debtAmt,uint256 nonce,uint256 deadline)"
+);
 
 /// @notice The data of the roll borrow order
 /// @dev maxAnnualPercentageRate means the maximum annual percentage rate that borrower can accept,

@@ -448,9 +448,10 @@ describe("Roll borrow", function () {
       .forceCancelRollBorrow(loanId);
 
     // check event
+    const loanOwner = await user.signer.getAddress();
     await expect(forceCancelRollBorrowTx)
       .to.emit(diamondLoan, "RollBorrowOrderForceCancelPlaced")
-      .withArgs(await user.signer.getAddress(), loanId);
+      .withArgs(loanId, loanOwner, loanOwner);
 
     await rollupOneBlock(
       diamondRollup,
@@ -510,7 +511,7 @@ describe("Roll borrow", function () {
     const fakeUser = user2;
     await expect(
       diamondLoan.connect(fakeUser).forceCancelRollBorrow(loanId)
-    ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
+    ).to.be.revertedWithCustomError(diamondLoan, "InvalidCaller");
   });
   it("Success to set and get roll-over fee", async function () {
     const newRollOverFee = utils.parseEther("0.05");

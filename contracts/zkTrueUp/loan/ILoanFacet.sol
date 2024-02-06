@@ -119,14 +119,21 @@ interface ILoanFacet {
 
     /// @notice Emitted when the borrower place a roll borrow order
     /// @param loanId The id of the loan
-    /// @param sender The address of the sender
+    /// @param sender The address of the `msg.sender`
+    /// @param loanOwner The address of the loan owner
     /// @param rollBorrowReq The roll borrow request
-    event RollBorrowOrderPlaced(bytes12 indexed loanId, address indexed sender, Operations.RollBorrow rollBorrowReq);
+    event RollBorrowOrderPlaced(
+        bytes12 indexed loanId,
+        address sender,
+        address loanOwner,
+        Operations.RollBorrow rollBorrowReq
+    );
 
     /// @notice Emitted when the borrower force cancel a roll borrow order on L1
-    /// @param loanOwner The address of the loan owner
     /// @param loanId The id of the loan
-    event RollBorrowOrderForceCancelPlaced(address indexed loanOwner, bytes12 indexed loanId);
+    /// @param sender The address of the `msg.sender`
+    /// @param loanOwner The address of the loan owner
+    event RollBorrowOrderForceCancelPlaced(bytes12 indexed loanId, address sender, address loanOwner);
 
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
@@ -173,18 +180,72 @@ interface ILoanFacet {
     /// @param amount The amount of the collateral
     function removeCollateral(bytes12 loanId, uint128 amount) external;
 
-    /// @notice Repay the loan, only the loan owner can repay the loan
+    /// @notice Remove collateral from the loan with permit signature
+    /// @param loanId The id of the loan
+    /// @param amount The amount of the collateral
+    /// @param deadline The deadline of the signature
+    /// @param v The recovery id of the signature
+    /// @param r The r value of the signature
+    /// @param s The s value of the signature
+    function removeCollateralPermit(
+        bytes12 loanId,
+        uint128 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    /// @notice Repay the loan
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of collateral to be returned
     /// @param debtAmt The amount of debt to be repaid
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable;
 
+    /// @notice Repay the loan with permit signature
+    /// @param loanId The id of the loan
+    /// @param collateralAmt The amount of collateral to be returned
+    /// @param debtAmt The amount of debt to be repaid
+    /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
+    /// @param deadline The deadline of the signature
+    /// @param v The recovery id of the signature
+    /// @param r The r value of the signature
+    /// @param s The s value of the signature
+    function repayPermit(
+        bytes12 loanId,
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        bool repayAndDeposit,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable;
+
     /// @notice Roll the loan to Aave
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of collateral to be returned
     /// @param debtAmt The amount of debt to be repaid
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external;
+
+    /// @notice Roll the loan to Aave with permit signature
+    /// @param loanId The id of the loan
+    /// @param collateralAmt The amount of collateral to be returned
+    /// @param debtAmt The amount of debt to be repaid
+    /// @param deadline The deadline of the signature
+    /// @param v The recovery id of the signature
+    /// @param r The r value of the signature
+    /// @param s The s value of the signature
+    function rollToAavePermit(
+        bytes12 loanId,
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 
     /// @notice Place a roll borrow order
     /// @notice User want to roll the original loan to a new loan without repay
@@ -193,11 +254,30 @@ interface ILoanFacet {
     /// @param rollBorrowOrder The roll borrow order
     function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable;
 
+    /// @notice Place a roll borrow order with permit signature
+    /// @notice User want to roll the original loan to a new loan without repay
+    /// @notice The roll borrow is an action to place a borrow order on L1,
+    ///         and the order is waiting to be matched on L2 and rollup will create a new loan on L1 once matched
+    /// @param rollBorrowOrder The roll borrow order
+    function rollBorrowPermit(
+        RollBorrowOrder memory rollBorrowOrder,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable;
+
     /// @notice Cancel the roll borrow order
     /// @notice User can force cancel their roll borrow order on L1
     ///         to avoid sequencer ignore his cancel request in L2
     /// @param loanId The id of the loan to be cancelled
     function forceCancelRollBorrow(bytes12 loanId) external;
+
+    /// @notice Cancel the roll borrow order with permit signature
+    /// @notice User can force cancel their roll borrow order on L1
+    ///         to avoid sequencer ignore his cancel request in L2
+    /// @param loanId The id of the loan to be cancelled
+    function forceCancelRollBorrowPermit(bytes12 loanId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
 
     /// @notice Liquidate the loan
     /// @param loanId The id of the loan to be liquidated
@@ -268,6 +348,7 @@ interface ILoanFacet {
     function getBorrowFeeRate() external view returns (uint32);
 
     /// @notice Return the nonce of the account
+    /// @dev The nonce is used to prevent signature replay attack
     /// @param account The address of the account
     function getNonce(address account) external view returns (uint256);
 

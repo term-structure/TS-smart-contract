@@ -19,15 +19,13 @@ import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {AddressLib} from "../address/AddressLib.sol";
 import {TokenLib} from "../token/TokenLib.sol";
-import {RollupLib} from "../rollup/RollupLib.sol";
 import {LoanLib} from "./LoanLib.sol";
-import {TsbLib} from "../tsb/TsbLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
-import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo, RollBorrowOrder} from "./LoanStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {Signature} from "../libraries/Signature.sol";
+import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo, RollBorrowOrder, REMOVE_COLLATERAL_TYPEHASH, REPAY_TYPEHASH, ROLL_BORROW_TYPEHASH, FORCE_CANCEL_ROLL_BORROW_TYPEHASH, ROLL_TO_AAVE_TYPEHASH} from "./LoanStorage.sol";
 
 /**
  * @title Term Structure Loan Facet Contract
@@ -54,7 +52,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
-        msg.sender.requireValidCaller(loanOwner, lsl.isDelegated);
 
         IERC20 collateralToken = loanInfo.collateralAsset.token;
         Utils.transferFrom(collateralToken, msg.sender, amount, msg.value);
@@ -72,24 +69,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
-        msg.sender.requireValidCaller(loanOwner, lsl.isDelegated);
+        msg.sender.requireValidCaller(loanOwner, lsl);
 
         _removeCollateral(lsl, loanInfo, loanId, msg.sender, loanOwner, amount);
     }
 
-    bytes32 private constant REMOVE_COLLATERAL_TYPEHASH =
-        keccak256("RemoveCollateral(address delegatee,bytes12 loanId,uint128 amount,uint256 nonce,uint256 deadline)");
-
-    function _calcRemoveCollateralStructHash(
-        address delegatee,
-        bytes12 loanId,
-        uint128 amount,
-        uint256 nonce,
-        uint256 deadline
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(REMOVE_COLLATERAL_TYPEHASH, delegatee, loanId, amount, nonce, deadline));
-    }
-
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function removeCollateralPermit(
         bytes12 loanId,
         uint128 amount,
@@ -98,6 +85,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         bytes32 r,
         bytes32 s
     ) external nonReentrant {
+        Signature.verifyDeadline(deadline);
+
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
@@ -111,31 +100,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
         Signature.verifySignature(loanOwner, structHash, v, r, s);
 
-        lsl.nonces[loanOwner] += 1;
+        lsl.increaseNonce(loanOwner);
 
         _removeCollateral(lsl, loanInfo, loanId, msg.sender, loanOwner, amount);
-    }
-
-    function _removeCollateral(
-        LoanStorage.Layout storage lsl,
-        LoanInfo memory loanInfo,
-        bytes12 loanId,
-        address sender,
-        address loanOwner,
-        uint128 amount
-    ) internal {
-        Loan memory loan = loanInfo.loan;
-        loan.removeCollateral(amount);
-        loan.requireHealthy(loanInfo.liquidationFactor, loanInfo.collateralAsset, loanInfo.debtAsset);
-
-        lsl.loans[loanId] = loan;
-        IERC20 collateralToken = loanInfo.collateralAsset.token;
-        Utils.transfer(collateralToken, payable(loanOwner), amount);
-        emit CollateralRemoved(loanId, sender, loanOwner, collateralToken, amount);
-    }
-
-    function getNonce(address account) external view returns (uint256) {
-        return LoanStorage.layout().getNonce(account);
     }
 
     /**
@@ -145,36 +112,223 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
-        msg.sender.requireValidCaller(loanOwner, lsl.isDelegated);
+        msg.sender.requireValidCaller(loanOwner, lsl);
 
-        _repay(lsl, loanInfo, msg.sender, loanId, collateralAmt, debtAmt);
-        emit Repayment(
-            loanId,
+        _repay(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt, repayAndDeposit, msg.value);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
+    function repayPermit(
+        bytes12 loanId,
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        bool repayAndDeposit,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable {
+        Signature.verifyDeadline(deadline);
+
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
+        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
+
+        // scope to avoid stack too deep error
+        {
+            bytes32 structHash = _calcRepayStructHash(
+                msg.sender,
+                loanId,
+                collateralAmt,
+                debtAmt,
+                repayAndDeposit,
+                lsl.getNonce(loanOwner),
+                deadline
+            );
+            Signature.verifySignature(loanOwner, structHash, v, r, s);
+        }
+
+        lsl.increaseNonce(loanOwner);
+
+        _repay(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt, repayAndDeposit, msg.value);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     * @notice Should be `approveDelegation` before `borrow from AAVE V3 pool`
+     * @dev Roll the loan to AAVE V3 pool,
+     *      the user can transfer the loan of fixed rate and date from term structure
+     *      to the floating rate and perpetual position on Aave without repaying the debt
+     */
+    function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
+
+        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
+        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
+        msg.sender.requireValidCaller(loanOwner, lsl);
+
+        _rollToAave(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     * @notice Should be `approveDelegation` before `borrow from AAVE V3 pool`
+     * @dev Roll the loan to AAVE V3 pool with permit signature
+     *      the user can transfer the loan of fixed rate and date from term structure
+     *      to the floating rate and perpetual position on Aave without repaying the debt
+     */
+    function rollToAavePermit(
+        bytes12 loanId,
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        Signature.verifyDeadline(deadline);
+
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
+
+        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
+        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
+
+        bytes32 structHash = _calcRollToAaveStructHash(
             msg.sender,
-            loanOwner,
-            loanInfo.collateralAsset.token,
-            loanInfo.debtAsset.token,
+            loanId,
             collateralAmt,
             debtAmt,
-            repayAndDeposit
+            lsl.getNonce(loanOwner),
+            deadline
         );
+        Signature.verifySignature(loanOwner, structHash, v, r, s);
 
-        if (repayAndDeposit) {
-            TokenStorage.Layout storage tsl = TokenStorage.layout();
-            (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(loanInfo.collateralAsset.token);
-            TokenLib.validDepositAmt(collateralAmt, assetConfig.minDepositAmt);
-            AccountLib.addDepositReq(
-                RollupStorage.layout(),
-                loanOwner,
-                loanInfo.accountId,
-                assetConfig.token,
-                tokenId,
-                assetConfig.decimals,
-                collateralAmt
-            );
-        } else {
-            Utils.transfer(loanInfo.collateralAsset.token, payable(loanOwner), collateralAmt);
-        }
+        lsl.increaseNonce(loanOwner);
+
+        _rollToAave(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     * @dev Cannot roll total collateral amount because the original loan will be not strict healthy if success
+     */
+    function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable {
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
+        if (msg.value != lsl.getRollOverFee()) revert InvalidRollBorrowFee(msg.value);
+
+        Utils.transferNativeToken(ProtocolParamsStorage.layout().getVaultAddr(), msg.value);
+
+        LoanInfo memory loanInfo = lsl.getLoanInfo(rollBorrowOrder.loanId);
+        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
+        msg.sender.requireValidCaller(loanOwner, lsl);
+
+        uint32 newMaturityTime = _requireValidOrder(rollBorrowOrder, loanInfo, rollBorrowOrder.loanId);
+
+        _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanOwner, rollBorrowOrder.loanId, newMaturityTime);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     * @dev Cannot roll total collateral amount because the original loan will be not strict healthy if success
+     */
+    function rollBorrowPermit(
+        RollBorrowOrder memory rollBorrowOrder,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable {
+        Signature.verifyDeadline(deadline);
+
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
+        if (msg.value != lsl.getRollOverFee()) revert InvalidRollBorrowFee(msg.value);
+
+        Utils.transferNativeToken(ProtocolParamsStorage.layout().getVaultAddr(), msg.value);
+
+        LoanInfo memory loanInfo = lsl.getLoanInfo(rollBorrowOrder.loanId);
+        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
+
+        bytes32 structHash = _calcRollBorrowStructHash(msg.sender, rollBorrowOrder, lsl.getNonce(loanOwner), deadline);
+        Signature.verifySignature(loanOwner, structHash, v, r, s);
+
+        lsl.increaseNonce(loanOwner);
+
+        uint32 newMaturityTime = _requireValidOrder(rollBorrowOrder, loanInfo, rollBorrowOrder.loanId);
+
+        _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanOwner, rollBorrowOrder.loanId, newMaturityTime);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     * @dev The force cancel roll borrow action will add this request in L1 request queue,
+     *      to force this transaction must to be packaged in rollup block
+     *      to avoid the `UserCancelRollBorrow` operation be maliciously ignored in L2
+     */
+    function forceCancelRollBorrow(bytes12 loanId) external {
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
+
+        (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(
+            loanId
+        );
+        address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
+        msg.sender.requireValidCaller(loanOwner, lsl);
+
+        _forceCancelRollBorrow(
+            lsl,
+            msg.sender,
+            loanOwner,
+            loanId,
+            accountId,
+            debtTokenId,
+            collateralTokenId,
+            maturityTime
+        );
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     * @dev The force cancel roll borrow action will add this request in L1 request queue,
+     *      to force this transaction must to be packaged in rollup block
+     *      to avoid the `UserCancelRollBorrow` operation be maliciously ignored in L2
+     */
+    function forceCancelRollBorrowPermit(bytes12 loanId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+        Signature.verifyDeadline(deadline);
+
+        LoanStorage.Layout storage lsl = LoanStorage.layout();
+        if (!lsl.getRollerState()) revert RollIsNotActivated();
+
+        (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(
+            loanId
+        );
+        address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
+
+        bytes32 structHash = _calcForceCancelRollBorrowStructHash(
+            msg.sender,
+            loanId,
+            lsl.getNonce(loanOwner),
+            deadline
+        );
+        Signature.verifySignature(loanOwner, structHash, v, r, s);
+
+        lsl.increaseNonce(loanOwner);
+
+        _forceCancelRollBorrow(
+            lsl,
+            msg.sender,
+            loanOwner,
+            loanId,
+            accountId,
+            debtTokenId,
+            collateralTokenId,
+            maturityTime
+        );
     }
 
     /**
@@ -192,93 +346,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
         emit Liquidation(loanId, msg.sender, collateralToken, liquidatorRewardAmt, protocolPenaltyAmt);
         return (liquidatorRewardAmt, protocolPenaltyAmt);
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     * @dev Cannot roll total collateral amount because the original loan will be not strict healthy if success
-     */
-    function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable {
-        LoanStorage.Layout storage lsl = LoanStorage.layout();
-        if (!lsl.getRollerState()) revert RollIsNotActivated();
-        if (msg.value != lsl.getRollOverFee()) revert InvalidRollBorrowFee(msg.value);
-
-        Utils.transferNativeToken(ProtocolParamsStorage.layout().getVaultAddr(), msg.value);
-
-        bytes12 loanId = rollBorrowOrder.loanId;
-        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        msg.sender.requireLoanOwner(loanInfo.accountId);
-        // assert: expireTime > block.timestamp && expireTime + 1 day <= maturityTime
-        // solhint-disable-next-line not-rely-on-time
-        if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
-        uint32 oldMaturityTime = loanInfo.maturityTime;
-        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > oldMaturityTime)
-            revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
-        if (loanInfo.loan.lockedCollateralAmt > 0) revert LoanIsLocked(loanId);
-
-        // check the tsb token is exist
-        TokenStorage.Layout storage tsl = TokenStorage.layout();
-        address tsbTokenAddr = rollBorrowOrder.tsbTokenAddr;
-        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(tsbTokenAddr));
-        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tsbTokenAddr);
-
-        // check new maturity time is valid (new maturity time > old maturity time)
-        (, uint32 newMaturityTime) = ITsbToken(tsbTokenAddr).tokenInfo();
-        if (newMaturityTime <= oldMaturityTime) revert InvalidMaturityTime(newMaturityTime);
-
-        _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanId, oldMaturityTime, newMaturityTime);
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     * @dev The force cancel roll borrow action will add this request in L1 request queue,
-     *      to force this transaction must to be packaged in rollup block
-     *      to avoid the `UserCancelRollBorrow` operation be maliciously ignored in L2
-     */
-    function forceCancelRollBorrow(bytes12 loanId) external {
-        (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(
-            loanId
-        );
-        msg.sender.requireLoanOwner(accountId);
-        LoanStorage.Layout storage lsl = LoanStorage.layout();
-        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        if (loanInfo.loan.lockedCollateralAmt == 0) revert LoanIsNotLocked(loanId);
-
-        Operations.CancelRollBorrow memory forceCancelRollBorrowReq = Operations.CancelRollBorrow({
-            accountId: accountId,
-            debtTokenId: debtTokenId,
-            collateralTokenId: collateralTokenId,
-            maturityTime: maturityTime // the maturity time of the original loan to be rolled over
-        });
-
-        LoanLib.addForceCancelRollBorrowReq(RollupStorage.layout(), msg.sender, forceCancelRollBorrowReq);
-        emit RollBorrowOrderForceCancelPlaced(msg.sender, loanId);
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     * @notice Should be `approveDelegation` before `borrow from AAVE V3 pool`
-     * @dev Roll the loan to AAVE V3 pool,
-     *      the user can transfer the loan of fixed rate and date from term structure
-     *      to the floating rate and perpetual position on Aave without repaying the debt
-     */
-    function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external {
-        LoanStorage.Layout storage lsl = LoanStorage.layout();
-        if (!lsl.getRollerState()) revert RollIsNotActivated();
-
-        LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
-        msg.sender.requireValidCaller(loanOwner, lsl.isDelegated);
-
-        Loan memory loan = loanInfo.loan;
-        AssetConfig memory collateralAsset = loanInfo.collateralAsset;
-        AssetConfig memory debtAsset = loanInfo.debtAsset;
-        loan.repay(collateralAmt, debtAmt);
-        loan.requireHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
-
-        lsl.loans[loanId] = loan;
-
-        _supplyToBorrow(msg.sender, loanOwner, loanId, collateralAsset.token, debtAsset.token, collateralAmt, debtAmt);
     }
 
     /* ============ Admin Functions ============ */
@@ -424,6 +491,13 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
+    function getNonce(address account) external view returns (uint256) {
+        return LoanStorage.layout().getNonce(account);
+    }
+
+    /**
+     * @inheritdoc ILoanFacet
+     */
     function getLoanId(
         uint32 accountId,
         uint32 maturityTime,
@@ -442,38 +516,177 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
     /* ============ Internal Functions ============ */
 
+    /// @notice Internal remove collateral function
+    /// @param lsl The loan storage layout
+    /// @param loanInfo The loan info
+    /// @param loanId The id of the loan
+    /// @param caller The caller to remove the collateral
+    /// @param loanOwner The owner of the loan
+    /// @param amount The amount of the collateral to be removed
+    function _removeCollateral(
+        LoanStorage.Layout storage lsl,
+        LoanInfo memory loanInfo,
+        bytes12 loanId,
+        address caller,
+        address loanOwner,
+        uint128 amount
+    ) internal {
+        Loan memory loan = loanInfo.loan;
+        loan.removeCollateral(amount);
+        loan.requireHealthy(loanInfo.liquidationFactor, loanInfo.collateralAsset, loanInfo.debtAsset);
+
+        lsl.loans[loanId] = loan;
+        IERC20 collateralToken = loanInfo.collateralAsset.token;
+        Utils.transfer(collateralToken, payable(loanOwner), amount);
+        emit CollateralRemoved(loanId, caller, loanOwner, collateralToken, amount);
+    }
+
     /// @notice Internal repay function
     /// @param lsl The loan storage layout
     /// @param loanInfo The loan info
     /// @param caller The caller to repay the loan
+    /// @param loanOwner The owner of the loan
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of the collateral to be repaid
     /// @param debtAmt The amount of the debt to be repaid
+    /// @param repayAndDeposit The flag to indicate whether to repay and deposit
+    /// @param msgValue The value of the message
     function _repay(
         LoanStorage.Layout storage lsl,
         LoanInfo memory loanInfo,
         address caller,
+        address loanOwner,
         bytes12 loanId,
         uint128 collateralAmt,
-        uint128 debtAmt
+        uint128 debtAmt,
+        bool repayAndDeposit,
+        uint256 msgValue
     ) internal {
         Loan memory loan = loanInfo.loan;
-        Utils.transferFrom(loanInfo.debtAsset.token, caller, debtAmt, msg.value);
+        Utils.transferFrom(loanInfo.debtAsset.token, caller, debtAmt, msgValue);
 
         loan.repay(collateralAmt, debtAmt);
         loan.requireHealthy(loanInfo.liquidationFactor, loanInfo.collateralAsset, loanInfo.debtAsset);
 
         lsl.loans[loanId] = loan;
+        emit Repayment(
+            loanId,
+            caller,
+            loanOwner,
+            loanInfo.collateralAsset.token,
+            loanInfo.debtAsset.token,
+            collateralAmt,
+            debtAmt,
+            repayAndDeposit
+        );
+
+        if (repayAndDeposit) {
+            TokenStorage.Layout storage tsl = TokenStorage.layout();
+            (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(loanInfo.collateralAsset.token);
+            TokenLib.validDepositAmt(collateralAmt, assetConfig.minDepositAmt);
+            AccountLib.addDepositReq(
+                RollupStorage.layout(),
+                loanOwner,
+                loanInfo.accountId,
+                assetConfig.token,
+                tokenId,
+                assetConfig.decimals,
+                collateralAmt
+            );
+        } else {
+            Utils.transfer(loanInfo.collateralAsset.token, payable(loanOwner), collateralAmt);
+        }
+    }
+
+    /// @notice Internal function to roll to AAVE V3
+    /// @param lsl The loan storage layout
+    /// @param loanInfo The loan info
+    /// @param caller The caller to roll to AAVE
+    /// @param loanOwner The loan owner
+    /// @param loanId The loan id to be rolled over
+    /// @param collateralAmt The amount of the collateral to be supplied to AAVE
+    /// @param debtAmt The amount of the debt to be borrowed from AAVE
+    function _rollToAave(
+        LoanStorage.Layout storage lsl,
+        LoanInfo memory loanInfo,
+        address caller,
+        address loanOwner,
+        bytes12 loanId,
+        uint128 collateralAmt,
+        uint128 debtAmt
+    ) internal {
+        Loan memory loan = loanInfo.loan;
+        AssetConfig memory collateralAsset = loanInfo.collateralAsset;
+        AssetConfig memory debtAsset = loanInfo.debtAsset;
+        loan.repay(collateralAmt, debtAmt);
+        loan.requireHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
+
+        lsl.loans[loanId] = loan;
+
+        _supplyToBorrow(caller, loanOwner, loanId, collateralAsset.token, debtAsset.token, collateralAmt, debtAmt);
+    }
+
+    /// @notice Internal function to supply collateral to AAVE V3 then borrow debt from AAVE V3
+    /// @dev    The collateral token is WETH if the collateral token is ETH
+    /// @param caller The caller to roll to AAVE
+    /// @param loanOwner The loan owner
+    /// @param loanId The loan id to be rolled over
+    /// @param collateralToken The collateral token to be supplied
+    /// @param debtToken The debt token to be borrowed
+    /// @param collateralAmt The amount of the collateral token to be supplied
+    /// @param debtAmt The amount of the debt token to be borrowed
+    function _supplyToBorrow(
+        address caller,
+        address loanOwner,
+        bytes12 loanId,
+        IERC20 collateralToken,
+        IERC20 debtToken,
+        uint128 collateralAmt,
+        uint128 debtAmt
+    ) internal {
+        AddressStorage.Layout storage asl = AddressStorage.layout();
+        // AAVE receive WETH as collateral
+        IERC20 supplyToken = address(collateralToken) == Config.ETH_ADDRESS ? asl.getWETH() : collateralToken;
+
+        IPool aaveV3Pool = asl.getAaveV3Pool();
+        supplyToken.safeApprove(address(aaveV3Pool), collateralAmt);
+        // referralCode: 0
+        // (see https://docs.aave.com/developers/core-contracts/pool#supply)
+        try aaveV3Pool.supply(address(supplyToken), collateralAmt, loanOwner, Config.AAVE_V3_REFERRAL_CODE) {
+            // variable rate mode: 2
+            // referralCode: 0
+            // (see https://docs.aave.com/developers/core-contracts/pool#borrow)
+            try
+                aaveV3Pool.borrow(
+                    address(debtToken),
+                    debtAmt,
+                    Config.AAVE_V3_INTEREST_RATE_MODE,
+                    Config.AAVE_V3_REFERRAL_CODE,
+                    loanOwner
+                )
+            {
+                emit Repayment(loanId, caller, loanOwner, collateralToken, debtToken, collateralAmt, debtAmt, false);
+                emit RollToAave(loanId, caller, loanOwner, supplyToken, debtToken, collateralAmt, debtAmt);
+            } catch Error(string memory err) {
+                revert BorrowFromAaveFailedLogString(supplyToken, collateralAmt, debtToken, debtAmt, err);
+            } catch (bytes memory err) {
+                revert BorrowFromAaveFailedLogBytes(supplyToken, collateralAmt, debtToken, debtAmt, err);
+            }
+        } catch Error(string memory err) {
+            revert SupplyToAaveFailedLogString(supplyToken, collateralAmt, err);
+        } catch (bytes memory err) {
+            revert SupplyToAaveFailedLogBytes(supplyToken, collateralAmt, err);
+        }
     }
 
     /// @notice Internal liquidate function
-    /// @param sender The sender to liquidate the loan
+    /// @param caller The caller to liquidate the loan
     /// @param loanId The loan id to be liquidated
     /// @param repayAmt The amount of the loan to be repaid
     /// @return liquidationAmt The amount of the loan to be liquidated
     /// @return collateralToken The collateral token of the loan
     function _liquidate(
-        address sender,
+        address caller,
         bytes12 loanId,
         uint128 repayAmt
     ) internal returns (LiquidationAmt memory, IERC20) {
@@ -489,7 +702,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
 
         uint128 totalRemovedCollateralAmt = liquidationAmt.liquidatorRewardAmt + liquidationAmt.protocolPenaltyAmt;
-        Utils.transferFrom(loanInfo.debtAsset.token, sender, repayAmt, msg.value);
+        Utils.transferFrom(loanInfo.debtAsset.token, caller, repayAmt, msg.value);
 
         /// remove all locked collateral (equivalent to cancelling any roll borrow order)
         if (loan.lockedCollateralAmt > 0) loan.removeLockedCollateral(loan.lockedCollateralAmt);
@@ -499,7 +712,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
         emit Repayment(
             loanId,
-            sender,
+            caller,
             loanOwner,
             loanInfo.collateralAsset.token,
             loanInfo.debtAsset.token,
@@ -608,28 +821,61 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return LiquidationAmt({liquidatorRewardAmt: liquidatorRewardAmt, protocolPenaltyAmt: protocolPenaltyAmt});
     }
 
+    /// @notice Internal function check the roll borrow order is valid
+    /// @param rollBorrowOrder The roll borrow order
+    /// @param loanInfo The loan info
+    /// @param loanId The id of the loan
+    function _requireValidOrder(
+        RollBorrowOrder memory rollBorrowOrder,
+        LoanInfo memory loanInfo,
+        bytes12 loanId
+    ) internal view returns (uint32) {
+        // check the tsb token of next maturity time is exist
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(rollBorrowOrder.tsbTokenAddr));
+        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(rollBorrowOrder.tsbTokenAddr);
+
+        uint32 oldMaturityTime = loanInfo.maturityTime;
+        (, uint32 newMaturityTime) = ITsbToken(rollBorrowOrder.tsbTokenAddr).tokenInfo();
+
+        // assert: expireTime > block.timestamp && expireTime + 1 day <= old maturityTime
+        // solhint-disable-next-line not-rely-on-time
+        if (rollBorrowOrder.expiredTime <= block.timestamp) revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
+        if (rollBorrowOrder.expiredTime + Config.LAST_ROLL_ORDER_TIME_TO_MATURITY > oldMaturityTime)
+            revert InvalidExpiredTime(rollBorrowOrder.expiredTime);
+
+        // check new maturity time is valid (new maturity time > old maturity time)
+        if (newMaturityTime <= oldMaturityTime) revert InvalidMaturityTime(newMaturityTime);
+
+        // check the loan is not locked
+        if (loanInfo.loan.lockedCollateralAmt > 0) revert LoanIsLocked(loanId);
+
+        return newMaturityTime;
+    }
+
     /// @notice Internal function to roll borrow
     /// @dev Should simulate this roll borrow order before being matched in L2,
     ///      to make sure both the original and new loan are strictly healthy (buffering to liquidation threshold)
     /// @param lsl The loan storage layout
     /// @param rollBorrowOrder The roll borrow order
     /// @param loanInfo The loan info
+    /// @param caller The caller to roll borrow the loan
     /// @param loanOwner The loan owner
     /// @param loanId The loan id
-    /// @param oldMaturityTime The maturity time of the old loan
     /// @param newMaturityTime The maturity time of the new loan after roll borrow
     function _rollBorrow(
         LoanStorage.Layout storage lsl,
         RollBorrowOrder memory rollBorrowOrder,
         LoanInfo memory loanInfo,
+        address caller,
         address loanOwner,
         bytes12 loanId,
-        uint32 oldMaturityTime,
         uint32 newMaturityTime
     ) internal {
         AssetConfig memory collateralAsset;
         AssetConfig memory debtAsset;
         uint32 borrowFeeRate = lsl.getBorrowFeeRate();
+
         // {} scope to avoid stack too deep error
         {
             // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
@@ -659,17 +905,8 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             loan.repay(rollBorrowOrder.maxCollateralAmt, (rollBorrowOrder.maxBorrowAmt - maxBorrowFee));
             loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
 
-            // reuse the original memory of `loan` and `loanInfo` to sava gas
-            // those represent the `newLoan` and `newLoanInfo` here
+            // reuse the original memory of `loan` to simulate the new loan after roll borrow
             loan = Loan({collateralAmt: rollBorrowOrder.maxCollateralAmt, lockedCollateralAmt: 0, debtAmt: maxDebtAmt});
-            loanInfo = LoanInfo({
-                loan: loan,
-                maturityTime: newMaturityTime,
-                accountId: loanInfo.accountId,
-                liquidationFactor: loanInfo.liquidationFactor,
-                collateralAsset: collateralAsset,
-                debtAsset: debtAsset
-            });
             // check the new loan will be also strictly healthy
             // if the roll borrow order is executed in L2 then the position is be rollup to L1
             loan.requireStrictHealthy(loanInfo.liquidationFactor, collateralAsset, debtAsset);
@@ -687,66 +924,147 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             feeRate: borrowFeeRate,
             borrowTokenId: debtTokenId,
             maxBorrowAmt: rollBorrowOrder.maxBorrowAmt.toL2Amt(debtAsset.decimals),
-            oldMaturityTime: oldMaturityTime,
+            oldMaturityTime: loanInfo.maturityTime,
             newMaturityTime: newMaturityTime,
             expiredTime: rollBorrowOrder.expiredTime,
             maxPrincipalAndInterestRate: (rollBorrowOrder.maxAnnualPercentageRate + Config.SYSTEM_UNIT_BASE).toUint32() // convert APR to PIR (e.g. 5% APR => 105% PIR)
         });
 
         LoanLib.addRollBorrowReq(RollupStorage.layout(), loanOwner, rollBorrowReq);
-        emit RollBorrowOrderPlaced(loanId, loanOwner, rollBorrowReq);
+        emit RollBorrowOrderPlaced(loanId, caller, loanOwner, rollBorrowReq);
     }
 
-    /// @notice Internal function to supply collateral to AAVE V3 then borrow debt from AAVE V3
-    /// @dev    The collateral token is WETH if the collateral token is ETH
-    /// @param sender The `msg sender`
+    /// @notice Internal function to force cancel roll borrow
+    /// @param lsl The loan storage layout
+    /// @param caller The caller to force cancel roll borrow
     /// @param loanOwner The loan owner
-    /// @param loanId The loan id to be rolled over
-    /// @param collateralToken The collateral token to be supplied
-    /// @param debtToken The debt token to be borrowed
-    /// @param collateralAmt The amount of the collateral token to be supplied
-    /// @param debtAmt The amount of the debt token to be borrowed
-    function _supplyToBorrow(
-        address sender,
+    /// @param loanId The loan id to be forced cancel roll borrow
+    /// @param accountId The account id of the loan owner
+    /// @param debtTokenId The debt token id of the loan
+    /// @param collateralTokenId The collateral token id of the loan
+    /// @param maturityTime The maturity time of the original loan to be rolled over
+    function _forceCancelRollBorrow(
+        LoanStorage.Layout storage lsl,
+        address caller,
         address loanOwner,
         bytes12 loanId,
-        IERC20 collateralToken,
-        IERC20 debtToken,
-        uint128 collateralAmt,
-        uint128 debtAmt
+        uint32 accountId,
+        uint16 debtTokenId,
+        uint16 collateralTokenId,
+        uint32 maturityTime
     ) internal {
-        AddressStorage.Layout storage asl = AddressStorage.layout();
-        // AAVE receive WETH as collateral
-        IERC20 supplyToken = address(collateralToken) == Config.ETH_ADDRESS ? asl.getWETH() : collateralToken;
+        Loan memory loan = lsl.getLoan(loanId);
+        if (loan.lockedCollateralAmt == 0) revert LoanIsNotLocked(loanId);
 
-        IPool aaveV3Pool = asl.getAaveV3Pool();
-        supplyToken.safeApprove(address(aaveV3Pool), collateralAmt);
-        // referralCode: 0
-        // (see https://docs.aave.com/developers/core-contracts/pool#supply)
-        try aaveV3Pool.supply(address(supplyToken), collateralAmt, loanOwner, Config.AAVE_V3_REFERRAL_CODE) {
-            // variable rate mode: 2
-            // referralCode: 0
-            // (see https://docs.aave.com/developers/core-contracts/pool#borrow)
-            try
-                aaveV3Pool.borrow(
-                    address(debtToken),
-                    debtAmt,
-                    Config.AAVE_V3_INTEREST_RATE_MODE,
-                    Config.AAVE_V3_REFERRAL_CODE,
-                    loanOwner
+        Operations.CancelRollBorrow memory forceCancelRollBorrowReq = Operations.CancelRollBorrow({
+            accountId: accountId,
+            debtTokenId: debtTokenId,
+            collateralTokenId: collateralTokenId,
+            maturityTime: maturityTime // the maturity time of the original loan to be rolled over
+        });
+
+        LoanLib.addForceCancelRollBorrowReq(RollupStorage.layout(), loanOwner, forceCancelRollBorrowReq);
+        emit RollBorrowOrderForceCancelPlaced(loanId, caller, loanOwner);
+    }
+
+    /* ============ Internal Pure Functions to Calculate Struct Hash ============ */
+
+    /// @notice Calculate the hash of the struct for the add collateral permit
+    /// @param delegatee The delegatee of the permit
+    /// @param loanId The id of the loan
+    /// @param amount The amount of the collateral to be added
+    /// @param nonce The nonce of the permit
+    /// @param deadline The deadline of the permit
+    function _calcRemoveCollateralStructHash(
+        address delegatee,
+        bytes12 loanId,
+        uint128 amount,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(REMOVE_COLLATERAL_TYPEHASH, delegatee, loanId, amount, nonce, deadline));
+    }
+
+    /// @notice Calculate the hash of the struct for the add collateral permit
+    /// @param delegatee The delegatee of the permit
+    /// @param loanId The id of the loan
+    /// @param collateralAmt The amount of the collateral to be added
+    /// @param debtAmt The amount of the debt to be repaid
+    /// @param repayAndDeposit The flag to indicate whether to repay and deposit
+    /// @param nonce The nonce of the permit
+    /// @param deadline The deadline of the permit
+    function _calcRepayStructHash(
+        address delegatee,
+        bytes12 loanId,
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        bool repayAndDeposit,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(REPAY_TYPEHASH, delegatee, loanId, collateralAmt, debtAmt, repayAndDeposit, nonce, deadline)
+            );
+    }
+
+    /// @notice Calculate the hash of the struct for the roll borrow permit
+    /// @param delegatee The delegatee of the permit
+    /// @param rollBorrowOrder The roll borrow order
+    /// @param nonce The nonce of the permit
+    /// @param deadline The deadline of the permit
+    function _calcRollBorrowStructHash(
+        address delegatee,
+        RollBorrowOrder memory rollBorrowOrder,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    ROLL_BORROW_TYPEHASH,
+                    delegatee,
+                    rollBorrowOrder.loanId,
+                    rollBorrowOrder.expiredTime,
+                    rollBorrowOrder.maxAnnualPercentageRate,
+                    rollBorrowOrder.maxCollateralAmt,
+                    rollBorrowOrder.maxBorrowAmt,
+                    rollBorrowOrder.tsbTokenAddr,
+                    nonce,
+                    deadline
                 )
-            {
-                emit Repayment(loanId, sender, loanOwner, collateralToken, debtToken, collateralAmt, debtAmt, false);
-                emit RollToAave(loanId, sender, loanOwner, supplyToken, debtToken, collateralAmt, debtAmt);
-            } catch Error(string memory err) {
-                revert BorrowFromAaveFailedLogString(supplyToken, collateralAmt, debtToken, debtAmt, err);
-            } catch (bytes memory err) {
-                revert BorrowFromAaveFailedLogBytes(supplyToken, collateralAmt, debtToken, debtAmt, err);
-            }
-        } catch Error(string memory err) {
-            revert SupplyToAaveFailedLogString(supplyToken, collateralAmt, err);
-        } catch (bytes memory err) {
-            revert SupplyToAaveFailedLogBytes(supplyToken, collateralAmt, err);
-        }
+            );
+    }
+
+    /// @notice Calculate the hash of the struct for the force cancel roll borrow permit
+    /// @param delegatee The delegatee of the permit
+    /// @param loanId The id of the loan
+    /// @param nonce The nonce of the permit
+    /// @param deadline The deadline of the permit
+    function _calcForceCancelRollBorrowStructHash(
+        address delegatee,
+        bytes12 loanId,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(FORCE_CANCEL_ROLL_BORROW_TYPEHASH, delegatee, loanId, nonce, deadline));
+    }
+
+    /// @notice Calculate the hash of the struct for the roll to AAVE permit
+    /// @param delegatee The delegatee of the permit
+    /// @param loanId The id of the loan
+    /// @param collateralAmt The amount of the collateral to be supplied to AAVE
+    /// @param debtAmt The amount of the debt to be borrowed from AAVE
+    /// @param nonce The nonce of the permit
+    /// @param deadline The deadline of the permit
+    function _calcRollToAaveStructHash(
+        address delegatee,
+        bytes12 loanId,
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(ROLL_TO_AAVE_TYPEHASH, delegatee, loanId, collateralAmt, debtAmt, nonce, deadline));
     }
 }

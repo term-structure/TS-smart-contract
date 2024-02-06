@@ -146,6 +146,13 @@ library LoanLib {
         return loan;
     }
 
+    /// @notice Internal function to increase the nonce of the address
+    /// @param s The loan storage
+    /// @param addr The address to be increased nonce
+    function increaseNonce(LoanStorage.Layout storage s, address addr) internal {
+        s.nonces[addr]++;
+    }
+
     /// @notice Internal function to get the health factor of the loan
     /// @dev The health factor formula: ltvThreshold * (collateralValue / collateralDecimals) / (debtValue / debtDecimals)
     /// @dev The health factor decimals is 3
@@ -296,13 +303,9 @@ library LoanLib {
         if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
     }
 
-    function requireValidCaller(
-        address caller,
-        address loanOwner,
-        mapping(address => mapping(address => bool)) storage isDelegated
-    ) internal view {
+    function requireValidCaller(address caller, address loanOwner, LoanStorage.Layout storage s) internal view {
         if (caller == loanOwner) return;
-        if (isDelegated[loanOwner][caller]) return;
+        if (s.isDelegated[loanOwner][caller]) return;
         revert InvalidCaller(caller, loanOwner);
     }
 

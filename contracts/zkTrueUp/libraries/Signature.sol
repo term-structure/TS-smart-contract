@@ -14,12 +14,18 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 library Signature {
     error InvalidSignature(address signer, address expectedSigner);
 
+    error SignatureExpired(uint256 deadline, uint256 currentTime);
+
     bytes32 internal constant EIP712_TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     bytes32 internal constant EIP712_NAME_HASH = keccak256(bytes("ZkTrueUp"));
 
     bytes32 internal constant EIP712_VERSION_HASH = keccak256(bytes("1"));
+
+    function verifyDeadline(uint256 deadline) internal view {
+        if (deadline < block.timestamp) revert SignatureExpired(deadline, block.timestamp);
+    }
 
     function verifySignature(address expectedSigner, bytes32 structHash, uint8 v, bytes32 r, bytes32 s) internal view {
         bytes32 digest = hashTypedDataV4(structHash);
