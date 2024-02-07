@@ -37,6 +37,7 @@ export const main = async () => {
   );
   const deployer = new Wallet(deployerPrivKey, provider);
   const operatorAddr = getString(process.env.STAGING_SEPOLIA_OPERATOR_ADDRESS);
+  const governorAddr = getString(process.env.STAGING_SEPOLIA_GOVERNOR_ADDRESS);
   const adminAddr = getString(process.env.STAGING_SEPOLIA_ADMIN_ADDRESS);
   const treasuryAddr = getString(process.env.STAGING_SEPOLIA_TREASURY_ADDRESS);
   const insuranceAddr = getString(
@@ -291,6 +292,11 @@ export const main = async () => {
       } as AssetConfigStruct,
     ]
   );
+
+  // change operator role from operator to governor
+  const OPERATOR_ROLE = ethers.utils.id("OPERATOR_ROLE");
+  await zkTrueUp.grantRole(OPERATOR_ROLE, governorAddr);
+  await zkTrueUp.revokeRole(OPERATOR_ROLE, operatorAddr);
 
   // init diamond cut
   console.log("Init diamond cut...");
