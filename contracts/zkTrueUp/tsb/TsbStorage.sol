@@ -3,6 +3,13 @@ pragma solidity ^0.8.17;
 
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
+/* ============ The type hash of sign typed data v4 for permit functions ============ */
+
+// redeem function type hash
+bytes32 constant REDEEM_TYPEHASH = keccak256(
+    "Redeem(address delegatee,address tsbToken,bool redeemAndDeposit,uint256 amount,uint256 nonce,uint256 deadline)"
+);
+
 /**
  * @title Term Structure Bond Storage
  * @author Term Structure Labs

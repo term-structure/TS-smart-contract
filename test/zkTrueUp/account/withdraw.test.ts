@@ -192,7 +192,7 @@ describe("Withdraw", () => {
       ).to.be.revertedWithCustomError(diamondToken, "TokenIsNotExist");
     });
 
-    it("Fail to withdraw base token, account address from input id is not msg.sender", async () => {
+    it("Fail to withdraw base token, not delegated caller", async () => {
       const tokenAddr = DEFAULT_ETH_ADDRESS;
       const amount = utils.parseEther("1");
 
@@ -200,7 +200,7 @@ describe("Withdraw", () => {
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await expect(
         diamondAccMock.connect(user2).withdraw(user1Addr, tokenAddr, amount)
-      ).to.be.revertedWithCustomError(diamondAccMock, "AccountIsNotRegistered");
+      ).to.be.revertedWithCustomError(diamondAccMock, "InvalidCaller");
     });
   });
 
@@ -394,7 +394,7 @@ describe("Withdraw", () => {
       ).to.be.revertedWithCustomError(diamondToken, "TokenIsNotExist");
     });
 
-    it("Fail to withdraw tsb token, account address from input id is not msg.sender", async () => {
+    it("Fail to withdraw tsb token, not delegated caller", async () => {
       // get params tsbUSDC
       const underlyingTokenId = tsbTokensJSON[3].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[3].maturity);
@@ -408,7 +408,7 @@ describe("Withdraw", () => {
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await expect(
         diamondAccMock.connect(user2).withdraw(user1Addr, tsbTokenAddr, amount)
-      ).to.be.revertedWithCustomError(diamondAccMock, "AccountIsNotRegistered");
+      ).to.be.revertedWithCustomError(diamondAccMock, "InvalidCaller");
     });
   });
 });

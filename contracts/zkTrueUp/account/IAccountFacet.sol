@@ -34,6 +34,24 @@ interface IAccountFacet {
     /// @param amount The amount of the token to be withdrawn
     function withdraw(address accountAddr, IERC20 token, uint256 amount) external;
 
+    /// @notice Withdraw Ether or ERC20 from ZkTrueUp with permit
+    /// @param accountAddr The address of the L2 account to be withdrawn
+    /// @param token The token to be withdrawn
+    /// @param amount The amount of the token to be withdrawn
+    /// @param deadline The deadline of the permit
+    /// @param v v The recovery id of the signature
+    /// @param r The r of the permit signature
+    /// @param s The s of the permit signature
+    function withdrawPermit(
+        address accountAddr,
+        IERC20 token,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
     /// @notice Force withdraw Ether or ERC20 from ZkTrueUp
     /// @notice When the L2 system is down or user's asset is censored, user can do forceWithdraw to withdraw asset from ZkTrueUp
     /// @notice If the forceWithdraw request is not processed before the expirationBlock, user can do activateEvacuation to activate the evacuation

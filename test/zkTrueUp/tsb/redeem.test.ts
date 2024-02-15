@@ -181,7 +181,7 @@ describe("Redeem TsbToken", () => {
       // redeem tsb token
       const redeemTx = await diamondTsbMock
         .connect(user1)
-        .redeem(tsbTokenAddr, tsbUSDCAmt, false);
+        .redeem(user1Addr, tsbTokenAddr, tsbUSDCAmt, false);
       await redeemTx.wait();
 
       // after balance
@@ -230,7 +230,9 @@ describe("Redeem TsbToken", () => {
 
       // redeem tsb token with invalid token address
       await expect(
-        diamondTsbMock.connect(user1).redeem(invalidTsbTokenAddr, amount, false)
+        diamondTsbMock
+          .connect(user1)
+          .redeem(user1Addr, invalidTsbTokenAddr, amount, false)
       ).to.be.revertedWithCustomError(diamondTsbMock, "InvalidTsbToken");
     });
 
@@ -246,7 +248,9 @@ describe("Redeem TsbToken", () => {
 
       // redeem tsb token not matured
       await expect(
-        diamondTsbMock.connect(user1).redeem(tsbTokenAddr, amount, false)
+        diamondTsbMock
+          .connect(user1)
+          .redeem(user1Addr, tsbTokenAddr, amount, false)
       ).to.be.revertedWithCustomError(diamondTsbMock, "TsbTokenIsNotMatured");
     });
   });
@@ -349,7 +353,7 @@ describe("Redeem TsbToken", () => {
       // redeem tsb token for deposit
       const redeemAndDepositTx = await diamondTsbMock
         .connect(user1)
-        .redeem(tsbTokenAddr, tsbUsdcAmt, true);
+        .redeem(user1Addr, tsbTokenAddr, tsbUsdcAmt, true);
       await redeemAndDepositTx.wait();
 
       // after balance
@@ -393,7 +397,9 @@ describe("Redeem TsbToken", () => {
 
       // redeem for deposit tsb token with invalid token address
       await expect(
-        diamondTsbMock.connect(user1).redeem(invalidTsbTokenAddr, amount, true)
+        diamondTsbMock
+          .connect(user1)
+          .redeem(user1Addr, invalidTsbTokenAddr, amount, true)
       ).to.be.revertedWithCustomError(diamondTsbMock, "InvalidTsbToken");
     });
 
@@ -409,11 +415,13 @@ describe("Redeem TsbToken", () => {
 
       // redeem for deposit tsb token with invalid token address
       await expect(
-        diamondTsbMock.connect(user1).redeem(tsbTokenAddr, amount, true)
+        diamondTsbMock
+          .connect(user1)
+          .redeem(user1Addr, tsbTokenAddr, amount, true)
       ).to.be.revertedWithCustomError(diamondTsbMock, "TsbTokenIsNotMatured");
     });
 
-    it("Fail to redeem tsb token for deposit, not a registered account", async () => {
+    it("Fail to redeem tsb token for deposit, not delegated caller", async () => {
       // get params
       const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
       const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
@@ -430,8 +438,10 @@ describe("Redeem TsbToken", () => {
 
       // redeem for deposit tsb token with invalid token address
       await expect(
-        diamondTsbMock.connect(user2).redeem(tsbTokenAddr, amount, true)
-      ).to.be.revertedWithCustomError(diamondTsbMock, "AccountIsNotRegistered");
+        diamondTsbMock
+          .connect(user2)
+          .redeem(user1Addr, tsbTokenAddr, amount, true)
+      ).to.be.revertedWithCustomError(diamondTsbMock, "InvalidCaller");
     });
   });
 });

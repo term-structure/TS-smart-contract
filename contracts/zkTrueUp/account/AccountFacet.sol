@@ -66,30 +66,20 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         _deposit(rsl, tsl, msg.sender, accountAddr, accountId, token, amount);
     }
 
-    // /**
-    //  * @inheritdoc IAccountFacet
-    //  */
-    // function withdraw(IERC20 token, uint256 amount) external virtual nonReentrant {
-    //     AccountStorage.Layout storage asl = AccountStorage.layout();
-    //     uint32 accountId = asl.getValidAccount(msg.sender);
-
-    //     TokenStorage.Layout storage tsl = TokenStorage.layout();
-    //     (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
-
-    //     RollupStorage.Layout storage rsl = RollupStorage.layout();
-    //     AccountLib.updateWithdrawalRecord(rsl, msg.sender, accountId, token, tokenId, amount);
-
-    //     Utils.tokenTransfer(token, payable(msg.sender), amount, assetConfig.isTsbToken);
-    // }
-
+    /**
+     * @inheritdoc IAccountFacet
+     */
     function withdraw(address accountAddr, IERC20 token, uint256 amount) external nonReentrant {
         AccountStorage.Layout storage asl = AccountStorage.layout();
-        uint32 accountId = asl.getValidAccount(accountAddr);
         asl.requireValidCaller(msg.sender, accountAddr);
 
+        uint32 accountId = asl.getValidAccount(accountAddr);
         _withdraw(msg.sender, accountAddr, accountId, token, amount);
     }
 
+    /**
+     * @inheritdoc IAccountFacet
+     */
     function withdrawPermit(
         address accountAddr,
         IERC20 token,
@@ -110,32 +100,6 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         asl.increaseNonce(accountAddr);
 
         _withdraw(msg.sender, accountAddr, accountId, token, amount);
-    }
-
-    function _withdraw(
-        address caller,
-        address accountAddr,
-        uint32 accountId,
-        IERC20 token,
-        uint256 amount
-    ) internal virtual {
-        TokenStorage.Layout storage tsl = TokenStorage.layout();
-        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
-
-        RollupStorage.Layout storage rsl = RollupStorage.layout();
-        AccountLib.updateWithdrawalRecord(rsl, caller, accountAddr, accountId, token, tokenId, amount);
-
-        Utils.tokenTransfer(token, payable(accountAddr), amount, assetConfig.isTsbToken);
-    }
-
-    function _calcWithdrawStructHash(
-        address delegatee,
-        IERC20 token,
-        uint256 amount,
-        uint256 nonce,
-        uint256 deadline
-    ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(WITHDRAW_TYPEHASH, delegatee, token, amount, nonce, deadline));
     }
 
     /**
@@ -243,5 +207,45 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
         Utils.tokenTransferFrom(token, caller, amount, msg.value, assetConfig.isTsbToken);
         AccountLib.addDepositReq(rsl, caller, accountAddr, accountId, token, tokenId, assetConfig.decimals, amount);
+    }
+
+    /// @notice Internal withdraw function
+    /// @param caller The address of caller
+    /// @param accountAddr The user account address in layer1
+    /// @param accountId user account id in layer2
+    /// @param token The token to be withdrawn
+    /// @param amount The amount of the token
+    function _withdraw(
+        address caller,
+        address accountAddr,
+        uint32 accountId,
+        IERC20 token,
+        uint256 amount
+    ) internal virtual {
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
+
+        RollupStorage.Layout storage rsl = RollupStorage.layout();
+        AccountLib.updateWithdrawalRecord(rsl, caller, accountAddr, accountId, token, tokenId, amount);
+
+        Utils.tokenTransfer(token, payable(accountAddr), amount, assetConfig.isTsbToken);
+    }
+
+    /* ============ Internal Pure Functions to Calculate Struct Hash ============ */
+
+    /// @notice Calculate the hash of the struct for the withdrawal permit
+    /// @param delegatee The address of the delegatee
+    /// @param token The token to be withdrawn
+    /// @param amount The amount of the token to be withdrawn
+    /// @param nonce The nonce of the account
+    /// @param deadline The deadline of the permit
+    function _calcWithdrawStructHash(
+        address delegatee,
+        IERC20 token,
+        uint256 amount,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(WITHDRAW_TYPEHASH, delegatee, token, amount, nonce, deadline));
     }
 }
