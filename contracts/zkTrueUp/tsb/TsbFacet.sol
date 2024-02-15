@@ -15,7 +15,6 @@ import {TsbToken} from "../tsb/TsbToken.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {AccountLib} from "../account/AccountLib.sol";
-import {RollupLib} from "../rollup/RollupLib.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
@@ -90,6 +89,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
             TokenLib.validDepositAmt(underlyingAssetAmt, underlyingAssetConfig.minDepositAmt);
             AccountLib.addDepositReq(
                 RollupStorage.layout(),
+                msg.sender,
                 msg.sender,
                 accountId,
                 underlyingAssetConfig.token,

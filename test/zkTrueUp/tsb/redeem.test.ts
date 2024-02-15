@@ -146,8 +146,10 @@ describe("Redeem TsbToken", () => {
       const tsbTokenAddr = await diamondTsbMock.getTsbToken(tokenId, maturity);
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await (
-        await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, amount)
-      ).wait(); //! ignore _withdraw in AccountMock
+        await diamondAccMock
+          .connect(user1)
+          .withdraw(user1Addr, tsbTokenAddr, amount)
+      ).wait(); //! ignore updateWithdrawalRecord in AccountMock
     });
 
     it("Success to redeem tsb token (tsbUSDC case)", async () => {
@@ -312,8 +314,10 @@ describe("Redeem TsbToken", () => {
       const tsbTokenAddr = await diamondTsbMock.getTsbToken(tokenId, maturity);
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await (
-        await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, tsbTokenAmt)
-      ).wait(); //! ignore _withdraw in AccountMock
+        await diamondAccMock
+          .connect(user1)
+          .withdraw(user1Addr, tsbTokenAddr, tsbTokenAmt)
+      ).wait(); //! ignore updateWithdrawalRecord in AccountMock
     });
 
     it("Success to redeem tsb token and deposit", async () => {

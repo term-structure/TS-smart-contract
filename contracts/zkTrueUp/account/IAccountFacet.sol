@@ -29,9 +29,10 @@ interface IAccountFacet {
     function deposit(address to, IERC20 token, uint128 amount) external payable;
 
     /// @notice Withdraw Ether or ERC20 from ZkTrueUp
+    /// @param accountAddr The address of the L2 account to be withdrawn
     /// @param token The token to be withdrawn
     /// @param amount The amount of the token to be withdrawn
-    function withdraw(IERC20 token, uint256 amount) external;
+    function withdraw(address accountAddr, IERC20 token, uint256 amount) external;
 
     /// @notice Force withdraw Ether or ERC20 from ZkTrueUp
     /// @notice When the L2 system is down or user's asset is censored, user can do forceWithdraw to withdraw asset from ZkTrueUp
@@ -52,4 +53,15 @@ interface IAccountFacet {
     /// @notice Get the number of registered accounts
     /// @return accountNum The number of registered accounts
     function getAccountNum() external view returns (uint32 accountNum);
+
+    /// @notice Return the nonce of the account
+    /// @dev The nonce is used to prevent signature replay attack
+    /// @param accountAddr The address of the account
+    /// @return nonce The nonce of the account
+    function getNonce(address accountAddr) external view returns (uint256);
+
+    /// @notice Return the isDelegated status of the account
+    /// @param delegator The address of the delegator
+    /// @param delegatee The address of the delegatee
+    function getIsDelegated(address delegator, address delegatee) external view returns (bool);
 }

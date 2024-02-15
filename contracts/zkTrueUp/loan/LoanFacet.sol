@@ -68,8 +68,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     function removeCollateral(bytes12 loanId, uint128 amount) external nonReentrant {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
-        msg.sender.requireValidCaller(loanOwner, lsl);
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        address loanOwner = asl.getAccountAddr(loanInfo.accountId);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         _removeCollateral(lsl, loanInfo, loanId, msg.sender, loanOwner, amount);
     }
@@ -91,16 +92,17 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
 
+        AccountStorage.Layout storage asl = AccountStorage.layout();
         bytes32 structHash = _calcRemoveCollateralStructHash(
             msg.sender,
             loanId,
             amount,
-            lsl.getNonce(loanOwner),
+            asl.getNonce(loanOwner),
             deadline
         );
         Signature.verifySignature(loanOwner, structHash, v, r, s);
 
-        lsl.increaseNonce(loanOwner);
+        asl.increaseNonce(loanOwner);
 
         _removeCollateral(lsl, loanInfo, loanId, msg.sender, loanOwner, amount);
     }
@@ -111,8 +113,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
-        msg.sender.requireValidCaller(loanOwner, lsl);
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        address loanOwner = asl.getAccountAddr(loanInfo.accountId);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         _repay(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt, repayAndDeposit, msg.value);
     }
@@ -138,19 +141,20 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
         // scope to avoid stack too deep error
         {
+            AccountStorage.Layout storage asl = AccountStorage.layout();
             bytes32 structHash = _calcRepayStructHash(
                 msg.sender,
                 loanId,
                 collateralAmt,
                 debtAmt,
                 repayAndDeposit,
-                lsl.getNonce(loanOwner),
+                asl.getNonce(loanOwner),
                 deadline
             );
             Signature.verifySignature(loanOwner, structHash, v, r, s);
-        }
 
-        lsl.increaseNonce(loanOwner);
+            asl.increaseNonce(loanOwner);
+        }
 
         _repay(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt, repayAndDeposit, msg.value);
     }
@@ -167,8 +171,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (!lsl.getRollerState()) revert RollIsNotActivated();
 
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
-        msg.sender.requireValidCaller(loanOwner, lsl);
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        address loanOwner = asl.getAccountAddr(loanInfo.accountId);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         _rollToAave(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt);
     }
@@ -197,17 +202,21 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
 
-        bytes32 structHash = _calcRollToAaveStructHash(
-            msg.sender,
-            loanId,
-            collateralAmt,
-            debtAmt,
-            lsl.getNonce(loanOwner),
-            deadline
-        );
-        Signature.verifySignature(loanOwner, structHash, v, r, s);
+        // scope to avoid stack too deep error
+        {
+            AccountStorage.Layout storage asl = AccountStorage.layout();
+            bytes32 structHash = _calcRollToAaveStructHash(
+                msg.sender,
+                loanId,
+                collateralAmt,
+                debtAmt,
+                asl.getNonce(loanOwner),
+                deadline
+            );
+            Signature.verifySignature(loanOwner, structHash, v, r, s);
 
-        lsl.increaseNonce(loanOwner);
+            asl.increaseNonce(loanOwner);
+        }
 
         _rollToAave(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt);
     }
@@ -224,8 +233,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         Utils.transferNativeToken(ProtocolParamsStorage.layout().getVaultAddr(), msg.value);
 
         LoanInfo memory loanInfo = lsl.getLoanInfo(rollBorrowOrder.loanId);
-        address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
-        msg.sender.requireValidCaller(loanOwner, lsl);
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        address loanOwner = asl.getAccountAddr(loanInfo.accountId);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         uint32 newMaturityTime = _requireValidOrder(rollBorrowOrder, loanInfo, rollBorrowOrder.loanId);
 
@@ -254,10 +264,19 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(rollBorrowOrder.loanId);
         address loanOwner = AccountStorage.layout().getAccountAddr(loanInfo.accountId);
 
-        bytes32 structHash = _calcRollBorrowStructHash(msg.sender, rollBorrowOrder, lsl.getNonce(loanOwner), deadline);
-        Signature.verifySignature(loanOwner, structHash, v, r, s);
+        // scope to avoid stack too deep error
+        {
+            AccountStorage.Layout storage asl = AccountStorage.layout();
+            bytes32 structHash = _calcRollBorrowStructHash(
+                msg.sender,
+                rollBorrowOrder,
+                asl.getNonce(loanOwner),
+                deadline
+            );
+            Signature.verifySignature(loanOwner, structHash, v, r, s);
 
-        lsl.increaseNonce(loanOwner);
+            asl.increaseNonce(loanOwner);
+        }
 
         uint32 newMaturityTime = _requireValidOrder(rollBorrowOrder, loanInfo, rollBorrowOrder.loanId);
 
@@ -277,8 +296,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(
             loanId
         );
-        address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
-        msg.sender.requireValidCaller(loanOwner, lsl);
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        address loanOwner = asl.getAccountAddr(accountId);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         _forceCancelRollBorrow(
             lsl,
@@ -309,15 +329,19 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
         address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
 
-        bytes32 structHash = _calcForceCancelRollBorrowStructHash(
-            msg.sender,
-            loanId,
-            lsl.getNonce(loanOwner),
-            deadline
-        );
-        Signature.verifySignature(loanOwner, structHash, v, r, s);
+        // scope to avoid stack too deep error
+        {
+            AccountStorage.Layout storage asl = AccountStorage.layout();
+            bytes32 structHash = _calcForceCancelRollBorrowStructHash(
+                msg.sender,
+                loanId,
+                asl.getNonce(loanOwner),
+                deadline
+            );
+            Signature.verifySignature(loanOwner, structHash, v, r, s);
 
-        lsl.increaseNonce(loanOwner);
+            asl.increaseNonce(loanOwner);
+        }
 
         _forceCancelRollBorrow(
             lsl,
@@ -491,13 +515,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function getNonce(address account) external view returns (uint256) {
-        return LoanStorage.layout().getNonce(account);
-    }
-
-    /**
-     * @inheritdoc ILoanFacet
-     */
     function getLoanId(
         uint32 accountId,
         uint32 maturityTime,
@@ -586,6 +603,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             TokenLib.validDepositAmt(collateralAmt, assetConfig.minDepositAmt);
             AccountLib.addDepositReq(
                 RollupStorage.layout(),
+                caller,
                 loanOwner,
                 loanInfo.accountId,
                 assetConfig.token,

@@ -170,13 +170,13 @@ contract EvacuationFacet is IEvacuationFacet, ReentrancyGuard {
         address accountAddr = asl.getAccountAddr(accountId);
         // check the account is deregistered (accountAddr mapping to accountId is deleted)
         if (asl.getAccountId(accountAddr) == accountId) revert NotDeregisteredAddr(accountAddr, accountId);
-        if (accountAddr != msg.sender) revert AccountAddrIsNotSender(accountAddr, msg.sender);
+        if (accountAddr != msg.sender) revert AccountAddrIsNotCaller(accountAddr, msg.sender);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        AccountLib.updateWithdrawalRecord(rsl, accountAddr, accountId, token, tokenId, amount);
+        AccountLib.updateWithdrawalRecord(rsl, msg.sender, accountAddr, accountId, token, tokenId, amount);
 
         Utils.tokenTransfer(token, payable(accountAddr), amount, assetConfig.isTsbToken);
     }

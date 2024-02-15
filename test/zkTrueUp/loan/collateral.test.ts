@@ -387,7 +387,7 @@ describe("Collateral", () => {
         delegatee: user2Addr,
         loanId,
         amount,
-        nonce: await diamondLoan.getNonce(user1Addr),
+        nonce: await diamondAcc.getNonce(user1Addr),
         deadline: maxUint32,
       };
 

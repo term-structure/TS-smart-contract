@@ -347,11 +347,6 @@ interface ILoanFacet {
     /// @return borrowFeeRate The borrow fee rate
     function getBorrowFeeRate() external view returns (uint32);
 
-    /// @notice Return the nonce of the account
-    /// @dev The nonce is used to prevent signature replay attack
-    /// @param account The address of the account
-    function getNonce(address account) external view returns (uint256);
-
     /// @notice Return the fee of the roll borrow service
     /// @return rollOverFee The roll over fee
     function getRollOverFee() external view returns (uint256);

@@ -146,13 +146,6 @@ library LoanLib {
         return loan;
     }
 
-    /// @notice Internal function to increase the nonce of the address
-    /// @param s The loan storage
-    /// @param addr The address to be increased nonce
-    function increaseNonce(LoanStorage.Layout storage s, address addr) internal {
-        s.nonces[addr]++;
-    }
-
     /// @notice Internal function to get the health factor of the loan
     /// @dev The health factor formula: ltvThreshold * (collateralValue / collateralDecimals) / (debtValue / debtDecimals)
     /// @dev The health factor decimals is 3
@@ -268,10 +261,6 @@ library LoanLib {
         return s.isActivatedRoller;
     }
 
-    function getNonce(LoanStorage.Layout storage s, address addr) internal view returns (uint256) {
-        return s.nonces[addr];
-    }
-
     /// @notice Internal function to check if the loan is liquidable
     /// @param healthFactor The health factor of the loan
     /// @param maturityTime The maturity time of the loan
@@ -293,20 +282,6 @@ library LoanLib {
     /// @return isHealthy True if the loan is healthy, otherwise false
     function isHealthy(uint256 healthFactor) internal pure returns (bool) {
         return healthFactor >= Config.HEALTH_FACTOR_THRESHOLD;
-    }
-
-    /// @notice Internal function to check if the address is the loan owner
-    /// @param addr The address to be checked
-    /// @param accountId The account id
-    function requireLoanOwner(address addr, uint32 accountId) internal view {
-        address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
-        if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
-    }
-
-    function requireValidCaller(address caller, address loanOwner, LoanStorage.Layout storage s) internal view {
-        if (caller == loanOwner) return;
-        if (s.isDelegated[loanOwner][caller]) return;
-        revert InvalidCaller(caller, loanOwner);
     }
 
     /// @notice Internal function to check if the loan is healthy (not liquidable)

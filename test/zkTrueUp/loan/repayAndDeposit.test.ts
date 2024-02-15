@@ -237,6 +237,7 @@ describe("Repay and deposit", () => {
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user1Addr,
+          user1Addr,
           loan.accountId,
           dai.address,
           loan.collateralTokenId,
@@ -340,6 +341,7 @@ describe("Repay and deposit", () => {
       await expect(repayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user1Addr,
           user1Addr,
           loan.accountId,
           dai.address,
@@ -552,6 +554,7 @@ describe("Repay and deposit", () => {
       await expect(repayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user1Addr,
           user1Addr,
           loan.accountId,
           dai.address,
@@ -847,6 +850,7 @@ describe("Repay and deposit", () => {
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user2Addr,
+          user2Addr,
           loan.accountId,
           dai.address,
           loan.collateralTokenId,
@@ -944,6 +948,7 @@ describe("Repay and deposit", () => {
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user2Addr,
+          user2Addr,
           loan.accountId,
           dai.address,
           loan.collateralTokenId,
@@ -1035,6 +1040,7 @@ describe("Repay and deposit", () => {
       await expect(secondRepayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user2Addr,
           user2Addr,
           loan.accountId,
           dai.address,
@@ -1150,6 +1156,7 @@ describe("Repay and deposit", () => {
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
           user2Addr,
+          user2Addr,
           loan.accountId,
           dai.address,
           loan.collateralTokenId,
@@ -1244,6 +1251,7 @@ describe("Repay and deposit", () => {
       await expect(secondRepayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user2Addr,
           user2Addr,
           loan.accountId,
           dai.address,

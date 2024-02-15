@@ -3,7 +3,8 @@ pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
-import {AccountStorage} from "./AccountStorage.sol";
+import {AccountStorage, WITHDRAW_TYPEHASH} from "./AccountStorage.sol";
+import {AddressStorage} from "../address/AddressStorage.sol";
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
 import {EvacuationStorage} from "../evacuation/EvacuationStorage.sol";
@@ -11,12 +12,12 @@ import {IAccountFacet} from "./IAccountFacet.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {AccountLib} from "./AccountLib.sol";
-import {TsbLib} from "../tsb/TsbLib.sol";
+import {AddressLib} from "../address/AddressLib.sol";
 import {EvacuationLib} from "../evacuation/EvacuationLib.sol";
-import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {BabyJubJub, Point} from "../libraries/BabyJubJub.sol";
+import {Signature} from "../libraries/Signature.sol";
 
 /**
  * @title Term Structure Account Facet Contract
@@ -25,7 +26,8 @@ import {BabyJubJub, Point} from "../libraries/BabyJubJub.sol";
  *         including many I.O. operations such as register, deposit, withdraw, forceWithdraw, etc.
  */
 contract AccountFacet is IAccountFacet, ReentrancyGuard {
-    using AccountLib for AccountStorage.Layout;
+    using AccountLib for *;
+    using AddressLib for AddressStorage.Layout;
     using RollupLib for RollupStorage.Layout;
     using TokenLib for TokenStorage.Layout;
     using EvacuationLib for EvacuationStorage.Layout;
@@ -52,32 +54,88 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      * @inheritdoc IAccountFacet
      * @dev Only registered accounts can deposit
      */
-    function deposit(address to, IERC20 token, uint128 amount) external payable {
+    function deposit(address accountAddr, IERC20 token, uint128 amount) external payable {
         EvacuationStorage.Layout storage esl = EvacuationStorage.layout();
         esl.requireActive();
 
         AccountStorage.Layout storage asl = AccountStorage.layout();
-        uint32 accountId = asl.getValidAccount(to);
+        uint32 accountId = asl.getValidAccount(accountAddr);
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        _deposit(rsl, tsl, msg.sender, to, accountId, token, amount);
+        _deposit(rsl, tsl, msg.sender, accountAddr, accountId, token, amount);
     }
 
-    /**
-     * @inheritdoc IAccountFacet
-     */
-    function withdraw(IERC20 token, uint256 amount) external virtual nonReentrant {
-        AccountStorage.Layout storage asl = AccountStorage.layout();
-        uint32 accountId = asl.getValidAccount(msg.sender);
+    // /**
+    //  * @inheritdoc IAccountFacet
+    //  */
+    // function withdraw(IERC20 token, uint256 amount) external virtual nonReentrant {
+    //     AccountStorage.Layout storage asl = AccountStorage.layout();
+    //     uint32 accountId = asl.getValidAccount(msg.sender);
 
+    //     TokenStorage.Layout storage tsl = TokenStorage.layout();
+    //     (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
+
+    //     RollupStorage.Layout storage rsl = RollupStorage.layout();
+    //     AccountLib.updateWithdrawalRecord(rsl, msg.sender, accountId, token, tokenId, amount);
+
+    //     Utils.tokenTransfer(token, payable(msg.sender), amount, assetConfig.isTsbToken);
+    // }
+
+    function withdraw(address accountAddr, IERC20 token, uint256 amount) external nonReentrant {
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        uint32 accountId = asl.getValidAccount(accountAddr);
+        asl.requireValidCaller(msg.sender, accountAddr);
+
+        _withdraw(msg.sender, accountAddr, accountId, token, amount);
+    }
+
+    function withdrawPermit(
+        address accountAddr,
+        IERC20 token,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external nonReentrant {
+        Signature.verifyDeadline(deadline);
+
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        uint32 accountId = asl.getValidAccount(accountAddr);
+
+        bytes32 structHash = _calcWithdrawStructHash(msg.sender, token, amount, asl.getNonce(accountAddr), deadline);
+        Signature.verifySignature(accountAddr, structHash, v, r, s);
+
+        asl.increaseNonce(accountAddr);
+
+        _withdraw(msg.sender, accountAddr, accountId, token, amount);
+    }
+
+    function _withdraw(
+        address caller,
+        address accountAddr,
+        uint32 accountId,
+        IERC20 token,
+        uint256 amount
+    ) internal virtual {
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        AccountLib.updateWithdrawalRecord(rsl, msg.sender, accountId, token, tokenId, amount);
+        AccountLib.updateWithdrawalRecord(rsl, caller, accountAddr, accountId, token, tokenId, amount);
 
-        Utils.tokenTransfer(token, payable(msg.sender), amount, assetConfig.isTsbToken);
+        Utils.tokenTransfer(token, payable(accountAddr), amount, assetConfig.isTsbToken);
+    }
+
+    function _calcWithdrawStructHash(
+        address delegatee,
+        IERC20 token,
+        uint256 amount,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(WITHDRAW_TYPEHASH, delegatee, token, amount, nonce, deadline));
     }
 
     /**
@@ -119,17 +177,31 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         return AccountStorage.layout().getAccountNum();
     }
 
+    /**
+     * @inheritdoc IAccountFacet
+     */
+    function getNonce(address accountAddr) external view returns (uint256) {
+        return AccountStorage.layout().getNonce(accountAddr);
+    }
+
+    /**
+     * @inheritdoc IAccountFacet
+     */
+    function getIsDelegated(address delegator, address delegatee) external view returns (bool) {
+        return AccountStorage.layout().getIsDelegated(delegator, delegatee);
+    }
+
     /* ============ Internal Functions ============ */
 
     /// @notice Internal register function
     /// @param rsl The rollup storage layout
-    /// @param sender The address of sender
+    /// @param caller The address of caller
     /// @param tsPubKeyX The x coordinate of the public key of the token sender
     /// @param tsPubKeyY The y coordinate of the public key of the token sender
     /// @return accountId The registered L2 account Id
     function _register(
         RollupStorage.Layout storage rsl,
-        address sender,
+        address caller,
         uint256 tsPubKeyX,
         uint256 tsPubKeyY
     ) internal returns (uint32) {
@@ -138,28 +210,30 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getAccountNum();
         if (accountId >= Config.MAX_AMOUNT_OF_REGISTERED_ACCOUNT) revert AccountNumExceedLimit(accountId);
-        if (asl.getAccountId(sender) != 0) revert AccountIsRegistered(sender);
+        if (asl.getAccountId(caller) != 0) revert AccountIsRegistered(caller);
 
-        asl.accountIds[sender] = accountId;
-        asl.accountAddresses[accountId] = sender;
+        asl.accountIds[caller] = accountId;
+        asl.accountAddresses[accountId] = caller;
         asl.accountNum += 1;
-        AccountLib.addRegisterReq(rsl, sender, accountId, tsPubKeyX, tsPubKeyY);
+
+        AccountLib.addRegisterReq(rsl, caller, accountId, tsPubKeyX, tsPubKeyY);
+
         return accountId;
     }
 
     /// @notice Internal deposit function for register and deposit
     /// @param rsl The rollup storage layout
     /// @param tsl The token storage layout
-    /// @param depositor The address that deposit the L1 token
-    /// @param to The address credtied with the deposit
+    /// @param caller The address of caller
+    /// @param accountAddr The user account address in layer1
     /// @param accountId user account id in layer2
     /// @param token The token to be deposited
     /// @param amount The amount of the token
     function _deposit(
         RollupStorage.Layout storage rsl,
         TokenStorage.Layout storage tsl,
-        address depositor,
-        address to,
+        address caller,
+        address accountAddr,
         uint32 accountId,
         IERC20 token,
         uint128 amount
@@ -167,7 +241,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
         TokenLib.validDepositAmt(amount, assetConfig.minDepositAmt);
 
-        Utils.tokenTransferFrom(token, depositor, amount, msg.value, assetConfig.isTsbToken);
-        AccountLib.addDepositReq(rsl, to, accountId, token, tokenId, assetConfig.decimals, amount);
+        Utils.tokenTransferFrom(token, caller, amount, msg.value, assetConfig.isTsbToken);
+        AccountLib.addDepositReq(rsl, caller, accountAddr, accountId, token, tokenId, assetConfig.decimals, amount);
     }
 }

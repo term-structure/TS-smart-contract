@@ -25,7 +25,7 @@ interface IEvacuationFacet {
     /// @notice Error for refund deregistered address but the account is not deregistered
     error NotDeregisteredAddr(address accountAddr, uint32 accountId);
     /// @notice Error for account address is not the msg.sender
-    error AccountAddrIsNotSender(address accountAddr, address sender);
+    error AccountAddrIsNotCaller(address accountAddr, address sender);
     /// @notice Error for invalid chunk id delta when commit evacublock in evacuation mode
     error InvalidChunkIdDelta(uint16[] chunkIdDeltas);
     /// @notice Error for the specified accountId and tokenId is already evacuated

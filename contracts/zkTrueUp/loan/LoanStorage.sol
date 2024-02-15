@@ -118,8 +118,6 @@ library LoanStorage {
         LiquidationFactor stableCoinPairLiquidationFactor;
         /// @notice Mapping from loan id to loan data
         mapping(bytes12 => Loan) loans;
-        mapping(address => mapping(address => bool)) isDelegated;
-        mapping(address => uint256) nonces;
     }
 
     function layout() internal pure returns (Layout storage s) {
