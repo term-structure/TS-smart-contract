@@ -15,6 +15,8 @@ interface IAccountFacet {
     /// @notice Error for register account when the public key is invalid
     error InvalidTsPublicKey(uint256 tsPubKeyX, uint256 tsPubKeyY);
 
+    event SetDelegatee(address indexed delegator, address indexed delegatee, bool isDelegated);
+
     /// @notice Register account by deposit Ether or ERC20 to ZkTrueUp
     /// @param tsPubKeyX The X coordinate of the public key of the L2 account
     /// @param tsPubKeyY The Y coordinate of the public key of the L2 account
@@ -57,6 +59,11 @@ interface IAccountFacet {
     /// @notice If the forceWithdraw request is not processed before the expirationBlock, user can do activateEvacuation to activate the evacuation
     /// @param token The token to be withdrawn
     function forceWithdraw(IERC20 token) external;
+
+    /// @notice Set the delegatee of the account
+    /// @param delegatee The address of the delegatee
+    /// @param isDelegatee The flag of the delegatee
+    function setDelegatee(address delegatee, bool isDelegatee) external;
 
     /// @notice Get the account L1 address by account L2 id
     /// @param accountId The account L2 id

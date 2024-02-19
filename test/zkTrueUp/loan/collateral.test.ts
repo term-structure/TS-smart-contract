@@ -356,11 +356,78 @@ describe("Collateral", () => {
       expect(newHealthFactor).to.equal(newExpectedHealthFactor);
     });
 
-    it("Success to remove collateral permit (ETH case)", async () => {
+    it("Success to delegate remove collateral (ETH case)", async () => {
       // before balance
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const beforeUser1EthBalance = await user1.getBalance();
 
+      // user1 delegate to user2
+      const delegateTx = await diamondAcc
+        .connect(user1)
+        .setDelegatee(user2Addr, true);
+      const delegateReceipt = await delegateTx.wait();
+
+      // delegate tx gas fee
+      const delegateGas = BigNumber.from(delegateReceipt.gasUsed).mul(
+        delegateReceipt.effectiveGasPrice
+      );
+
+      // remove collateral, amount = 0.2 ETH
+      const amount = utils.parseEther("0.2");
+      const removeCollateralTx = await diamondLoan
+        .connect(user2)
+        .removeCollateral(loanId, amount);
+      const removeCollateralReceipt = await removeCollateralTx.wait();
+
+      // after balance
+      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const afterUser1EthBalance = await user1.getBalance();
+
+      // check balance
+      expect(beforeZkTrueUpWethBalance.sub(afterZkTrueUpWethBalance)).to.equal(
+        amount
+      );
+      expect(beforeUser1EthBalance.add(amount).sub(delegateGas)).to.eq(
+        afterUser1EthBalance
+      );
+
+      // check event
+      await expect(removeCollateralTx)
+        .to.emit(diamondLoan, "CollateralRemoved")
+        .withArgs(loanId, user2Addr, user1Addr, DEFAULT_ETH_ADDRESS, amount);
+
+      // convert amount to 8 decimals for loan data
+      const removedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.ETH);
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt).sub(
+          removedCollateralAmtConverted
+        ),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        ethAnswer,
+        usdcAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+
+    it("Success to permit remove collateral (ETH case)", async () => {
+      // before balance
+      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const beforeUser1EthBalance = await user1.getBalance();
+
+      // user1 permit to user2
       const domain: TypedDataDomain = {
         name: "ZkTrueUp",
         version: "1",
@@ -368,8 +435,6 @@ describe("Collateral", () => {
         verifyingContract: zkTrueUp.address,
       };
 
-      // bytes32 private constant REMOVE_COLLATERAL_TYPEHASH =
-      // keccak256("RemoveCollateral(address delegatee,bytes12 loanId,uint128 amount,uint256 nonce,uint256 deadline)");
       const types: Record<string, TypedDataField[]> = {
         RemoveCollateral: [
           { name: "delegatee", type: "address" },
@@ -380,7 +445,7 @@ describe("Collateral", () => {
         ],
       };
 
-      const maxUint32 = BigNumber.from("4294967295");
+      const deadline = BigNumber.from("4294967295");
       const amount = utils.parseEther("0.2");
 
       const value: Record<string, any> = {
@@ -388,7 +453,7 @@ describe("Collateral", () => {
         loanId,
         amount,
         nonce: await diamondAcc.getNonce(user1Addr),
-        deadline: maxUint32,
+        deadline: deadline,
       };
 
       const signature = await user1._signTypedData(domain, types, value);
@@ -397,7 +462,7 @@ describe("Collateral", () => {
       // remove collateral permit, amount = 0.2 ETH
       const removeCollateralPermitTx = await diamondLoan
         .connect(user2)
-        .removeCollateralPermit(loanId, amount, maxUint32, v, r, s);
+        .removeCollateralPermit(loanId, amount, deadline, v, r, s);
       const removeCollateralReceipt = await removeCollateralPermitTx.wait();
 
       // after balance
@@ -717,6 +782,156 @@ describe("Collateral", () => {
       await expect(removeCollateralTx)
         .to.emit(diamondLoan, "CollateralRemoved")
         .withArgs(loanId, user2Addr, user2Addr, usdt.address, amount);
+
+      // convert amount to 8 decimals for loan data
+      const removedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.USDT);
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt).sub(
+          removedCollateralAmtConverted
+        ),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        usdtAnswer,
+        usdcAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
+      // check health factor
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+    it("Success to delegate remove collateral (stable coin pairs case)", async () => {
+      const usdt = (await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDT]
+      )) as ERC20Mock;
+
+      // before balance
+      const beforeZkTrueUpBalance = await usdt.balanceOf(zkTrueUp.address);
+      const beforeUser2Balance = await usdt.balanceOf(user2Addr);
+
+      // user2 delegate to user1
+      const delegateTx = await diamondAcc
+        .connect(user2)
+        .setDelegatee(user1Addr, true);
+      await delegateTx.wait();
+
+      // add collateral, amount = 0.5 USDT
+      const amount = utils.parseUnits("0.5", TS_BASE_TOKEN.USDT.decimals);
+      const removeCollateralTx = await diamondLoan
+        .connect(user2)
+        .removeCollateral(loanId, amount);
+      await removeCollateralTx.wait();
+
+      // after balance
+      const afterZkTrueUpBalance = await usdt.balanceOf(zkTrueUp.address);
+      const afterUser2Balance = await usdt.balanceOf(user2Addr);
+
+      // check balance
+      expect(beforeZkTrueUpBalance.sub(afterZkTrueUpBalance)).to.equal(amount);
+      expect(afterUser2Balance.sub(beforeUser2Balance)).to.equal(amount);
+
+      // check event
+      await expect(removeCollateralTx)
+        .to.emit(diamondLoan, "CollateralRemoved")
+        .withArgs(loanId, user2Addr, user2Addr, usdt.address, amount);
+
+      // convert amount to 8 decimals for loan data
+      const removedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.USDT);
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt).sub(
+          removedCollateralAmtConverted
+        ),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        usdtAnswer,
+        usdcAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
+      // check health factor
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+    it("Success to permit remove collateral (stable coin pairs case)", async () => {
+      const usdt = (await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDT]
+      )) as ERC20Mock;
+
+      // before balance
+      const beforeZkTrueUpBalance = await usdt.balanceOf(zkTrueUp.address);
+      const beforeUser2Balance = await usdt.balanceOf(user2Addr);
+
+      // user2 permit to user1
+      const domain: TypedDataDomain = {
+        name: "ZkTrueUp",
+        version: "1",
+        chainId: await user2.getChainId(),
+        verifyingContract: zkTrueUp.address,
+      };
+
+      const types: Record<string, TypedDataField[]> = {
+        RemoveCollateral: [
+          { name: "delegatee", type: "address" },
+          { name: "loanId", type: "bytes12" },
+          { name: "amount", type: "uint128" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      };
+
+      const deadline = BigNumber.from("4294967295");
+      const amount = utils.parseUnits("0.5", TS_BASE_TOKEN.USDT.decimals);
+
+      const value: Record<string, any> = {
+        delegatee: user1Addr,
+        loanId,
+        amount,
+        nonce: await diamondAcc.getNonce(user2Addr),
+        deadline: deadline,
+      };
+
+      const signature = await user2._signTypedData(domain, types, value);
+      const { v, r, s } = ethers.utils.splitSignature(signature);
+
+      const removeCollateralTx = await diamondLoan
+        .connect(user1)
+        .removeCollateralPermit(loanId, amount, deadline, v, r, s);
+      await removeCollateralTx.wait();
+
+      // after balance
+      const afterZkTrueUpBalance = await usdt.balanceOf(zkTrueUp.address);
+      const afterUser2Balance = await usdt.balanceOf(user2Addr);
+
+      // check balance
+      expect(beforeZkTrueUpBalance.sub(afterZkTrueUpBalance)).to.equal(amount);
+      expect(afterUser2Balance.sub(beforeUser2Balance)).to.equal(amount);
+
+      // check event
+      await expect(removeCollateralTx)
+        .to.emit(diamondLoan, "CollateralRemoved")
+        .withArgs(loanId, user1Addr, user2Addr, usdt.address, amount);
 
       // convert amount to 8 decimals for loan data
       const removedCollateralAmtConverted = toL2Amt(amount, TS_BASE_TOKEN.USDT);

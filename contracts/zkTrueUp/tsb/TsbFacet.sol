@@ -88,7 +88,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
      * @dev TSB token can be redeemed only after maturity
      * @dev TSB token decimals is 8 and should be converted to underlying asset decimals when 1:1 redeem
      */
-    function redeemWithPermit(
+    function redeemPermit(
         address accountAddr,
         ITsbToken tsbToken,
         uint128 amount,
@@ -230,6 +230,6 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         uint256 nonce,
         uint256 deadline
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(REDEEM_TYPEHASH, delegatee, tsbToken, redeemAndDeposit, amount, nonce, deadline));
+        return keccak256(abi.encode(REDEEM_TYPEHASH, delegatee, tsbToken, amount, redeemAndDeposit, nonce, deadline));
     }
 }

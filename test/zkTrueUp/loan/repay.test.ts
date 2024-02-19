@@ -1,7 +1,13 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Signer, utils } from "ethers";
+import {
+  BigNumber,
+  Signer,
+  TypedDataDomain,
+  TypedDataField,
+  utils,
+} from "ethers";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
 import { register } from "../../utils/register";
@@ -33,6 +39,7 @@ import {
   TS_BASE_TOKEN,
   TsTokenId,
 } from "term-structure-sdk";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -63,7 +70,7 @@ const fixture = async () => {
 };
 
 describe("Repay", () => {
-  let [user1, user2]: Signer[] = [];
+  let [user1, user2]: SignerWithAddress[] = [];
   let [user1Addr, user2Addr]: string[] = [];
   let operator: Signer;
   let weth: WETH9;
@@ -231,6 +238,261 @@ describe("Repay", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
+          collateralAmt,
+          debtAmt,
+          false
+        );
+
+      /// check loan data after repay
+      const newLoanInfo = await diamondLoan.getLoan(loanId);
+      expect(newLoanInfo.collateralAmt).to.eq(0);
+      expect(newLoanInfo.debtAmt).to.eq(0);
+
+      // convert amount to 8 decimals for loan data
+      const repaidDebtAmtConverted = toL2Amt(debtAmt, TS_BASE_TOKEN.USDC);
+
+      const removedCollateralAmtConverted = toL2Amt(
+        collateralAmt,
+        TS_BASE_TOKEN.ETH
+      );
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt).sub(
+          removedCollateralAmtConverted
+        ),
+        debtAmt: BigNumber.from(loan.debtAmt).sub(repaidDebtAmtConverted),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        ethAnswer,
+        usdcAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
+      // check health factor
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+    it("Success to delegate repay, fully repay and take all collateral (ETH case)", async () => {
+      // repay 500 USDC (all debt) and take 1 ETH (all collateral)
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      );
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      );
+
+      // give user2 500 USDC for repay test
+      usdc = await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDC]
+      );
+      await usdc.connect(user2).mint(user2Addr, debtAmt);
+
+      // user2 approve to ZkTrueUp
+      await usdc.connect(user2).approve(zkTrueUp.address, debtAmt);
+
+      // before balance
+      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const beforeUser1EthBalance = await user1.getBalance();
+      const beforeUser2UsdcBalance = await usdc.balanceOf(user2Addr);
+
+      // user1 delegate to user2
+      const delegateTx = await diamondAcc
+        .connect(user1)
+        .setDelegatee(user2Addr, true);
+      const delegateReceipt = await delegateTx.wait();
+
+      // gas fee
+      const delegateGas = BigNumber.from(delegateReceipt.gasUsed).mul(
+        delegateReceipt.effectiveGasPrice
+      );
+
+      // user2 repay on behalf of user1
+      const repayTx = await diamondLoan
+        .connect(user2)
+        .repay(loanId, collateralAmt, debtAmt, false);
+      const repayReceipt = await repayTx.wait();
+
+      // gas fee
+      const repayGas = BigNumber.from(repayReceipt.gasUsed).mul(
+        repayReceipt.effectiveGasPrice
+      );
+
+      // after balance
+      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const afterUser1EthBalance = await user1.getBalance();
+      const afterUser2UsdcBalance = await usdc.balanceOf(user2Addr);
+
+      // check balance
+      expect(beforeZkTrueUpWethBalance.sub(afterZkTrueUpWethBalance)).to.eq(
+        collateralAmt
+      );
+      expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
+        debtAmt
+      );
+      expect(
+        afterUser1EthBalance.add(delegateGas).sub(beforeUser1EthBalance)
+      ).to.eq(collateralAmt);
+      expect(beforeUser2UsdcBalance.sub(afterUser2UsdcBalance)).to.eq(debtAmt);
+
+      // check event
+      await expect(repayTx)
+        .to.emit(diamondLoan, "Repayment")
+        .withArgs(
+          loanId,
+          user2Addr,
+          user1Addr,
+          DEFAULT_ETH_ADDRESS,
+          usdc.address,
+          collateralAmt,
+          debtAmt,
+          false
+        );
+
+      /// check loan data after repay
+      const newLoanInfo = await diamondLoan.getLoan(loanId);
+      expect(newLoanInfo.collateralAmt).to.eq(0);
+      expect(newLoanInfo.debtAmt).to.eq(0);
+
+      // convert amount to 8 decimals for loan data
+      const repaidDebtAmtConverted = toL2Amt(debtAmt, TS_BASE_TOKEN.USDC);
+
+      const removedCollateralAmtConverted = toL2Amt(
+        collateralAmt,
+        TS_BASE_TOKEN.ETH
+      );
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        collateralAmt: BigNumber.from(loan.collateralAmt).sub(
+          removedCollateralAmtConverted
+        ),
+        debtAmt: BigNumber.from(loan.debtAmt).sub(repaidDebtAmtConverted),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        ethAnswer,
+        usdcAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+
+      // check health factor
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+    it("Success to permit repay, fully repay and take all collateral (ETH case)", async () => {
+      // repay 500 USDC (all debt) and take 1 ETH (all collateral)
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDC
+      );
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.ETH
+      );
+
+      // give user2 500 USDC for repay test
+      usdc = await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDC]
+      );
+      await usdc.connect(user2).mint(user2Addr, debtAmt);
+
+      // user2 approve to ZkTrueUp
+      await usdc.connect(user2).approve(zkTrueUp.address, debtAmt);
+
+      // before balance
+      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const beforeUser1EthBalance = await user1.getBalance();
+      const beforeUser2UsdcBalance = await usdc.balanceOf(user2Addr);
+
+      // user1 sign permit for user2
+      const domain: TypedDataDomain = {
+        name: "ZkTrueUp",
+        version: "1",
+        chainId: await user2.getChainId(),
+        verifyingContract: zkTrueUp.address,
+      };
+
+      const types: Record<string, TypedDataField[]> = {
+        Repay: [
+          { name: "delegatee", type: "address" },
+          { name: "loanId", type: "bytes12" },
+          { name: "collateralAmt", type: "uint128" },
+          { name: "debtAmt", type: "uint128" },
+          { name: "repayAndDeposit", type: "bool" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      };
+
+      const deadline = BigNumber.from("4294967295"); // max uint32
+      const value: Record<string, any> = {
+        delegatee: user2Addr,
+        loanId: loanId,
+        collateralAmt: collateralAmt,
+        debtAmt: debtAmt,
+        repayAndDeposit: false,
+        nonce: await diamondAcc.getNonce(user1Addr),
+        deadline: deadline,
+      };
+
+      const signature = await user1._signTypedData(domain, types, value);
+      const { v, r, s } = ethers.utils.splitSignature(signature);
+
+      const repayTx = await diamondLoan
+        .connect(user2)
+        .repayPermit(loanId, collateralAmt, debtAmt, false, deadline, v, r, s);
+      const repayReceipt = await repayTx.wait();
+
+      // after balance
+      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+      const afterUser1EthBalance = await user1.getBalance();
+      const afterUser2UsdcBalance = await usdc.balanceOf(user2Addr);
+
+      // check balance
+      expect(beforeZkTrueUpWethBalance.sub(afterZkTrueUpWethBalance)).to.eq(
+        collateralAmt
+      );
+      expect(afterZkTrueUpUsdcBalance.sub(beforeZkTrueUpUsdcBalance)).to.eq(
+        debtAmt
+      );
+      expect(afterUser1EthBalance.sub(beforeUser1EthBalance)).to.eq(
+        collateralAmt
+      );
+      expect(beforeUser2UsdcBalance.sub(afterUser2UsdcBalance)).to.eq(debtAmt);
+
+      // check event
+      await expect(repayTx)
+        .to.emit(diamondLoan, "Repayment")
+        .withArgs(
+          loanId,
+          user2Addr,
           user1Addr,
           DEFAULT_ETH_ADDRESS,
           usdc.address,

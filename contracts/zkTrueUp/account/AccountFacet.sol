@@ -118,6 +118,15 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         AccountLib.addForceWithdrawReq(RollupStorage.layout(), msg.sender, accountId, token, tokenId);
     }
 
+    /**
+     * @inheritdoc IAccountFacet
+     */
+    function setDelegatee(address delegatee, bool isDelegatee) external {
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        asl.isDelegated[msg.sender][delegatee] = isDelegatee;
+        emit SetDelegatee(msg.sender, delegatee, isDelegatee);
+    }
+
     /* ============ External View Functions ============ */
 
     /**

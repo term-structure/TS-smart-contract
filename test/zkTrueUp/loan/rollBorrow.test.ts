@@ -1,7 +1,13 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Signer, utils } from "ethers";
+import {
+  BigNumber,
+  Signer,
+  TypedDataDomain,
+  TypedDataField,
+  utils,
+} from "ethers";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
 import { register } from "../../utils/register";
@@ -36,6 +42,7 @@ import {
 } from "../../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 import { SYSTEM_UNIT_BASE } from "../../../utils/config";
 import { resolveLoanId } from "../../utils/loanHelper";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -66,7 +73,7 @@ const fixture = async () => {
 };
 
 describe("Roll Borrow", () => {
-  let [user1, user2]: Signer[] = [];
+  let [user1, user2]: SignerWithAddress[] = [];
   let [user1Addr, user2Addr]: string[] = [];
   let admin: Signer;
   let operator: Signer;
@@ -596,7 +603,6 @@ describe("Roll Borrow", () => {
     });
 
     it("Success to roll (stable coin pairs case)", async () => {
-      const beforeLoan = await diamondLoan.getLoan(loanId);
       // original loan:
       // collateral: 1000 DAI debt: 80 USDT
 
@@ -613,6 +619,8 @@ describe("Roll Borrow", () => {
       )
         .mul(50)
         .div(100);
+
+      const beforeLoan = await diamondLoan.getLoan(loanId);
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
         loanId: loanId,
@@ -657,6 +665,215 @@ describe("Roll Borrow", () => {
       await expect(rollBorrowTx)
         .to.emit(diamondLoan, "RollBorrowOrderPlaced")
         .withArgs(loanId, user2Addr, user2Addr, rollBorrowReq);
+
+      // check loan
+      const afterLoan = await diamondLoan.getLoan(loanId);
+      expect(afterLoan.collateralAmt.sub(beforeLoan.collateralAmt)).to.equal(0);
+      expect(afterLoan.debtAmt.sub(beforeLoan.debtAmt)).to.equal(0);
+      expect(
+        afterLoan.lockedCollateralAmt.sub(beforeLoan.lockedCollateralAmt)
+      ).to.equal(rollBorrowOrder.maxCollateralAmt);
+      // check roll borrow order in L1 request queue
+      const [, , requestNum] = await diamondRollupMock.getL1RequestNum();
+      expect(
+        await diamondRollupMock.isRollBorrowInL1RequestQueue(
+          rollBorrowReq,
+          requestNum.sub(1)
+        )
+      ).to.be.true;
+    });
+
+    it("Success to delegate roll (stable coin pairs case)", async () => {
+      // original loan:
+      // collateral: 1000 DAI debt: 80 USDT
+
+      // borrow order data
+      // all debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDT
+      );
+      // 50% of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.DAI
+      )
+        .mul(50)
+        .div(100);
+
+      const beforeLoan = await diamondLoan.getLoan(loanId);
+
+      // user2 delegate to user1
+      const delegateTx = await diamondAcc
+        .connect(user2)
+        .setDelegatee(user1Addr, true);
+      await delegateTx.wait();
+
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1703462400", // 2024/12/25
+        maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      const rollBorrowTx = await diamondLoan
+        .connect(user1)
+        .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") });
+      await rollBorrowTx.wait();
+
+      const { maturityTime } = resolveLoanId(loanId);
+      // check event
+      const rollBorrowReq = [
+        loan.accountId,
+        loan.collateralTokenId,
+        toL2Amt(
+          BigNumber.from(rollBorrowOrder.maxCollateralAmt),
+          TS_BASE_TOKEN.ETH
+        ),
+        await diamondLoan.getBorrowFeeRate(),
+        nextTsbTokenData.underlyingTokenId,
+        toL2Amt(
+          BigNumber.from(rollBorrowOrder.maxBorrowAmt),
+          TS_BASE_TOKEN.USDC
+        ),
+        maturityTime,
+        Number(nextTsbTokenData.maturity),
+        Number(rollBorrowOrder.expiredTime),
+        Number(
+          BigNumber.from(rollBorrowOrder.maxAnnualPercentageRate).add(
+            SYSTEM_UNIT_BASE
+          )
+        ),
+      ] as Operations.RollBorrowStructOutput;
+
+      // check event
+      await expect(rollBorrowTx)
+        .to.emit(diamondLoan, "RollBorrowOrderPlaced")
+        .withArgs(loanId, user1Addr, user2Addr, rollBorrowReq);
+
+      // check loan
+      const afterLoan = await diamondLoan.getLoan(loanId);
+      expect(afterLoan.collateralAmt.sub(beforeLoan.collateralAmt)).to.equal(0);
+      expect(afterLoan.debtAmt.sub(beforeLoan.debtAmt)).to.equal(0);
+      expect(
+        afterLoan.lockedCollateralAmt.sub(beforeLoan.lockedCollateralAmt)
+      ).to.equal(rollBorrowOrder.maxCollateralAmt);
+      // check roll borrow order in L1 request queue
+      const [, , requestNum] = await diamondRollupMock.getL1RequestNum();
+      expect(
+        await diamondRollupMock.isRollBorrowInL1RequestQueue(
+          rollBorrowReq,
+          requestNum.sub(1)
+        )
+      ).to.be.true;
+    });
+
+    it("Success to permit roll (stable coin pairs case)", async () => {
+      // original loan:
+      // collateral: 1000 DAI debt: 80 USDT
+
+      // borrow order data
+      // all debt
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDT
+      );
+      // 50% of collateral
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.DAI
+      )
+        .mul(50)
+        .div(100);
+
+      const beforeLoan = await diamondLoan.getLoan(loanId);
+
+      // roll borrow order data
+      const rollBorrowOrder: RollBorrowOrderStruct = {
+        loanId: loanId,
+        expiredTime: "1703462400", // 2024/12/25
+        maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
+        maxCollateralAmt: collateralAmt,
+        maxBorrowAmt: debtAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+      };
+
+      // user2 permit to user1
+      const domain: TypedDataDomain = {
+        name: "ZkTrueUp",
+        version: "1",
+        chainId: await user2.getChainId(),
+        verifyingContract: zkTrueUp.address,
+      };
+
+      const types: Record<string, TypedDataField[]> = {
+        RollBorrow: [
+          { name: "delegatee", type: "address" },
+          { name: "loanId", type: "bytes12" },
+          { name: "expiredTime", type: "uint32" },
+          { name: "maxAnnualPercentageRate", type: "uint32" },
+          { name: "maxCollateralAmt", type: "uint128" },
+          { name: "maxBorrowAmt", type: "uint128" },
+          { name: "tsbTokenAddr", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      };
+
+      const deadline = BigNumber.from("4294967295");
+      const value: Record<string, any> = {
+        delegatee: user1Addr,
+        loanId: loanId,
+        expiredTime: rollBorrowOrder.expiredTime,
+        maxAnnualPercentageRate: rollBorrowOrder.maxAnnualPercentageRate,
+        maxCollateralAmt: rollBorrowOrder.maxCollateralAmt,
+        maxBorrowAmt: rollBorrowOrder.maxBorrowAmt,
+        tsbTokenAddr: nextTsbTokenAddr,
+        nonce: await diamondAcc.getNonce(user2Addr),
+        deadline: deadline,
+      };
+
+      const signature = await user2._signTypedData(domain, types, value);
+      const { v, r, s } = ethers.utils.splitSignature(signature);
+
+      const rollBorrowTx = await diamondLoan
+        .connect(user1)
+        .rollBorrowPermit(rollBorrowOrder, deadline, v, r, s, {
+          value: utils.parseEther("0.01"),
+        });
+      await rollBorrowTx.wait();
+
+      const { maturityTime } = resolveLoanId(loanId);
+      // check event
+      const rollBorrowReq = [
+        loan.accountId,
+        loan.collateralTokenId,
+        toL2Amt(
+          BigNumber.from(rollBorrowOrder.maxCollateralAmt),
+          TS_BASE_TOKEN.ETH
+        ),
+        await diamondLoan.getBorrowFeeRate(),
+        nextTsbTokenData.underlyingTokenId,
+        toL2Amt(
+          BigNumber.from(rollBorrowOrder.maxBorrowAmt),
+          TS_BASE_TOKEN.USDC
+        ),
+        maturityTime,
+        Number(nextTsbTokenData.maturity),
+        Number(rollBorrowOrder.expiredTime),
+        Number(
+          BigNumber.from(rollBorrowOrder.maxAnnualPercentageRate).add(
+            SYSTEM_UNIT_BASE
+          )
+        ),
+      ] as Operations.RollBorrowStructOutput;
+
+      // check event
+      await expect(rollBorrowTx)
+        .to.emit(diamondLoan, "RollBorrowOrderPlaced")
+        .withArgs(loanId, user1Addr, user2Addr, rollBorrowReq);
 
       // check loan
       const afterLoan = await diamondLoan.getLoan(loanId);

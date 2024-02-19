@@ -1,7 +1,14 @@
+const helpers = require("@nomicfoundation/hardhat-network-helpers");
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Signer, utils } from "ethers";
+import {
+  BigNumber,
+  Signer,
+  TypedDataDomain,
+  TypedDataField,
+  utils,
+} from "ethers";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
 import { register } from "../../utils/register";
@@ -21,6 +28,7 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import { toL1Amt } from "../../utils/amountConvertor";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 //! use AccountMock and TsbMock for testing
 export const FACET_NAMES_MOCK = [
@@ -51,7 +59,7 @@ const fixture = async () => {
 };
 
 describe("Redeem TsbToken", () => {
-  let [user1, user2]: Signer[] = [];
+  let [user1, user2]: SignerWithAddress[] = [];
   let [user1Addr, user2Addr]: string[] = [];
   let operator: Signer;
   let zkTrueUp: ZkTrueUp;
@@ -178,10 +186,203 @@ describe("Redeem TsbToken", () => {
       const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
+      // increase time to after maturity
+      await helpers.time.increaseTo(1672416600);
       // redeem tsb token
       const redeemTx = await diamondTsbMock
         .connect(user1)
         .redeem(user1Addr, tsbTokenAddr, tsbUSDCAmt, false);
+      await redeemTx.wait();
+
+      // after balance
+      const afterUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const afterTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
+        tsbTokenAddr
+      );
+      const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // check event
+      await expect(redeemTx)
+        .to.emit(diamondWithTsbLib, "TsbTokenBurned")
+        .withArgs(tsbTokenAddr, user1Addr, tsbUSDCAmt);
+
+      // check tsb token amount
+      expect(
+        beforeUser1TsbTokenBalance.sub(afterUser1TsbTokenBalance)
+      ).to.equal(tsbUSDCAmt);
+      expect(beforeTsbTokenTotalSupply.sub(afterTsbTokenTotalSupply)).to.equal(
+        tsbUSDCAmt
+      );
+      const tsbToken = (await ethers.getContractAt(
+        "TsbToken",
+        tsbTokenAddr
+      )) as TsbToken;
+      expect(await tsbToken.balanceOf(zkTrueUp.address)).to.equal(0);
+
+      // check underlying asset amount
+      const underlyingAssetAmt = toL1Amt(tsbUSDCAmt, TS_BASE_TOKEN.USDC);
+      expect(beforeZkTrueUpUsdcBalance.sub(afterZkTrueUpUsdcBalance)).to.equal(
+        underlyingAssetAmt
+      );
+      expect(afterUser1UsdcBalance.sub(beforeUser1UsdcBalance)).to.equal(
+        underlyingAssetAmt
+      );
+    });
+    it("Success to delegate redeem tsb token (tsbUSDC case)", async () => {
+      // get params tsbUSDC
+      const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
+      const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(
+        underlyingTokenId,
+        maturity
+      );
+      const tsbUSDCAmt = utils.parseUnits("500", TS_DECIMALS.AMOUNT);
+      const underlyingAssetAddr = baseTokenAddresses[underlyingTokenId];
+      const usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        underlyingAssetAddr
+      )) as ERC20Mock;
+
+      // before balance
+      const beforeUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const beforeTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
+        tsbTokenAddr
+      );
+      const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // user1 delegate to user2
+      const delegateTx = await diamondAccMock
+        .connect(user1)
+        .setDelegatee(user2Addr, true);
+      await delegateTx.wait();
+
+      // increase time after maturity
+      await helpers.time.increaseTo(1672416600);
+      // redeem tsb token
+      const redeemTx = await diamondTsbMock
+        .connect(user2)
+        .redeem(user1Addr, tsbTokenAddr, tsbUSDCAmt, false);
+      await redeemTx.wait();
+
+      // after balance
+      const afterUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const afterTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
+        tsbTokenAddr
+      );
+      const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // check event
+      await expect(redeemTx)
+        .to.emit(diamondWithTsbLib, "TsbTokenBurned")
+        .withArgs(tsbTokenAddr, user1Addr, tsbUSDCAmt);
+
+      // check tsb token amount
+      expect(
+        beforeUser1TsbTokenBalance.sub(afterUser1TsbTokenBalance)
+      ).to.equal(tsbUSDCAmt);
+      expect(beforeTsbTokenTotalSupply.sub(afterTsbTokenTotalSupply)).to.equal(
+        tsbUSDCAmt
+      );
+      const tsbToken = (await ethers.getContractAt(
+        "TsbToken",
+        tsbTokenAddr
+      )) as TsbToken;
+      expect(await tsbToken.balanceOf(zkTrueUp.address)).to.equal(0);
+
+      // check underlying asset amount
+      const underlyingAssetAmt = toL1Amt(tsbUSDCAmt, TS_BASE_TOKEN.USDC);
+      expect(beforeZkTrueUpUsdcBalance.sub(afterZkTrueUpUsdcBalance)).to.equal(
+        underlyingAssetAmt
+      );
+      expect(afterUser1UsdcBalance.sub(beforeUser1UsdcBalance)).to.equal(
+        underlyingAssetAmt
+      );
+    });
+    it("Success to permit redeem tsb token (tsbUSDC case)", async () => {
+      // get params tsbUSDC
+      const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
+      const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(
+        underlyingTokenId,
+        maturity
+      );
+      const tsbUSDCAmt = utils.parseUnits("500", TS_DECIMALS.AMOUNT);
+      const underlyingAssetAddr = baseTokenAddresses[underlyingTokenId];
+      const usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        underlyingAssetAddr
+      )) as ERC20Mock;
+
+      // before balance
+      const beforeUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const beforeTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
+        tsbTokenAddr
+      );
+      const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // user1 permit to user2
+      const domain: TypedDataDomain = {
+        name: "ZkTrueUp",
+        version: "1",
+        chainId: await user2.getChainId(),
+        verifyingContract: zkTrueUp.address,
+      };
+
+      const types: Record<string, TypedDataField[]> = {
+        Redeem: [
+          { name: "delegatee", type: "address" },
+          { name: "tsbToken", type: "address" },
+          { name: "amount", type: "uint128" },
+          { name: "redeemAndDeposit", type: "bool" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      };
+
+      const deadline = BigNumber.from("4294967295");
+      const value: Record<string, any> = {
+        delegatee: user2Addr,
+        tsbToken: tsbTokenAddr,
+        amount: tsbUSDCAmt,
+        redeemAndDeposit: false,
+        nonce: await diamondAccMock.getNonce(user1Addr),
+        deadline: deadline,
+      };
+
+      const signature = await user1._signTypedData(domain, types, value);
+      const { v, r, s } = ethers.utils.splitSignature(signature);
+
+      // increase time after maturity
+      await helpers.time.increaseTo(1672416501);
+      // redeem tsb token
+      const redeemTx = await diamondTsbMock
+        .connect(user2)
+        .redeemPermit(
+          user1Addr,
+          tsbTokenAddr,
+          tsbUSDCAmt,
+          false,
+          deadline,
+          v,
+          r,
+          s
+        );
       await redeemTx.wait();
 
       // after balance
@@ -350,10 +551,195 @@ describe("Redeem TsbToken", () => {
       const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
+      // increase time after maturity
+      await helpers.time.increaseTo(1672416600);
       // redeem tsb token for deposit
       const redeemAndDepositTx = await diamondTsbMock
         .connect(user1)
         .redeem(user1Addr, tsbTokenAddr, tsbUsdcAmt, true);
+      await redeemAndDepositTx.wait();
+
+      // after balance
+      const afterUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const afterTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
+        tsbTokenAddr
+      );
+      const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // check event
+      await expect(redeemAndDepositTx)
+        .to.emit(diamondWithTsbLib, "TsbTokenBurned")
+        .withArgs(tsbTokenAddr, user1Addr, tsbUsdcAmt);
+
+      // check tsb token amount
+      expect(
+        beforeUser1TsbTokenBalance.sub(afterUser1TsbTokenBalance)
+      ).to.equal(tsbUsdcAmt);
+      expect(beforeTsbTokenTotalSupply.sub(afterTsbTokenTotalSupply)).to.equal(
+        tsbUsdcAmt
+      );
+      const tsbToken = (await ethers.getContractAt(
+        "TsbToken",
+        tsbTokenAddr
+      )) as TsbToken;
+      expect(await tsbToken.balanceOf(zkTrueUp.address)).to.equal(0);
+
+      // check underlying asset amount
+      expect(beforeZkTrueUpUsdcBalance).to.equal(afterZkTrueUpUsdcBalance);
+      expect(beforeUser1UsdcBalance).to.equal(afterUser1UsdcBalance);
+    });
+
+    it("Success to delegate redeem tsb token and deposit", async () => {
+      // get params tsbUSDC
+      const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
+      const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(
+        underlyingTokenId,
+        maturity
+      );
+      const tsbUsdcAmt = utils.parseUnits("500", TS_DECIMALS.AMOUNT);
+      const underlyingAssetAddr = baseTokenAddresses[underlyingTokenId];
+      const usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        underlyingAssetAddr
+      )) as ERC20Mock;
+
+      // before balance
+      const beforeUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const beforeTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
+        tsbTokenAddr
+      );
+      const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // user1 delegate to user2
+      const delegateTx = await diamondAccMock
+        .connect(user1)
+        .setDelegatee(user2Addr, true);
+      await delegateTx.wait();
+
+      // increase time after maturity
+      await helpers.time.increaseTo(1672416600);
+      // redeem tsb token for deposit
+      const redeemAndDepositTx = await diamondTsbMock
+        .connect(user2)
+        .redeem(user1Addr, tsbTokenAddr, tsbUsdcAmt, true);
+      await redeemAndDepositTx.wait();
+
+      // after balance
+      const afterUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const afterTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
+        tsbTokenAddr
+      );
+      const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // check event
+      await expect(redeemAndDepositTx)
+        .to.emit(diamondWithTsbLib, "TsbTokenBurned")
+        .withArgs(tsbTokenAddr, user1Addr, tsbUsdcAmt);
+
+      // check tsb token amount
+      expect(
+        beforeUser1TsbTokenBalance.sub(afterUser1TsbTokenBalance)
+      ).to.equal(tsbUsdcAmt);
+      expect(beforeTsbTokenTotalSupply.sub(afterTsbTokenTotalSupply)).to.equal(
+        tsbUsdcAmt
+      );
+      const tsbToken = (await ethers.getContractAt(
+        "TsbToken",
+        tsbTokenAddr
+      )) as TsbToken;
+      expect(await tsbToken.balanceOf(zkTrueUp.address)).to.equal(0);
+
+      // check underlying asset amount
+      expect(beforeZkTrueUpUsdcBalance).to.equal(afterZkTrueUpUsdcBalance);
+      expect(beforeUser1UsdcBalance).to.equal(afterUser1UsdcBalance);
+    });
+
+    it("Success to permit redeem tsb token and deposit", async () => {
+      // get params tsbUSDC
+      const underlyingTokenId = maturedTsbTokensJSON[0].underlyingTokenId;
+      const maturity = BigNumber.from(maturedTsbTokensJSON[0].maturity);
+      const tsbTokenAddr = await diamondTsbMock.getTsbToken(
+        underlyingTokenId,
+        maturity
+      );
+      const tsbUsdcAmt = utils.parseUnits("500", TS_DECIMALS.AMOUNT);
+      const underlyingAssetAddr = baseTokenAddresses[underlyingTokenId];
+      const usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        underlyingAssetAddr
+      )) as ERC20Mock;
+
+      // before balance
+      const beforeUser1TsbTokenBalance = await diamondTsbMock.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const beforeTsbTokenTotalSupply = await diamondTsbMock.activeSupply(
+        tsbTokenAddr
+      );
+      const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // user1 permit to user2
+      const domain: TypedDataDomain = {
+        name: "ZkTrueUp",
+        version: "1",
+        chainId: await user2.getChainId(),
+        verifyingContract: zkTrueUp.address,
+      };
+
+      const types: Record<string, TypedDataField[]> = {
+        Redeem: [
+          { name: "delegatee", type: "address" },
+          { name: "tsbToken", type: "address" },
+          { name: "amount", type: "uint128" },
+          { name: "redeemAndDeposit", type: "bool" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ],
+      };
+
+      const deadline = BigNumber.from("4294967295");
+      const value: Record<string, any> = {
+        delegatee: user2Addr,
+        tsbToken: tsbTokenAddr,
+        amount: tsbUsdcAmt,
+        redeemAndDeposit: true,
+        nonce: await diamondAccMock.getNonce(user1Addr),
+        deadline: deadline,
+      };
+
+      const signature = await user1._signTypedData(domain, types, value);
+      const { v, r, s } = ethers.utils.splitSignature(signature);
+
+      // increase time after maturity
+      await helpers.time.increaseTo(1672416600);
+      // redeem tsb token for deposit
+      const redeemAndDepositTx = await diamondTsbMock
+        .connect(user2)
+        .redeemPermit(
+          user1Addr,
+          tsbTokenAddr,
+          tsbUsdcAmt,
+          true,
+          deadline,
+          v,
+          r,
+          s
+        );
       await redeemAndDepositTx.wait();
 
       // after balance
