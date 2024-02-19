@@ -369,7 +369,7 @@ describe("Redeem TsbToken", () => {
       const { v, r, s } = ethers.utils.splitSignature(signature);
 
       // increase time after maturity
-      await helpers.time.increaseTo(1672416510);
+      await helpers.time.increaseTo(1672416550);
       // redeem tsb token
       const redeemTx = await diamondTsbMock
         .connect(user2)
