@@ -86,20 +86,20 @@ const config: HardhatUserConfig = {
         ? { url: getString(process.env.MAINNET_RPC_URL), blockNumber: 17426510 }
         : undefined,
     },
-    // devnet: {
-    //   url: getString(process.env.DEVNET_RPC_URL) || "",
-    //   accounts: [getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY)],
-    // },
-    // sepolia: {
-    //   url: getString(process.env.STAGING_SEPOLIA_RPC_URL),
-    //   accounts: [
-    //     getString(process.env.STAGING_SEPOLIA_DEPLOYER_PRIVATE_KEY),
-    //     getString(process.env.STAGING_SEPOLIA_FAUCET_OPERATOR_PRIVATE_KEY),
-    //     getString(process.env.TESTNET_SEPOLIA_FAUCET_OPERATOR_PRIVATE_KEY),
-    //     getString(process.env.STAGING_SEPOLIA_ORACLE_OPERATOR_PRIVATE_KEY),
-    //     getString(process.env.TESTNET_SEPOLIA_ORACLE_OPERATOR_PRIVATE_KEY),
-    //   ],
-    // },
+    devnet: {
+      url: getString(process.env.DEVNET_RPC_URL) || "",
+      accounts: [getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY)],
+    },
+    sepolia: {
+      url: getString(process.env.STAGING_SEPOLIA_RPC_URL),
+      accounts: [
+        getString(process.env.STAGING_SEPOLIA_DEPLOYER_PRIVATE_KEY),
+        getString(process.env.STAGING_SEPOLIA_FAUCET_OPERATOR_PRIVATE_KEY),
+        getString(process.env.TESTNET_SEPOLIA_FAUCET_OPERATOR_PRIVATE_KEY),
+        getString(process.env.STAGING_SEPOLIA_ORACLE_OPERATOR_PRIVATE_KEY),
+        getString(process.env.TESTNET_SEPOLIA_ORACLE_OPERATOR_PRIVATE_KEY),
+      ],
+    },
   },
 };
 
