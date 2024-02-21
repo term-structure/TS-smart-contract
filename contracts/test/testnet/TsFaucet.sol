@@ -19,7 +19,6 @@ contract TsFaucet is ITsFaucet, Ownable {
     address public exchange;
 
     uint8 internal constant TS_ERC20_NUMBERS = 5; // TSETH WBTC USDT USDC DAI
-    uint16 internal constant FREE_MINT_AMOUNT = 10000;
     uint16 internal constant BATCH_MINT_AMOUNT_BASE = 1000;
     // uint24[TS_ERC20_NUMBERS] internal BATCH_MINT_AMOUNT = [5000, 250, 10000000, 10000000, 10000000];
     uint24[TS_ERC20_NUMBERS] internal BATCH_MINT_AMOUNT = [10000000, 10000000, 10000000, 10000000, 10000000];
@@ -83,7 +82,7 @@ contract TsFaucet is ITsFaucet, Ownable {
         require(_isFreeMint, "Not free mint now");
         for (uint256 i; i < TS_ERC20_NUMBERS; i++) {
             uint8 decimals = TsERC20(tsERC20s[i]).decimals();
-            uint256 amount = FREE_MINT_AMOUNT * (10 ** decimals);
+            uint256 amount = BATCH_MINT_AMOUNT[i] * (10 ** decimals);
             TsERC20(tsERC20s[i]).mint(msg.sender, amount);
         }
         emit BatchFreeMint(msg.sender);
