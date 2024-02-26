@@ -10,7 +10,7 @@ import {
 } from "../../utils/deployHelper";
 import { deployContracts } from "./utils";
 
-function get_env() {
+function getEnv() {
   const provider = new ethers.providers.JsonRpcProvider(
     process.env.TESTNET_SEPOLIA_RPC_URL
   );
@@ -57,55 +57,7 @@ function get_env() {
   };
 }
 
-async function packResults(){
-  
-}
-
-export const main = async () => {
-  const env = get_env();
-
-  const currentDeployerNonce = await env.deployer.getTransactionCount();
-  const feeData = await env.provider.getFeeData();
-  const deltaMaxFeePerGas = ethers.utils.parseUnits("20", "gwei");
-  const deltaMaxPriorityFeePerGas = ethers.utils.parseUnits("3", "gwei");
-
-  const res = await deployContracts(
-    env,
-    currentDeployerNonce,
-    feeData,
-    deltaMaxFeePerGas,
-    deltaMaxPriorityFeePerGas
-  );
-  // log addresses
-  console.log("Current branch:", getCurrentBranch());
-  console.log("Latest commit:", getLatestCommit());
-  console.log("Deployer address:", await env.deployer.getAddress());
-  console.log("Operator address:", env.operatorAddr);
-  console.log("Faucet owner address:", env.faucetOwnerAddr);
-  console.log("Oracle owner address:", env.oracleOwnerAddr);
-  console.log("Genesis state root: ", env.genesisStateRoot);
-  console.log("WETH address:", res.weth.address);
-  console.log("TsFaucet address:", res.tsFaucet.address);
-  for (const token of BASE_TOKEN_ASSET_CONFIG) {
-    console.log(
-      `${token.symbol} address: ${res.baseTokenAddresses[token.tokenId]}`,
-      `with price feed ${res.priceFeeds[token.tokenId]}`
-    );
-  }
-  console.log("PoseidonUnit2 address:", res.poseidonUnit2Contract.address);
-  console.log("Verifier address:", res.verifier.address);
-  console.log("EvacuVerifier address:", res.evacuVerifier.address);
-  for (const facetName of Object.keys(res.facets)) {
-    console.log(`${facetName} address: ${res.facets[facetName].address}`);
-  }
-  console.log("ZkTrueUpInit address:", res.zkTrueUpInit.address);
-  console.log("ZkTrueUp address:", res.zkTrueUp.address);
-
-  const creationTx = await res.zkTrueUp.provider.getTransactionReceipt(
-    res.zkTrueUp.deployTransaction.hash
-  );
-  console.log("Created block of zkTrueUp:", creationTx.blockNumber);
-
+async function packResults(env: any, res: any, creationTx: any) {
   const result: { [key: string]: unknown } = {};
   result["current_branch"] = getCurrentBranch();
   result["latest_commit"] = getLatestCommit();
@@ -134,6 +86,30 @@ export const main = async () => {
   result["zk_true_up_init"] = res.zkTrueUpInit.address;
   result["zk_true_up"] = res.zkTrueUp.address;
   result["creation_block_number"] = creationTx.blockNumber.toString();
+  return result;
+}
+
+export const main = async () => {
+  const env = getEnv();
+
+  const currentDeployerNonce = await env.deployer.getTransactionCount();
+  const feeData = await env.provider.getFeeData();
+  const deltaMaxFeePerGas = ethers.utils.parseUnits("50", "gwei");
+  const deltaMaxPriorityFeePerGas = ethers.utils.parseUnits("20", "gwei");
+
+  const res = await deployContracts(
+    env,
+    currentDeployerNonce,
+    feeData,
+    deltaMaxFeePerGas,
+    deltaMaxPriorityFeePerGas
+  );
+
+  const creationTx = await res.zkTrueUp.provider.getTransactionReceipt(
+    res.zkTrueUp.deployTransaction.hash
+  );
+
+  const result = await packResults(env, res, creationTx);
 
   await createDirectoryIfNotExists("tmp");
   const jsonString = JSON.stringify(result, null, 2);
@@ -156,6 +132,33 @@ export const main = async () => {
       }
     }
   );
+
+  // log addresses
+  console.log("Current branch:", getCurrentBranch());
+  console.log("Latest commit:", getLatestCommit());
+  console.log("Deployer address:", await env.deployer.getAddress());
+  console.log("Operator address:", env.operatorAddr);
+  console.log("Faucet owner address:", env.faucetOwnerAddr);
+  console.log("Oracle owner address:", env.oracleOwnerAddr);
+  console.log("Genesis state root: ", env.genesisStateRoot);
+  console.log("WETH address:", res.weth.address);
+  console.log("TsFaucet address:", res.tsFaucet.address);
+  for (const token of BASE_TOKEN_ASSET_CONFIG) {
+    console.log(
+      `${token.symbol} address: ${res.baseTokenAddresses[token.tokenId]}`,
+      `with price feed ${res.priceFeeds[token.tokenId]}`
+    );
+  }
+  console.log("PoseidonUnit2 address:", res.poseidonUnit2Contract.address);
+  console.log("Verifier address:", res.verifier.address);
+  console.log("EvacuVerifier address:", res.evacuVerifier.address);
+  for (const facetName of Object.keys(res.facets)) {
+    console.log(`${facetName} address: ${res.facets[facetName].address}`);
+  }
+  console.log("ZkTrueUpInit address:", res.zkTrueUpInit.address);
+  console.log("ZkTrueUp address:", res.zkTrueUp.address);
+
+  console.log("Created block of zkTrueUp:", creationTx.blockNumber);
 };
 
 main().catch((error) => {

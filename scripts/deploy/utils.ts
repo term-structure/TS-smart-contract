@@ -147,7 +147,7 @@ export async function deployContracts(
   );
   await tsFaucet.deployed();
 
-  const tx = await tsFaucet
+  let tx = await tsFaucet
     .connect(env.deployer)
     .transferOwnership(env.faucetOwnerAddr, {
       nonce: currentDeployerNonce++,
@@ -262,8 +262,14 @@ export async function deployContracts(
 
   // change operator role from operator to governor
   const OPERATOR_ROLE = ethers.utils.id("OPERATOR_ROLE");
-  await zkTrueUp.grantRole(OPERATOR_ROLE, env.governorAddr);
-  await zkTrueUp.revokeRole(OPERATOR_ROLE, env.operatorAddr);
+  tx = await zkTrueUp
+    .connect(env.deployer)
+    .grantRole(OPERATOR_ROLE, env.governorAddr);
+  await tx.wait();
+  tx = await zkTrueUp
+    .connect(env.deployer)
+    .revokeRole(OPERATOR_ROLE, env.operatorAddr);
+  await tx.wait();
 
   // init diamond cut
   console.log("Init diamond cut...");
