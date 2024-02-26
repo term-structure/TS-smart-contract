@@ -47,6 +47,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
     /**
      * @inheritdoc ILoanFacet
+     * @dev Anyone can add collateral to the loan
      */
     function addCollateral(bytes12 loanId, uint128 amount) external payable {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
