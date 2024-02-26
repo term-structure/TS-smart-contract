@@ -212,10 +212,10 @@ library AccountLib {
         return s.accountNum;
     }
 
-    /// @notice Internal function to get the nonce of the address
+    /// @notice Internal function to get the permit nonce of the address
     /// @param s The account storage layout
-    /// @param addr The address to get nonce
-    function getNonce(AccountStorage.Layout storage s, address addr) internal view returns (uint256) {
+    /// @param addr The address to get permit nonce
+    function getPermitNonce(AccountStorage.Layout storage s, address addr) internal view returns (uint256) {
         return s.nonces[addr];
     }
 

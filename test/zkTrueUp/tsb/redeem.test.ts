@@ -361,7 +361,7 @@ describe("Redeem TsbToken", () => {
         tsbToken: tsbTokenAddr,
         amount: tsbUSDCAmt,
         redeemAndDeposit: false,
-        nonce: await diamondAccMock.getNonce(user1Addr),
+        nonce: await diamondAccMock.getPermitNonce(user1Addr),
         deadline: deadline,
       };
 
@@ -718,7 +718,7 @@ describe("Redeem TsbToken", () => {
         tsbToken: tsbTokenAddr,
         amount: tsbUsdcAmt,
         redeemAndDeposit: true,
-        nonce: await diamondAccMock.getNonce(user1Addr),
+        nonce: await diamondAccMock.getPermitNonce(user1Addr),
         deadline: deadline,
       };
 

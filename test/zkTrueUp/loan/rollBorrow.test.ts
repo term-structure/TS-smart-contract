@@ -831,7 +831,7 @@ describe("Roll Borrow", () => {
         maxCollateralAmt: rollBorrowOrder.maxCollateralAmt,
         maxBorrowAmt: rollBorrowOrder.maxBorrowAmt,
         tsbTokenAddr: nextTsbTokenAddr,
-        nonce: await diamondAcc.getNonce(user2Addr),
+        nonce: await diamondAcc.getPermitNonce(user2Addr),
         deadline: deadline,
       };
 

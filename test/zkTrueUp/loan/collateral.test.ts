@@ -452,7 +452,7 @@ describe("Collateral", () => {
         delegatee: user2Addr,
         loanId,
         amount,
-        nonce: await diamondAcc.getNonce(user1Addr),
+        nonce: await diamondAcc.getPermitNonce(user1Addr),
         deadline: deadline,
       };
 
@@ -908,7 +908,7 @@ describe("Collateral", () => {
         delegatee: user1Addr,
         loanId,
         amount,
-        nonce: await diamondAcc.getNonce(user2Addr),
+        nonce: await diamondAcc.getPermitNonce(user2Addr),
         deadline: deadline,
       };
 

@@ -457,7 +457,7 @@ describe("Repay", () => {
         collateralAmt: collateralAmt,
         debtAmt: debtAmt,
         repayAndDeposit: false,
-        nonce: await diamondAcc.getNonce(user1Addr),
+        nonce: await diamondAcc.getPermitNonce(user1Addr),
         deadline: deadline,
       };
 

@@ -218,7 +218,7 @@ describe("Withdraw", () => {
         delegatee: user2Addr,
         token: DEFAULT_ETH_ADDRESS,
         amount: withdrawAmt,
-        nonce: await diamondAccMock.getNonce(user1Addr),
+        nonce: await diamondAccMock.getPermitNonce(user1Addr),
         deadline: deadline,
       };
 
@@ -377,7 +377,7 @@ describe("Withdraw", () => {
         delegatee: user2Addr,
         token: usdc.address,
         amount: amount,
-        nonce: await diamondAccMock.getNonce(user1Addr),
+        nonce: await diamondAccMock.getPermitNonce(user1Addr),
         deadline: deadline,
       };
 
@@ -750,7 +750,7 @@ describe("Withdraw", () => {
         delegatee: user2Addr,
         token: tsbTokenAddr,
         amount: amount,
-        nonce: await diamondAccMock.getNonce(user1Addr),
+        nonce: await diamondAccMock.getPermitNonce(user1Addr),
         deadline: deadline,
       };
 

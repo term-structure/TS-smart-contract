@@ -94,7 +94,13 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getValidAccount(accountAddr);
 
-        bytes32 structHash = _calcWithdrawStructHash(msg.sender, token, amount, asl.getNonce(accountAddr), deadline);
+        bytes32 structHash = _calcWithdrawStructHash(
+            msg.sender,
+            token,
+            amount,
+            asl.getPermitNonce(accountAddr),
+            deadline
+        );
         Signature.verifySignature(accountAddr, structHash, v, r, s);
 
         asl.increaseNonce(accountAddr);
@@ -153,8 +159,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /**
      * @inheritdoc IAccountFacet
      */
-    function getNonce(address accountAddr) external view returns (uint256) {
-        return AccountStorage.layout().getNonce(accountAddr);
+    function getPermitNonce(address accountAddr) external view returns (uint256) {
+        return AccountStorage.layout().getPermitNonce(accountAddr);
     }
 
     /**

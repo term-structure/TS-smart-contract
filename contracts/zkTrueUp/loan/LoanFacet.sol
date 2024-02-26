@@ -97,7 +97,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             msg.sender,
             loanId,
             amount,
-            asl.getNonce(loanOwner),
+            asl.getPermitNonce(loanOwner),
             deadline
         );
         Signature.verifySignature(loanOwner, structHash, v, r, s);
@@ -148,7 +148,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                 collateralAmt,
                 debtAmt,
                 repayAndDeposit,
-                asl.getNonce(loanOwner),
+                asl.getPermitNonce(loanOwner),
                 deadline
             );
             Signature.verifySignature(loanOwner, structHash, v, r, s);
@@ -210,7 +210,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                 loanId,
                 collateralAmt,
                 debtAmt,
-                asl.getNonce(loanOwner),
+                asl.getPermitNonce(loanOwner),
                 deadline
             );
             Signature.verifySignature(loanOwner, structHash, v, r, s);
@@ -270,7 +270,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             bytes32 structHash = _calcRollBorrowStructHash(
                 msg.sender,
                 rollBorrowOrder,
-                asl.getNonce(loanOwner),
+                asl.getPermitNonce(loanOwner),
                 deadline
             );
             Signature.verifySignature(loanOwner, structHash, v, r, s);
@@ -335,7 +335,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             bytes32 structHash = _calcForceCancelRollBorrowStructHash(
                 msg.sender,
                 loanId,
-                asl.getNonce(loanOwner),
+                asl.getPermitNonce(loanOwner),
                 deadline
             );
             Signature.verifySignature(loanOwner, structHash, v, r, s);

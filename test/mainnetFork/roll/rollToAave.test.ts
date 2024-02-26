@@ -844,7 +844,7 @@ describe("Roll to Aave", () => {
         loanId,
         collateralAmt,
         debtAmt,
-        nonce: await diamondAcc.getNonce(user1Addr),
+        nonce: await diamondAcc.getPermitNonce(user1Addr),
         deadline: deadline,
       };
 

@@ -79,11 +79,11 @@ interface IAccountFacet {
     /// @return accountNum The number of registered accounts
     function getAccountNum() external view returns (uint32 accountNum);
 
-    /// @notice Return the nonce of the account
+    /// @notice Return the permit nonce of the account
     /// @dev The nonce is used to prevent signature replay attack
     /// @param accountAddr The address of the account
-    /// @return nonce The nonce of the account
-    function getNonce(address accountAddr) external view returns (uint256);
+    /// @return nonce The permit nonce of the account
+    function getPermitNonce(address accountAddr) external view returns (uint256);
 
     /// @notice Return the isDelegated status of the account
     /// @param delegator The address of the delegator

@@ -106,7 +106,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
             tsbToken,
             amount,
             redeemAndDeposit,
-            asl.getNonce(accountAddr),
+            asl.getPermitNonce(accountAddr),
             deadline
         );
         Signature.verifySignature(accountAddr, structHash, v, r, s);
