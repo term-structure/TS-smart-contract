@@ -988,7 +988,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
     /* ============ Internal Pure Functions to Calculate Struct Hash ============ */
 
-    /// @notice Calculate the hash of the struct for the add collateral permit
+    /// @notice Calculate the hash of the struct for the remove collateral permit
     /// @param delegatee The delegatee of the permit
     /// @param loanId The id of the loan
     /// @param amount The amount of the collateral to be added
@@ -1004,7 +1004,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return keccak256(abi.encode(REMOVE_COLLATERAL_TYPEHASH, delegatee, loanId, amount, nonce, deadline));
     }
 
-    /// @notice Calculate the hash of the struct for the add collateral permit
+    /// @notice Calculate the hash of the struct for the repay collateral permit
     /// @param delegatee The delegatee of the permit
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of the collateral to be added
