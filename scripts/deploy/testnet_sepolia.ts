@@ -27,7 +27,7 @@ import {
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
-export const main = async () => {
+function get_env() {
   const provider = new ethers.providers.JsonRpcProvider(
     process.env.TESTNET_SEPOLIA_RPC_URL
   );
@@ -36,24 +36,45 @@ export const main = async () => {
     process.env.TESTNET_SEPOLIA_DEPLOYER_PRIVATE_KEY
   );
   const deployer = new Wallet(deployerPrivKey, provider);
-  const operatorAddr = getString(process.env.TESTNET_SEPOLIA_OPERATOR_ADDRESS);
+
   const governorAddr = getString(process.env.TESTNET_SEPOLIA_GOVERNOR_ADDRESS);
-  const adminAddr = getString(process.env.TESTNET_SEPOLIA_ADMIN_ADDRESS);
-  const treasuryAddr = getString(process.env.TESTNET_SEPOLIA_TREASURY_ADDRESS);
-  const insuranceAddr = getString(
-    process.env.TESTNET_SEPOLIA_INSURANCE_ADDRESS
-  );
-  const vaultAddr = getString(process.env.TESTNET_SEPOLIA_VAULT_ADDRESS);
+  const operatorAddr = getString(process.env.TESTNET_SEPOLIA_OPERATOR_ADDRESS);
   const faucetOwnerAddr = getString(
     process.env.TESTNET_SEPOLIA_FAUCET_OWNER_ADDRESS
   );
   const oracleOwnerAddr = getString(
     process.env.TESTNET_SEPOLIA_ORACLE_OWNER_ADDRESS
   );
+
+  const adminAddr = getString(process.env.TESTNET_SEPOLIA_ADMIN_ADDRESS);
+  const treasuryAddr = getString(process.env.TESTNET_SEPOLIA_TREASURY_ADDRESS);
+  const insuranceAddr = getString(
+    process.env.TESTNET_SEPOLIA_INSURANCE_ADDRESS
+  );
+  const vaultAddr = getString(process.env.TESTNET_SEPOLIA_VAULT_ADDRESS);
+
   const exchangeAddr = getString(process.env.TESTNET_SEPOLIA_EXCHANGE_ADDRESS);
   const genesisStateRoot = getString(
     process.env.TESTNET_SEPOLIA_GENESIS_STATE_ROOT
   );
+
+  return {
+    deployer,
+    governorAddr,
+    operatorAddr,
+    faucetOwnerAddr,
+    oracleOwnerAddr,
+    adminAddr,
+    treasuryAddr,
+    insuranceAddr,
+    vaultAddr,
+    exchangeAddr,
+    genesisStateRoot,
+  };
+}
+
+export const main = async () => {
+  const env = get_env();
 
   let currentDeployerNonce = await deployer.getTransactionCount();
   const feeData = await provider.getFeeData();
