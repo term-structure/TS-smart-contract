@@ -27,7 +27,7 @@ interface ITsbFacet {
     event TsbTokenCreated(ITsbToken indexed tsbToken, IERC20 underlyingAsset, uint32 maturity);
 
     /// @notice Emitted when the lender redeem the tsbToken
-    /// @param caller The address of the caller
+    /// @param caller The address of the `msg.sender`
     /// @param accountAddr The address of the account
     /// @param tsbToken The tsbToken to redeem
     /// @param underlyingAsset The underlying asset of the tsbToken

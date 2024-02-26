@@ -53,13 +53,13 @@ interface ILoanFacet {
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
-    /// @param sender The address of the `msg.sender`
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
     /// @param collateralToken The collateral token to add
     /// @param addedCollateralAmt The amount of the added collateral
     event CollateralAdded(
         bytes12 indexed loanId,
-        address sender,
+        address caller,
         address loanOwner,
         IERC20 collateralToken,
         uint128 addedCollateralAmt
@@ -67,13 +67,13 @@ interface ILoanFacet {
 
     /// @notice Emitted when borrower remove collateral
     /// @param loanId The id of the loan
-    /// @param sender The address of the `msg.sender`
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
     /// @param collateralToken The collateral token to remove
     /// @param removedCollateralAmt The amount of the removed collateral
     event CollateralRemoved(
         bytes12 indexed loanId,
-        address sender,
+        address caller,
         address loanOwner,
         IERC20 collateralToken,
         uint128 removedCollateralAmt
@@ -81,7 +81,7 @@ interface ILoanFacet {
 
     /// @notice Emitted when the borrower repay the loan
     /// @param loanId The id of the loan
-    /// @param sender The address of the `msg.sender`
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
     /// @param collateralToken The collateral token to be taken
     /// @param debtToken The debt token to be repaid
@@ -90,7 +90,7 @@ interface ILoanFacet {
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
     event Repayment(
         bytes12 indexed loanId,
-        address sender,
+        address caller,
         address loanOwner,
         IERC20 collateralToken,
         IERC20 debtToken,
@@ -101,7 +101,7 @@ interface ILoanFacet {
 
     /// @notice Emitted when the loan is rolled to Aave
     /// @param loanId The id of the loan
-    /// @param sender The address of the `msg.sender`
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
     /// @param supplyToken The token to be supplied to Aave
     /// @param borrowToken The token to be borrowed from Aave
@@ -109,7 +109,7 @@ interface ILoanFacet {
     /// @param debtAmt The amount of the debt
     event RollToAave(
         bytes12 indexed loanId,
-        address sender,
+        address caller,
         address loanOwner,
         IERC20 supplyToken,
         IERC20 borrowToken,
@@ -119,21 +119,21 @@ interface ILoanFacet {
 
     /// @notice Emitted when the borrower place a roll borrow order
     /// @param loanId The id of the loan
-    /// @param sender The address of the `msg.sender`
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
     /// @param rollBorrowReq The roll borrow request
     event RollBorrowOrderPlaced(
         bytes12 indexed loanId,
-        address sender,
+        address caller,
         address loanOwner,
         Operations.RollBorrow rollBorrowReq
     );
 
     /// @notice Emitted when the borrower force cancel a roll borrow order on L1
     /// @param loanId The id of the loan
-    /// @param sender The address of the `msg.sender`
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
-    event RollBorrowOrderForceCancelPlaced(bytes12 indexed loanId, address sender, address loanOwner);
+    event RollBorrowOrderForceCancelPlaced(bytes12 indexed loanId, address caller, address loanOwner);
 
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
