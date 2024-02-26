@@ -1394,7 +1394,7 @@ describe("Repay and deposit", () => {
 
       const repayAndDepositTx = await diamondLoan
         .connect(user1)
-        .repayPermit(
+        .repayWithPermit(
           loanId,
           depositCollateralAmt,
           repayDebtAmt,

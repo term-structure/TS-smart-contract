@@ -72,7 +72,7 @@ interface ITsbFacet {
     /// @param v The recovery id of the signature
     /// @param r The r of the permit signature
     /// @param s The s of the permit signature
-    function redeemPermit(
+    function redeemWithPermit(
         address accountAddr,
         ITsbToken tsbToken,
         uint128 amount,

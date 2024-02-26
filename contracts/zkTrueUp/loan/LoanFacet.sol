@@ -78,7 +78,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function removeCollateralPermit(
+    function removeCollateralWithPermit(
         bytes12 loanId,
         uint128 amount,
         uint256 deadline,
@@ -123,7 +123,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /**
      * @inheritdoc ILoanFacet
      */
-    function repayPermit(
+    function repayWithPermit(
         bytes12 loanId,
         uint128 collateralAmt,
         uint128 debtAmt,
@@ -185,7 +185,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      *      the user can transfer the loan of fixed rate and date from term structure
      *      to the floating rate and perpetual position on Aave without repaying the debt
      */
-    function rollToAavePermit(
+    function rollToAaveWithPermit(
         bytes12 loanId,
         uint128 collateralAmt,
         uint128 debtAmt,
@@ -246,7 +246,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      * @inheritdoc ILoanFacet
      * @dev Cannot roll total collateral amount because the original loan will be not strict healthy if success
      */
-    function rollBorrowPermit(
+    function rollBorrowWithPermit(
         RollBorrowOrder memory rollBorrowOrder,
         uint256 deadline,
         uint8 v,
@@ -318,7 +318,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      *      to force this transaction must to be packaged in rollup block
      *      to avoid the `UserCancelRollBorrow` operation be maliciously ignored in L2
      */
-    function forceCancelRollBorrowPermit(bytes12 loanId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+    function forceCancelrollBorrowWithPermit(bytes12 loanId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
         Signature.verifyDeadline(deadline);
 
         LoanStorage.Layout storage lsl = LoanStorage.layout();

@@ -460,10 +460,10 @@ describe("Collateral", () => {
       const { v, r, s } = ethers.utils.splitSignature(signature);
 
       // remove collateral permit, amount = 0.2 ETH
-      const removeCollateralPermitTx = await diamondLoan
+      const removeCollateralWithPermitTx = await diamondLoan
         .connect(user2)
-        .removeCollateralPermit(loanId, amount, deadline, v, r, s);
-      const removeCollateralReceipt = await removeCollateralPermitTx.wait();
+        .removeCollateralWithPermit(loanId, amount, deadline, v, r, s);
+      const removeCollateralReceipt = await removeCollateralWithPermitTx.wait();
 
       // after balance
       const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
@@ -476,7 +476,7 @@ describe("Collateral", () => {
       expect(beforeUser1EthBalance.add(amount)).to.eq(afterUser1EthBalance);
 
       // check event
-      await expect(removeCollateralPermitTx)
+      await expect(removeCollateralWithPermitTx)
         .to.emit(diamondLoan, "CollateralRemoved")
         .withArgs(loanId, user2Addr, user1Addr, DEFAULT_ETH_ADDRESS, amount);
 
@@ -917,7 +917,7 @@ describe("Collateral", () => {
 
       const removeCollateralTx = await diamondLoan
         .connect(user1)
-        .removeCollateralPermit(loanId, amount, deadline, v, r, s);
+        .removeCollateralWithPermit(loanId, amount, deadline, v, r, s);
       await removeCollateralTx.wait();
 
       // after balance

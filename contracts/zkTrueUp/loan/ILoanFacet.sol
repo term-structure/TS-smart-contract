@@ -187,7 +187,7 @@ interface ILoanFacet {
     /// @param v The recovery id of the signature
     /// @param r The r value of the signature
     /// @param s The s value of the signature
-    function removeCollateralPermit(
+    function removeCollateralWithPermit(
         bytes12 loanId,
         uint128 amount,
         uint256 deadline,
@@ -212,7 +212,7 @@ interface ILoanFacet {
     /// @param v The recovery id of the signature
     /// @param r The r value of the signature
     /// @param s The s value of the signature
-    function repayPermit(
+    function repayWithPermit(
         bytes12 loanId,
         uint128 collateralAmt,
         uint128 debtAmt,
@@ -237,7 +237,7 @@ interface ILoanFacet {
     /// @param v The recovery id of the signature
     /// @param r The r value of the signature
     /// @param s The s value of the signature
-    function rollToAavePermit(
+    function rollToAaveWithPermit(
         bytes12 loanId,
         uint128 collateralAmt,
         uint128 debtAmt,
@@ -259,7 +259,7 @@ interface ILoanFacet {
     /// @notice The roll borrow is an action to place a borrow order on L1,
     ///         and the order is waiting to be matched on L2 and rollup will create a new loan on L1 once matched
     /// @param rollBorrowOrder The roll borrow order
-    function rollBorrowPermit(
+    function rollBorrowWithPermit(
         RollBorrowOrder memory rollBorrowOrder,
         uint256 deadline,
         uint8 v,
@@ -277,7 +277,7 @@ interface ILoanFacet {
     /// @notice User can force cancel their roll borrow order on L1
     ///         to avoid sequencer ignore his cancel request in L2
     /// @param loanId The id of the loan to be cancelled
-    function forceCancelRollBorrowPermit(bytes12 loanId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
+    function forceCancelrollBorrowWithPermit(bytes12 loanId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
 
     /// @notice Liquidate the loan
     /// @param loanId The id of the loan to be liquidated

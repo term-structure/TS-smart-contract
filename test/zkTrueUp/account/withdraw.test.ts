@@ -228,7 +228,7 @@ describe("Withdraw", () => {
       // withdraw tsb token
       const withdrawTx = await diamondAccMock
         .connect(user2)
-        .withdrawPermit(
+        .withdrawWithPermit(
           user1Addr,
           DEFAULT_ETH_ADDRESS,
           withdrawAmt,
@@ -387,7 +387,7 @@ describe("Withdraw", () => {
       // permit withdraw tsb token
       const withdrawTx = await diamondAccMock
         .connect(user2)
-        .withdrawPermit(user1Addr, usdc.address, amount, deadline, v, r, s); //! ignore _withdraw in AccountMock
+        .withdrawWithPermit(user1Addr, usdc.address, amount, deadline, v, r, s); //! ignore _withdraw in AccountMock
       await withdrawTx.wait();
 
       // after balance
@@ -760,7 +760,7 @@ describe("Withdraw", () => {
       // withdraw tsb token
       const withdrawTsbTokenTx = await diamondAccMock
         .connect(user2)
-        .withdrawPermit(user1Addr, tsbTokenAddr, amount, deadline, v, r, s); //! ignore updateWithdrawalRecord in AccountMock
+        .withdrawWithPermit(user1Addr, tsbTokenAddr, amount, deadline, v, r, s); //! ignore updateWithdrawalRecord in AccountMock
       await withdrawTsbTokenTx.wait();
 
       // after balance

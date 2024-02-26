@@ -80,7 +80,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /**
      * @inheritdoc IAccountFacet
      */
-    function withdrawPermit(
+    function withdrawWithPermit(
         address accountAddr,
         IERC20 token,
         uint256 amount,

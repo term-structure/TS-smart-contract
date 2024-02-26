@@ -840,7 +840,7 @@ describe("Roll Borrow", () => {
 
       const rollBorrowTx = await diamondLoan
         .connect(user1)
-        .rollBorrowPermit(rollBorrowOrder, deadline, v, r, s, {
+        .rollBorrowWithPermit(rollBorrowOrder, deadline, v, r, s, {
           value: utils.parseEther("0.01"),
         });
       await rollBorrowTx.wait();

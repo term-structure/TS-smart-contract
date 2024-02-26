@@ -373,7 +373,7 @@ describe("Redeem TsbToken", () => {
       // redeem tsb token
       const redeemTx = await diamondTsbMock
         .connect(user2)
-        .redeemPermit(
+        .redeemWithPermit(
           user1Addr,
           tsbTokenAddr,
           tsbUSDCAmt,
@@ -730,7 +730,7 @@ describe("Redeem TsbToken", () => {
       // redeem tsb token for deposit
       const redeemAndDepositTx = await diamondTsbMock
         .connect(user2)
-        .redeemPermit(
+        .redeemWithPermit(
           user1Addr,
           tsbTokenAddr,
           tsbUsdcAmt,

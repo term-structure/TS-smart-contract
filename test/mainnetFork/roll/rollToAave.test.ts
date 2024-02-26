@@ -854,7 +854,15 @@ describe("Roll to Aave", () => {
       // roll to Aave
       const rollToAaveTx = await diamondLoan
         .connect(user2)
-        .rollToAavePermit(loanId, collateralAmt, debtAmt, deadline, v, r, s);
+        .rollToAaveWithPermit(
+          loanId,
+          collateralAmt,
+          debtAmt,
+          deadline,
+          v,
+          r,
+          s
+        );
       const rollToAaveReceipt = await rollToAaveTx.wait();
 
       // roll to Aave gas fee

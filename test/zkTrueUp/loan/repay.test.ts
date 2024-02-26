@@ -466,7 +466,16 @@ describe("Repay", () => {
 
       const repayTx = await diamondLoan
         .connect(user2)
-        .repayPermit(loanId, collateralAmt, debtAmt, false, deadline, v, r, s);
+        .repayWithPermit(
+          loanId,
+          collateralAmt,
+          debtAmt,
+          false,
+          deadline,
+          v,
+          r,
+          s
+        );
       const repayReceipt = await repayTx.wait();
 
       // after balance

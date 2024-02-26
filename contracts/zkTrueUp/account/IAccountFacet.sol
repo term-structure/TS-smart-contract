@@ -44,7 +44,7 @@ interface IAccountFacet {
     /// @param v v The recovery id of the signature
     /// @param r The r of the permit signature
     /// @param s The s of the permit signature
-    function withdrawPermit(
+    function withdrawWithPermit(
         address accountAddr,
         IERC20 token,
         uint256 amount,

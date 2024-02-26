@@ -88,7 +88,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
      * @dev TSB token can be redeemed only after maturity
      * @dev TSB token decimals is 8 and should be converted to underlying asset decimals when 1:1 redeem
      */
-    function redeemPermit(
+    function redeemWithPermit(
         address accountAddr,
         ITsbToken tsbToken,
         uint128 amount,
