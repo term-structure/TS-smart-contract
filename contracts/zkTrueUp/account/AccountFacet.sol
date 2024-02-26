@@ -89,8 +89,6 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         bytes32 r,
         bytes32 s
     ) external nonReentrant {
-        Signature.verifyDeadline(deadline);
-
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getValidAccount(accountAddr);
 
@@ -101,9 +99,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
             asl.getPermitNonce(accountAddr),
             deadline
         );
-        Signature.verifySignature(accountAddr, structHash, v, r, s);
-
-        asl.increaseNonce(accountAddr);
+        asl.validatePermitAndIncreaseNonce(accountAddr, structHash, deadline, v, r, s);
 
         _withdraw(msg.sender, accountAddr, accountId, token, amount);
     }

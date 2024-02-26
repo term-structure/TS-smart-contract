@@ -98,8 +98,6 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         bytes32 r,
         bytes32 s
     ) external nonReentrant {
-        Signature.verifyDeadline(deadline);
-
         AccountStorage.Layout storage asl = AccountStorage.layout();
         bytes32 structHash = _calcRedeemStructHash(
             msg.sender,
@@ -109,9 +107,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
             asl.getPermitNonce(accountAddr),
             deadline
         );
-        Signature.verifySignature(accountAddr, structHash, v, r, s);
-
-        asl.increaseNonce(accountAddr);
+        asl.validatePermitAndIncreaseNonce(accountAddr, structHash, deadline, v, r, s);
 
         uint32 accountId = asl.getValidAccount(accountAddr);
 

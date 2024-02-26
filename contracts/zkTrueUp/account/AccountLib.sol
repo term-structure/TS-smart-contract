@@ -9,6 +9,7 @@ import {AddressStorage} from "../address/AddressStorage.sol";
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Utils} from "../libraries/Utils.sol";
+import {Signature} from "../libraries/Signature.sol";
 
 /**
  * @title Term Structure Account Library
@@ -169,6 +170,29 @@ library AccountLib {
     ) internal {
         rsl.removePendingBalance(accountAddr, tokenId, amount);
         emit Withdrawal(caller, accountAddr, accountId, token, tokenId, amount);
+    }
+
+    /// @notice Internal function to validate permit signature and increase nonce
+    /// @param s The account storage layout
+    /// @param expectedSigner The expected signer of the permit signature
+    /// @param structHash The hash of the struct
+    /// @param deadline The deadline of the signature
+    /// @param permitV The v of the permit signature
+    /// @param permitR The r of the permit signature
+    /// @param permitS The s of the permit signature
+    function validatePermitAndIncreaseNonce(
+        AccountStorage.Layout storage s,
+        address expectedSigner,
+        bytes32 structHash,
+        uint256 deadline,
+        uint8 permitV,
+        bytes32 permitR,
+        bytes32 permitS
+    ) internal {
+        Signature.verifyDeadline(deadline);
+        Signature.verifySignature(expectedSigner, structHash, permitV, permitR, permitS);
+
+        s.increaseNonce(expectedSigner);
     }
 
     /// @notice Internal function to increase the nonce of the address
