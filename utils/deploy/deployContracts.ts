@@ -1,12 +1,18 @@
 import { ethers } from "hardhat";
 import { deployFacets } from "./deployFacets";
-import { ETH_ASSET_CONFIG, FACET_NAMES, INIT_FUNCTION_NAME } from "../config";
+import {
+  BASE_TOKEN_ASSET_CONFIG,
+  ETH_ASSET_CONFIG,
+  FACET_NAMES,
+  INIT_FUNCTION_NAME,
+} from "../config";
 import { BaseTokenAddresses, FacetInfo, PriceFeeds } from "../type";
 import { TsTokenId } from "term-structure-sdk";
 import { cutFacets } from "../cutFacets";
-import { Contract, ContractFactory, utils } from "ethers";
+import { ContractFactory, utils } from "ethers";
 import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 import { safeInitFacet } from "diamond-engraver";
+import { getCurrentBranch, getLatestCommit } from "../deployHelper";
 
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
@@ -274,11 +280,25 @@ export async function deployContracts(
   const OPERATOR_ROLE = ethers.utils.id("OPERATOR_ROLE");
   tx = await zkTrueUp
     .connect(env.deployer)
-    .grantRole(OPERATOR_ROLE, env.governorAddr);
+    .grantRole(OPERATOR_ROLE, env.governorAddr, {
+      maxFeePerGas: feeData.maxFeePerGas
+        ? feeData.maxFeePerGas.add(deltaMaxFeePerGas)
+        : ethers.utils.parseUnits("100", "gwei"),
+      maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
+        ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
+        : ethers.utils.parseUnits("2", "gwei"),
+    });
   await tx.wait();
   tx = await zkTrueUp
     .connect(env.deployer)
-    .revokeRole(OPERATOR_ROLE, env.operatorAddr);
+    .revokeRole(OPERATOR_ROLE, env.operatorAddr, {
+      maxFeePerGas: feeData.maxFeePerGas
+        ? feeData.maxFeePerGas.add(deltaMaxFeePerGas)
+        : ethers.utils.parseUnits("100", "gwei"),
+      maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
+        ? feeData.maxPriorityFeePerGas.add(deltaMaxPriorityFeePerGas)
+        : ethers.utils.parseUnits("2", "gwei"),
+    });
   await tx.wait();
 
   console.log("Diamond initialized successfully 💎💎💎\n");
@@ -295,4 +315,36 @@ export async function deployContracts(
     poseidonUnit2Contract,
     facets,
   };
+}
+
+export function packResults(env: any, res: any, creationTx: any) {
+  const result: { [key: string]: unknown } = {};
+  result["current_branch"] = getCurrentBranch();
+  result["latest_commit"] = getLatestCommit();
+  result["genesis_state_root"] = env.genesisStateRoot;
+  result["deployer"] = env.deployer.address;
+  result["operator"] = env.operatorAddr;
+  result["faucet_owner"] = env.faucetOwnerAddr;
+  result["oracle_owner"] = env.oracleOwnerAddr;
+  result["exchange"] = env.exchangeAddr;
+  result["admin"] = env.adminAddr;
+  result["treasury"] = env.treasuryAddr;
+  result["insurance"] = env.insuranceAddr;
+  result["vault"] = env.vaultAddr;
+  result["weth"] = res.weth.address;
+  result["ts_faucet"] = res.tsFaucet.address;
+  for (const token of BASE_TOKEN_ASSET_CONFIG) {
+    result[`${token.symbol}_address`] = res.baseTokenAddresses[token.tokenId];
+    result[`${token.symbol}_price_feed`] = res.priceFeeds[token.tokenId];
+  }
+  result["poseidon_unit_2"] = res.poseidonUnit2Contract.address;
+  result["verifier"] = res.verifier.address;
+  result["evacu_verifier"] = res.evacuVerifier.address;
+  for (const facetName of Object.keys(res.facets)) {
+    result[facetName] = res.facets[facetName].address;
+  }
+  result["zk_true_up_init"] = res.zkTrueUpInit.address;
+  result["zk_true_up"] = res.zkTrueUp.address;
+  result["creation_block_number"] = creationTx.blockNumber.toString();
+  return result;
 }

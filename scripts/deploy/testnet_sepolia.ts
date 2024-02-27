@@ -8,7 +8,10 @@ import {
   getLatestCommit,
   createDirectoryIfNotExists,
 } from "../../utils/deployHelper";
-import { deployContracts } from "../../utils/deploy/deployContracts";
+import {
+  deployContracts,
+  packResults,
+} from "../../utils/deploy/deployContracts";
 
 function getEnv() {
   const provider = new ethers.providers.JsonRpcProvider(
@@ -57,45 +60,13 @@ function getEnv() {
   };
 }
 
-async function packResults(env: any, res: any, creationTx: any) {
-  const result: { [key: string]: unknown } = {};
-  result["current_branch"] = getCurrentBranch();
-  result["latest_commit"] = getLatestCommit();
-  result["genesis_state_root"] = env.genesisStateRoot;
-  result["deployer"] = await env.deployer.getAddress();
-  result["operator"] = env.operatorAddr;
-  result["faucet_owner"] = env.faucetOwnerAddr;
-  result["oracle_owner"] = env.oracleOwnerAddr;
-  result["exchange"] = env.exchangeAddr;
-  result["admin"] = env.adminAddr;
-  result["treasury"] = env.treasuryAddr;
-  result["insurance"] = env.insuranceAddr;
-  result["vault"] = env.vaultAddr;
-  result["weth"] = res.weth.address;
-  result["ts_faucet"] = res.tsFaucet.address;
-  for (const token of BASE_TOKEN_ASSET_CONFIG) {
-    result[`${token.symbol}_address`] = res.baseTokenAddresses[token.tokenId];
-    result[`${token.symbol}_price_feed`] = res.priceFeeds[token.tokenId];
-  }
-  result["poseidon_unit_2"] = res.poseidonUnit2Contract.address;
-  result["verifier"] = res.verifier.address;
-  result["evacu_verifier"] = res.evacuVerifier.address;
-  for (const facetName of Object.keys(res.facets)) {
-    result[facetName] = res.facets[facetName].address;
-  }
-  result["zk_true_up_init"] = res.zkTrueUpInit.address;
-  result["zk_true_up"] = res.zkTrueUp.address;
-  result["creation_block_number"] = creationTx.blockNumber.toString();
-  return result;
-}
-
 export const main = async () => {
   const env = getEnv();
 
   const currentDeployerNonce = await env.deployer.getTransactionCount();
   const feeData = await env.provider.getFeeData();
   const deltaMaxFeePerGas = ethers.utils.parseUnits("50", "gwei");
-  const deltaMaxPriorityFeePerGas = ethers.utils.parseUnits("5", "gwei");
+  const deltaMaxPriorityFeePerGas = ethers.utils.parseUnits("10", "gwei");
 
   const ZkTrueUpInit = await ethers.getContractFactory("SepoliaZkTrueUpInit");
 
@@ -112,7 +83,7 @@ export const main = async () => {
     res.zkTrueUp.deployTransaction.hash
   );
 
-  const result = await packResults(env, res, creationTx);
+  const result = packResults(env, res, creationTx);
 
   await createDirectoryIfNotExists("tmp");
   const jsonString = JSON.stringify(result, null, 2);
