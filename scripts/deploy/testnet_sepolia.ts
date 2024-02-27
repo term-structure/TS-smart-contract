@@ -8,7 +8,7 @@ import {
   getLatestCommit,
   createDirectoryIfNotExists,
 } from "../../utils/deployHelper";
-import { deployContracts } from "./utils";
+import { deployContracts } from "../../utils/deploy/deployContracts";
 
 function getEnv() {
   const provider = new ethers.providers.JsonRpcProvider(

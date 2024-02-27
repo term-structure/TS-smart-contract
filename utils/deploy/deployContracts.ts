@@ -1,13 +1,9 @@
 import { ethers } from "hardhat";
-import { deployFacets } from "../../utils/deploy/deployFacets";
-import {
-  ETH_ASSET_CONFIG,
-  FACET_NAMES,
-  INIT_FUNCTION_NAME,
-} from "../../utils/config";
-import { BaseTokenAddresses, FacetInfo, PriceFeeds } from "../../utils/type";
+import { deployFacets } from "./deployFacets";
+import { ETH_ASSET_CONFIG, FACET_NAMES, INIT_FUNCTION_NAME } from "../config";
+import { BaseTokenAddresses, FacetInfo, PriceFeeds } from "../type";
 import { TsTokenId } from "term-structure-sdk";
-import { cutFacets } from "../../utils/cutFacets";
+import { cutFacets } from "../cutFacets";
 import { Contract, ContractFactory, utils } from "ethers";
 import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 import { safeInitFacet } from "diamond-engraver";
@@ -276,24 +272,6 @@ export async function deployContracts(
 
   // change operator role from operator to governor
   const OPERATOR_ROLE = ethers.utils.id("OPERATOR_ROLE");
-  console.log("OPERATOR_ROLE:", OPERATOR_ROLE);
-  console.log(
-    "Admin of OPERATOR_ROLE:",
-    await zkTrueUp.getRoleAdmin(OPERATOR_ROLE)
-  );
-  console.log("ADMIN_ROLE:", ethers.utils.id("ADMIN_ROLE"));
-  console.log(
-    "Admin of ADMIN_ROLE:",
-    await zkTrueUp.getRoleAdmin(ethers.utils.id("ADMIN_ROLE"))
-  );
-  console.log(
-    "Deployer has admin role:",
-    await zkTrueUp.hasRole(ethers.utils.id("ADMIN_ROLE"), env.deployer.address)
-  );
-  console.log(
-    "Operator has operator role:",
-    await zkTrueUp.hasRole(OPERATOR_ROLE, env.operatorAddr)
-  );
   tx = await zkTrueUp
     .connect(env.deployer)
     .grantRole(OPERATOR_ROLE, env.governorAddr);
