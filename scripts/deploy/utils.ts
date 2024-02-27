@@ -8,7 +8,7 @@ import {
 import { BaseTokenAddresses, FacetInfo, PriceFeeds } from "../../utils/type";
 import { TsTokenId } from "term-structure-sdk";
 import { cutFacets } from "../../utils/cutFacets";
-import { utils } from "ethers";
+import { Contract, ContractFactory, utils } from "ethers";
 import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
 import { safeInitFacet } from "diamond-engraver";
 
@@ -20,7 +20,8 @@ export async function deployContracts(
   currentDeployerNonce: number,
   feeData: any,
   deltaMaxFeePerGas: any,
-  deltaMaxPriorityFeePerGas: any
+  deltaMaxPriorityFeePerGas: any,
+  ZkTrueUpInit: ContractFactory
 ) {
   // Deploy WETH
   const WETH = await ethers.getContractFactory("WETH9");
@@ -112,7 +113,6 @@ export async function deployContracts(
   await zkTrueUp.deployed();
 
   // deploy diamond init contract
-  const ZkTrueUpInit = await ethers.getContractFactory("SepoliaZkTrueUpInit");
   const zkTrueUpInit = await ZkTrueUpInit.connect(env.deployer).deploy({
     nonce: currentDeployerNonce++,
     maxFeePerGas: feeData.maxFeePerGas
@@ -260,17 +260,6 @@ export async function deployContracts(
     ]
   );
 
-  // change operator role from operator to governor
-  const OPERATOR_ROLE = ethers.utils.id("OPERATOR_ROLE");
-  tx = await zkTrueUp
-    .connect(env.deployer)
-    .grantRole(OPERATOR_ROLE, env.governorAddr);
-  await tx.wait();
-  tx = await zkTrueUp
-    .connect(env.deployer)
-    .revokeRole(OPERATOR_ROLE, env.operatorAddr);
-  await tx.wait();
-
   // init diamond cut
   console.log("Init diamond cut...");
   const onlyCall = true;
@@ -284,6 +273,36 @@ export async function deployContracts(
     initData,
     onlyCall
   );
+
+  // change operator role from operator to governor
+  const OPERATOR_ROLE = ethers.utils.id("OPERATOR_ROLE");
+  console.log("OPERATOR_ROLE:", OPERATOR_ROLE);
+  console.log(
+    "Admin of OPERATOR_ROLE:",
+    await zkTrueUp.getRoleAdmin(OPERATOR_ROLE)
+  );
+  console.log("ADMIN_ROLE:", ethers.utils.id("ADMIN_ROLE"));
+  console.log(
+    "Admin of ADMIN_ROLE:",
+    await zkTrueUp.getRoleAdmin(ethers.utils.id("ADMIN_ROLE"))
+  );
+  console.log(
+    "Deployer has admin role:",
+    await zkTrueUp.hasRole(ethers.utils.id("ADMIN_ROLE"), env.deployer.address)
+  );
+  console.log(
+    "Operator has operator role:",
+    await zkTrueUp.hasRole(OPERATOR_ROLE, env.operatorAddr)
+  );
+  tx = await zkTrueUp
+    .connect(env.deployer)
+    .grantRole(OPERATOR_ROLE, env.governorAddr);
+  await tx.wait();
+  tx = await zkTrueUp
+    .connect(env.deployer)
+    .revokeRole(OPERATOR_ROLE, env.operatorAddr);
+  await tx.wait();
+
   console.log("Diamond initialized successfully 💎💎💎\n");
 
   return {

@@ -95,14 +95,17 @@ export const main = async () => {
   const currentDeployerNonce = await env.deployer.getTransactionCount();
   const feeData = await env.provider.getFeeData();
   const deltaMaxFeePerGas = ethers.utils.parseUnits("50", "gwei");
-  const deltaMaxPriorityFeePerGas = ethers.utils.parseUnits("20", "gwei");
+  const deltaMaxPriorityFeePerGas = ethers.utils.parseUnits("5", "gwei");
+
+  const ZkTrueUpInit = await ethers.getContractFactory("SepoliaZkTrueUpInit");
 
   const res = await deployContracts(
     env,
     currentDeployerNonce,
     feeData,
     deltaMaxFeePerGas,
-    deltaMaxPriorityFeePerGas
+    deltaMaxPriorityFeePerGas,
+    ZkTrueUpInit
   );
 
   const creationTx = await res.zkTrueUp.provider.getTransactionReceipt(
