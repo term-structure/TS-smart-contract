@@ -1,7 +1,11 @@
 import { BigNumber, Signer } from "ethers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers, network } from "hardhat";
-import { TS_BASE_TOKEN, TS_SYSTEM_DECIMALS } from "term-structure-sdk";
+import {
+  DEFAULT_ETH_ADDRESS,
+  TS_BASE_TOKEN,
+  TS_SYSTEM_DECIMALS,
+} from "term-structure-sdk";
 import { DEFAULT_ZERO_ADDR } from "../../utils/config";
 import { BaseTokenAddresses } from "../../utils/type";
 import {
@@ -56,7 +60,10 @@ export class User {
     const tokenDecimals = getDecimals(tokenId);
     const amount = toL1Amt(l2_amount, tokenDecimals);
 
-    if (tokenId.toString() == TS_BASE_TOKEN.ETH.tokenId.toString()) {
+    if (
+      tokenId.toString() == TS_BASE_TOKEN.ETH.tokenId.toString() &&
+      amount.gt(0)
+    ) {
       await network.provider.send("hardhat_setBalance", [
         await this.signer.getAddress(),
         (await this.signer.getBalance()).add(amount),
@@ -78,6 +85,12 @@ export class User {
 
     const tokenDecimals = getDecimals(tokenId);
     const amount = toL1Amt(l2_amount, tokenDecimals);
+    console.log({
+      tsPubKeyX: this.tsPubKeyX,
+      tsPubKeyY: this.tsPubKeyY,
+      tokenAddr,
+      l2_amount,
+    });
 
     let msgValue;
     if (tokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString()) {
@@ -90,6 +103,8 @@ export class User {
       msgValue = amount;
     }
 
+    console.log(msgValue.toString(), amount.toString());
+
     await diamondAcc
       .connect(this.signer)
       .register(
@@ -101,6 +116,7 @@ export class User {
       );
     this.registered = true;
   }
+
   async deposit(
     diamondAcc: AccountFacet,
     tokenId: number,
@@ -122,7 +138,8 @@ export class User {
       .deposit(
         await this.signer.getAddress(),
         tokenAddr,
-        BigNumber.from(amount)
+        BigNumber.from(amount),
+        { value: tokenAddr == DEFAULT_ETH_ADDRESS ? amount : 0 }
       );
   }
 
@@ -235,6 +252,12 @@ export const handler = async (
     case "01": {
       const { accountId } = resolveRegisterPubData(req);
       const { tokenId, amount } = resolveDepositPubData(nextReq);
+      console.log({
+        accountId,
+        tokenId,
+        amount,
+        nextReq,
+      });
       let user = accounts.getUser(Number(accountId));
       let tokenAddr = baseTokenAddresses[Number(tokenId)];
       await user.prepareToken(Number(tokenId), tokenAddr, amount);
@@ -365,6 +388,7 @@ export const preprocessBlocks = async (
       );
       i += numOfL1RequestToBeProcessed;
     }
+
     const { newLatestStoredBlock } = await rollupOneBlock(
       diamondRollup,
       operator,

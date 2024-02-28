@@ -23,6 +23,14 @@ export const resolveDepositPubData = (pubData: string) => {
   const accountId = BigNumber.from("0x" + pubData.slice(4, 12));
   const tokenId = BigNumber.from("0x" + pubData.slice(12, 16));
   const amount = BigNumber.from("0x" + pubData.slice(16, 48));
+
+  console.log({
+    pubData,
+    reqType,
+    accountId,
+    tokenId,
+    amount,
+  });
   return {
     reqType,
     accountId,
