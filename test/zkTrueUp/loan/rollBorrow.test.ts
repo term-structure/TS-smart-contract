@@ -810,7 +810,6 @@ describe("Roll Borrow", () => {
 
       const types: Record<string, TypedDataField[]> = {
         RollBorrow: [
-          { name: "delegatee", type: "address" },
           { name: "loanId", type: "bytes12" },
           { name: "expiredTime", type: "uint32" },
           { name: "maxAnnualPercentageRate", type: "uint32" },
@@ -824,7 +823,6 @@ describe("Roll Borrow", () => {
 
       const deadline = BigNumber.from("4294967295");
       const value: Record<string, any> = {
-        delegatee: user1Addr,
         loanId: loanId,
         expiredTime: rollBorrowOrder.expiredTime,
         maxAnnualPercentageRate: rollBorrowOrder.maxAnnualPercentageRate,

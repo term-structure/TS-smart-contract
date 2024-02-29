@@ -204,7 +204,6 @@ describe("Withdraw", () => {
 
       const types: Record<string, TypedDataField[]> = {
         Withdraw: [
-          { name: "delegatee", type: "address" },
           { name: "token", type: "address" },
           { name: "amount", type: "uint256" },
           { name: "nonce", type: "uint256" },
@@ -215,7 +214,6 @@ describe("Withdraw", () => {
       const withdrawAmt = utils.parseEther("1");
       const deadline = BigNumber.from("4294967295");
       const value: Record<string, any> = {
-        delegatee: user2Addr,
         token: DEFAULT_ETH_ADDRESS,
         amount: withdrawAmt,
         nonce: await diamondAccMock.getPermitNonce(user1Addr),
@@ -364,7 +362,6 @@ describe("Withdraw", () => {
 
       const types: Record<string, TypedDataField[]> = {
         Withdraw: [
-          { name: "delegatee", type: "address" },
           { name: "token", type: "address" },
           { name: "amount", type: "uint256" },
           { name: "nonce", type: "uint256" },
@@ -374,7 +371,6 @@ describe("Withdraw", () => {
 
       const deadline = BigNumber.from("4294967295");
       const value: Record<string, any> = {
-        delegatee: user2Addr,
         token: usdc.address,
         amount: amount,
         nonce: await diamondAccMock.getPermitNonce(user1Addr),
@@ -737,7 +733,6 @@ describe("Withdraw", () => {
 
       const types: Record<string, TypedDataField[]> = {
         Withdraw: [
-          { name: "delegatee", type: "address" },
           { name: "token", type: "address" },
           { name: "amount", type: "uint256" },
           { name: "nonce", type: "uint256" },
@@ -747,7 +742,6 @@ describe("Withdraw", () => {
 
       const deadline = BigNumber.from("4294967295");
       const value: Record<string, any> = {
-        delegatee: user2Addr,
         token: tsbTokenAddr,
         amount: amount,
         nonce: await diamondAccMock.getPermitNonce(user1Addr),

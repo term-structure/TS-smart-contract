@@ -92,13 +92,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         AccountStorage.Layout storage asl = AccountStorage.layout();
         uint32 accountId = asl.getValidAccount(accountAddr);
 
-        bytes32 structHash = _calcWithdrawStructHash(
-            msg.sender,
-            token,
-            amount,
-            asl.getPermitNonce(accountAddr),
-            deadline
-        );
+        bytes32 structHash = _calcWithdrawStructHash(token, amount, asl.getPermitNonce(accountAddr), deadline);
         asl.validatePermitAndIncreaseNonce(accountAddr, structHash, deadline, v, r, s);
 
         _withdraw(msg.sender, accountAddr, accountId, token, amount);
@@ -245,18 +239,16 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
     /* ============ Internal Pure Functions to Calculate Struct Hash ============ */
 
     /// @notice Calculate the hash of the struct for the withdrawal permit
-    /// @param delegatee The address of the delegatee
     /// @param token The token to be withdrawn
     /// @param amount The amount of the token to be withdrawn
     /// @param nonce The nonce of the account
     /// @param deadline The deadline of the permit
     function _calcWithdrawStructHash(
-        address delegatee,
         IERC20 token,
         uint256 amount,
         uint256 nonce,
         uint256 deadline
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(WITHDRAW_TYPEHASH, delegatee, token, amount, nonce, deadline));
+        return keccak256(abi.encode(WITHDRAW_TYPEHASH, token, amount, nonce, deadline));
     }
 }

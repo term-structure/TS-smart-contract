@@ -440,7 +440,6 @@ describe("Repay", () => {
 
       const types: Record<string, TypedDataField[]> = {
         Repay: [
-          { name: "delegatee", type: "address" },
           { name: "loanId", type: "bytes12" },
           { name: "collateralAmt", type: "uint128" },
           { name: "debtAmt", type: "uint128" },
@@ -452,7 +451,6 @@ describe("Repay", () => {
 
       const deadline = BigNumber.from("4294967295"); // max uint32
       const value: Record<string, any> = {
-        delegatee: user2Addr,
         loanId: loanId,
         collateralAmt: collateralAmt,
         debtAmt: debtAmt,

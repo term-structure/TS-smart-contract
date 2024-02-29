@@ -7,7 +7,7 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 // redeem function type hash
 bytes32 constant REDEEM_TYPEHASH = keccak256(
-    "Redeem(address delegatee,address tsbToken,uint128 amount,bool redeemAndDeposit,uint256 nonce,uint256 deadline)"
+    "Redeem(address tsbToken,uint128 amount,bool redeemAndDeposit,uint256 nonce,uint256 deadline)"
 );
 
 /**

@@ -52,27 +52,27 @@ struct LiquidationAmt {
 
 // Remove collateral function type hash
 bytes32 constant REMOVE_COLLATERAL_TYPEHASH = keccak256(
-    "RemoveCollateral(address delegatee,bytes12 loanId,uint128 amount,uint256 nonce,uint256 deadline)"
+    "RemoveCollateral(bytes12 loanId,uint128 amount,uint256 nonce,uint256 deadline)"
 );
 
 // Repay function type hash
 bytes32 constant REPAY_TYPEHASH = keccak256(
-    "Repay(address delegatee,bytes12 loanId,uint128 collateralAmt,uint128 debtAmt,bool repayAndDeposit,uint256 nonce,uint256 deadline)"
+    "Repay(bytes12 loanId,uint128 collateralAmt,uint128 debtAmt,bool repayAndDeposit,uint256 nonce,uint256 deadline)"
 );
 
 // Borrow function type hash
 bytes32 constant ROLL_BORROW_TYPEHASH = keccak256(
-    "RollBorrow(address delegatee,bytes12 loanId,uint32 expiredTime,uint32 maxAnnualPercentageRate,uint128 maxCollateralAmt,uint128 maxBorrowAmt,address tsbTokenAddr,uint256 nonce,uint256 deadline)"
+    "RollBorrow(bytes12 loanId,uint32 expiredTime,uint32 maxAnnualPercentageRate,uint128 maxCollateralAmt,uint128 maxBorrowAmt,address tsbTokenAddr,uint256 nonce,uint256 deadline)"
 );
 
 // Force cancel roll borrow function type hash
 bytes32 constant FORCE_CANCEL_ROLL_BORROW_TYPEHASH = keccak256(
-    "ForceCancelRollBorrow(address delegatee,bytes12 loanId,uint256 nonce,uint256 deadline)"
+    "ForceCancelRollBorrow(bytes12 loanId,uint256 nonce,uint256 deadline)"
 );
 
 // Roll to Aave function type hash
 bytes32 constant ROLL_TO_AAVE_TYPEHASH = keccak256(
-    "RollToAave(address delegatee,bytes12 loanId,uint128 collateralAmt,uint128 debtAmt,uint256 nonce,uint256 deadline)"
+    "RollToAave(bytes12 loanId,uint128 collateralAmt,uint128 debtAmt,uint256 nonce,uint256 deadline)"
 );
 
 /// @notice The data of the roll borrow order

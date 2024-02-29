@@ -346,7 +346,6 @@ describe("Redeem TsbToken", () => {
 
       const types: Record<string, TypedDataField[]> = {
         Redeem: [
-          { name: "delegatee", type: "address" },
           { name: "tsbToken", type: "address" },
           { name: "amount", type: "uint128" },
           { name: "redeemAndDeposit", type: "bool" },
@@ -357,7 +356,6 @@ describe("Redeem TsbToken", () => {
 
       const deadline = BigNumber.from("4294967295");
       const value: Record<string, any> = {
-        delegatee: user2Addr,
         tsbToken: tsbTokenAddr,
         amount: tsbUSDCAmt,
         redeemAndDeposit: false,
@@ -703,7 +701,6 @@ describe("Redeem TsbToken", () => {
 
       const types: Record<string, TypedDataField[]> = {
         Redeem: [
-          { name: "delegatee", type: "address" },
           { name: "tsbToken", type: "address" },
           { name: "amount", type: "uint128" },
           { name: "redeemAndDeposit", type: "bool" },
@@ -714,7 +711,6 @@ describe("Redeem TsbToken", () => {
 
       const deadline = BigNumber.from("4294967295");
       const value: Record<string, any> = {
-        delegatee: user2Addr,
         tsbToken: tsbTokenAddr,
         amount: tsbUsdcAmt,
         redeemAndDeposit: true,

@@ -96,7 +96,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             AccountStorage.Layout storage asl = AccountStorage.layout();
             loanOwner = asl.getAccountAddr(loanInfo.accountId);
             bytes32 structHash = _calcRemoveCollateralStructHash(
-                msg.sender,
                 loanId,
                 amount,
                 asl.getPermitNonce(loanOwner),
@@ -143,7 +142,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             AccountStorage.Layout storage asl = AccountStorage.layout();
             loanOwner = asl.getAccountAddr(loanInfo.accountId);
             bytes32 structHash = _calcRepayStructHash(
-                msg.sender,
                 loanId,
                 collateralAmt,
                 debtAmt,
@@ -203,7 +201,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             AccountStorage.Layout storage asl = AccountStorage.layout();
             loanOwner = asl.getAccountAddr(loanInfo.accountId);
             bytes32 structHash = _calcRollToAaveStructHash(
-                msg.sender,
                 loanId,
                 collateralAmt,
                 debtAmt,
@@ -261,12 +258,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         {
             AccountStorage.Layout storage asl = AccountStorage.layout();
             loanOwner = asl.getAccountAddr(loanInfo.accountId);
-            bytes32 structHash = _calcRollBorrowStructHash(
-                msg.sender,
-                rollBorrowOrder,
-                asl.getPermitNonce(loanOwner),
-                deadline
-            );
+            bytes32 structHash = _calcRollBorrowStructHash(rollBorrowOrder, asl.getPermitNonce(loanOwner), deadline);
             asl.validatePermitAndIncreaseNonce(loanOwner, structHash, deadline, v, r, s);
         }
 
@@ -323,12 +315,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         {
             AccountStorage.Layout storage asl = AccountStorage.layout();
             loanOwner = asl.getAccountAddr(accountId);
-            bytes32 structHash = _calcForceCancelRollBorrowStructHash(
-                msg.sender,
-                loanId,
-                asl.getPermitNonce(loanOwner),
-                deadline
-            );
+            bytes32 structHash = _calcForceCancelRollBorrowStructHash(loanId, asl.getPermitNonce(loanOwner), deadline);
             asl.validatePermitAndIncreaseNonce(loanOwner, structHash, deadline, v, r, s);
         }
 
@@ -977,23 +964,20 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /* ============ Internal Pure Functions to Calculate Struct Hash ============ */
 
     /// @notice Calculate the hash of the struct for the remove collateral permit
-    /// @param delegatee The delegatee of the permit
     /// @param loanId The id of the loan
     /// @param amount The amount of the collateral to be added
     /// @param nonce The nonce of the permit
     /// @param deadline The deadline of the permit
     function _calcRemoveCollateralStructHash(
-        address delegatee,
         bytes12 loanId,
         uint128 amount,
         uint256 nonce,
         uint256 deadline
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(REMOVE_COLLATERAL_TYPEHASH, delegatee, loanId, amount, nonce, deadline));
+        return keccak256(abi.encode(REMOVE_COLLATERAL_TYPEHASH, loanId, amount, nonce, deadline));
     }
 
     /// @notice Calculate the hash of the struct for the repay collateral permit
-    /// @param delegatee The delegatee of the permit
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of the collateral to be added
     /// @param debtAmt The amount of the debt to be repaid
@@ -1001,7 +985,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     /// @param nonce The nonce of the permit
     /// @param deadline The deadline of the permit
     function _calcRepayStructHash(
-        address delegatee,
         bytes12 loanId,
         uint128 collateralAmt,
         uint128 debtAmt,
@@ -1009,19 +992,14 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         uint256 nonce,
         uint256 deadline
     ) internal pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(REPAY_TYPEHASH, delegatee, loanId, collateralAmt, debtAmt, repayAndDeposit, nonce, deadline)
-            );
+        return keccak256(abi.encode(REPAY_TYPEHASH, loanId, collateralAmt, debtAmt, repayAndDeposit, nonce, deadline));
     }
 
     /// @notice Calculate the hash of the struct for the roll borrow permit
-    /// @param delegatee The delegatee of the permit
     /// @param rollBorrowOrder The roll borrow order
     /// @param nonce The nonce of the permit
     /// @param deadline The deadline of the permit
     function _calcRollBorrowStructHash(
-        address delegatee,
         RollBorrowOrder memory rollBorrowOrder,
         uint256 nonce,
         uint256 deadline
@@ -1030,7 +1008,6 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             keccak256(
                 abi.encode(
                     ROLL_BORROW_TYPEHASH,
-                    delegatee,
                     rollBorrowOrder.loanId,
                     rollBorrowOrder.expiredTime,
                     rollBorrowOrder.maxAnnualPercentageRate,
@@ -1044,34 +1021,30 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     }
 
     /// @notice Calculate the hash of the struct for the force cancel roll borrow permit
-    /// @param delegatee The delegatee of the permit
     /// @param loanId The id of the loan
     /// @param nonce The nonce of the permit
     /// @param deadline The deadline of the permit
     function _calcForceCancelRollBorrowStructHash(
-        address delegatee,
         bytes12 loanId,
         uint256 nonce,
         uint256 deadline
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(FORCE_CANCEL_ROLL_BORROW_TYPEHASH, delegatee, loanId, nonce, deadline));
+        return keccak256(abi.encode(FORCE_CANCEL_ROLL_BORROW_TYPEHASH, loanId, nonce, deadline));
     }
 
     /// @notice Calculate the hash of the struct for the roll to AAVE permit
-    /// @param delegatee The delegatee of the permit
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of the collateral to be supplied to AAVE
     /// @param debtAmt The amount of the debt to be borrowed from AAVE
     /// @param nonce The nonce of the permit
     /// @param deadline The deadline of the permit
     function _calcRollToAaveStructHash(
-        address delegatee,
         bytes12 loanId,
         uint128 collateralAmt,
         uint128 debtAmt,
         uint256 nonce,
         uint256 deadline
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(ROLL_TO_AAVE_TYPEHASH, delegatee, loanId, collateralAmt, debtAmt, nonce, deadline));
+        return keccak256(abi.encode(ROLL_TO_AAVE_TYPEHASH, loanId, collateralAmt, debtAmt, nonce, deadline));
     }
 }

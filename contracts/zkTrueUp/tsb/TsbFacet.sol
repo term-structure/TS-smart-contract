@@ -100,7 +100,6 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     ) external nonReentrant {
         AccountStorage.Layout storage asl = AccountStorage.layout();
         bytes32 structHash = _calcRedeemStructHash(
-            msg.sender,
             tsbToken,
             amount,
             redeemAndDeposit,
@@ -212,20 +211,18 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     /* ============ Internal Pure Functions to Calculate Struct Hash ============ */
 
     /// @notice Calculate the hash of the struct for the redeem permit
-    /// @param delegatee The delegatee of the permit
     /// @param tsbToken The TsbToken to be redeemed
     /// @param amount The amount of the TsbToken to be redeemed
     /// @param redeemAndDeposit The flag of redeem and deposit
     /// @param nonce The nonce of the permit
     /// @param deadline The deadline of the permit
     function _calcRedeemStructHash(
-        address delegatee,
         ITsbToken tsbToken,
         uint128 amount,
         bool redeemAndDeposit,
         uint256 nonce,
         uint256 deadline
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encode(REDEEM_TYPEHASH, delegatee, tsbToken, amount, redeemAndDeposit, nonce, deadline));
+        return keccak256(abi.encode(REDEEM_TYPEHASH, tsbToken, amount, redeemAndDeposit, nonce, deadline));
     }
 }

@@ -437,7 +437,6 @@ describe("Collateral", () => {
 
       const types: Record<string, TypedDataField[]> = {
         RemoveCollateral: [
-          { name: "delegatee", type: "address" },
           { name: "loanId", type: "bytes12" },
           { name: "amount", type: "uint128" },
           { name: "nonce", type: "uint256" },
@@ -449,7 +448,6 @@ describe("Collateral", () => {
       const amount = utils.parseEther("0.2");
 
       const value: Record<string, any> = {
-        delegatee: user2Addr,
         loanId,
         amount,
         nonce: await diamondAcc.getPermitNonce(user1Addr),
@@ -893,7 +891,6 @@ describe("Collateral", () => {
 
       const types: Record<string, TypedDataField[]> = {
         RemoveCollateral: [
-          { name: "delegatee", type: "address" },
           { name: "loanId", type: "bytes12" },
           { name: "amount", type: "uint128" },
           { name: "nonce", type: "uint256" },
@@ -905,7 +902,6 @@ describe("Collateral", () => {
       const amount = utils.parseUnits("0.5", TS_BASE_TOKEN.USDT.decimals);
 
       const value: Record<string, any> = {
-        delegatee: user1Addr,
         loanId,
         amount,
         nonce: await diamondAcc.getPermitNonce(user2Addr),
