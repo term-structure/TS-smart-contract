@@ -42,6 +42,7 @@ import {
 } from "term-structure-sdk";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { signRepayPermit } from "../../utils/permitSignature";
+import { DELEGATE_REPAY_MASK } from "../../utils/delegate";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -1242,7 +1243,7 @@ describe("Repay and deposit", () => {
       // user2 delegate to user1
       const delegateTx = await diamondAcc
         .connect(user2)
-        .setDelegatee(user1Addr, true);
+        .setDelegatee(user1Addr, DELEGATE_REPAY_MASK);
       await delegateTx.wait();
 
       // user1 delegate repay and deposit for user2
