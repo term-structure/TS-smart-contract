@@ -29,6 +29,7 @@ import {
 } from "../../../typechain-types";
 import { toL1Amt } from "../../utils/amountConvertor";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { signRedeemPermit } from "../../utils/permitSignature";
 
 //! use AccountMock and TsbMock for testing
 export const FACET_NAMES_MOCK = [
@@ -337,34 +338,16 @@ describe("Redeem TsbToken", () => {
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
       // user1 permit to redeem
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user2.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        Redeem: [
-          { name: "tsbToken", type: "address" },
-          { name: "amount", type: "uint128" },
-          { name: "redeemAndDeposit", type: "bool" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
       const deadline = BigNumber.from("4294967295");
-      const value: Record<string, any> = {
-        tsbToken: tsbTokenAddr,
-        amount: tsbUSDCAmt,
-        redeemAndDeposit: false,
-        nonce: await diamondAccMock.getPermitNonce(user1Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user1._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      const { v, r, s } = await signRedeemPermit(
+        user1,
+        zkTrueUp.address,
+        tsbTokenAddr,
+        tsbUSDCAmt,
+        false,
+        await diamondAccMock.getPermitNonce(user1Addr),
+        deadline
+      );
 
       // increase time after maturity
       await helpers.time.increaseTo(1672416550);
@@ -692,34 +675,16 @@ describe("Redeem TsbToken", () => {
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
       // user1 permit to redeem
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user2.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        Redeem: [
-          { name: "tsbToken", type: "address" },
-          { name: "amount", type: "uint128" },
-          { name: "redeemAndDeposit", type: "bool" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
       const deadline = BigNumber.from("4294967295");
-      const value: Record<string, any> = {
-        tsbToken: tsbTokenAddr,
-        amount: tsbUsdcAmt,
-        redeemAndDeposit: true,
-        nonce: await diamondAccMock.getPermitNonce(user1Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user1._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      const { v, r, s } = await signRedeemPermit(
+        user1,
+        zkTrueUp.address,
+        tsbTokenAddr,
+        tsbUsdcAmt,
+        true,
+        await diamondAccMock.getPermitNonce(user1Addr),
+        deadline
+      );
 
       // increase time after maturity
       await helpers.time.increaseTo(1672416600);

@@ -45,6 +45,7 @@ import { MAINNET_ADDRESS } from "../../../utils/config";
 import { useChainlink } from "../../../utils/useChainlink";
 import { LiquidationFactorStruct } from "../../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { signRollToAavePermit } from "../../utils/permitSignature";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -819,35 +820,16 @@ describe("Roll to Aave", () => {
       ).mul(approveDelegationReceipt.effectiveGasPrice);
 
       // user1 permit to roll to Aave
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user1.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        RollToAave: [
-          { name: "loanId", type: "bytes12" },
-          { name: "collateralAmt", type: "uint128" },
-          { name: "debtAmt", type: "uint128" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
       const deadline = BigNumber.from("4294967295"); // max uint32
-
-      const value: Record<string, any> = {
+      const { v, r, s } = await signRollToAavePermit(
+        user1,
+        zkTrueUp.address,
         loanId,
         collateralAmt,
         debtAmt,
-        nonce: await diamondAcc.getPermitNonce(user1Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user1._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+        await diamondAcc.getPermitNonce(user1Addr),
+        deadline
+      );
 
       // roll to Aave
       const rollToAaveTx = await diamondLoan

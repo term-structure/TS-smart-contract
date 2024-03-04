@@ -41,6 +41,7 @@ import {
   TsTokenId,
 } from "term-structure-sdk";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { signRepayPermit } from "../../utils/permitSignature";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -1359,36 +1360,17 @@ describe("Repay and deposit", () => {
       const beforeUser1UsdtBalance = await usdt.balanceOf(user1Addr);
 
       // user2 sign permit for user1
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user1.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        Repay: [
-          { name: "loanId", type: "bytes12" },
-          { name: "collateralAmt", type: "uint128" },
-          { name: "debtAmt", type: "uint128" },
-          { name: "repayAndDeposit", type: "bool" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
       const deadline = BigNumber.from("4294967295"); // max uint32
-      const value: Record<string, any> = {
-        loanId: loanId,
-        collateralAmt: depositCollateralAmt,
-        debtAmt: repayDebtAmt,
-        repayAndDeposit: true,
-        nonce: await diamondAcc.getPermitNonce(user2Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user2._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      const { v, r, s } = await signRepayPermit(
+        user2,
+        zkTrueUp.address,
+        loanId,
+        depositCollateralAmt,
+        repayDebtAmt,
+        true,
+        await diamondAcc.getPermitNonce(user2Addr),
+        deadline
+      );
 
       const repayAndDepositTx = await diamondLoan
         .connect(user1)

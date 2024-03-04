@@ -32,6 +32,7 @@ import {
   TsTokenId,
 } from "term-structure-sdk";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { signWithdrawPermit } from "../../utils/permitSignature";
 
 //! use AccountMock instead of AccountFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -195,33 +196,16 @@ describe("Withdraw", () => {
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
 
       // user1 permit to withdraw
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user2.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        Withdraw: [
-          { name: "token", type: "address" },
-          { name: "amount", type: "uint256" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
       const withdrawAmt = utils.parseEther("1");
       const deadline = BigNumber.from("4294967295");
-      const value: Record<string, any> = {
-        token: DEFAULT_ETH_ADDRESS,
-        amount: withdrawAmt,
-        nonce: await diamondAccMock.getPermitNonce(user1Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user1._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      const { v, r, s } = await signWithdrawPermit(
+        user1,
+        zkTrueUp.address,
+        DEFAULT_ETH_ADDRESS,
+        withdrawAmt,
+        await diamondAccMock.getPermitNonce(user1Addr),
+        deadline
+      );
 
       // withdraw tsb token
       const withdrawTx = await diamondAccMock
@@ -353,32 +337,15 @@ describe("Withdraw", () => {
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
       // user1 permit to withdraw
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user2.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        Withdraw: [
-          { name: "token", type: "address" },
-          { name: "amount", type: "uint256" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
       const deadline = BigNumber.from("4294967295");
-      const value: Record<string, any> = {
-        token: usdc.address,
-        amount: amount,
-        nonce: await diamondAccMock.getPermitNonce(user1Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user1._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      const { v, r, s } = await signWithdrawPermit(
+        user1,
+        zkTrueUp.address,
+        usdc.address,
+        amount,
+        await diamondAccMock.getPermitNonce(user1Addr),
+        deadline
+      );
 
       // permit withdraw tsb token
       const withdrawTx = await diamondAccMock
@@ -724,32 +691,15 @@ describe("Withdraw", () => {
       );
 
       // user1 permit to withdraw
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user2.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        Withdraw: [
-          { name: "token", type: "address" },
-          { name: "amount", type: "uint256" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
       const deadline = BigNumber.from("4294967295");
-      const value: Record<string, any> = {
-        token: tsbTokenAddr,
-        amount: amount,
-        nonce: await diamondAccMock.getPermitNonce(user1Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user1._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      const { v, r, s } = await signWithdrawPermit(
+        user1,
+        zkTrueUp.address,
+        tsbTokenAddr,
+        amount,
+        await diamondAccMock.getPermitNonce(user1Addr),
+        deadline
+      );
 
       // withdraw tsb token
       const withdrawTsbTokenTx = await diamondAccMock

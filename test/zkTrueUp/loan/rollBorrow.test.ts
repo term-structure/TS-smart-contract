@@ -43,6 +43,7 @@ import {
 import { SYSTEM_UNIT_BASE } from "../../../utils/config";
 import { resolveLoanId } from "../../utils/loanHelper";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { signRollBorrowPermit } from "../../utils/permitSignature";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -799,42 +800,14 @@ describe("Roll Borrow", () => {
         maxBorrowAmt: debtAmt,
         tsbTokenAddr: nextTsbTokenAddr,
       };
-
-      // user2 permit to user1
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user2.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        RollBorrow: [
-          { name: "loanId", type: "bytes12" },
-          { name: "expiredTime", type: "uint32" },
-          { name: "maxAnnualPercentageRate", type: "uint32" },
-          { name: "maxCollateralAmt", type: "uint128" },
-          { name: "maxBorrowAmt", type: "uint128" },
-          { name: "tsbTokenAddr", type: "address" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
       const deadline = BigNumber.from("4294967295");
-      const value: Record<string, any> = {
-        loanId: loanId,
-        expiredTime: rollBorrowOrder.expiredTime,
-        maxAnnualPercentageRate: rollBorrowOrder.maxAnnualPercentageRate,
-        maxCollateralAmt: rollBorrowOrder.maxCollateralAmt,
-        maxBorrowAmt: rollBorrowOrder.maxBorrowAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
-        nonce: await diamondAcc.getPermitNonce(user2Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user2._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+      const { v, r, s } = await signRollBorrowPermit(
+        user2,
+        zkTrueUp.address,
+        rollBorrowOrder,
+        await diamondAcc.getPermitNonce(user2Addr),
+        deadline
+      );
 
       const rollBorrowTx = await diamondLoan
         .connect(user1)

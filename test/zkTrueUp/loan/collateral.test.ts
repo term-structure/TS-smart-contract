@@ -40,6 +40,7 @@ import {
   TsTokenId,
 } from "term-structure-sdk";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { signRemoveCollateralPermit } from "../../utils/permitSignature";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -428,34 +429,16 @@ describe("Collateral", () => {
       const beforeUser1EthBalance = await user1.getBalance();
 
       // user1 permit to remove collateral
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user1.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        RemoveCollateral: [
-          { name: "loanId", type: "bytes12" },
-          { name: "amount", type: "uint128" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
       const deadline = BigNumber.from("4294967295");
       const amount = utils.parseEther("0.2");
-
-      const value: Record<string, any> = {
+      const { v, r, s } = await signRemoveCollateralPermit(
+        user1,
+        zkTrueUp.address,
         loanId,
         amount,
-        nonce: await diamondAcc.getPermitNonce(user1Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user1._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+        await diamondAcc.getPermitNonce(user1Addr),
+        deadline
+      );
 
       // remove collateral permit, amount = 0.2 ETH
       const removeCollateralWithPermitTx = await diamondLoan
@@ -881,35 +864,17 @@ describe("Collateral", () => {
       const beforeZkTrueUpBalance = await usdt.balanceOf(zkTrueUp.address);
       const beforeUser2Balance = await usdt.balanceOf(user2Addr);
 
-      // user2 permit to user1
-      const domain: TypedDataDomain = {
-        name: "ZkTrueUp",
-        version: "1",
-        chainId: await user2.getChainId(),
-        verifyingContract: zkTrueUp.address,
-      };
-
-      const types: Record<string, TypedDataField[]> = {
-        RemoveCollateral: [
-          { name: "loanId", type: "bytes12" },
-          { name: "amount", type: "uint128" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
+      // user2 permit to remove collateral
       const deadline = BigNumber.from("4294967295");
       const amount = utils.parseUnits("0.5", TS_BASE_TOKEN.USDT.decimals);
-
-      const value: Record<string, any> = {
+      const { v, r, s } = await signRemoveCollateralPermit(
+        user2,
+        zkTrueUp.address,
         loanId,
         amount,
-        nonce: await diamondAcc.getPermitNonce(user2Addr),
-        deadline: deadline,
-      };
-
-      const signature = await user2._signTypedData(domain, types, value);
-      const { v, r, s } = ethers.utils.splitSignature(signature);
+        await diamondAcc.getPermitNonce(user2Addr),
+        deadline
+      );
 
       const removeCollateralTx = await diamondLoan
         .connect(user1)
