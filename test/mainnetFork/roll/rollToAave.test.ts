@@ -818,7 +818,7 @@ describe("Roll to Aave", () => {
         approveDelegationReceipt.gasUsed
       ).mul(approveDelegationReceipt.effectiveGasPrice);
 
-      // user1 permit to user2
+      // user1 permit to roll to Aave
       const domain: TypedDataDomain = {
         name: "ZkTrueUp",
         version: "1",

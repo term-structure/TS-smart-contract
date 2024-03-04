@@ -336,7 +336,7 @@ describe("Redeem TsbToken", () => {
       const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
-      // user1 permit to user2
+      // user1 permit to redeem
       const domain: TypedDataDomain = {
         name: "ZkTrueUp",
         version: "1",
@@ -691,7 +691,7 @@ describe("Redeem TsbToken", () => {
       const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
-      // user1 permit to user2
+      // user1 permit to redeem
       const domain: TypedDataDomain = {
         name: "ZkTrueUp",
         version: "1",

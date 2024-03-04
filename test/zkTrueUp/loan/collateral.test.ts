@@ -427,7 +427,7 @@ describe("Collateral", () => {
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
       const beforeUser1EthBalance = await user1.getBalance();
 
-      // user1 permit to user2
+      // user1 permit to remove collateral
       const domain: TypedDataDomain = {
         name: "ZkTrueUp",
         version: "1",

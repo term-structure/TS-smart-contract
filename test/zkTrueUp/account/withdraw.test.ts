@@ -194,7 +194,7 @@ describe("Withdraw", () => {
       const beforeUser1EthBalance = await ethers.provider.getBalance(user1Addr);
       const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
 
-      // user1 permit to user2
+      // user1 permit to withdraw
       const domain: TypedDataDomain = {
         name: "ZkTrueUp",
         version: "1",
@@ -352,7 +352,7 @@ describe("Withdraw", () => {
       const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
       const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
 
-      // user1 permit to user2
+      // user1 permit to withdraw
       const domain: TypedDataDomain = {
         name: "ZkTrueUp",
         version: "1",
@@ -723,7 +723,7 @@ describe("Withdraw", () => {
         zkTrueUp.address
       );
 
-      // user1 permit to user2
+      // user1 permit to withdraw
       const domain: TypedDataDomain = {
         name: "ZkTrueUp",
         version: "1",
