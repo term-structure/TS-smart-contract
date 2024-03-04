@@ -33,6 +33,7 @@ import {
 } from "term-structure-sdk";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { signWithdrawPermit } from "../../utils/permitSignature";
+import { DELEGATE_WITHDRAW_MASK } from "../../utils/delegate";
 
 //! use AccountMock instead of AccountFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -153,7 +154,7 @@ describe("Withdraw", () => {
       // user1 delegate to user2
       const delegateTx = await diamondAccMock
         .connect(user1)
-        .setDelegatee(user2Addr, true);
+        .setDelegatee(user2Addr, DELEGATE_WITHDRAW_MASK);
       const delegateReceipt = await delegateTx.wait();
 
       // delegate gas
@@ -295,7 +296,7 @@ describe("Withdraw", () => {
       // user1 delegate to user2
       const delegateTx = await diamondAccMock
         .connect(user1)
-        .setDelegatee(user2Addr, true);
+        .setDelegatee(user2Addr, DELEGATE_WITHDRAW_MASK);
       await delegateTx.wait();
 
       // delegatee withdraw tsb token
@@ -608,7 +609,7 @@ describe("Withdraw", () => {
       // user1 delegate to user2
       const delegateTx = await diamondAccMock
         .connect(user1)
-        .setDelegatee(user2Addr, true);
+        .setDelegatee(user2Addr, DELEGATE_WITHDRAW_MASK);
       await delegateTx.wait();
 
       // withdraw tsb token
