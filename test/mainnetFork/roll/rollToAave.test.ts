@@ -46,7 +46,6 @@ import { useChainlink } from "../../../utils/useChainlink";
 import { LiquidationFactorStruct } from "../../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { signRollToAavePermit } from "../../utils/permitSignature";
-import { DELEGATE_ROLL_TO_AAVE_MASK } from "../../utils/delegate";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -649,7 +648,7 @@ describe("Roll to Aave", () => {
       // user1 delegate to user2
       const delegateTx = await diamondAcc
         .connect(user1)
-        .setDelegatee(user2Addr, DELEGATE_ROLL_TO_AAVE_MASK);
+        .setDelegatee(user2Addr, true);
       const delegateReceipt = await delegateTx.wait();
 
       // delegate gas fee

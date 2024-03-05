@@ -41,7 +41,6 @@ import {
 } from "term-structure-sdk";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { signRemoveCollateralPermit } from "../../utils/permitSignature";
-import { DELEGATE_REMOVE_COLLATERAL_MASK } from "../../utils/delegate";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -366,7 +365,7 @@ describe("Collateral", () => {
       // user1 delegate to user2
       const delegateTx = await diamondAcc
         .connect(user1)
-        .setDelegatee(user2Addr, DELEGATE_REMOVE_COLLATERAL_MASK);
+        .setDelegatee(user2Addr, true);
       const delegateReceipt = await delegateTx.wait();
 
       // delegate tx gas fee
@@ -805,7 +804,7 @@ describe("Collateral", () => {
       // user2 delegate to user1
       const delegateTx = await diamondAcc
         .connect(user2)
-        .setDelegatee(user1Addr, DELEGATE_REMOVE_COLLATERAL_MASK);
+        .setDelegatee(user1Addr, true);
       await delegateTx.wait();
 
       // add collateral, amount = 0.5 USDT

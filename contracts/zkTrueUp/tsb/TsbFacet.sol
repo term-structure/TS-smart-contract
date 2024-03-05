@@ -18,7 +18,7 @@ import {AccountLib} from "../account/AccountLib.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
-import {DELEGATE_REDEEM_MASK} from "../libraries/Delegate.sol";
+import {Signature} from "../libraries/Signature.sol";
 
 /**
  * @title Term Structure Bond Facet Contract
@@ -77,7 +77,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         bool redeemAndDeposit
     ) external nonReentrant {
         AccountStorage.Layout storage asl = AccountStorage.layout();
-        asl.requireValidCaller(msg.sender, accountAddr, DELEGATE_REDEEM_MASK);
+        asl.requireValidCaller(msg.sender, accountAddr);
 
         uint32 accountId = asl.getValidAccount(accountAddr);
         _redeem(msg.sender, accountAddr, accountId, tsbToken, amount, redeemAndDeposit);

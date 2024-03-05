@@ -22,8 +22,7 @@ library AccountStorage {
         mapping(uint32 => address) accountAddresses;
         /// @notice LoanOwner => delegatee => isDelegated
         /// @dev User can delegate the right to operate the account to another address
-        /// @dev Each delegated action has a unique bit in the delegatedActions mask
-        mapping(address => mapping(address => uint256)) delegatedActions;
+        mapping(address => mapping(address => bool)) isDelegated;
         /// @notice Mapping address to nonces for permit functions
         mapping(address => uint256) nonces;
     }

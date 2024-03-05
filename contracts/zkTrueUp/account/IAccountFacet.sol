@@ -15,8 +15,7 @@ interface IAccountFacet {
     /// @notice Error for register account when the public key is invalid
     error InvalidTsPublicKey(uint256 tsPubKeyX, uint256 tsPubKeyY);
 
-    /// @notice Emit when the delegatee is set
-    event SetDelegatee(address indexed delegator, address indexed delegatee, uint256 delegatedActions);
+    event SetDelegatee(address indexed delegator, address indexed delegatee, bool isDelegated);
 
     /// @notice Register account by deposit Ether or ERC20 to ZkTrueUp
     /// @param tsPubKeyX The X coordinate of the public key of the L2 account
@@ -63,8 +62,8 @@ interface IAccountFacet {
 
     /// @notice Set the delegatee of the account
     /// @param delegatee The address of the delegatee
-    /// @param delegatedActions The delegated actions, each action has a unique bit in the delegatedActions
-    function setDelegatee(address delegatee, uint256 delegatedActions) external;
+    /// @param isDelegatee The flag of the delegatee
+    function setDelegatee(address delegatee, bool isDelegatee) external;
 
     /// @notice Get the account L1 address by account L2 id
     /// @param accountId The account L2 id
@@ -89,7 +88,5 @@ interface IAccountFacet {
     /// @notice Return the isDelegated status of the account
     /// @param delegator The address of the delegator
     /// @param delegatee The address of the delegatee
-    /// @param actionMask The mask of the action to check
-    /// @return isDelegated The isDelegated status of the account
-    function getIsDelegated(address delegator, address delegatee, uint256 actionMask) external view returns (bool);
+    function getIsDelegated(address delegator, address delegatee) external view returns (bool);
 }

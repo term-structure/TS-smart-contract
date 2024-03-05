@@ -24,8 +24,8 @@ import {AssetConfig} from "../token/TokenStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
+import {Signature} from "../libraries/Signature.sol";
 import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo, RollBorrowOrder, REMOVE_COLLATERAL_TYPEHASH, REPAY_TYPEHASH, ROLL_BORROW_TYPEHASH, FORCE_CANCEL_ROLL_BORROW_TYPEHASH, ROLL_TO_AAVE_TYPEHASH} from "./LoanStorage.sol";
-import {DELEGATE_REMOVE_COLLATERAL_MASK, DELEGATE_REPAY_MASK, DELEGATE_ROLL_TO_AAVE_MASK, DELEGATE_ROLL_BORROW_MASK, DELEGATE_FORCE_CANCEL_ROLL_BORROW_MASK} from "../libraries/Delegate.sol";
 
 /**
  * @title Term Structure Loan Facet Contract
@@ -71,7 +71,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         AccountStorage.Layout storage asl = AccountStorage.layout();
         address loanOwner = asl.getAccountAddr(loanInfo.accountId);
-        asl.requireValidCaller(msg.sender, loanOwner, DELEGATE_REMOVE_COLLATERAL_MASK);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         _removeCollateral(lsl, loanInfo, loanId, msg.sender, loanOwner, amount);
     }
@@ -115,7 +115,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         AccountStorage.Layout storage asl = AccountStorage.layout();
         address loanOwner = asl.getAccountAddr(loanInfo.accountId);
-        asl.requireValidCaller(msg.sender, loanOwner, DELEGATE_REPAY_MASK);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         _repay(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt, repayAndDeposit, msg.value);
     }
@@ -169,7 +169,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
         AccountStorage.Layout storage asl = AccountStorage.layout();
         address loanOwner = asl.getAccountAddr(loanInfo.accountId);
-        asl.requireValidCaller(msg.sender, loanOwner, DELEGATE_ROLL_TO_AAVE_MASK);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         _rollToAave(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt);
     }
@@ -227,7 +227,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         LoanInfo memory loanInfo = lsl.getLoanInfo(rollBorrowOrder.loanId);
         AccountStorage.Layout storage asl = AccountStorage.layout();
         address loanOwner = asl.getAccountAddr(loanInfo.accountId);
-        asl.requireValidCaller(msg.sender, loanOwner, DELEGATE_ROLL_BORROW_MASK);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         uint32 newMaturityTime = _requireValidOrder(rollBorrowOrder, loanInfo, rollBorrowOrder.loanId);
 
@@ -282,7 +282,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
         AccountStorage.Layout storage asl = AccountStorage.layout();
         address loanOwner = asl.getAccountAddr(accountId);
-        asl.requireValidCaller(msg.sender, loanOwner, DELEGATE_FORCE_CANCEL_ROLL_BORROW_MASK);
+        asl.requireValidCaller(msg.sender, loanOwner);
 
         _forceCancelRollBorrow(
             lsl,

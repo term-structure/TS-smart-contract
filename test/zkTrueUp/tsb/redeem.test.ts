@@ -30,7 +30,6 @@ import {
 import { toL1Amt } from "../../utils/amountConvertor";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { signRedeemPermit } from "../../utils/permitSignature";
-import { DELEGATE_REDEEM_MASK } from "../../utils/delegate";
 
 //! use AccountMock and TsbMock for testing
 export const FACET_NAMES_MOCK = [
@@ -263,7 +262,7 @@ describe("Redeem TsbToken", () => {
       // user1 delegate to user2
       const delegateTx = await diamondAccMock
         .connect(user1)
-        .setDelegatee(user2Addr, DELEGATE_REDEEM_MASK);
+        .setDelegatee(user2Addr, true);
       await delegateTx.wait();
 
       // increase time after maturity
@@ -604,7 +603,7 @@ describe("Redeem TsbToken", () => {
       // user1 delegate to user2
       const delegateTx = await diamondAccMock
         .connect(user1)
-        .setDelegatee(user2Addr, DELEGATE_REDEEM_MASK);
+        .setDelegatee(user2Addr, true);
       await delegateTx.wait();
 
       // increase time after maturity

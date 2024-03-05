@@ -44,7 +44,6 @@ import { SYSTEM_UNIT_BASE } from "../../../utils/config";
 import { resolveLoanId } from "../../utils/loanHelper";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { signRollBorrowPermit } from "../../utils/permitSignature";
-import { DELEGATE_ROLL_BORROW_MASK } from "../../utils/delegate";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -708,7 +707,7 @@ describe("Roll Borrow", () => {
       // user2 delegate to user1
       const delegateTx = await diamondAcc
         .connect(user2)
-        .setDelegatee(user1Addr, DELEGATE_ROLL_BORROW_MASK);
+        .setDelegatee(user1Addr, true);
       await delegateTx.wait();
 
       const rollBorrowOrder: RollBorrowOrderStruct = {
