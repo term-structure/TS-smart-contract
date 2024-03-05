@@ -73,12 +73,12 @@ library RollupLib {
     /// @notice Add the L1 request into L1 request queue
     /// @dev The pubData will be hashed with keccak256 and store in the priority queue with its expiration block and operation type
     /// @param s The rollup storage
-    /// @param sender The address of sender
+    /// @param accountAddr The L1 address
     /// @param opType The operation type of the priority request
     /// @param pubData The public data of the priority request
     function addL1Request(
         RollupStorage.Layout storage s,
-        address sender,
+        address accountAddr,
         Operations.OpType opType,
         bytes memory pubData
     ) internal {
@@ -92,7 +92,7 @@ library RollupLib {
             opType: opType
         });
         s.totalL1RequestNum++;
-        emit L1Request(sender, requestId, opType, pubData, expirationTime);
+        emit L1Request(accountAddr, requestId, opType, pubData, expirationTime);
     }
 
     /// @notice Add the pending balance of the specified account id and token id

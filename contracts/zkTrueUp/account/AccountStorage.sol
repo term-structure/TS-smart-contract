@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/* ============ The type hash of sign typed data v4 for permit functions ============ */
+
+// withdraw function type hash
+bytes32 constant WITHDRAW_TYPEHASH = keccak256("Withdraw(address token,uint256 amount,uint256 nonce,uint256 deadline)");
+
 /**
  * @title Term Structure Account Storage
  * @author Term Structure Labs
@@ -15,6 +20,11 @@ library AccountStorage {
         mapping(address => uint32) accountIds;
         /// @notice Mapping of L2 Account Id => L1 Address
         mapping(uint32 => address) accountAddresses;
+        /// @notice LoanOwner => delegatee => isDelegated
+        /// @dev User can delegate the right to operate the account to another address
+        mapping(address => mapping(address => bool)) isDelegated;
+        /// @notice Mapping address to nonces for permit functions
+        mapping(address => uint256) nonces;
     }
 
     function layout() internal pure returns (Layout storage s) {

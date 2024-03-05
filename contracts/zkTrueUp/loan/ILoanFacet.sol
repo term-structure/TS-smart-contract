@@ -53,30 +53,35 @@ interface ILoanFacet {
 
     /// @notice Emitted when borrower add collateral
     /// @param loanId The id of the loan
-    /// @param sender The address of the sender
+    /// @param caller The address of the `msg.sender`
+    /// @param loanOwner The address of the loan owner
     /// @param collateralToken The collateral token to add
     /// @param addedCollateralAmt The amount of the added collateral
     event CollateralAdded(
         bytes12 indexed loanId,
-        address indexed sender,
+        address caller,
+        address loanOwner,
         IERC20 collateralToken,
         uint128 addedCollateralAmt
     );
 
     /// @notice Emitted when borrower remove collateral
     /// @param loanId The id of the loan
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
     /// @param collateralToken The collateral token to remove
     /// @param removedCollateralAmt The amount of the removed collateral
     event CollateralRemoved(
         bytes12 indexed loanId,
-        address indexed loanOwner,
+        address caller,
+        address loanOwner,
         IERC20 collateralToken,
         uint128 removedCollateralAmt
     );
 
     /// @notice Emitted when the borrower repay the loan
     /// @param loanId The id of the loan
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
     /// @param collateralToken The collateral token to be taken
     /// @param debtToken The debt token to be repaid
@@ -85,7 +90,8 @@ interface ILoanFacet {
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
     event Repayment(
         bytes12 indexed loanId,
-        address indexed loanOwner,
+        address caller,
+        address loanOwner,
         IERC20 collateralToken,
         IERC20 debtToken,
         uint128 removedCollateralAmt,
@@ -95,6 +101,7 @@ interface ILoanFacet {
 
     /// @notice Emitted when the loan is rolled to Aave
     /// @param loanId The id of the loan
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
     /// @param supplyToken The token to be supplied to Aave
     /// @param borrowToken The token to be borrowed from Aave
@@ -102,7 +109,8 @@ interface ILoanFacet {
     /// @param debtAmt The amount of the debt
     event RollToAave(
         bytes12 indexed loanId,
-        address indexed loanOwner,
+        address caller,
+        address loanOwner,
         IERC20 supplyToken,
         IERC20 borrowToken,
         uint128 collateralAmt,
@@ -110,14 +118,22 @@ interface ILoanFacet {
     );
 
     /// @notice Emitted when the borrower place a roll borrow order
+    /// @param loanId The id of the loan
+    /// @param caller The address of the `msg.sender`
     /// @param loanOwner The address of the loan owner
     /// @param rollBorrowReq The roll borrow request
-    event RollBorrowOrderPlaced(address indexed loanOwner, Operations.RollBorrow rollBorrowReq);
+    event RollBorrowOrderPlaced(
+        bytes12 indexed loanId,
+        address caller,
+        address loanOwner,
+        Operations.RollBorrow rollBorrowReq
+    );
 
     /// @notice Emitted when the borrower force cancel a roll borrow order on L1
-    /// @param loanOwner The address of the loan owner
     /// @param loanId The id of the loan
-    event RollBorrowOrderForceCancelPlaced(address indexed loanOwner, bytes12 indexed loanId);
+    /// @param caller The address of the `msg.sender`
+    /// @param loanOwner The address of the loan owner
+    event RollBorrowOrderForceCancelPlaced(bytes12 indexed loanId, address caller, address loanOwner);
 
     /// @notice Emitted when the loan is liquidated
     /// @param loanId The id of the loan
@@ -164,18 +180,72 @@ interface ILoanFacet {
     /// @param amount The amount of the collateral
     function removeCollateral(bytes12 loanId, uint128 amount) external;
 
-    /// @notice Repay the loan, only the loan owner can repay the loan
+    /// @notice Remove collateral from the loan with permit signature
+    /// @param loanId The id of the loan
+    /// @param amount The amount of the collateral
+    /// @param deadline The deadline of the signature
+    /// @param v The recovery id of the signature
+    /// @param r The r value of the signature
+    /// @param s The s value of the signature
+    function removeCollateralWithPermit(
+        bytes12 loanId,
+        uint128 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    /// @notice Repay the loan
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of collateral to be returned
     /// @param debtAmt The amount of debt to be repaid
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable;
 
+    /// @notice Repay the loan with permit signature
+    /// @param loanId The id of the loan
+    /// @param collateralAmt The amount of collateral to be returned
+    /// @param debtAmt The amount of debt to be repaid
+    /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
+    /// @param deadline The deadline of the signature
+    /// @param v The recovery id of the signature
+    /// @param r The r value of the signature
+    /// @param s The s value of the signature
+    function repayWithPermit(
+        bytes12 loanId,
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        bool repayAndDeposit,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable;
+
     /// @notice Roll the loan to Aave
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of collateral to be returned
     /// @param debtAmt The amount of debt to be repaid
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external;
+
+    /// @notice Roll the loan to Aave with permit signature
+    /// @param loanId The id of the loan
+    /// @param collateralAmt The amount of collateral to be returned
+    /// @param debtAmt The amount of debt to be repaid
+    /// @param deadline The deadline of the signature
+    /// @param v The recovery id of the signature
+    /// @param r The r value of the signature
+    /// @param s The s value of the signature
+    function rollToAaveWithPermit(
+        bytes12 loanId,
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 
     /// @notice Place a roll borrow order
     /// @notice User want to roll the original loan to a new loan without repay
@@ -184,11 +254,30 @@ interface ILoanFacet {
     /// @param rollBorrowOrder The roll borrow order
     function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable;
 
+    /// @notice Place a roll borrow order with permit signature
+    /// @notice User want to roll the original loan to a new loan without repay
+    /// @notice The roll borrow is an action to place a borrow order on L1,
+    ///         and the order is waiting to be matched on L2 and rollup will create a new loan on L1 once matched
+    /// @param rollBorrowOrder The roll borrow order
+    function rollBorrowWithPermit(
+        RollBorrowOrder memory rollBorrowOrder,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable;
+
     /// @notice Cancel the roll borrow order
     /// @notice User can force cancel their roll borrow order on L1
     ///         to avoid sequencer ignore his cancel request in L2
     /// @param loanId The id of the loan to be cancelled
     function forceCancelRollBorrow(bytes12 loanId) external;
+
+    /// @notice Cancel the roll borrow order with permit signature
+    /// @notice User can force cancel their roll borrow order on L1
+    ///         to avoid sequencer ignore his cancel request in L2
+    /// @param loanId The id of the loan to be cancelled
+    function forceCancelrollBorrowWithPermit(bytes12 loanId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
 
     /// @notice Liquidate the loan
     /// @param loanId The id of the loan to be liquidated

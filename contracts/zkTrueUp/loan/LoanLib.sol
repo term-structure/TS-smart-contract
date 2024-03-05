@@ -42,6 +42,8 @@ library LoanLib {
     error LoanIsNotExist(bytes12 loanId);
     /// @notice Error for collateral amount is less than locked collateral amount
     error CollateralAmtLtLockedCollateralAmt(uint128 collateralAmt, uint128 lockedCollateralAmt);
+    /// @notice Error for invalid caller
+    error InvalidCaller(address caller, address loanOwner);
 
     /// @notice Internal function to add collateral to the loan
     /// @param loan The loan to be added collateral
@@ -280,14 +282,6 @@ library LoanLib {
     /// @return isHealthy True if the loan is healthy, otherwise false
     function isHealthy(uint256 healthFactor) internal pure returns (bool) {
         return healthFactor >= Config.HEALTH_FACTOR_THRESHOLD;
-    }
-
-    /// @notice Internal function to check if the address is the loan owner
-    /// @param addr The address to be checked
-    /// @param accountId The account id
-    function requireLoanOwner(address addr, uint32 accountId) internal view {
-        address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
-        if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
     }
 
     /// @notice Internal function to check if the loan is healthy (not liquidable)

@@ -381,8 +381,10 @@ describe("Deposit", function () {
       const tsbEth = await diamondTsb.getTsbToken(underlyingTokenId, maturity);
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await (
-        await diamondAccMock.connect(user1).withdraw(tsbEth, tsbEthAmt)
-      ).wait(); //! ignore _withdraw in AccountMock
+        await diamondAccMock
+          .connect(user1)
+          .withdraw(user1Addr, tsbEth, tsbEthAmt)
+      ).wait(); //! ignore updateWithdrawalRecord in AccountMock
 
       // withdraw tsbUSDT token
       const tsbUsdtAmt = utils.parseUnits("100", TS_DECIMALS.AMOUNT);
@@ -390,8 +392,10 @@ describe("Deposit", function () {
       maturity = BigNumber.from(tsbTokensJSON[2].maturity);
       const tsbUsdt = await diamondTsb.getTsbToken(underlyingTokenId, maturity);
       await (
-        await diamondAccMock.connect(user1).withdraw(tsbUsdt, tsbUsdtAmt)
-      ).wait(); //! ignore _withdraw in AccountMock
+        await diamondAccMock
+          .connect(user1)
+          .withdraw(user1Addr, tsbUsdt, tsbUsdtAmt)
+      ).wait(); //! ignore updateWithdrawalRecord in AccountMock
     });
 
     it("Success to deposit tsb token", async () => {

@@ -435,7 +435,7 @@ describe("Consume L1 Request in EvacuMode", function () {
     // check user1 successfully withdraw after consume l1 request
     await diamondAcc
       .connect(user1)
-      .withdraw(DEFAULT_ETH_ADDRESS, user1DepositAmt);
+      .withdraw(user1Addr, DEFAULT_ETH_ADDRESS, user1DepositAmt);
 
     // check new user successfully refund after consume l1 request
     await diamondEvacuation

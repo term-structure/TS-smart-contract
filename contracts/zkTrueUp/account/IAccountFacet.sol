@@ -15,6 +15,8 @@ interface IAccountFacet {
     /// @notice Error for register account when the public key is invalid
     error InvalidTsPublicKey(uint256 tsPubKeyX, uint256 tsPubKeyY);
 
+    event SetDelegatee(address indexed delegator, address indexed delegatee, bool isDelegated);
+
     /// @notice Register account by deposit Ether or ERC20 to ZkTrueUp
     /// @param tsPubKeyX The X coordinate of the public key of the L2 account
     /// @param tsPubKeyY The Y coordinate of the public key of the L2 account
@@ -29,15 +31,39 @@ interface IAccountFacet {
     function deposit(address to, IERC20 token, uint128 amount) external payable;
 
     /// @notice Withdraw Ether or ERC20 from ZkTrueUp
+    /// @param accountAddr The address of the L2 account to be withdrawn
     /// @param token The token to be withdrawn
     /// @param amount The amount of the token to be withdrawn
-    function withdraw(IERC20 token, uint256 amount) external;
+    function withdraw(address accountAddr, IERC20 token, uint256 amount) external;
+
+    /// @notice Withdraw Ether or ERC20 from ZkTrueUp with permit
+    /// @param accountAddr The address of the L2 account to be withdrawn
+    /// @param token The token to be withdrawn
+    /// @param amount The amount of the token to be withdrawn
+    /// @param deadline The deadline of the permit
+    /// @param v v The recovery id of the signature
+    /// @param r The r of the permit signature
+    /// @param s The s of the permit signature
+    function withdrawWithPermit(
+        address accountAddr,
+        IERC20 token,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 
     /// @notice Force withdraw Ether or ERC20 from ZkTrueUp
     /// @notice When the L2 system is down or user's asset is censored, user can do forceWithdraw to withdraw asset from ZkTrueUp
     /// @notice If the forceWithdraw request is not processed before the expirationBlock, user can do activateEvacuation to activate the evacuation
     /// @param token The token to be withdrawn
     function forceWithdraw(IERC20 token) external;
+
+    /// @notice Set the delegatee of the account
+    /// @param delegatee The address of the delegatee
+    /// @param isDelegatee The flag of the delegatee
+    function setDelegatee(address delegatee, bool isDelegatee) external;
 
     /// @notice Get the account L1 address by account L2 id
     /// @param accountId The account L2 id
@@ -52,4 +78,15 @@ interface IAccountFacet {
     /// @notice Get the number of registered accounts
     /// @return accountNum The number of registered accounts
     function getAccountNum() external view returns (uint32 accountNum);
+
+    /// @notice Return the permit nonce of the account
+    /// @dev The nonce is used to prevent signature replay attack
+    /// @param accountAddr The address of the account
+    /// @return nonce The permit nonce of the account
+    function getPermitNonce(address accountAddr) external view returns (uint256);
+
+    /// @notice Return the isDelegated status of the account
+    /// @param delegator The address of the delegator
+    /// @param delegatee The address of the delegatee
+    function getIsDelegated(address delegator, address delegatee) external view returns (bool);
 }

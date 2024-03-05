@@ -1,7 +1,13 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Signer, utils } from "ethers";
+import {
+  BigNumber,
+  Signer,
+  TypedDataDomain,
+  TypedDataField,
+  utils,
+} from "ethers";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { useFacet } from "../../../utils/useFacet";
 import { register } from "../../utils/register";
@@ -34,6 +40,8 @@ import {
   TS_BASE_TOKEN,
   TsTokenId,
 } from "term-structure-sdk";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { signRepayPermit } from "../../utils/permitSignature";
 
 //! use RollupMock instead of RollupFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -64,7 +72,7 @@ const fixture = async () => {
 };
 
 describe("Repay and deposit", () => {
-  let [user1, user2]: Signer[] = [];
+  let [user1, user2]: SignerWithAddress[] = [];
   let [user1Addr, user2Addr]: string[] = [];
   let operator: Signer;
   let weth: WETH9;
@@ -226,6 +234,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           dai.address,
           DEFAULT_ETH_ADDRESS,
           collateralAmt,
@@ -235,6 +244,7 @@ describe("Repay and deposit", () => {
       await expect(repayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user1Addr,
           user1Addr,
           loan.accountId,
           dai.address,
@@ -328,6 +338,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           dai.address,
           DEFAULT_ETH_ADDRESS,
           removedCollateralAmt,
@@ -338,6 +349,7 @@ describe("Repay and deposit", () => {
       await expect(repayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user1Addr,
           user1Addr,
           loan.accountId,
           dai.address,
@@ -540,6 +552,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user1Addr,
+          user1Addr,
           dai.address,
           DEFAULT_ETH_ADDRESS,
           depositCollateralAmt,
@@ -549,6 +562,7 @@ describe("Repay and deposit", () => {
       await expect(repayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user1Addr,
           user1Addr,
           loan.accountId,
           dai.address,
@@ -616,7 +630,7 @@ describe("Repay and deposit", () => {
           .repay(loanId, depositCollateralAmt, repayDebtAmt, true, {
             value: repayDebtAmt,
           })
-      ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidCaller");
     });
     it("Fail to repay and deposit (general case), health factor under threshold", async () => {
       // before health factor
@@ -833,6 +847,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
+          user2Addr,
           dai.address,
           usdt.address,
           collateralAmt,
@@ -842,6 +857,7 @@ describe("Repay and deposit", () => {
       await expect(repayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user2Addr,
           user2Addr,
           loan.accountId,
           dai.address,
@@ -929,6 +945,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
+          user2Addr,
           dai.address,
           usdt.address,
           depositCollateralAmt,
@@ -938,6 +955,7 @@ describe("Repay and deposit", () => {
       await expect(repayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user2Addr,
           user2Addr,
           loan.accountId,
           dai.address,
@@ -1020,6 +1038,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
+          user2Addr,
           dai.address,
           usdt.address,
           secondCollateralAmt,
@@ -1029,6 +1048,7 @@ describe("Repay and deposit", () => {
       await expect(secondRepayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user2Addr,
           user2Addr,
           loan.accountId,
           dai.address,
@@ -1133,6 +1153,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
+          user2Addr,
           dai.address,
           usdt.address,
           depositCollateralAmt,
@@ -1142,6 +1163,262 @@ describe("Repay and deposit", () => {
       await expect(repayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user2Addr,
+          user2Addr,
+          loan.accountId,
+          dai.address,
+          loan.collateralTokenId,
+          depositCollateralAmt
+        );
+
+      // check new loan data
+      const newLoanInfo = await diamondLoan.getLoan(loanId);
+      expect(newLoanInfo.debtAmt).to.equal(
+        BigNumber.from(debtAmt).sub(repayDebtAmt)
+      );
+      expect(newLoanInfo.collateralAmt).to.equal(
+        BigNumber.from(collateralAmt).sub(depositCollateralAmt)
+      );
+
+      // convert amount to 8 decimals for loan data
+      const repaidDebtAmtConverted = toL2Amt(repayDebtAmt, TS_BASE_TOKEN.USDT);
+      const removedCollateralAmtConverted = toL2Amt(
+        depositCollateralAmt,
+        TS_BASE_TOKEN.DAI
+      );
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        debtAmt: BigNumber.from(loan.debtAmt).sub(repaidDebtAmtConverted),
+        collateralAmt: BigNumber.from(loan.collateralAmt).sub(
+          removedCollateralAmtConverted
+        ),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        daiAnswer,
+        usdtAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+    it("Success to delegate repay and deposit, partial repay and partial deposit (stable coin pairs case)", async () => {
+      // repay 30 USDT (3/8 debt) and deposit 100 DAI (10% collateral)
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDT
+      );
+      const repayDebtAmt = BigNumber.from(debtAmt).mul(3).div(8);
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.DAI
+      );
+      const depositCollateralAmt = BigNumber.from(collateralAmt).div(10);
+
+      // give user1 30 USDC for repay test
+      usdt = await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDT]
+      );
+      await usdt.connect(user1).mint(user1Addr, debtAmt);
+
+      // user1 approve to ZkTrueUp
+      await usdt.connect(user1).approve(zkTrueUp.address, debtAmt);
+
+      // before balance
+      const beforeZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
+      const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+      const beforeUser2DaiBalance = await dai.balanceOf(user2Addr);
+      const beforeUser1UsdtBalance = await usdt.balanceOf(user1Addr);
+
+      // user2 delegate to user1
+      const delegateTx = await diamondAcc
+        .connect(user2)
+        .setDelegatee(user1Addr, true);
+      await delegateTx.wait();
+
+      // user1 delegate repay and deposit for user2
+      const repayAndDepositTx = await diamondLoan
+        .connect(user1)
+        .repay(loanId, depositCollateralAmt, repayDebtAmt, true);
+      const repayAndDepositReceipt = await repayAndDepositTx.wait();
+
+      // after balance
+      const afterZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
+      const afterZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+      const afterUser2DaiBalance = await dai.balanceOf(user2Addr);
+      const afterUser1UsdtBalance = await usdt.balanceOf(user1Addr);
+
+      // check balance
+      expect(afterZkTrueUpDaiBalance).to.be.equal(beforeZkTrueUpDaiBalance);
+      expect(
+        afterZkTrueUpUsdtBalance.sub(beforeZkTrueUpUsdtBalance)
+      ).to.be.equal(repayDebtAmt);
+      expect(afterUser2DaiBalance).to.be.equal(beforeUser2DaiBalance);
+      expect(beforeUser1UsdtBalance.sub(afterUser1UsdtBalance)).to.be.equal(
+        repayDebtAmt
+      );
+
+      // check event
+      await expect(repayAndDepositTx)
+        .to.emit(diamondLoan, "Repayment")
+        .withArgs(
+          loanId,
+          user1Addr,
+          user2Addr,
+          dai.address,
+          usdt.address,
+          depositCollateralAmt,
+          repayDebtAmt,
+          true
+        );
+      await expect(repayAndDepositTx)
+        .to.emit(diamondWithAccountLib, "Deposit")
+        .withArgs(
+          user1Addr,
+          user2Addr,
+          loan.accountId,
+          dai.address,
+          loan.collateralTokenId,
+          depositCollateralAmt
+        );
+
+      // check new loan data
+      const newLoanInfo = await diamondLoan.getLoan(loanId);
+      expect(newLoanInfo.debtAmt).to.equal(
+        BigNumber.from(debtAmt).sub(repayDebtAmt)
+      );
+      expect(newLoanInfo.collateralAmt).to.equal(
+        BigNumber.from(collateralAmt).sub(depositCollateralAmt)
+      );
+
+      // convert amount to 8 decimals for loan data
+      const repaidDebtAmtConverted = toL2Amt(repayDebtAmt, TS_BASE_TOKEN.USDT);
+      const removedCollateralAmtConverted = toL2Amt(
+        depositCollateralAmt,
+        TS_BASE_TOKEN.DAI
+      );
+
+      // new loan data after add collateral
+      const newLoan = {
+        ...loan,
+        debtAmt: BigNumber.from(loan.debtAmt).sub(repaidDebtAmtConverted),
+        collateralAmt: BigNumber.from(loan.collateralAmt).sub(
+          removedCollateralAmtConverted
+        ),
+      };
+
+      // get new expected health factor
+      const newExpectedHealthFactor = await getExpectedHealthFactor(
+        diamondToken,
+        tsbTokenData,
+        newLoan,
+        daiAnswer,
+        usdtAnswer,
+        ltvThreshold
+      );
+
+      // get new health factor
+      const newHealthFactor = await diamondLoan.getHealthFactor(loanId);
+      expect(newHealthFactor).to.equal(newExpectedHealthFactor);
+    });
+    it("Success to permit repay and deposit, partial repay and partial deposit (stable coin pairs case)", async () => {
+      // repay 30 USDT (3/8 debt) and deposit 100 DAI (10% collateral)
+      const debtAmt = toL1Amt(
+        BigNumber.from(loanData.debtAmt),
+        TS_BASE_TOKEN.USDT
+      );
+      const repayDebtAmt = BigNumber.from(debtAmt).mul(3).div(8);
+      const collateralAmt = toL1Amt(
+        BigNumber.from(loanData.collateralAmt),
+        TS_BASE_TOKEN.DAI
+      );
+      const depositCollateralAmt = BigNumber.from(collateralAmt).div(10);
+
+      // give user1 30 USDC for repay test
+      usdt = await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDT]
+      );
+      await usdt.connect(user1).mint(user1Addr, debtAmt);
+
+      // user1 approve to ZkTrueUp
+      await usdt.connect(user1).approve(zkTrueUp.address, debtAmt);
+
+      // before balance
+      const beforeZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
+      const beforeZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+      const beforeUser2DaiBalance = await dai.balanceOf(user2Addr);
+      const beforeUser1UsdtBalance = await usdt.balanceOf(user1Addr);
+
+      // user2 sign permit for user1
+      const deadline = BigNumber.from("4294967295"); // max uint32
+      const { v, r, s } = await signRepayPermit(
+        user2,
+        zkTrueUp.address,
+        loanId,
+        depositCollateralAmt,
+        repayDebtAmt,
+        true,
+        await diamondAcc.getPermitNonce(user2Addr),
+        deadline
+      );
+
+      const repayAndDepositTx = await diamondLoan
+        .connect(user1)
+        .repayWithPermit(
+          loanId,
+          depositCollateralAmt,
+          repayDebtAmt,
+          true,
+          deadline,
+          v,
+          r,
+          s
+        );
+      const repayAndDepositReceipt = await repayAndDepositTx.wait();
+
+      // after balance
+      const afterZkTrueUpDaiBalance = await dai.balanceOf(zkTrueUp.address);
+      const afterZkTrueUpUsdtBalance = await usdt.balanceOf(zkTrueUp.address);
+      const afterUser2DaiBalance = await dai.balanceOf(user2Addr);
+      const afterUser1UsdtBalance = await usdt.balanceOf(user1Addr);
+
+      // check balance
+      expect(afterZkTrueUpDaiBalance).to.be.equal(beforeZkTrueUpDaiBalance);
+      expect(
+        afterZkTrueUpUsdtBalance.sub(beforeZkTrueUpUsdtBalance)
+      ).to.be.equal(repayDebtAmt);
+      expect(afterUser2DaiBalance).to.be.equal(beforeUser2DaiBalance);
+      expect(beforeUser1UsdtBalance.sub(afterUser1UsdtBalance)).to.be.equal(
+        repayDebtAmt
+      );
+
+      // check event
+      await expect(repayAndDepositTx)
+        .to.emit(diamondLoan, "Repayment")
+        .withArgs(
+          loanId,
+          user1Addr,
+          user2Addr,
+          dai.address,
+          usdt.address,
+          depositCollateralAmt,
+          repayDebtAmt,
+          true
+        );
+      await expect(repayAndDepositTx)
+        .to.emit(diamondWithAccountLib, "Deposit")
+        .withArgs(
+          user1Addr,
           user2Addr,
           loan.accountId,
           dai.address,
@@ -1227,6 +1504,7 @@ describe("Repay and deposit", () => {
         .withArgs(
           loanId,
           user2Addr,
+          user2Addr,
           dai.address,
           usdt.address,
           secondCollateralAmt,
@@ -1236,6 +1514,7 @@ describe("Repay and deposit", () => {
       await expect(secondRepayAndDepositTx)
         .to.emit(diamondWithAccountLib, "Deposit")
         .withArgs(
+          user2Addr,
           user2Addr,
           loan.accountId,
           dai.address,

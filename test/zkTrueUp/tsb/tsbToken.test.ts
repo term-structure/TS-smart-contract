@@ -234,8 +234,10 @@ describe("Ts Bond", () => {
       // withdraw tsb token
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await (
-        await diamondAccMock.connect(user1).withdraw(tsbTokenAddr, amount)
-      ).wait(); //! ignore _updateWithdrawalRecord in AccountMock
+        await diamondAccMock
+          .connect(user1)
+          .withdraw(user1Addr, tsbTokenAddr, amount)
+      ).wait(); //! ignore updateWithdrawalRecord in AccountMock
     });
     it("Success to get balanceOf", async () => {
       // get params
