@@ -350,7 +350,7 @@ describe("Redeem TsbToken", () => {
       );
 
       // increase time after maturity
-      await helpers.time.increaseTo(1672416550);
+      await helpers.time.increaseTo(1672416560);
       // redeem tsb token
       const redeemTx = await diamondTsbMock
         .connect(user2)

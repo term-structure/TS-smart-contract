@@ -11,7 +11,6 @@ export const cutFacets = async (
 ): Promise<{ [key: string]: FnSelectors }> => {
   const selectors: { [key: string]: FnSelectors } = {};
   for (const { facetName, facetAddress, facetFactory } of facets) {
-    console.log("Cutting facet: ", facetName);
     const facetSelectors = await safeAddFacet(
       deployer,
       provider,
