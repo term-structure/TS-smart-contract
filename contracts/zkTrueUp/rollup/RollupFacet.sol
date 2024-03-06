@@ -509,7 +509,7 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
             data = pubData.sliceThreeChunksBytes(offset); // 3 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.AUCTION_END) {
-            data = pubData.sliceFourChunksBytes(offset); // 4 chunks
+            data = pubData.sliceFiveChunksBytes(offset); // 5 chunks
             isToBeExecuted = true;
         } else if (opType == Operations.OpType.ROLL_OVER_END) {
             data = pubData.sliceSixChunksBytes(offset); // 6 chunks
@@ -778,15 +778,15 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Utils.notZeroAddr(accountAddr);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        // tsbToken config
-        AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
-        address tokenAddr = address(assetConfig.token);
-        Utils.notZeroAddr(tokenAddr);
+        // // tsbToken config
+        // AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
+        // address tokenAddr = address(assetConfig.token);
+        // Utils.notZeroAddr(tokenAddr);
 
-        ITsbToken tsbToken = ITsbToken(tokenAddr);
-        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tokenAddr);
+        // ITsbToken tsbToken = ITsbToken(tokenAddr);
+        // if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tokenAddr);
 
-        (bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) = _getAuctionInfo(tsl, auctionEnd, tsbToken);
+        (bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) = _getAuctionInfo(tsl, auctionEnd);
 
         // update loan
         LoanStorage.Layout storage lsl = LoanStorage.layout();
@@ -800,26 +800,24 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
     /// @notice Internal function to get the auction info
     /// @param tsl The token storage
     /// @param auctionEnd The auction end request
-    /// @param tsbToken The tsbToken
     function _getAuctionInfo(
         TokenStorage.Layout storage tsl,
-        Operations.AuctionEnd memory auctionEnd,
-        ITsbToken tsbToken
+        Operations.AuctionEnd memory auctionEnd
     ) internal view virtual returns (bytes12, uint128, uint128) {
-        uint128 debtAmt;
-        bytes12 loanId;
-
-        // {} scope to avoid stack too deep error
-        {
-            // debt token config
-            (IERC20 underlyingToken, uint32 maturityTime) = tsbToken.tokenInfo();
-            (uint16 debtTokenId, AssetConfig memory underlyingAsset) = tsl.getAssetConfig(underlyingToken);
-            loanId = LoanLib.calcLoanId(auctionEnd.accountId, maturityTime, debtTokenId, auctionEnd.collateralTokenId);
-            debtAmt = auctionEnd.debtAmt.toL1Amt(underlyingAsset.decimals).toUint128();
-        }
+        // debt token config
+        // (IERC20 underlyingToken, uint32 maturityTime) = tsbToken.tokenInfo();
+        // (uint16 debtTokenId, AssetConfig memory underlyingAsset) = tsl.getAssetConfig(underlyingToken);
+        bytes12 loanId = LoanLib.calcLoanId(
+            auctionEnd.accountId,
+            auctionEnd.maturityTime,
+            auctionEnd.debtTokenId,
+            auctionEnd.collateralTokenId
+        );
+        AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.debtTokenId);
+        uint128 debtAmt = auctionEnd.debtAmt.toL1Amt(assetConfig.decimals).toUint128();
 
         // collateral token config
-        AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.collateralTokenId);
+        assetConfig = tsl.getAssetConfig(auctionEnd.collateralTokenId);
         Utils.notZeroAddr(address(assetConfig.token));
         uint128 collateralAmt = auctionEnd.collateralAmt.toL1Amt(assetConfig.decimals).toUint128();
 

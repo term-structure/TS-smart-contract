@@ -64,10 +64,10 @@ export class User {
       tokenId.toString() == TS_BASE_TOKEN.ETH.tokenId.toString() &&
       amount.gt(0)
     ) {
-      await network.provider.send("hardhat_setBalance", [
-        await this.signer.getAddress(),
-        (await this.signer.getBalance()).add(amount),
-      ]);
+      // await network.provider.send("hardhat_setBalance", [
+      //   await this.signer.getAddress(),
+      //   (await this.signer.getBalance()).add(amount),
+      // ]);
     } else {
       await (await ethers.getContractAt("ERC20Mock", tokenAddr))
         .connect(this.signer)
@@ -247,6 +247,7 @@ export const handler = async (
 ) => {
   let opType = req.slice(2, 4);
   let numOfL1RequestToBeProcessed: number;
+  console.log({ opType, req, nextReq });
 
   switch (opType) {
     case "01": {
@@ -260,13 +261,21 @@ export const handler = async (
       });
       let user = accounts.getUser(Number(accountId));
       let tokenAddr = baseTokenAddresses[Number(tokenId)];
+      console.log("test");
       await user.prepareToken(Number(tokenId), tokenAddr, amount);
+      console.log("test2");
       await user.register(diamondAcc, Number(tokenId), tokenAddr, amount);
+      console.log("test3");
       numOfL1RequestToBeProcessed = 2;
       break;
     }
     case "02": {
       const { accountId, tokenId, amount } = resolveDepositPubData(req);
+      console.log({
+        accountId,
+        tokenId,
+        amount,
+      });
       let user = accounts.getUser(Number(accountId));
       let tokenAddr = baseTokenAddresses[Number(tokenId)];
       await user.prepareToken(Number(tokenId), tokenAddr, amount);
@@ -406,6 +415,9 @@ export const rollupOneBlock = async (
   block: BlockData,
   latestStoredBlock: StoredBlockStruct
 ) => {
+  const timestamp = await time.latest();
+  console.log({ timestamp });
+  console.log(block.commitBlock.timestamp);
   // Mock timestamp to test case timestamp
   await time.increaseTo(Number(block.commitBlock.timestamp));
 
