@@ -121,7 +121,7 @@ describe("Rollup", function () {
   for (let k = 0; k < 1; k++) {
     const testCase = rollupData.blocks[k];
     it(`Before rollup for block-${k + 1}`, async function () {
-      const NumOfPreProcessBlocks = 3;
+      const NumOfPreProcessBlocks = 6;
       let latestStoredBlock = await preprocessBlocks(
         NumOfPreProcessBlocks,
         rollupData,

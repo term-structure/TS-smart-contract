@@ -261,21 +261,13 @@ export const handler = async (
       });
       let user = accounts.getUser(Number(accountId));
       let tokenAddr = baseTokenAddresses[Number(tokenId)];
-      console.log("test");
       await user.prepareToken(Number(tokenId), tokenAddr, amount);
-      console.log("test2");
       await user.register(diamondAcc, Number(tokenId), tokenAddr, amount);
-      console.log("test3");
       numOfL1RequestToBeProcessed = 2;
       break;
     }
     case "02": {
       const { accountId, tokenId, amount } = resolveDepositPubData(req);
-      console.log({
-        accountId,
-        tokenId,
-        amount,
-      });
       let user = accounts.getUser(Number(accountId));
       let tokenAddr = baseTokenAddresses[Number(tokenId)];
       await user.prepareToken(Number(tokenId), tokenAddr, amount);
@@ -415,9 +407,6 @@ export const rollupOneBlock = async (
   block: BlockData,
   latestStoredBlock: StoredBlockStruct
 ) => {
-  const timestamp = await time.latest();
-  console.log({ timestamp });
-  console.log(block.commitBlock.timestamp);
   // Mock timestamp to test case timestamp
   await time.increaseTo(Number(block.commitBlock.timestamp));
 
