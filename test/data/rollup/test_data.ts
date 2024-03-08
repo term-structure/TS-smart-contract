@@ -319,7 +319,7 @@ export const rollupData = {
       },
       storedBlock: {
         blockNumber: 6,
-        l1RequestNum: 2,
+        l1RequestNum: 0,
         pendingRollupTxHash:
           "0x113282cac47e97765ab2de32824e6dfc858adab247b324be49a66c9ca7ae8d7d",
         commitment:
@@ -371,7 +371,7 @@ export const rollupData = {
       },
       storedBlock: {
         blockNumber: 7,
-        l1RequestNum: 4,
+        l1RequestNum: 0,
         pendingRollupTxHash:
           "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
         commitment:
@@ -819,7 +819,7 @@ export const rollupData = {
       },
       storedBlock: {
         blockNumber: 16,
-        l1RequestNum: 1,
+        l1RequestNum: 0,
         pendingRollupTxHash:
           "0xe182c6b440b6f32705c9dfa40fa6a1236ff1f580fb40141bb6527726d6afe7c6",
         commitment:
@@ -970,7 +970,7 @@ export const rollupData = {
       },
       storedBlock: {
         blockNumber: 19,
-        l1RequestNum: 2,
+        l1RequestNum: 0,
         pendingRollupTxHash:
           "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
         commitment:
