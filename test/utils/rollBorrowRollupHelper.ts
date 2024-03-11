@@ -27,6 +27,7 @@ import {
   resolveCancelRollBorrowPubData,
   resolveCreateTsbTokenPubData,
   resolveDepositPubData,
+  resolveForceWithdrawPubData,
   resolveRegisterPubData,
   resolveRollBorrowOrderPubData,
 } from "./publicDataHelper";
@@ -85,12 +86,6 @@ export class User {
 
     const tokenDecimals = getDecimals(tokenId);
     const amount = toL1Amt(l2_amount, tokenDecimals);
-    console.log({
-      tsPubKeyX: this.tsPubKeyX,
-      tsPubKeyY: this.tsPubKeyY,
-      tokenAddr,
-      l2_amount,
-    });
 
     let msgValue;
     if (tokenId.toString() != TS_BASE_TOKEN.ETH.tokenId.toString()) {
@@ -102,8 +97,6 @@ export class User {
       // ETH doesn't need to be approved
       msgValue = amount;
     }
-
-    console.log(msgValue.toString(), amount.toString());
 
     await diamondAcc
       .connect(this.signer)
@@ -141,6 +134,12 @@ export class User {
         BigNumber.from(amount),
         { value: tokenAddr == DEFAULT_ETH_ADDRESS ? amount : 0 }
       );
+  }
+
+  async forceWithdraw(diamondAcc: AccountFacet, tokenAddr: string) {
+    if (!this.registered) throw new Error("User not registered");
+
+    await diamondAcc.connect(this.signer).forceWithdraw(tokenAddr);
   }
 
   async addCollateral(
@@ -247,18 +246,12 @@ export const handler = async (
 ) => {
   let opType = req.slice(2, 4);
   let numOfL1RequestToBeProcessed: number;
-  console.log({ opType, req, nextReq });
 
   switch (opType) {
     case "01": {
       const { accountId } = resolveRegisterPubData(req);
       const { tokenId, amount } = resolveDepositPubData(nextReq);
-      console.log({
-        accountId,
-        tokenId,
-        amount,
-        nextReq,
-      });
+
       let user = accounts.getUser(Number(accountId));
       let tokenAddr = baseTokenAddresses[Number(tokenId)];
       await user.prepareToken(Number(tokenId), tokenAddr, amount);
@@ -272,6 +265,14 @@ export const handler = async (
       let tokenAddr = baseTokenAddresses[Number(tokenId)];
       await user.prepareToken(Number(tokenId), tokenAddr, amount);
       await user.deposit(diamondAcc, Number(tokenId), tokenAddr, amount);
+      numOfL1RequestToBeProcessed = 1;
+      break;
+    }
+    case "03": {
+      const { accountId, tokenId, amount } = resolveForceWithdrawPubData(req);
+      let user = accounts.getUser(Number(accountId));
+      let tokenAddr = baseTokenAddresses[Number(tokenId)];
+      await user.forceWithdraw(diamondAcc, tokenAddr);
       numOfL1RequestToBeProcessed = 1;
       break;
     }

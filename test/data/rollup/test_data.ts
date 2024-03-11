@@ -1019,7 +1019,7 @@ export const rollupData = {
       },
       storedBlock: {
         blockNumber: 20,
-        l1RequestNum: 0,
+        l1RequestNum: 1,
         pendingRollupTxHash:
           "0xa28ec3e1fe1353e79f4208d593f9cdb95ed7666e1cdcb5a5ecefb8b482f6b827",
         commitment:

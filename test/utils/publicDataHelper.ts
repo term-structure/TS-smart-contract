@@ -31,6 +31,22 @@ export const resolveDepositPubData = (pubData: string) => {
   };
 };
 
+export const resolveForceWithdrawPubData = (pubData: string) => {
+  isValidPubDataLen(pubData);
+  const reqType = BigNumber.from("0x" + pubData.slice(2, 4));
+  if (reqType.toString() !== TsTxType.FORCE_WITHDRAW)
+    throw new Error("Invalid reqType");
+  const accountId = BigNumber.from("0x" + pubData.slice(4, 12));
+  const tokenId = BigNumber.from("0x" + pubData.slice(12, 16));
+  const amount = BigNumber.from("0x" + pubData.slice(16, 48));
+  return {
+    reqType,
+    accountId,
+    tokenId,
+    amount,
+  };
+};
+
 export const resolveCreateTsbTokenPubData = (pubData: string) => {
   isValidPubDataLen(pubData);
   const reqType = BigNumber.from("0x" + pubData.slice(2, 4));
