@@ -116,6 +116,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
     /**
      * @inheritdoc IAccountFacet
+     * @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
+     * @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to delegate the withdraw action)
      */
     function setDelegatee(address delegatee, uint256 delegatedActions) external {
         AccountStorage.Layout storage asl = AccountStorage.layout();
@@ -155,6 +157,8 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
     /**
      * @inheritdoc IAccountFacet
+     * @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
+     * @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to check if the withdraw action is delegated)
      */
     function getIsDelegated(address delegator, address delegatee, uint256 actionMask) external view returns (bool) {
         return AccountStorage.layout().getIsDelegated(delegator, delegatee, actionMask);

@@ -62,6 +62,8 @@ interface IAccountFacet {
     function forceWithdraw(IERC20 token) external;
 
     /// @notice Set the delegatee of the account
+    /// @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
+    /// @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to delegate the withdraw action)
     /// @param delegatee The address of the delegatee
     /// @param delegatedActions The delegated actions, each action has a unique bit in the delegatedActions
     function setDelegatee(address delegatee, uint256 delegatedActions) external;
@@ -87,6 +89,8 @@ interface IAccountFacet {
     function getPermitNonce(address accountAddr) external view returns (uint256);
 
     /// @notice Return the isDelegated status of the account
+    /// @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
+    /// @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to check if the withdraw action is delegated)
     /// @param delegator The address of the delegator
     /// @param delegatee The address of the delegatee
     /// @param actionMask The mask of the action to check
