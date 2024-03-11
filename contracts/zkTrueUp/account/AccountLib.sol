@@ -10,6 +10,7 @@ import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {Signature} from "../libraries/Signature.sol";
+import {Delegate} from "../libraries/Delegate.sol";
 
 /**
  * @title Term Structure Account Library
@@ -247,21 +248,43 @@ library AccountLib {
     /// @param s The account storage layout
     /// @param delegator The address of the delegator
     /// @param delegatee The address of the delegatee
+    /// @param actionMask The mask of the action to check
+    /// @return isDelegated The isDelegated status of the account
     function getIsDelegated(
         AccountStorage.Layout storage s,
         address delegator,
-        address delegatee
+        address delegatee,
+        uint256 actionMask
     ) internal view returns (bool) {
-        return s.isDelegated[delegator][delegatee];
+        return Delegate.isDelegated(s.delegatedActions[delegator][delegatee], actionMask);
+    }
+
+    /// @notice Internal function to get the delegated actions of the account
+    /// @param s The account storage layout
+    /// @param delegator The address of the delegator
+    /// @param delegatee The address of the delegatee
+    /// @return delegatedActions The delegated actions of the account
+    function getDelegatedActions(
+        AccountStorage.Layout storage s,
+        address delegator,
+        address delegatee
+    ) internal view returns (uint256) {
+        return s.delegatedActions[delegator][delegatee];
     }
 
     /// @notice Internal function to check if the caller is the account address the delegated caller
     /// @param s The account storage layout
     /// @param caller The caller to be checked
     /// @param accountAddr The account address
-    function requireValidCaller(AccountStorage.Layout storage s, address caller, address accountAddr) internal view {
+    /// @param actionMask The mask of the action to check
+    function requireValidCaller(
+        AccountStorage.Layout storage s,
+        address caller,
+        address accountAddr,
+        uint256 actionMask
+    ) internal view {
         if (caller == accountAddr) return;
-        if (s.getIsDelegated(accountAddr, caller)) return;
+        if (s.getIsDelegated(accountAddr, caller, actionMask)) return;
         revert InvalidCaller(caller, accountAddr);
     }
 }

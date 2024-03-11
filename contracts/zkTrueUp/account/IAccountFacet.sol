@@ -15,7 +15,8 @@ interface IAccountFacet {
     /// @notice Error for register account when the public key is invalid
     error InvalidTsPublicKey(uint256 tsPubKeyX, uint256 tsPubKeyY);
 
-    event SetDelegatee(address indexed delegator, address indexed delegatee, bool isDelegated);
+    /// @notice Emit when the delegatee is set
+    event SetDelegatee(address indexed delegator, address indexed delegatee, uint256 delegatedActions);
 
     /// @notice Register account by deposit Ether or ERC20 to ZkTrueUp
     /// @param tsPubKeyX The X coordinate of the public key of the L2 account
@@ -61,9 +62,11 @@ interface IAccountFacet {
     function forceWithdraw(IERC20 token) external;
 
     /// @notice Set the delegatee of the account
+    /// @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
+    /// @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to delegate the withdraw action)
     /// @param delegatee The address of the delegatee
-    /// @param isDelegatee The flag of the delegatee
-    function setDelegatee(address delegatee, bool isDelegatee) external;
+    /// @param delegatedActions The delegated actions, each action has a unique bit in the delegatedActions
+    function setDelegatee(address delegatee, uint256 delegatedActions) external;
 
     /// @notice Get the account L1 address by account L2 id
     /// @param accountId The account L2 id
@@ -86,7 +89,17 @@ interface IAccountFacet {
     function getPermitNonce(address accountAddr) external view returns (uint256);
 
     /// @notice Return the isDelegated status of the account
+    /// @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
+    /// @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to check if the withdraw action is delegated)
     /// @param delegator The address of the delegator
     /// @param delegatee The address of the delegatee
-    function getIsDelegated(address delegator, address delegatee) external view returns (bool);
+    /// @param actionMask The mask of the action to check
+    /// @return isDelegated The isDelegated status of the account
+    function getIsDelegated(address delegator, address delegatee, uint256 actionMask) external view returns (bool);
+
+    /// @notice Return the delegated actions of the account
+    /// @param delegator The address of the delegator
+    /// @param delegatee The address of the delegatee
+    /// @return delegatedActions The delegated actions of the account
+    function getDelegatedActions(address delegator, address delegatee) external view returns (uint256);
 }

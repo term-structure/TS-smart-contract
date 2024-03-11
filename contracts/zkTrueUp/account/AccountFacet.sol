@@ -17,7 +17,7 @@ import {EvacuationLib} from "../evacuation/EvacuationLib.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {BabyJubJub, Point} from "../libraries/BabyJubJub.sol";
-import {Signature} from "../libraries/Signature.sol";
+import {DELEGATE_WITHDRAW_MASK} from "../libraries/Delegate.sol";
 
 /**
  * @title Term Structure Account Facet Contract
@@ -71,7 +71,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
      */
     function withdraw(address accountAddr, IERC20 token, uint256 amount) external nonReentrant {
         AccountStorage.Layout storage asl = AccountStorage.layout();
-        asl.requireValidCaller(msg.sender, accountAddr);
+        asl.requireValidCaller(msg.sender, accountAddr, DELEGATE_WITHDRAW_MASK);
 
         uint32 accountId = asl.getValidAccount(accountAddr);
         _withdraw(msg.sender, accountAddr, accountId, token, amount);
@@ -116,11 +116,13 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
     /**
      * @inheritdoc IAccountFacet
+     * @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
+     * @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to delegate the withdraw action)
      */
-    function setDelegatee(address delegatee, bool isDelegatee) external {
+    function setDelegatee(address delegatee, uint256 delegatedActions) external {
         AccountStorage.Layout storage asl = AccountStorage.layout();
-        asl.isDelegated[msg.sender][delegatee] = isDelegatee;
-        emit SetDelegatee(msg.sender, delegatee, isDelegatee);
+        asl.delegatedActions[msg.sender][delegatee] = delegatedActions;
+        emit SetDelegatee(msg.sender, delegatee, delegatedActions);
     }
 
     /* ============ External View Functions ============ */
@@ -155,9 +157,18 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
     /**
      * @inheritdoc IAccountFacet
+     * @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
+     * @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to check if the withdraw action is delegated)
      */
-    function getIsDelegated(address delegator, address delegatee) external view returns (bool) {
-        return AccountStorage.layout().getIsDelegated(delegator, delegatee);
+    function getIsDelegated(address delegator, address delegatee, uint256 actionMask) external view returns (bool) {
+        return AccountStorage.layout().getIsDelegated(delegator, delegatee, actionMask);
+    }
+
+    /**
+     * @inheritdoc IAccountFacet
+     */
+    function getDelegatedActions(address delegator, address delegatee) external view returns (uint256) {
+        return AccountStorage.layout().getDelegatedActions(delegator, delegatee);
     }
 
     /* ============ Internal Functions ============ */
