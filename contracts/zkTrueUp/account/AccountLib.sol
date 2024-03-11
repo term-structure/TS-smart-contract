@@ -259,6 +259,19 @@ library AccountLib {
         return Delegate.isDelegated(s.delegatedActions[delegator][delegatee], actionMask);
     }
 
+    /// @notice Internal function to get the delegated actions of the account
+    /// @param s The account storage layout
+    /// @param delegator The address of the delegator
+    /// @param delegatee The address of the delegatee
+    /// @return delegatedActions The delegated actions of the account
+    function getDelegatedActions(
+        AccountStorage.Layout storage s,
+        address delegator,
+        address delegatee
+    ) internal view returns (uint256) {
+        return s.delegatedActions[delegator][delegatee];
+    }
+
     /// @notice Internal function to check if the caller is the account address the delegated caller
     /// @param s The account storage layout
     /// @param caller The caller to be checked

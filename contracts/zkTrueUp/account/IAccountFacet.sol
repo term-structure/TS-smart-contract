@@ -96,4 +96,10 @@ interface IAccountFacet {
     /// @param actionMask The mask of the action to check
     /// @return isDelegated The isDelegated status of the account
     function getIsDelegated(address delegator, address delegatee, uint256 actionMask) external view returns (bool);
+
+    /// @notice Return the delegated actions of the account
+    /// @param delegator The address of the delegator
+    /// @param delegatee The address of the delegatee
+    /// @return delegatedActions The delegated actions of the account
+    function getDelegatedActions(address delegator, address delegatee) external view returns (uint256);
 }

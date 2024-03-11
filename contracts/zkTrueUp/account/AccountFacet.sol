@@ -164,6 +164,13 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         return AccountStorage.layout().getIsDelegated(delegator, delegatee, actionMask);
     }
 
+    /**
+     * @inheritdoc IAccountFacet
+     */
+    function getDelegatedActions(address delegator, address delegatee) external view returns (uint256) {
+        return AccountStorage.layout().getDelegatedActions(delegator, delegatee);
+    }
+
     /* ============ Internal Functions ============ */
 
     /// @notice Internal register function
