@@ -187,7 +187,7 @@ describe("Delegate", () => {
       await delegateTx1.wait();
 
       // check is delegated
-      let isDelegated = await diamondAccMock.getIsDelegated(
+      const isDelegated = await diamondAccMock.getIsDelegated(
         user1Addr,
         user2Addr,
         DELEGATE_WITHDRAW_MASK
@@ -195,7 +195,7 @@ describe("Delegate", () => {
 
       expect(isDelegated).to.be.true;
 
-      let delegatedActions = await diamondAccMock.getDelegatedActions(
+      const delegatedActions = await diamondAccMock.getDelegatedActions(
         user1Addr,
         user2Addr
       );
@@ -209,26 +209,21 @@ describe("Delegate", () => {
       await delegateTx2.wait();
 
       // check is delegated
-      isDelegated = await diamondAccMock.getIsDelegated(
+      const isWithdrawDelegated = await diamondAccMock.getIsDelegated(
+        user1Addr,
+        user2Addr,
+        DELEGATE_WITHDRAW_MASK
+      );
+
+      expect(isWithdrawDelegated).to.be.true;
+
+      const isRedeemDelegated = await diamondAccMock.getIsDelegated(
         user1Addr,
         user2Addr,
         DELEGATE_REDEEM_MASK
       );
 
-      expect(isDelegated).to.be.true;
-
-      delegatedActions = await diamondAccMock.getDelegatedActions(
-        user1Addr,
-        user2Addr
-      );
-
-      // check delegated action including withdraw and redeem
-      expect(delegatedActions.and(DELEGATE_WITHDRAW_MASK)).to.be.equal(
-        DELEGATE_WITHDRAW_MASK
-      );
-      expect(delegatedActions.and(DELEGATE_REDEEM_MASK)).to.be.equal(
-        DELEGATE_REDEEM_MASK
-      );
+      expect(isRedeemDelegated).to.be.true;
     });
   });
 });
