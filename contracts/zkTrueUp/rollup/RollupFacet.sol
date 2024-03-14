@@ -778,14 +778,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         Utils.notZeroAddr(accountAddr);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        // // tsbToken config
-        // AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.tsbTokenId);
-        // address tokenAddr = address(assetConfig.token);
-        // Utils.notZeroAddr(tokenAddr);
-
-        // ITsbToken tsbToken = ITsbToken(tokenAddr);
-        // if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tokenAddr);
-
         (bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) = _getAuctionInfo(tsl, auctionEnd);
 
         // update loan
@@ -804,9 +796,6 @@ contract RollupFacet is IRollupFacet, AccessControlInternal {
         TokenStorage.Layout storage tsl,
         Operations.AuctionEnd memory auctionEnd
     ) internal view virtual returns (bytes12, uint128, uint128) {
-        // debt token config
-        // (IERC20 underlyingToken, uint32 maturityTime) = tsbToken.tokenInfo();
-        // (uint16 debtTokenId, AssetConfig memory underlyingAsset) = tsl.getAssetConfig(underlyingToken);
         bytes12 loanId = LoanLib.calcLoanId(
             auctionEnd.accountId,
             auctionEnd.maturityTime,

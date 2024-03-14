@@ -81,7 +81,6 @@ describe("Roll borrow", function () {
     rollupData.user_data.forEach((user) =>
       accounts.addUser(user.tsPubKeyX, user.tsPubKeyY)
     );
-
     zkTrueUp = res.zkTrueUp;
     admin = res.admin;
     operator = res.operator;
