@@ -69,6 +69,7 @@ export const FACET_NAMES_MOCK = [
   "RollupMock", // replace RollupFacet with RollupMock
   "TokenFacet",
   "TsbMock", // replace TsbFacet with TsbMock
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {
@@ -141,6 +142,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       collateralAmt: BigNumber.from(loanData.collateralAmt),
       debtAmt: BigNumber.from(loanData.debtAmt),
     };
+    let loanOwner: string;
     let loanId: string;
     let ethAnswer: BigNumber;
     let usdcAnswer: BigNumber;
@@ -173,6 +175,9 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
+
+      // get loan owner
+      loanOwner = await diamondAcc.getAccountAddr(loan.accountId);
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -330,6 +335,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           removedCollateralAmt,
@@ -487,6 +493,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           removedCollateralAmt,
@@ -639,6 +646,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           removedCollateralAmt,
@@ -790,6 +798,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           removedCollateralAmt,
@@ -929,6 +938,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           removedCollateralAmt,
@@ -994,6 +1004,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       collateralAmt: BigNumber.from(loanData.collateralAmt),
       debtAmt: BigNumber.from(loanData.debtAmt),
     };
+    let loanOwner: string;
     let loanId: string;
     let usdtAnswer: BigNumber;
     let daiAnswer: BigNumber;
@@ -1028,6 +1039,9 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
+
+      // get loan owner
+      loanOwner = await diamondAcc.getAccountAddr(loan.accountId);
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -1151,6 +1165,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           dai.address,
           removedCollateralAmt,
@@ -1293,6 +1308,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           dai.address,
           removedCollateralAmt,
@@ -1445,6 +1461,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           dai.address,
           removedCollateralAmt,
@@ -1574,6 +1591,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           dai.address,
           removedCollateralAmt,
@@ -1641,6 +1659,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       collateralAmt: BigNumber.from(loanData.collateralAmt),
       debtAmt: BigNumber.from(loanData.debtAmt),
     };
+    let loanOwner: string;
     let loanId: string;
     let ethAnswer: BigNumber;
     let usdcAnswer: BigNumber;
@@ -1674,6 +1693,9 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
+
+      // get loan owner
+      loanOwner = await diamondAcc.getAccountAddr(loan.accountId);
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -1801,6 +1823,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           removedCollateralAmt,
@@ -1953,6 +1976,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           DEFAULT_ETH_ADDRESS,
           usdc.address,
           removedCollateralAmt,
@@ -2024,6 +2048,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
       collateralAmt: BigNumber.from(loanData.collateralAmt),
       debtAmt: BigNumber.from(loanData.debtAmt),
     };
+    let loanOwner: string;
     let loanId: string;
     let usdtAnswer: BigNumber;
     let usdcAnswer: BigNumber;
@@ -2059,6 +2084,9 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
+
+      // get loan owner
+      loanOwner = await diamondAcc.getAccountAddr(loan.accountId);
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -2183,6 +2211,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           usdc.address,
           removedCollateralAmt,
@@ -2327,6 +2356,7 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           usdc.address,
           removedCollateralAmt,

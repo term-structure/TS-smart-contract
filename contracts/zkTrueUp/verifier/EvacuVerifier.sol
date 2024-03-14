@@ -74,6 +74,7 @@ contract EvacuVerifier {
             }
 
             // G1 function to multiply a G1 value(x,y) to value in an address
+            // and add it to the value in the address => pR = pR + {x, y} * s
             function g1_mulAccC(pR, x, y, s) {
                 let success
                 let mIn := mload(0x40)
@@ -103,16 +104,17 @@ contract EvacuVerifier {
                 let _pPairing := add(pMem, pPairing)
                 let _pVk := add(pMem, pVk)
 
+                // _pVk = {IC0x, IC0y}
                 mstore(_pVk, IC0x)
                 mstore(add(_pVk, 32), IC0y)
 
                 // Compute the linear combination vk_x
-
-                g1_mulAccC(_pVk, IC1x, IC1y, calldataload(add(pubSignals, 0)))
+                // _pVk += {IC1x, IC1y} * pubSignals[0]
+                g1_mulAccC(_pVk, IC1x, IC1y, calldataload(pubSignals))
 
                 // -A
                 mstore(_pPairing, calldataload(pA))
-                mstore(add(_pPairing, 32), mod(sub(q, calldataload(add(pA, 32))), q))
+                mstore(add(_pPairing, 32), mod(sub(q, mod(calldataload(add(pA, 32)), q)), q))
 
                 // B
                 mstore(add(_pPairing, 64), calldataload(pB))
@@ -159,10 +161,7 @@ contract EvacuVerifier {
             mstore(0x40, add(pMem, pLastMem))
 
             // Validate that all evaluations ∈ F
-
-            checkField(calldataload(add(_pubSignals, 0)))
-
-            checkField(calldataload(add(_pubSignals, 32)))
+            checkField(calldataload(_pubSignals))
 
             // Validate all evaluations
             let isValid := checkPairing(_pA, _pB, _pC, _pubSignals, pMem)

@@ -1,7 +1,13 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, Signer, utils } from "ethers";
+import {
+  BigNumber,
+  Signer,
+  TypedDataDomain,
+  TypedDataField,
+  utils,
+} from "ethers";
 import { BaseTokenAddresses } from "../../../utils/type";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
@@ -25,6 +31,9 @@ import {
   TS_DECIMALS,
   TsTokenId,
 } from "term-structure-sdk";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { signWithdrawPermit } from "../../utils/permitSignature";
+import { DELEGATE_WITHDRAW_MASK } from "../../utils/delegate";
 
 //! use AccountMock instead of AccountFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -36,6 +45,7 @@ export const FACET_NAMES_MOCK = [
   "RollupFacet",
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {
@@ -54,7 +64,7 @@ const fixture = async () => {
 };
 
 describe("Withdraw", () => {
-  let [user1, user2]: Signer[] = [];
+  let [user1, user2]: SignerWithAddress[] = [];
   let [user1Addr, user2Addr]: string[] = [];
   let operator: Signer;
   let weth: WETH9;
@@ -105,10 +115,9 @@ describe("Withdraw", () => {
 
       // withdraw tsb token
       const amount = utils.parseEther("1");
-      const user1Id = await diamondAccMock.getAccountId(user1Addr);
       const withdrawTx = await diamondAccMock
         .connect(user1)
-        .withdraw(DEFAULT_ETH_ADDRESS, amount, user1Id); //! ignore _withdraw in AccountMock
+        .withdraw(user1Addr, DEFAULT_ETH_ADDRESS, amount); //! ignore _withdraw in AccountMock
       const withdrawReceipt = await withdrawTx.wait();
 
       const withdrawGas = BigNumber.from(withdrawReceipt.gasUsed).mul(
@@ -125,6 +134,104 @@ describe("Withdraw", () => {
       );
       expect(beforeZkTrueUpWethBalance.sub(afterZkTrueUpWethBalance)).to.equal(
         amount
+      );
+    });
+    it("Success to delegate withdraw base token (ETH case)", async () => {
+      // register by ETH
+      const registerAmt = utils.parseUnits("10", TS_BASE_TOKEN.ETH.decimals);
+      await register(
+        user1,
+        Number(TS_BASE_TOKEN.ETH.tokenId),
+        registerAmt,
+        baseTokenAddresses,
+        diamondAccMock
+      );
+
+      // before balance
+      const beforeUser1EthBalance = await ethers.provider.getBalance(user1Addr);
+      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+
+      // user1 delegate to user2
+      const delegateTx = await diamondAccMock
+        .connect(user1)
+        .setDelegatee(user2Addr, DELEGATE_WITHDRAW_MASK);
+      const delegateReceipt = await delegateTx.wait();
+
+      // delegate gas
+      const delegateGas = BigNumber.from(delegateReceipt.gasUsed).mul(
+        delegateReceipt.effectiveGasPrice
+      );
+
+      // delegatee withdraw tsb token
+      const amount = utils.parseEther("1");
+      const withdrawTx = await diamondAccMock
+        .connect(user2)
+        .withdraw(user1Addr, DEFAULT_ETH_ADDRESS, amount); //! ignore _withdraw in AccountMock
+      await withdrawTx.wait();
+
+      // after balance
+      const afterUser1EthBalance = await ethers.provider.getBalance(user1Addr);
+      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+
+      // check balance
+      expect(beforeUser1EthBalance.add(amount).sub(delegateGas)).to.equal(
+        afterUser1EthBalance
+      );
+      expect(beforeZkTrueUpWethBalance.sub(afterZkTrueUpWethBalance)).to.equal(
+        amount
+      );
+    });
+    it("Success to permit withdraw base token (ETH case)", async () => {
+      // register by ETH
+      const registerAmt = utils.parseUnits("10", TS_BASE_TOKEN.ETH.decimals);
+      await register(
+        user1,
+        Number(TS_BASE_TOKEN.ETH.tokenId),
+        registerAmt,
+        baseTokenAddresses,
+        diamondAccMock
+      );
+
+      // before balance
+      const beforeUser1EthBalance = await ethers.provider.getBalance(user1Addr);
+      const beforeZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+
+      // user1 permit to withdraw
+      const withdrawAmt = utils.parseEther("1");
+      const deadline = BigNumber.from("4294967295");
+      const { v, r, s } = await signWithdrawPermit(
+        user1,
+        zkTrueUp.address,
+        DEFAULT_ETH_ADDRESS,
+        withdrawAmt,
+        await diamondAccMock.getPermitNonce(user1Addr),
+        deadline
+      );
+
+      // withdraw tsb token
+      const withdrawTx = await diamondAccMock
+        .connect(user2)
+        .withdrawWithPermit(
+          user1Addr,
+          DEFAULT_ETH_ADDRESS,
+          withdrawAmt,
+          deadline,
+          v,
+          r,
+          s
+        ); //! ignore _withdraw in AccountMock
+      await withdrawTx.wait();
+
+      // after balance
+      const afterUser1EthBalance = await ethers.provider.getBalance(user1Addr);
+      const afterZkTrueUpWethBalance = await weth.balanceOf(zkTrueUp.address);
+
+      // check balance
+      expect(beforeUser1EthBalance.add(withdrawAmt)).to.equal(
+        afterUser1EthBalance
+      );
+      expect(beforeZkTrueUpWethBalance.sub(afterZkTrueUpWethBalance)).to.equal(
+        withdrawAmt
       );
     });
     it("Success to withdraw base token (USDC case)", async () => {
@@ -151,7 +258,100 @@ describe("Withdraw", () => {
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       const withdrawTx = await diamondAccMock
         .connect(user1)
-        .withdraw(usdc.address, amount, user1Id); //! ignore _withdraw in AccountMock
+        .withdraw(user1Addr, usdc.address, amount); //! ignore _withdraw in AccountMock
+      await withdrawTx.wait();
+
+      // after balance
+      const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // check balance
+      expect(beforeUser1UsdcBalance.add(amount)).to.equal(
+        afterUser1UsdcBalance
+      );
+      expect(beforeZkTrueUpUsdcBalance.sub(afterZkTrueUpUsdcBalance)).to.equal(
+        amount
+      );
+    });
+    it("Success to delegate withdraw base token (USDC case)", async () => {
+      // register by USDC
+      const amount = utils.parseUnits("10000", TS_BASE_TOKEN.USDC.decimals);
+      await register(
+        user1,
+        Number(TS_BASE_TOKEN.USDC.tokenId),
+        amount,
+        baseTokenAddresses,
+        diamondAccMock
+      );
+
+      const usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDC]
+      )) as ERC20Mock;
+
+      // before balance
+      const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // user1 delegate to user2
+      const delegateTx = await diamondAccMock
+        .connect(user1)
+        .setDelegatee(user2Addr, DELEGATE_WITHDRAW_MASK);
+      await delegateTx.wait();
+
+      // delegatee withdraw tsb token
+      const withdrawTx = await diamondAccMock
+        .connect(user2)
+        .withdraw(user1Addr, usdc.address, amount); //! ignore _withdraw in AccountMock
+      await withdrawTx.wait();
+
+      // after balance
+      const afterUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const afterZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // check balance
+      expect(beforeUser1UsdcBalance.add(amount)).to.equal(
+        afterUser1UsdcBalance
+      );
+      expect(beforeZkTrueUpUsdcBalance.sub(afterZkTrueUpUsdcBalance)).to.equal(
+        amount
+      );
+    });
+    it("Success to permit withdraw base token (USDC case)", async () => {
+      // register by USDC
+      const amount = utils.parseUnits("10000", TS_BASE_TOKEN.USDC.decimals);
+      await register(
+        user1,
+        Number(TS_BASE_TOKEN.USDC.tokenId),
+        amount,
+        baseTokenAddresses,
+        diamondAccMock
+      );
+
+      const usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        baseTokenAddresses[TsTokenId.USDC]
+      )) as ERC20Mock;
+
+      // before balance
+      const beforeUser1UsdcBalance = await usdc.balanceOf(user1Addr);
+      const beforeZkTrueUpUsdcBalance = await usdc.balanceOf(zkTrueUp.address);
+
+      // user1 permit to withdraw
+      const deadline = BigNumber.from("4294967295");
+      const { v, r, s } = await signWithdrawPermit(
+        user1,
+        zkTrueUp.address,
+        usdc.address,
+        amount,
+        await diamondAccMock.getPermitNonce(user1Addr),
+        deadline
+      );
+
+      // permit withdraw tsb token
+      const withdrawTx = await diamondAccMock
+        .connect(user2)
+        .withdrawWithPermit(user1Addr, usdc.address, amount, deadline, v, r, s); //! ignore _withdraw in AccountMock
       await withdrawTx.wait();
 
       // after balance
@@ -187,19 +387,19 @@ describe("Withdraw", () => {
       await expect(
         diamondAccMock
           .connect(user1)
-          .withdraw(invalidTokenAddr, amount, user1Id)
+          .withdraw(user1Addr, invalidTokenAddr, amount)
       ).to.be.revertedWithCustomError(diamondToken, "TokenIsNotExist");
     });
 
-    it("Fail to withdraw base token, account address from input id is not msg.sender", async () => {
+    it("Fail to withdraw base token, not delegated caller", async () => {
       const tokenAddr = DEFAULT_ETH_ADDRESS;
       const amount = utils.parseEther("1");
 
       // withdraw tsb token with invalid address
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await expect(
-        diamondAccMock.connect(user2).withdraw(tokenAddr, amount, user1Id)
-      ).to.be.revertedWithCustomError(diamondAccMock, "AccountAddrIsNotSender");
+        diamondAccMock.connect(user2).withdraw(user1Addr, tokenAddr, amount)
+      ).to.be.revertedWithCustomError(diamondAccMock, "InvalidCaller");
     });
   });
 
@@ -261,7 +461,7 @@ describe("Withdraw", () => {
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       const withdrawTsbTokenTx = await diamondAccMock
         .connect(user1)
-        .withdraw(tsbTokenAddr, amount, user1Id); //! ignore _withdraw in AccountMock
+        .withdraw(user1Addr, tsbTokenAddr, amount); //! ignore updateWithdrawalRecord in AccountMock
       await withdrawTsbTokenTx.wait();
 
       // after balance
@@ -330,7 +530,7 @@ describe("Withdraw", () => {
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       const withdrawTsbTokenTx = await diamondAccMock
         .connect(user1)
-        .withdraw(tsbTokenAddr, amount, user1Id); //! ignore _withdraw in AccountMock
+        .withdraw(user1Addr, tsbTokenAddr, amount); //! ignore updateWithdrawalRecord in AccountMock
       await withdrawTsbTokenTx.wait();
 
       // after balance
@@ -347,8 +547,183 @@ describe("Withdraw", () => {
 
       // check event
       await expect(withdrawTsbTokenTx)
-        .to.emit(diamondAccMock, "Withdraw")
-        .withArgs(user1Addr, accId, tsbTokenAddr, tokenId, amount);
+        .to.emit(diamondAccMock, "Withdrawal")
+        .withArgs(user1Addr, user1Addr, accId, tsbTokenAddr, tokenId, amount);
+
+      await expect(withdrawTsbTokenTx)
+        .to.emit(diamondWithTsbLib, "TsbTokenMinted")
+        .withArgs(tsbTokenAddr, user1Addr, amount);
+
+      // check balance
+      expect(
+        afterUser1TsbTokenBalance.sub(beforeUser1TsbTokenBalance)
+      ).to.equal(amount);
+      expect(beforeZkTrueUpUnderlyingBalance).to.equal(
+        afterZkTrueUpUnderlyingBalance
+      );
+    });
+    it("Success to delegate withdraw tsb token (tsbUSDC case)", async () => {
+      // get params tsbUSDC
+      const underlyingTokenId = tsbTokensJSON[3].underlyingTokenId;
+      const maturity = BigNumber.from(tsbTokensJSON[3].maturity);
+
+      // register
+      const registerAmt = utils.parseUnits(
+        "10",
+        baseTokensJSON[underlyingTokenId].decimals
+      );
+      await register(
+        user1,
+        underlyingTokenId,
+        registerAmt,
+        baseTokenAddresses,
+        diamondAccMock
+      );
+
+      // transfer default amount to zkTrueUp
+      const amount = utils.parseUnits("100", TS_BASE_TOKEN.USDC.decimals);
+      const usdcAddr = baseTokenAddresses[underlyingTokenId];
+      const usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        usdcAddr
+      )) as ERC20Mock;
+      await (
+        await usdc.connect(operator).mint(zkTrueUp.address, amount)
+      ).wait();
+
+      // get tsb token address
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
+        underlyingTokenId,
+        maturity
+      );
+
+      // before balance
+      const beforeUser1TsbTokenBalance = await diamondTsb.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const beforeZkTrueUpUnderlyingBalance = await usdc.balanceOf(
+        zkTrueUp.address
+      );
+
+      // user1 delegate to user2
+      const delegateTx = await diamondAccMock
+        .connect(user1)
+        .setDelegatee(user2Addr, DELEGATE_WITHDRAW_MASK);
+      await delegateTx.wait();
+
+      // withdraw tsb token
+      const withdrawTsbTokenTx = await diamondAccMock
+        .connect(user2)
+        .withdraw(user1Addr, tsbTokenAddr, amount); //! ignore updateWithdrawalRecord in AccountMock
+      await withdrawTsbTokenTx.wait();
+
+      // after balance
+      const afterUser1TsbTokenBalance = await diamondTsb.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const afterZkTrueUpUnderlyingBalance = await usdc.balanceOf(
+        zkTrueUp.address
+      );
+
+      const accId = await diamondAccMock.getAccountId(user1Addr);
+      const tokenId = await diamondToken.getTokenId(tsbTokenAddr);
+
+      // check event
+      await expect(withdrawTsbTokenTx)
+        .to.emit(diamondAccMock, "Withdrawal")
+        .withArgs(user2Addr, user1Addr, accId, tsbTokenAddr, tokenId, amount);
+
+      await expect(withdrawTsbTokenTx)
+        .to.emit(diamondWithTsbLib, "TsbTokenMinted")
+        .withArgs(tsbTokenAddr, user1Addr, amount);
+
+      // check balance
+      expect(
+        afterUser1TsbTokenBalance.sub(beforeUser1TsbTokenBalance)
+      ).to.equal(amount);
+      expect(beforeZkTrueUpUnderlyingBalance).to.equal(
+        afterZkTrueUpUnderlyingBalance
+      );
+    });
+    it("Success to permit withdraw tsb token (tsbUSDC case)", async () => {
+      // get params tsbUSDC
+      const underlyingTokenId = tsbTokensJSON[3].underlyingTokenId;
+      const maturity = BigNumber.from(tsbTokensJSON[3].maturity);
+
+      // register
+      const registerAmt = utils.parseUnits(
+        "10",
+        baseTokensJSON[underlyingTokenId].decimals
+      );
+      await register(
+        user1,
+        underlyingTokenId,
+        registerAmt,
+        baseTokenAddresses,
+        diamondAccMock
+      );
+
+      // transfer default amount to zkTrueUp
+      const amount = utils.parseUnits("100", TS_BASE_TOKEN.USDC.decimals);
+      const usdcAddr = baseTokenAddresses[underlyingTokenId];
+      const usdc = (await ethers.getContractAt(
+        "ERC20Mock",
+        usdcAddr
+      )) as ERC20Mock;
+      await (
+        await usdc.connect(operator).mint(zkTrueUp.address, amount)
+      ).wait();
+
+      // get tsb token address
+      const tsbTokenAddr = await diamondTsb.getTsbToken(
+        underlyingTokenId,
+        maturity
+      );
+
+      // before balance
+      const beforeUser1TsbTokenBalance = await diamondTsb.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const beforeZkTrueUpUnderlyingBalance = await usdc.balanceOf(
+        zkTrueUp.address
+      );
+
+      // user1 permit to withdraw
+      const deadline = BigNumber.from("4294967295");
+      const { v, r, s } = await signWithdrawPermit(
+        user1,
+        zkTrueUp.address,
+        tsbTokenAddr,
+        amount,
+        await diamondAccMock.getPermitNonce(user1Addr),
+        deadline
+      );
+
+      // withdraw tsb token
+      const withdrawTsbTokenTx = await diamondAccMock
+        .connect(user2)
+        .withdrawWithPermit(user1Addr, tsbTokenAddr, amount, deadline, v, r, s); //! ignore updateWithdrawalRecord in AccountMock
+      await withdrawTsbTokenTx.wait();
+
+      // after balance
+      const afterUser1TsbTokenBalance = await diamondTsb.balanceOf(
+        user1Addr,
+        tsbTokenAddr
+      );
+      const afterZkTrueUpUnderlyingBalance = await usdc.balanceOf(
+        zkTrueUp.address
+      );
+
+      const accId = await diamondAccMock.getAccountId(user1Addr);
+      const tokenId = await diamondToken.getTokenId(tsbTokenAddr);
+
+      // check event
+      await expect(withdrawTsbTokenTx)
+        .to.emit(diamondAccMock, "Withdrawal")
+        .withArgs(user2Addr, user1Addr, accId, tsbTokenAddr, tokenId, amount);
 
       await expect(withdrawTsbTokenTx)
         .to.emit(diamondWithTsbLib, "TsbTokenMinted")
@@ -389,11 +764,11 @@ describe("Withdraw", () => {
       await expect(
         diamondAccMock
           .connect(user1)
-          .withdraw(invalidTsbTokenAddr, amount, user1Id)
+          .withdraw(user1Addr, invalidTsbTokenAddr, amount)
       ).to.be.revertedWithCustomError(diamondToken, "TokenIsNotExist");
     });
 
-    it("Fail to withdraw tsb token, account address from input id is not msg.sender", async () => {
+    it("Fail to withdraw tsb token, not delegated caller", async () => {
       // get params tsbUSDC
       const underlyingTokenId = tsbTokensJSON[3].underlyingTokenId;
       const maturity = BigNumber.from(tsbTokensJSON[3].maturity);
@@ -406,8 +781,8 @@ describe("Withdraw", () => {
       // withdraw tsb token with invalid address
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await expect(
-        diamondAccMock.connect(user2).withdraw(tsbTokenAddr, amount, user1Id)
-      ).to.be.revertedWithCustomError(diamondAccMock, "AccountAddrIsNotSender");
+        diamondAccMock.connect(user2).withdraw(user1Addr, tsbTokenAddr, amount)
+      ).to.be.revertedWithCustomError(diamondAccMock, "InvalidCaller");
     });
   });
 });

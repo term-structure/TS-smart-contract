@@ -58,8 +58,6 @@ library RollupStorage {
     bytes32 internal constant STORAGE_SLOT = bytes32(uint256(keccak256("zkTrueUp.contracts.storage.Rollup")) - 1);
 
     struct Layout {
-        /// @notice Mode of evacuation (true: evacuation mode, false: normal mode)
-        bool evacuMode;
         /// @notice Total number of committed blocks
         uint32 committedBlockNum;
         /// @notice Total number of verified blocks
@@ -78,8 +76,6 @@ library RollupStorage {
         mapping(bytes22 => uint256) pendingBalances;
         /// @notice Stored hashed StoredBlock for some block number
         mapping(uint32 => bytes32) storedBlockHashes;
-        /// @notice Mapping of L2 Account Id => L2 Token Id => isEvacuated
-        mapping(uint32 => mapping(uint16 => bool)) evacuated;
     }
 
     function layout() internal pure returns (Layout storage s) {

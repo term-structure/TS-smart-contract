@@ -33,12 +33,16 @@ export const main = async () => {
   const insuranceAddr = getString(process.env.GOERLI_INSURANCE_ADDRESS);
   const vaultAddr = getString(process.env.GOERLI_VAULT_ADDRESS);
   const faucetOwner = getString(process.env.GOERLI_FAUCET_OWNER_ADDRESS);
+  const oracleOwner = getString(process.env.GOERLI_ORACLE_OWNER_ADDRESS);
   const genesisStateRoot = getString(process.env.GOERLI_GENESIS_STATE_ROOT);
+  const exchangeAddr = getString(process.env.GOERLI_EXCHANGE_ADDRESS);
 
   console.log(
     "Deploying contracts with deployer:",
     await deployer.getAddress()
   );
+
+  console.log("Genesis state root: ", genesisStateRoot);
 
   // Deploy WETH
   console.log("Deploying WETH...");
@@ -80,14 +84,17 @@ export const main = async () => {
 
   // deploy diamond init contract
   console.log("Deploying ZkTrueUpInit...");
-  const ZkTrueUpInit = await ethers.getContractFactory("ZkTrueUpInit");
+  const ZkTrueUpInit = await ethers.getContractFactory("SepoliaZkTrueUpInit");
   const zkTrueUpInit = await ZkTrueUpInit.connect(deployer).deploy();
   await zkTrueUpInit.deployed();
 
   // Deploy faucet and base tokens for test
   console.log("Deploying TsFaucet and base tokens...");
   const TsFaucet = await ethers.getContractFactory("TsFaucet");
-  const tsFaucet = await TsFaucet.connect(deployer).deploy(zkTrueUp.address);
+  const tsFaucet = await TsFaucet.connect(deployer).deploy(
+    zkTrueUp.address,
+    exchangeAddr
+  );
   await tsFaucet.deployed();
   await tsFaucet.connect(deployer).transferOwnership(faucetOwner);
 
@@ -107,6 +114,7 @@ export const main = async () => {
   for (const tokenId of Object.keys(baseTokenAddresses)) {
     const oracleMock = await OracleMock.connect(deployer).deploy();
     await oracleMock.deployed();
+    await oracleMock.connect(deployer).transferOwnership(oracleOwner);
     priceFeeds[tokenId] = oracleMock.address;
   }
 

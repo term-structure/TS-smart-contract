@@ -30,6 +30,7 @@ export const FACET_NAMES_MOCK = [
   "RollupFacet",
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {
@@ -135,7 +136,7 @@ describe("Ts Bond", () => {
     it("Fail to create tsb token, invalid maturity", async () => {
       // get params
       const underlyingTokenId = tsbTokensJSON[0].underlyingTokenId;
-      const maturity = BigNumber.from("1672329600"); // 2022-12-30
+      const maturity = BigNumber.from("1659225600"); // 2022-07-31
       const name = tsbTokensJSON[0].name;
       const symbol = tsbTokensJSON[0].symbol;
 
@@ -235,8 +236,8 @@ describe("Ts Bond", () => {
       await (
         await diamondAccMock
           .connect(user1)
-          .withdraw(tsbTokenAddr, amount, user1Id)
-      ).wait(); //! ignore _updateWithdrawalRecord in AccountMock
+          .withdraw(user1Addr, tsbTokenAddr, amount)
+      ).wait(); //! ignore updateWithdrawalRecord in AccountMock
     });
     it("Success to get balanceOf", async () => {
       // get params

@@ -20,6 +20,7 @@ import {
 import {
   AccountFacet,
   ERC20Mock,
+  EvacuationFacet,
   RollupFacet,
   TokenFacet,
   TsbFacet,
@@ -86,6 +87,7 @@ describe("Consume L1 Request in EvacuMode", function () {
   let diamondRollup: RollupFacet;
   let diamondTsb: TsbFacet;
   let diamondToken: TokenFacet;
+  let diamondEvacuation: EvacuationFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   let usdc: ERC20Mock;
 
@@ -108,6 +110,10 @@ describe("Consume L1 Request in EvacuMode", function () {
     )) as RollupFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
+    diamondEvacuation = (await useFacet(
+      "EvacuationFacet",
+      zkTrueUpAddr
+    )) as EvacuationFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     const EXECUTE_BLOCK_NUMBER = 3;
 
@@ -196,7 +202,7 @@ describe("Consume L1 Request in EvacuMode", function () {
       });
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     // before consume l1 request
     const [
@@ -225,7 +231,7 @@ describe("Consume L1 Request in EvacuMode", function () {
     const depositPubDataBytes = utils.hexlify(depositPubData);
 
     // consume l1 request
-    await diamondRollup.consumeL1RequestInEvacuMode([depositPubDataBytes]);
+    await diamondEvacuation.consumeL1RequestInEvacuMode([depositPubDataBytes]);
 
     // after consume l1 request
     const [
@@ -310,7 +316,7 @@ describe("Consume L1 Request in EvacuMode", function () {
 
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     // before consume l1 request
     const [
@@ -386,11 +392,11 @@ describe("Consume L1 Request in EvacuMode", function () {
     const newUserDepositPubDataBytes = utils.hexlify(newUserDepositPubData);
 
     // consume all l1 requests in two batches
-    await diamondRollup.consumeL1RequestInEvacuMode([
+    await diamondEvacuation.consumeL1RequestInEvacuMode([
       user1DepositPubDataBytes,
       user1ForceWithdrawPubDataBytes,
     ]);
-    await diamondRollup.consumeL1RequestInEvacuMode([
+    await diamondEvacuation.consumeL1RequestInEvacuMode([
       newUserRegisterPubDataBytes,
       newUserDepositPubDataBytes,
     ]);
@@ -429,12 +435,16 @@ describe("Consume L1 Request in EvacuMode", function () {
     // check user1 successfully withdraw after consume l1 request
     await diamondAcc
       .connect(user1)
-      .withdraw(DEFAULT_ETH_ADDRESS, user1DepositAmt, user1AccountId);
+      .withdraw(user1Addr, DEFAULT_ETH_ADDRESS, user1DepositAmt);
 
-    // check new user successfully withdraw after consume l1 request
-    await diamondAcc
+    // check new user successfully refund after consume l1 request
+    await diamondEvacuation
       .connect(newUser)
-      .withdraw(usdc.address, newUserRegisterAmt, newUserAccountId);
+      .refundDeregisteredAddr(
+        usdc.address,
+        newUserRegisterAmt,
+        newUserAccountId
+      );
   });
 
   it("Fail to consume L1 request, not in evacuation mode", async function () {
@@ -465,8 +475,8 @@ describe("Consume L1 Request in EvacuMode", function () {
 
     // consume l1 request
     await expect(
-      diamondRollup.consumeL1RequestInEvacuMode([depositPubDataBytes])
-    ).to.be.revertedWithCustomError(diamondRollup, "NotEvacuMode");
+      diamondEvacuation.consumeL1RequestInEvacuMode([depositPubDataBytes])
+    ).to.be.revertedWithCustomError(diamondEvacuation, "NotEvacuMode");
   });
 
   it("Fail to consume L1 request, invalid public data length", async function () {
@@ -482,7 +492,7 @@ describe("Consume L1 Request in EvacuMode", function () {
       });
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     // collect deposit request public data
     const user1AccountId = await diamondAcc.getAccountId(user1Addr);
@@ -500,12 +510,12 @@ describe("Consume L1 Request in EvacuMode", function () {
 
     // consume l1 request, input length = 2, but only 1 request
     await expect(
-      diamondRollup.consumeL1RequestInEvacuMode([
+      diamondEvacuation.consumeL1RequestInEvacuMode([
         depositPubDataBytes,
         depositPubDataBytes,
       ])
     ).to.be.revertedWithCustomError(
-      diamondRollup,
+      diamondEvacuation,
       "ConsumedRequestNumExceedTotalNum"
     );
   });
@@ -523,7 +533,7 @@ describe("Consume L1 Request in EvacuMode", function () {
       });
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
-    await diamondRollup.activateEvacuation();
+    await diamondEvacuation.activateEvacuation();
 
     // collect deposit request public data
     const user1AccountId = await diamondAcc.getAccountId(user1Addr);
@@ -541,7 +551,12 @@ describe("Consume L1 Request in EvacuMode", function () {
 
     // consume l1 request
     await expect(
-      diamondRollup.consumeL1RequestInEvacuMode([invalidDepositPubDataBytes])
-    ).to.be.revertedWithCustomError(diamondRollup, "InvalidConsumedPubData");
+      diamondEvacuation.consumeL1RequestInEvacuMode([
+        invalidDepositPubDataBytes,
+      ])
+    ).to.be.revertedWithCustomError(
+      diamondEvacuation,
+      "InvalidConsumedPubData"
+    );
   });
 });

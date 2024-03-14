@@ -27,13 +27,15 @@ interface ITsbFacet {
     event TsbTokenCreated(ITsbToken indexed tsbToken, IERC20 underlyingAsset, uint32 maturity);
 
     /// @notice Emitted when the lender redeem the tsbToken
-    /// @param sender The address of the sender
+    /// @param caller The address of the `msg.sender`
+    /// @param accountAddr The address of the account
     /// @param tsbToken The tsbToken to redeem
     /// @param underlyingAsset The underlying asset of the tsbToken
     /// @param amount The amount of the underlying asset
     /// @param redeemAndDeposit Whether to deposit the underlying asset after redeem the tsbToken
     event Redemption(
-        address indexed sender,
+        address indexed caller,
+        address indexed accountAddr,
         ITsbToken indexed tsbToken,
         IERC20 underlyingAsset,
         uint256 amount,
@@ -54,10 +56,32 @@ interface ITsbFacet {
 
     /// @notice Redeem tsbToken
     /// @dev TSB token can be redeemed only after maturity
+    /// @param accountAddr The address of the account
     /// @param tsbToken The tsbToken to redeem
     /// @param amount The amount of the tsbToken
     /// @param redeemAndDeposit Whether to deposit the underlying asset after redeem the tsbToken
-    function redeem(ITsbToken tsbToken, uint128 amount, bool redeemAndDeposit) external;
+    function redeem(address accountAddr, ITsbToken tsbToken, uint128 amount, bool redeemAndDeposit) external;
+
+    /// @notice Redeem tsbToken with permit
+    /// @dev TSB token can be redeemed only after maturity
+    /// @param accountAddr The address of the account
+    /// @param tsbToken The tsbToken to redeem
+    /// @param amount The amount of the tsbToken
+    /// @param redeemAndDeposit Whether to deposit the underlying asset after redeem the tsbToken
+    /// @param deadline The deadline of the permit
+    /// @param v The recovery id of the signature
+    /// @param r The r of the permit signature
+    /// @param s The s of the permit signature
+    function redeemWithPermit(
+        address accountAddr,
+        ITsbToken tsbToken,
+        uint128 amount,
+        bool redeemAndDeposit,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 
     /// @notice Get the tsbToken
     /// @param underlyingTokenId The token id of the underlying asset

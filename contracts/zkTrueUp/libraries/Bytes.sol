@@ -13,6 +13,8 @@ import {Config} from "./Config.sol";
 library Bytes {
     /// @notice Error for invalid slice length
     error OverPublicDataLength(uint256 pubDataLength, uint256 start, uint256 expectedDataLength);
+    /// @notice Error for invalid bytes length
+    error InvalidBytesLength(uint256 bytesLen, uint256 offset);
 
     /// @notice slice public data to get the length of the one chunk (12 bytes)
     /// @param pubData The public data of the rollup
@@ -84,6 +86,25 @@ library Bytes {
         return data;
     }
 
+    /// @notice slice public data to get the length of the six chunks (72 bytes)
+    /// @param pubData The public data of the rollup
+    /// @param start The start index of the six chunks length
+    /// @return data The data of the six chunks length
+    function sliceSixChunksBytes(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
+        uint256 bytesLength = Config.BYTES_OF_SIX_CHUNKS; // 72 bytes
+        _validSliceLength(pubData.length, start, bytesLength);
+        bytes memory data = new bytes(bytesLength);
+        assembly {
+            let slice_curr := add(data, 0x20)
+            let array_curr := add(pubData, add(start, 0x20))
+            // mstore 3 times for 72 bytes
+            mstore(slice_curr, mload(array_curr))
+            mstore(add(slice_curr, 0x20), mload(add(array_curr, 0x20)))
+            mstore(add(slice_curr, 0x40), mload(add(array_curr, 0x40)))
+        }
+        return data;
+    }
+
     /// @notice Internal function to check the slice length
     /// @param pubDataLength The length of the public data
     /// @param start The start index of the slice
@@ -99,9 +120,22 @@ library Bytes {
 
     function bytesToUInt32(bytes memory _bytes, uint256 _start) internal pure returns (uint32 r) {
         uint256 offset = _start + 0x4;
-        require(_bytes.length >= offset, "V");
+        if (_bytes.length < offset) revert InvalidBytesLength(_bytes.length, offset);
         assembly {
             r := mload(add(_bytes, offset))
+        }
+    }
+
+    function readBytes12(bytes memory _data, uint256 _offset) internal pure returns (uint256 newOffset, bytes12 r) {
+        newOffset = _offset + 12;
+        r = bytesToBytes12(_data, _offset);
+    }
+
+    function bytesToBytes12(bytes memory self, uint256 _start) internal pure returns (bytes12 r) {
+        uint256 offset = _start + 12;
+        if (self.length < offset) revert InvalidBytesLength(self.length, offset);
+        assembly {
+            r := mload(add(add(self, 0x20), _start))
         }
     }
 
@@ -111,7 +145,8 @@ library Bytes {
     }
 
     function bytesToBytes20(bytes memory self, uint256 _start) internal pure returns (bytes20 r) {
-        require(self.length >= (_start + 20), "S");
+        uint256 offset = _start + 20;
+        if (self.length < offset) revert InvalidBytesLength(self.length, offset);
         assembly {
             r := mload(add(add(self, 0x20), _start))
         }
@@ -124,7 +159,7 @@ library Bytes {
 
     function bytesToUInt16(bytes memory _bytes, uint256 _start) internal pure returns (uint16 r) {
         uint256 offset = _start + 0x2;
-        require(_bytes.length >= offset, "T");
+        if (_bytes.length < offset) revert InvalidBytesLength(_bytes.length, offset);
         assembly {
             r := mload(add(_bytes, offset))
         }
@@ -132,7 +167,7 @@ library Bytes {
 
     function bytesToUInt128(bytes memory _bytes, uint256 _start) internal pure returns (uint128 r) {
         uint256 offset = _start + 0x10;
-        require(_bytes.length >= offset, "W");
+        if (_bytes.length < offset) revert InvalidBytesLength(_bytes.length, offset);
         assembly {
             r := mload(add(_bytes, offset))
         }

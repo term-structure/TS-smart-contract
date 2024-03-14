@@ -16,6 +16,8 @@ contract OracleMock is AggregatorV3Interface, Ownable {
 
     RoundData private _latestRoundData;
 
+    event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt);
+
     function decimals() external pure override returns (uint8) {
         return 8;
     }
@@ -29,7 +31,7 @@ contract OracleMock is AggregatorV3Interface, Ownable {
     }
 
     function getRoundData(
-        uint80 _roundId
+        uint80 /* _roundId */
     )
         external
         pure
@@ -56,5 +58,6 @@ contract OracleMock is AggregatorV3Interface, Ownable {
 
     function updateRoundData(RoundData memory roundData) external onlyOwner {
         _latestRoundData = roundData;
+        emit AnswerUpdated(roundData.answer, roundData.roundId, roundData.updatedAt);
     }
 }

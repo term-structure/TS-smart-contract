@@ -39,6 +39,10 @@ import {
   TS_BASE_TOKEN,
   TsTokenId,
 } from "term-structure-sdk";
+import {
+  LiquidationFactorStruct,
+  LiquidationFactorStructOutput,
+} from "../../../typechain-types/contracts/zkTrueUp/loan/LoanFacet";
 
 const enum Case {
   "case0" = 0,
@@ -68,6 +72,7 @@ export const FACET_NAMES_MOCK = [
   "RollupMock", // replace RollupFacet with RollupMock
   "TokenFacet",
   "TsbMock", // replace TsbFacet with TsbMock
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {
@@ -139,6 +144,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       collateralAmt: BigNumber.from(loanData.collateralAmt),
       debtAmt: BigNumber.from(loanData.debtAmt),
     };
+    let loanOwner: string;
     let loanId: string;
     let wbtcAnswer: BigNumber;
     let ethAnswer: BigNumber;
@@ -169,6 +175,9 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
+
+      // get loan owner
+      loanOwner = await diamondAcc.getAccountAddr(loan.accountId);
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -317,6 +326,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           wbtc.address,
           DEFAULT_ETH_ADDRESS,
           removedCollateralAmt,
@@ -435,6 +445,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           wbtc.address,
           DEFAULT_ETH_ADDRESS,
           removedCollateralAmt2,
@@ -583,6 +594,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           wbtc.address,
           DEFAULT_ETH_ADDRESS,
           removedCollateralAmt,
@@ -654,6 +666,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       collateralAmt: BigNumber.from(loanData.collateralAmt),
       debtAmt: BigNumber.from(loanData.debtAmt),
     };
+    let loanOwner: string;
     let loanId: string;
     let usdtAnswer: BigNumber;
     let daiAnswer: BigNumber;
@@ -688,6 +701,9 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .connect(operator)
         .updateLoanMock(loan);
       await updateLoanTx.wait();
+
+      // get loan owner
+      loanOwner = await diamondAcc.getAccountAddr(loan.accountId);
 
       // get loan id
       loanId = await diamondLoan.getLoanId(
@@ -812,6 +828,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           dai.address,
           removedCollateralAmt,
@@ -958,6 +975,7 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
         .withArgs(
           loanId,
           liquidatorAddr,
+          loanOwner,
           usdt.address,
           dai.address,
           removedCollateralAmt,
@@ -1039,8 +1057,9 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
   describe("Set & Get liquidation factor", () => {
     it("Success to set & get liquidation factor", async () => {
       // new liquidation factor
-      const newLiquidationFactor = {
-        ltvThreshold: 700,
+      const newLiquidationFactor: LiquidationFactorStruct = {
+        liquidationLtvThreshold: 700,
+        borrowOrderLtvThreshold: 650,
         liquidatorIncentive: 60,
         protocolPenalty: 40,
       };
@@ -1054,14 +1073,16 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check
       const liquidationFactor = await diamondLoan.getLiquidationFactor(false);
-      expect(liquidationFactor.ltvThreshold).to.be.equal(700);
+      expect(liquidationFactor.liquidationLtvThreshold).to.be.equal(700);
+      expect(liquidationFactor.borrowOrderLtvThreshold).to.be.equal(650);
       expect(liquidationFactor.liquidatorIncentive).to.be.equal(60);
       expect(liquidationFactor.protocolPenalty).to.be.equal(40);
     });
     it("Success to set & get stable coin pair liquidation factor", async () => {
       // new stable coin pair liquidation factor
-      const newStableCoinPairLiquidationFactor = {
-        ltvThreshold: 500,
+      const newStableCoinPairLiquidationFactor: LiquidationFactorStruct = {
+        liquidationLtvThreshold: 500,
+        borrowOrderLtvThreshold: 450,
         liquidatorIncentive: 60,
         protocolPenalty: 40,
       };
@@ -1077,14 +1098,16 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
 
       // check
       const liquidationFactor = await diamondLoan.getLiquidationFactor(true);
-      expect(liquidationFactor.ltvThreshold).to.be.equal(500);
+      expect(liquidationFactor.liquidationLtvThreshold).to.be.equal(500);
+      expect(liquidationFactor.borrowOrderLtvThreshold).to.be.equal(450);
       expect(liquidationFactor.liquidatorIncentive).to.be.equal(60);
       expect(liquidationFactor.protocolPenalty).to.be.equal(40);
     });
     it("Fail to set liquidation factor, sender is not admin", async () => {
       // new liquidation factor
-      const newLiquidationFactor = {
-        ltvThreshold: 700,
+      const newLiquidationFactor: LiquidationFactorStruct = {
+        liquidationLtvThreshold: 700,
+        borrowOrderLtvThreshold: 650,
         liquidatorIncentive: 60,
         protocolPenalty: 40,
       };
@@ -1098,11 +1121,29 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
       ).to.be.reverted;
     });
     it("Fail to set liquidation factor, invalid liquidation factor", async () => {
-      // new liquidation factor
-      const invalidLiquidationFactor = {
-        ltvThreshold: 950,
+      // invalid liquidation factor (liquidationLtvThreshold + liquidatorIncentive + protocolPenalty > 1000)
+      const invalidLiquidationFactor: LiquidationFactorStruct = {
+        liquidationLtvThreshold: 950,
+        borrowOrderLtvThreshold: 650,
         liquidatorIncentive: 60,
         protocolPenalty: 40,
+      };
+      const isStableCoinPair = false;
+
+      // set invalid liquidation factor
+      await expect(
+        diamondLoan
+          .connect(admin)
+          .setLiquidationFactor(invalidLiquidationFactor, isStableCoinPair)
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidLiquidationFactor");
+    });
+    it("Fail to set liquidation factor, invalid liquidation factor", async () => {
+      // invalid liquidation factor (borrowOrderLtvThreshold > liquidationLtvThreshold)
+      const invalidLiquidationFactor: LiquidationFactorStruct = {
+        liquidationLtvThreshold: 950,
+        borrowOrderLtvThreshold: 970,
+        liquidatorIncentive: 20,
+        protocolPenalty: 30,
       };
       const isStableCoinPair = false;
 

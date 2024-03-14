@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-// solhint-disable-next-line
 pragma solidity ^0.8.17;
 
 /**
@@ -64,6 +63,9 @@ library Config {
     /// @notice The bytes lengths of four chunks
     uint8 internal constant BYTES_OF_FOUR_CHUNKS = 4 * BYTES_OF_CHUNK;
 
+    /// @notice The bytes lengths of six chunks
+    uint8 internal constant BYTES_OF_SIX_CHUNKS = 6 * BYTES_OF_CHUNK;
+
     /// @notice The bits lengths of a chunk
     uint8 internal constant BITS_OF_CHUNK = BYTES_OF_CHUNK * BITS_OF_BYTE;
 
@@ -75,8 +77,8 @@ library Config {
     bytes internal constant EVACUATION_COMMITMENT_OFFSET = hex"80";
 
     /// @notice The max tolerance between the L2 block timestamp and the L1 block timestamp
-    ///         i.e. the block created on L2 must be commit to L1 within 1 day
-    uint256 internal constant COMMIT_BLOCK_TIMESTAMP_MAX_TOLERANCE = 1 days;
+    ///         i.e. the block created on L2 must be commit to L1 within 3 day
+    uint256 internal constant COMMIT_BLOCK_TIMESTAMP_MAX_TOLERANCE = 3 days;
 
     /// @notice The max deviation between the L2 block timestamp and the L1 block timestamp
     ///         i.e. the L2 block timestamp cannot greater than the L1 block timestamp + 15 minutes
@@ -88,6 +90,9 @@ library Config {
 
     /// @notice The decimals of L2 system
     uint8 internal constant SYSTEM_DECIMALS = 8;
+
+    /// @notice The base of L2 system unit
+    uint256 internal constant SYSTEM_UNIT_BASE = 10 ** SYSTEM_DECIMALS;
 
     /// @notice Role for admin
     bytes32 internal constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
@@ -112,4 +117,10 @@ library Config {
 
     /// @notice Aave V3 interest rate mode
     uint256 internal constant AAVE_V3_INTEREST_RATE_MODE = 2;
+
+    /// @notice The last roll borrow order time can place to maturity time
+    uint256 internal constant LAST_ROLL_ORDER_TIME_TO_MATURITY = 1 days;
+
+    /// @notice The seconds of one year
+    uint256 internal constant SECONDS_OF_ONE_YEAR = 365 days;
 }

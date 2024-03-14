@@ -32,7 +32,7 @@ describe("TsFaucet", () => {
   let diamondAcc: AccountFacet;
   let diamondToken: TokenFacet;
   let tsFaucet: TsFaucet;
-  let wethMock: ERC20Mock;
+  let tsethMock: ERC20Mock;
   let wbtcMock: ERC20Mock;
   let usdtMock: ERC20Mock;
   let usdcMock: ERC20Mock;
@@ -52,11 +52,17 @@ describe("TsFaucet", () => {
     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
 
     const TsFaucet = await ethers.getContractFactory("TsFaucet");
-    tsFaucet = await TsFaucet.connect(operator).deploy(zkTrueUpAddr);
+    tsFaucet = await TsFaucet.connect(operator).deploy(
+      zkTrueUpAddr,
+      zkTrueUpAddr
+    );
     (await tsFaucet.deployed()) as TsFaucet;
 
-    const wethMockAddr = await tsFaucet.tsERC20s(0);
-    wethMock = (await ethers.getContractAt("TsERC20", wethMockAddr)) as TsERC20;
+    const tsethMockAddr = await tsFaucet.tsERC20s(0);
+    tsethMock = (await ethers.getContractAt(
+      "TsERC20",
+      tsethMockAddr
+    )) as TsERC20;
     const wbtcMockAddr = await tsFaucet.tsERC20s(1);
     wbtcMock = (await ethers.getContractAt("TsERC20", wbtcMockAddr)) as TsERC20;
     const usdtMockAddr = await tsFaucet.tsERC20s(2);
@@ -73,9 +79,9 @@ describe("TsFaucet", () => {
       expect(await tsFaucet.zkTrueUp()).to.equal(zkTrueUp.address);
 
       // success to deploy TsERC20
-      expect(await wethMock.name()).to.equal("Wrapped Ether");
-      expect(await wethMock.symbol()).to.equal("WETH");
-      expect(await wethMock.decimals()).to.equal(18);
+      expect(await tsethMock.name()).to.equal("Term Structure Ether");
+      expect(await tsethMock.symbol()).to.equal("TSETH");
+      expect(await tsethMock.decimals()).to.equal(18);
 
       expect(await wbtcMock.name()).to.equal("Wrapped Bitcoin");
       expect(await wbtcMock.symbol()).to.equal("WBTC");
@@ -98,7 +104,7 @@ describe("TsFaucet", () => {
   describe("Mint TsERC20", () => {
     it("Success to mint", async () => {
       // before total supply
-      const beforeWethTotalSupply = await wethMock.totalSupply();
+      const beforeWethTotalSupply = await tsethMock.totalSupply();
       const beforeWbtcTotalSupply = await wbtcMock.totalSupply();
       const beforeUsdtTotalSupply = await usdtMock.totalSupply();
       const beforeUsdcTotalSupply = await usdcMock.totalSupply();
@@ -109,7 +115,7 @@ describe("TsFaucet", () => {
       await mintTx.wait();
 
       // after total supply
-      const afterWethTotalSupply = await wethMock.totalSupply();
+      const afterWethTotalSupply = await tsethMock.totalSupply();
       const afterWbtcTotalSupply = await wbtcMock.totalSupply();
       const afterUsdtTotalSupply = await usdtMock.totalSupply();
       const afterUsdcTotalSupply = await usdcMock.totalSupply();
@@ -122,37 +128,37 @@ describe("TsFaucet", () => {
       expect(await tsFaucet.isMinted(user1Addr)).to.equal(true);
 
       // check balance
-      expect(await wethMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+      expect(await tsethMock.balanceOf(user1Addr)).to.equal(
+        ethers.utils.parseUnits("10000", 18)
       );
       expect(await wbtcMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 8)
+        ethers.utils.parseUnits("10000", 8)
       );
       expect(await usdtMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 6)
+        ethers.utils.parseUnits("10000", 6)
       );
       expect(await usdcMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 6)
+        ethers.utils.parseUnits("10000", 6)
       );
       expect(await daiMock.balanceOf(user1Addr)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("10000", 18)
       );
 
       // check total supply
       expect(afterWethTotalSupply.sub(beforeWethTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("10000", 18)
       );
       expect(afterWbtcTotalSupply.sub(beforeWbtcTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 8)
+        ethers.utils.parseUnits("10000", 8)
       );
       expect(afterUsdtTotalSupply.sub(beforeUsdtTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 6)
+        ethers.utils.parseUnits("10000", 6)
       );
       expect(afterUsdcTotalSupply.sub(beforeUsdcTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 6)
+        ethers.utils.parseUnits("10000", 6)
       );
       expect(afterDaiTotalSupply.sub(beforeDaiTotalSupply)).to.equal(
-        ethers.utils.parseUnits("1000", 18)
+        ethers.utils.parseUnits("10000", 18)
       );
     });
 
@@ -180,13 +186,6 @@ describe("TsFaucet", () => {
       expect(await wbtcMock.allowance(user1Addr, zkTrueUp.address)).to.equal(
         amount
       );
-    });
-
-    it("Fail to approve, cannot approve to addresses other than ZkTrueUp", async () => {
-      const amount = ethers.constants.MaxUint256;
-      await expect(
-        wbtcMock.connect(user1).approve(user2Addr, amount)
-      ).to.be.revertedWith("Invalid spender");
     });
   });
 
@@ -244,16 +243,6 @@ describe("TsFaucet", () => {
       expect(afterZkTrueUpBalance.sub(beforeZkTrueUpBalance)).to.equal(
         ethers.utils.parseUnits("10", await usdtMock.decimals())
       );
-    });
-    it("Fail to transfer, cannot transfer to addresses other than ZkTrueUp and TsbFactory", async () => {
-      await expect(
-        usdtMock
-          .connect(user1)
-          .transfer(
-            user2Addr,
-            ethers.utils.parseUnits("10", await usdtMock.decimals())
-          )
-      ).to.be.revertedWith("Invalid recipient");
     });
   });
 });

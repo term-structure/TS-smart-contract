@@ -25,7 +25,7 @@ contract RollupMock is RollupFacet {
 
     function updateLoanMock(Operations.AuctionEnd memory auctionEnd) external {
         uint32 accountId = auctionEnd.accountId;
-        address accountAddr = AccountStorage.layout().getAccountAddr(accountId);
+        /* address accountAddr = */ AccountStorage.layout().getAccountAddr(accountId);
         // Utils.noneZeroAddr(accountAddr); //! ignore for test
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
@@ -36,37 +36,37 @@ contract RollupMock is RollupFacet {
         ITsbToken tsbToken = ITsbToken(tokenAddr);
         // if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(tokenAddr); //! ignore for test
 
-        (bytes12 loanId, Loan memory newLoan) = _getAuctionInfo(tsl, auctionEnd, tsbToken);
+        (bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) = _getAuctionInfo(tsl, auctionEnd, tsbToken);
 
         // update loan
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         Loan memory loan = lsl.getLoan(loanId);
-        loan = loan.updateLoan(newLoan.collateralAmt, newLoan.debtAmt);
+        loan.updateLoan(collateralAmt, debtAmt);
         lsl.loans[loanId] = loan;
 
-        emit UpdateLoan(loanId, accountId, newLoan.collateralAmt, newLoan.debtAmt);
+        emit UpdateLoan(loanId, collateralAmt, debtAmt);
     }
 
     function _getAuctionInfo(
         TokenStorage.Layout storage tsl,
         Operations.AuctionEnd memory auctionEnd,
         ITsbToken tsbToken
-    ) internal view override returns (bytes12, Loan memory) {
+    ) internal view override returns (bytes12, uint128, uint128) {
+        uint128 debtAmt;
+        bytes12 loanId;
+        {
+            // debt token config
+            (IERC20 underlyingToken, uint32 maturityTime) = tsbToken.tokenInfo();
+            (uint16 debtTokenId, AssetConfig memory underlyingAsset) = tsl.getAssetConfig(underlyingToken);
+            loanId = LoanLib.calcLoanId(auctionEnd.accountId, maturityTime, debtTokenId, auctionEnd.collateralTokenId);
+            debtAmt = SafeCast.toUint128(auctionEnd.debtAmt.toL1Amt(underlyingAsset.decimals));
+        }
+
         // collateral token config
-        uint16 collateralTokenId = auctionEnd.collateralTokenId;
-        AssetConfig memory assetConfig = tsl.getAssetConfig(collateralTokenId);
-        // Utils.noneZeroAddr(address(assetConfig.token)); //! ignore for test
-        Loan memory loan;
-        uint8 decimals = assetConfig.decimals;
-        loan.collateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(decimals));
+        AssetConfig memory assetConfig = tsl.getAssetConfig(auctionEnd.collateralTokenId);
+        // Utils.notZeroAddr(address(assetConfig.token)); //! ignore for test
+        uint128 collateralAmt = SafeCast.toUint128(auctionEnd.collateralAmt.toL1Amt(assetConfig.decimals));
 
-        // debt token config
-        (IERC20 underlyingAsset, uint32 maturityTime) = tsbToken.tokenInfo();
-        (uint16 debtTokenId, AssetConfig memory underlyingAssetConfig) = tsl.getAssetConfig(underlyingAsset);
-        decimals = underlyingAssetConfig.decimals;
-        loan.debtAmt = SafeCast.toUint128(auctionEnd.debtAmt.toL1Amt(decimals));
-        bytes12 loanId = LoanLib.calcLoanId(auctionEnd.accountId, maturityTime, debtTokenId, collateralTokenId);
-
-        return (loanId, loan);
+        return (loanId, collateralAmt, debtAmt);
     }
 }

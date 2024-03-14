@@ -38,6 +38,7 @@ export const FACET_NAMES_MOCK = [
   "RollupFacet",
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 const fixture = async () => {
@@ -380,8 +381,10 @@ describe("Deposit", function () {
       const tsbEth = await diamondTsb.getTsbToken(underlyingTokenId, maturity);
       const user1Id = await diamondAccMock.getAccountId(user1Addr);
       await (
-        await diamondAccMock.connect(user1).withdraw(tsbEth, tsbEthAmt, user1Id)
-      ).wait(); //! ignore _withdraw in AccountMock
+        await diamondAccMock
+          .connect(user1)
+          .withdraw(user1Addr, tsbEth, tsbEthAmt)
+      ).wait(); //! ignore updateWithdrawalRecord in AccountMock
 
       // withdraw tsbUSDT token
       const tsbUsdtAmt = utils.parseUnits("100", TS_DECIMALS.AMOUNT);
@@ -391,8 +394,8 @@ describe("Deposit", function () {
       await (
         await diamondAccMock
           .connect(user1)
-          .withdraw(tsbUsdt, tsbUsdtAmt, user1Id)
-      ).wait(); //! ignore _withdraw in AccountMock
+          .withdraw(user1Addr, tsbUsdt, tsbUsdtAmt)
+      ).wait(); //! ignore updateWithdrawalRecord in AccountMock
     });
 
     it("Success to deposit tsb token", async () => {

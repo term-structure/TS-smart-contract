@@ -11,12 +11,15 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import { resolve } from "path";
 import { getBoolean, getString } from "./utils/type";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, rmSync } from "fs";
+import "./tasks";
+
 task("storage-layout", "Prints the storage layout", async (_, hre) => {
   await hre.storageLayout.export();
 });
 
 if (!existsSync(resolve(__dirname, "./reports"))) {
+  rmSync(resolve(__dirname, "./reports"), { recursive: true, force: true });
   mkdirSync(resolve(__dirname, "./reports"));
 }
 
@@ -83,9 +86,19 @@ const config: HardhatUserConfig = {
         ? { url: getString(process.env.MAINNET_RPC_URL), blockNumber: 17426510 }
         : undefined,
     },
-    // goerli: {
-    //   url: getString(process.env.GOERLI_RPC_URL),
-    //   accounts: [getString(process.env.GOERLI_DEPLOYER_PRIVATE_KEY)],
+    // devnet: {
+    //   url: getString(process.env.DEVNET_RPC_URL) || "",
+    //   accounts: [getString(process.env.DEVNET_DEPLOYER_PRIVATE_KEY)],
+    // },
+    // sepolia: {
+    //   url: getString(process.env.STAGING_SEPOLIA_RPC_URL),
+    //   accounts: [
+    //     getString(process.env.STAGING_SEPOLIA_DEPLOYER_PRIVATE_KEY),
+    //     getString(process.env.STAGING_SEPOLIA_FAUCET_OPERATOR_PRIVATE_KEY),
+    //     getString(process.env.TESTNET_SEPOLIA_FAUCET_OPERATOR_PRIVATE_KEY),
+    //     getString(process.env.STAGING_SEPOLIA_ORACLE_OPERATOR_PRIVATE_KEY),
+    //     getString(process.env.TESTNET_SEPOLIA_ORACLE_OPERATOR_PRIVATE_KEY),
+    //   ],
     // },
   },
 };

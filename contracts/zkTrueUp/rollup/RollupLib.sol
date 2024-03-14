@@ -1,23 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {RollupStorage, Request, StoredBlock} from "./RollupStorage.sol";
+import {IVerifier} from "../interfaces/IVerifier.sol";
+import {AccountStorage} from "../account/AccountStorage.sol";
+import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
+import {RollupStorage, Request, StoredBlock, CommitBlock, Proof} from "./RollupStorage.sol";
+import {AccountLib} from "../account/AccountLib.sol";
+import {TokenLib} from "../token/TokenLib.sol";
 import {Config} from "../libraries/Config.sol";
 import {Operations} from "../libraries/Operations.sol";
+import {Utils} from "../libraries/Utils.sol";
 
 /**
  * @title Term Structure Rollup Library
  * @author Term Structure Labs
  */
 library RollupLib {
+    using TokenLib for TokenStorage.Layout;
+    using AccountLib for AccountStorage.Layout;
     using RollupLib for RollupStorage.Layout;
+    using Utils for *;
 
     /// @notice Error for withdraw amount exceed pending balance
     error InsufficientPendingBalances(uint256 pendingBalance, uint256 withdrawAmt);
-    /// @notice Error for trying to do transactions when evacuation mode is activated
-    error EvacuModeActivated();
-    /// @notice Error for the system is not in evacuation mode
-    error NotEvacuMode();
     /// @notice Error for operation type is not matched
     error OpTypeIsNotMatched(Operations.OpType requestOpType, Operations.OpType expectedOpType);
     /// @notice Error for block hash is not equal
@@ -30,6 +35,12 @@ library RollupLib {
     error InvalidBlockTimestamp(uint256 l2BlockTimestamp, uint256 l1BlockTimestamp);
     /// @notice Error for invalid invalid public data length
     error InvalidPubDataLength(uint256 pubDataLength);
+    /// @notice Error for evacuate but haven't consumed all L1 requests
+    error NotConsumedAllL1Requests(uint64 executedL1RequestNum, uint64 totalL1RequestNum);
+    /// @notice Error for inconsistent commitment
+    error CommitmentInconsistant(uint256 proofCommitment, uint256 committedBlockcommitment);
+    /// @notice Error for invalid proof
+    error InvalidProof(Proof proof);
 
     /// @notice Emit when there is a new priority request added
     /// @dev The L1 request needs to be executed before the expiration block or the system will enter the evacuation mode
@@ -46,15 +57,28 @@ library RollupLib {
         uint32 expirationTime
     );
 
+    /// @notice Internal function to verify one block
+    /// @param commitment The commitment of the block
+    /// @param proof The proof of the block
+    /// @param verifier The verifier contract
+    ///        if the block is normal block, use the AddressStorage.verifier (for normal circuit)
+    ///        if the block is evacuation block, use the AddressStorage.evacuVerifier (for evacuation circuit)
+    function verifyOneBlock(bytes32 commitment, Proof calldata proof, IVerifier verifier) internal view {
+        if (proof.commitment[0] != uint256(commitment) % Config.SCALAR_FIELD_SIZE)
+            revert CommitmentInconsistant(proof.commitment[0], uint256(commitment));
+
+        if (!verifier.verifyProof(proof.a, proof.b, proof.c, proof.commitment)) revert InvalidProof(proof);
+    }
+
     /// @notice Add the L1 request into L1 request queue
     /// @dev The pubData will be hashed with keccak256 and store in the priority queue with its expiration block and operation type
     /// @param s The rollup storage
-    /// @param sender The address of sender
+    /// @param accountAddr The L1 address
     /// @param opType The operation type of the priority request
     /// @param pubData The public data of the priority request
     function addL1Request(
         RollupStorage.Layout storage s,
-        address sender,
+        address accountAddr,
         Operations.OpType opType,
         bytes memory pubData
     ) internal {
@@ -68,7 +92,29 @@ library RollupLib {
             opType: opType
         });
         s.totalL1RequestNum++;
-        emit L1Request(sender, requestId, opType, pubData, expirationTime);
+        emit L1Request(accountAddr, requestId, opType, pubData, expirationTime);
+    }
+
+    /// @notice Add the pending balance of the specified account id and token id
+    /// @param s The rollup storage
+    /// @param accountId The id of the account
+    /// @param tokenId The id of the token
+    /// @param l2Amt The amount of the token in L2
+    function addPendingBalance(
+        RollupStorage.Layout storage s,
+        uint32 accountId,
+        uint16 tokenId,
+        uint128 l2Amt
+    ) internal {
+        address accountAddr = AccountStorage.layout().getAccountAddr(accountId);
+        Utils.notZeroAddr(accountAddr);
+
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        AssetConfig memory assetConfig = tsl.getAssetConfig(tokenId);
+        Utils.notZeroAddr(address(assetConfig.token));
+
+        uint256 l1Amt = l2Amt.toL1Amt(assetConfig.decimals);
+        s.addPendingBalance(accountAddr, tokenId, l1Amt);
     }
 
     /// @notice Add the pending balance of the specified address and token id
@@ -100,36 +146,18 @@ library RollupLib {
         }
     }
 
-    /// @notice Internal function to check if the contract is not in the evacuMode
+    /// @notice Internal function to check whether the all non-executed L1 requests are consumed
     /// @param s The rollup storage
-    function requireActive(RollupStorage.Layout storage s) internal view {
-        if (s.isEvacuMode()) revert EvacuModeActivated();
-    }
-
-    /// @notice Internal function to check if the contract is in the evacuMode
-    /// @param s The rollup storage
-    function requireEvacuMode(RollupStorage.Layout storage s) internal view {
-        if (!s.isEvacuMode()) revert NotEvacuMode();
-    }
-
-    /// @notice Internal function to get evacuation mode status
-    /// @param s The rollup storage
-    /// @return evacuMode The evacuation mode status
-    function isEvacuMode(RollupStorage.Layout storage s) internal view returns (bool) {
-        return s.evacuMode;
-    }
-
-    /// @notice Internal function to get whether the specified accountId and tokenId is evacuated
-    /// @param s The rollup storage
-    /// @param accountId The account id
-    /// @param tokenId The token id
-    /// @return isEvacuated Whether the specified accountId and tokenId is evacuated
-    function isEvacuated(
-        RollupStorage.Layout storage s,
-        uint32 accountId,
-        uint16 tokenId
-    ) internal view returns (bool) {
-        return s.evacuated[accountId][tokenId];
+    function requireConsumedAllNonExecutedReq(RollupStorage.Layout storage s) internal view {
+        uint64 executedL1RequestNum = s.getExecutedL1RequestNum();
+        uint64 totalL1RequestNum = s.getTotalL1RequestNum();
+        uint64 lastL1RequestId = totalL1RequestNum - 1;
+        // the last executed L1 req == the total L1 req (end of consume)
+        if (executedL1RequestNum != totalL1RequestNum) {
+            // the last L1 req is evacuation (end of consume and someone already evacuated)
+            bool isLastL1RequestEvacuation = s.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION;
+            if (!isLastL1RequestEvacuation) revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
+        }
     }
 
     /// @notice Internal function to get the L1 request of the specified id
@@ -290,6 +318,33 @@ library RollupLib {
         return false;
     }
 
+    /// @notice Internal function to check whether the roll borrow request is in the L1 request queue
+    /// @param request The L1 request
+    /// @param rollBorrow The roll borrow request
+    /// @return bool if the roll borrow request is in the L1 request queue
+    function isRollBorrowInL1RequestQueue(
+        Request memory request,
+        Operations.RollBorrow memory rollBorrow
+    ) internal pure returns (bool) {
+        requireMatchedOpType(request.opType, Operations.OpType.ROLL_BORROW_ORDER);
+        if (Operations.isRollBorrowHashedPubDataMatched(rollBorrow, request.hashedPubData)) return true;
+        return false;
+    }
+
+    /// @notice Internal function to check whether the force cancel roll borrow request is in the L1 request queue
+    /// @param request The L1 request
+    /// @param forceCancelRollBorrow The force cancel roll borrow request
+    /// @return bool if the force cancel roll borrow request is in the L1 request queue
+    function isForceCancelRollBorrowInL1RequestQueue(
+        Request memory request,
+        Operations.CancelRollBorrow memory forceCancelRollBorrow
+    ) internal pure returns (bool) {
+        requireMatchedOpType(request.opType, Operations.OpType.FORCE_CANCEL_ROLL_BORROW);
+        if (Operations.isForceCancelRollBorrowHashedPubDataMatched(forceCancelRollBorrow, request.hashedPubData))
+            return true;
+        return false;
+    }
+
     /// @notice Internal function check if the operation type is matched
     /// @param opType The operation type of the request
     /// @param expectedOpType The expected operation type
@@ -309,11 +364,11 @@ library RollupLib {
     /// @dev The numbers of chunk should be multiple of 8
     /// @param pubDataLength The public data length
     function requireValidPubDataLength(uint256 pubDataLength) internal pure {
-        /// Two assertions below are equivalent to:
-        /// 1. assert(publicDataLength % Config.BYTES_OF_CHUNK == 0)
-        /// 2. assert((publicDataLength / Config.BYTES_OF_CHUNK) % BITS_OF_BYTES == 0)
-        /// ==> assert(publicDataLength % (Config.BYTES_OF_CHUNK * BITS_OF_BYTES) == 0)
-        /// ==> assert(publicDataLength % Config.BITS_OF_CHUNK == 0)
+        // Two assertions below are equivalent to the assertion below
+        // assert(publicDataLength % Config.BYTES_OF_CHUNK == 0) &&
+        // assert((publicDataLength / Config.BYTES_OF_CHUNK) % BITS_OF_BYTES == 0)
+        // ==> assert(publicDataLength % (Config.BYTES_OF_CHUNK * BITS_OF_BYTES) == 0)
+        // ==> assert(publicDataLength % Config.BITS_OF_CHUNK == 0)
         if (pubDataLength % Config.BITS_OF_CHUNK != 0) revert InvalidPubDataLength(pubDataLength);
     }
 
@@ -323,5 +378,29 @@ library RollupLib {
     /// @return pendingBalanceKey The key of pending balance
     function calcPendingBalanceKey(address addr, uint16 tokenId) internal pure returns (bytes22) {
         return bytes22((uint176(uint160(addr)) | (uint176(tokenId) << 160)));
+    }
+
+    /// @notice Internal function calculate the commitment of the new block
+    /// @dev    newTsRoot is packed in commitment for data availablity and will be proved in the circuit
+    /// @param previousBlock The previous block
+    /// @param newBlock The new block to be committed
+    /// @param commitmentOffset The offset of the commitment
+    /// @return commitment The commitment of the new block
+    function calcBlockCommitment(
+        StoredBlock memory previousBlock,
+        CommitBlock calldata newBlock,
+        bytes memory commitmentOffset
+    ) internal pure returns (bytes32) {
+        return
+            sha256(
+                abi.encodePacked(
+                    previousBlock.stateRoot,
+                    newBlock.newStateRoot,
+                    newBlock.newTsRoot,
+                    newBlock.timestamp,
+                    commitmentOffset,
+                    newBlock.publicData
+                )
+            );
     }
 }

@@ -1,4 +1,4 @@
-import { utils } from "ethers";
+import { BigNumber, utils } from "ethers";
 import { DEFAULT_ETH_ADDRESS } from "term-structure-sdk";
 
 export const DIAMOND_CUT_ACTION = {
@@ -19,6 +19,14 @@ export const MAINNET_ADDRESS = {
   USDC_PRICE_FEED: "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6",
   DAI_PRICE_FEED: "0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9",
   AAVE_V3_POOL_DATA_PROVIDER: "0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3",
+  WSTETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+  STETH_PRICE_FEED: "0xcfe54b5cd566ab89272946f602d76ea879cab4a8",
+  MAKER_POT: "0x197E90f9FAD81970bA7976f33CbD77088E5D7cf7",
+};
+
+export const GOERLI_ADDRESS = {
+  MAKER_POT: "0x50672F0a14B40051B65958818a7AcA3D54Bd81Af",
+  WSTETH: "0x6320cD32aA674d2898A68ec82e869385Fc5f7E2f",
 };
 
 export const INIT_FUNCTION_NAME = "init";
@@ -32,6 +40,7 @@ export const LIBRARY_NAMES = [
   "RollupLib",
   "TokenLib",
   "TsbLib",
+  "EvacuationLib",
 ];
 
 export const FACET_NAMES = [
@@ -43,6 +52,7 @@ export const FACET_NAMES = [
   "RollupFacet",
   "TokenFacet",
   "TsbFacet",
+  "EvacuationFacet",
 ];
 
 export const DEFAULT_ZERO_ADDR = "0x0000000000000000000000000000000000000000";
@@ -126,3 +136,5 @@ export const AUCTION_END_BYTES = 4 * BYTES_OF_CHUNK;
 export const WITHDRAW_FEE_BYTES = 2 * BYTES_OF_CHUNK;
 
 export const EVACUATION_BYTES = 2 * BYTES_OF_CHUNK;
+
+export const SYSTEM_UNIT_BASE = BigNumber.from(10).pow(8);

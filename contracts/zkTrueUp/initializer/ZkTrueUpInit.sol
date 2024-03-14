@@ -64,6 +64,10 @@ contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
 
         // set roles
         _setRoleAdmin(Config.ADMIN_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.OPERATOR_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.COMMITTER_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.VERIFIER_ROLE, Config.ADMIN_ROLE);
+        _setRoleAdmin(Config.EXECUTER_ROLE, Config.ADMIN_ROLE);
         _grantRole(Config.ADMIN_ROLE, adminAddr);
         _grantRole(Config.OPERATOR_ROLE, operatorAddr);
         _grantRole(Config.COMMITTER_ROLE, operatorAddr);
@@ -104,16 +108,20 @@ contract ZkTrueUpInit is Ownable, Initializable, AccessControlInternal {
         // init loan facet
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         lsl.halfLiquidationThreshold = InitialConfig.INIT_HALF_LIQUIDATION_THRESHOLD;
+        lsl.borrowFeeRate = InitialConfig.INIT_BORROW_FEE_RATE;
+        lsl.rollOverFee = InitialConfig.INIT_ROLL_OVER_FEE;
 
         LiquidationFactor memory initLiquidationFactor = LiquidationFactor({
-            ltvThreshold: InitialConfig.INIT_LTV_THRESHOLD,
+            liquidationLtvThreshold: InitialConfig.INIT_LIQUIDATION_LTV_THRESHOLD,
+            borrowOrderLtvThreshold: InitialConfig.INIT_BORROW_ORDER_LTV_THRESHOLD,
             liquidatorIncentive: InitialConfig.INIT_LIQUIDATOR_INCENTIVE,
             protocolPenalty: InitialConfig.INIT_PROTOCOL_PENALTY
         });
         lsl.liquidationFactor = initLiquidationFactor;
 
         LiquidationFactor memory initStableCoinPairLiquidationFactor = LiquidationFactor({
-            ltvThreshold: InitialConfig.INIT_STABLECOIN_PAIR_LTV_THRESHOLD,
+            liquidationLtvThreshold: InitialConfig.INIT_STABLECOIN_PAIR_LIQUIDATION_LTV_THRESHOLD,
+            borrowOrderLtvThreshold: InitialConfig.INIT_STABLECOIN_PAIR_BORROW_ORDER_LTV_THRESHOLD,
             liquidatorIncentive: InitialConfig.INIT_STABLECOIN_PAIR_LIQUIDATOR_INCENTIVE,
             protocolPenalty: InitialConfig.INIT_STABLECOIN_PAIR_PROTOCOL_PENALTY
         });
