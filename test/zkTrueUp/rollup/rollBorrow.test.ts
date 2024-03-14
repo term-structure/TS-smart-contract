@@ -24,7 +24,7 @@ import {
   BlockData,
   Users,
   handler,
-  preprocessBlocks,
+  preprocessAndRollupBlocks,
   rollupOneBlock,
 } from "../../utils/rollBorrowRollupHelper";
 import { toL1Amt } from "../../utils/amountConvertor";
@@ -169,7 +169,7 @@ describe("Roll borrow", function () {
 
     // preprocess 4 blocks
     const NumOfPreProcessBlocks = 4;
-    let latestStoredBlock = await preprocessBlocks(
+    let latestStoredBlock = await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,
@@ -233,7 +233,7 @@ describe("Roll borrow", function () {
 
     // preprocess 5 blocks
     const NumOfPreProcessBlocks = 5;
-    let latestStoredBlock = await preprocessBlocks(
+    let latestStoredBlock = await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,
@@ -312,7 +312,7 @@ describe("Roll borrow", function () {
 
     // preprocess 7 blocks
     const NumOfPreProcessBlocks = 7;
-    let latestStoredBlock = await preprocessBlocks(
+    let latestStoredBlock = await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,
@@ -415,7 +415,7 @@ describe("Roll borrow", function () {
 
     // preprocess 7 blocks
     const NumOfPreProcessBlocks = 7;
-    let latestStoredBlock = await preprocessBlocks(
+    let latestStoredBlock = await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,
@@ -480,7 +480,7 @@ describe("Roll borrow", function () {
 
     // preprocess 7 blocks
     const NumOfPreProcessBlocks = 7;
-    await preprocessBlocks(
+    await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,

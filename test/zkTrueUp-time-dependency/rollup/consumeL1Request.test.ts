@@ -2,7 +2,6 @@ import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { BigNumber, utils, Signer, Wallet } from "ethers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { resolve } from "path";
 import { useFacet } from "../../../utils/useFacet";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { FACET_NAMES } from "../../../utils/config";
@@ -21,35 +20,29 @@ import {
   AccountFacet,
   ERC20Mock,
   EvacuationFacet,
+  LoanFacet,
   RollupFacet,
   TokenFacet,
   TsbFacet,
   WETH9,
   ZkTrueUp,
 } from "../../../typechain-types";
-import {
-  actionDispatcher,
-  getCommitBlock,
-  getExecuteBlock,
-  getPendingRollupTxPubData,
-  getStoredBlock,
-  initTestData,
-} from "../../utils/rollupHelper";
-import {
-  CommitBlockStruct,
-  ExecuteBlockStruct,
-  ProofStruct,
-  StoredBlockStruct,
-  VerifyBlockStruct,
-} from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
+import { StoredBlockStruct } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 import { toL2Amt } from "../../utils/amountConvertor";
 import { genTsAddr } from "../../utils/helper";
-import initStates from "../../data/rollupData/rollup/initStates.json";
-const testDataPath = resolve("./test/data/rollupData/rollup");
-const testData = initTestData(testDataPath);
+import { rollupData } from "../../data/rollup/test_data";
+import {
+  Users,
+  preprocessAndRollupBlocks,
+} from "../../utils/rollBorrowRollupHelper";
+
+const initStateRoot = utils.hexZeroPad(
+  utils.hexlify(BigInt(rollupData.initState.stateRoot)),
+  32
+);
 
 const fixture = async () => {
-  const res = await deployAndInit(FACET_NAMES);
+  const res = await deployAndInit(FACET_NAMES, false, undefined, initStateRoot);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp.address
@@ -67,7 +60,7 @@ describe("Consume L1 Request in EvacuMode", function () {
   let storedBlocks: StoredBlockStruct[] = [];
   const genesisBlock: StoredBlockStruct = {
     blockNumber: BigNumber.from("0"),
-    stateRoot: initStates.stateRoot,
+    stateRoot: initStateRoot,
     l1RequestNum: BigNumber.from("0"),
     pendingRollupTxHash: EMPTY_HASH,
     commitment: ethers.utils.defaultAbiCoder.encode(
@@ -76,10 +69,7 @@ describe("Consume L1 Request in EvacuMode", function () {
     ),
     timestamp: BigNumber.from("0"),
   };
-  let accounts: Signer[];
-  let committedBlockNum: number = 0;
-  let provedBlockNum: number = 0;
-  let executedBlockNum: number = 0;
+  let accounts: Users;
   let operator: Signer;
   let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
@@ -88,6 +78,7 @@ describe("Consume L1 Request in EvacuMode", function () {
   let diamondTsb: TsbFacet;
   let diamondToken: TokenFacet;
   let diamondEvacuation: EvacuationFacet;
+  let diamondLoan: LoanFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   let usdc: ERC20Mock;
 
@@ -95,12 +86,12 @@ describe("Consume L1 Request in EvacuMode", function () {
     const res = await loadFixture(fixture);
     storedBlocks = [];
     storedBlocks.push(genesisBlock);
-    committedBlockNum = 1;
-    provedBlockNum = 1;
-    executedBlockNum = 1;
     operator = res.operator;
     weth = res.weth;
-    accounts = await ethers.getSigners();
+    accounts = new Users(await ethers.getSigners());
+    rollupData.user_data.forEach((user) =>
+      accounts.addUser(user.tsPubKeyX, user.tsPubKeyY)
+    );
     zkTrueUp = res.zkTrueUp;
     const zkTrueUpAddr = zkTrueUp.address;
     diamondAcc = (await useFacet("AccountFacet", zkTrueUpAddr)) as AccountFacet;
@@ -115,88 +106,34 @@ describe("Consume L1 Request in EvacuMode", function () {
       zkTrueUpAddr
     )) as EvacuationFacet;
     baseTokenAddresses = res.baseTokenAddresses;
-    const EXECUTE_BLOCK_NUMBER = 3;
+    const EXECUTED_BLOCK_NUM = 3;
 
-    // commit, verify, execute 3 blocks for test
-    for (let k = 0; k < EXECUTE_BLOCK_NUMBER; k++) {
-      const testCase = testData[k];
-      // before rollup
-      for (let i = 0; i < testCase.reqDataList.length; i++) {
-        const reqType = testCase.reqDataList[i][0];
-        await actionDispatcher(
-          reqType,
-          operator,
-          accounts,
-          baseTokenAddresses,
-          testCase,
-          i,
-          diamondAcc,
-          diamondToken,
-          diamondTsb
-        );
-      }
-      // commit blocks
-      // get last committed block
-      const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
-      // generate new blocks
-      const newBlocks: CommitBlockStruct[] = [];
-      const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
-      newBlocks.push(commitBlock);
-
-      // mock timestamp to test case timestamp
-      await time.increaseTo(Number(commitBlock.timestamp));
-
-      // commit blocks
-      await diamondRollup
-        .connect(operator)
-        .commitBlocks(lastCommittedBlock, newBlocks);
-      const storedBlock = getStoredBlock(commitBlock, testCase);
-      storedBlocks.push(storedBlock);
-      // update state
-      committedBlockNum += newBlocks.length;
-
-      // verify blocks
-      const committedBlocks: StoredBlockStruct[] = [];
-      const committedBlock = storedBlocks[provedBlockNum];
-      committedBlocks.push(committedBlock);
-
-      const proofs: ProofStruct[] = [];
-      const proof: ProofStruct = testCase.callData;
-      proofs.push(proof);
-
-      const verifyingBlocks: VerifyBlockStruct[] = [];
-      verifyingBlocks.push({
-        storedBlock: committedBlock,
-        proof: proof,
-      });
-
-      await diamondRollup.connect(operator).verifyBlocks(verifyingBlocks);
-      provedBlockNum += committedBlocks.length;
-
-      // execute blocks
-      const pendingBlocks: ExecuteBlockStruct[] = [];
-      const pendingRollupTxPubData = getPendingRollupTxPubData(testCase);
-      const executeBlock = getExecuteBlock(
-        storedBlocks[executedBlockNum],
-        pendingRollupTxPubData
-      );
-      pendingBlocks.push(executeBlock);
-      await diamondRollup.connect(operator).executeBlocks(pendingBlocks);
-      // update state
-      executedBlockNum += pendingBlocks.length;
-    }
+    // preprocess tx and rollup the first 3 blocks
+    const latestStoredBlock = await preprocessAndRollupBlocks(
+      EXECUTED_BLOCK_NUM,
+      rollupData,
+      diamondAcc,
+      diamondRollup,
+      diamondTsb,
+      diamondToken,
+      diamondLoan,
+      operator,
+      accounts,
+      baseTokenAddresses,
+      genesisBlock
+    );
   });
 
   it("Success to consume L1 request", async function () {
-    const user1 = accounts[1];
-    const user1Addr = await user1.getAddress();
+    const user1 = accounts.getUser(1);
+    const user1Addr = await user1.getAddr();
     await weth
-      .connect(user1)
+      .connect(user1.signer)
       .approve(zkTrueUp.address, ethers.constants.MaxUint256);
     // register
     const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
     await diamondAcc
-      .connect(user1)
+      .connect(user1.signer)
       .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
         value: amount,
       });
@@ -257,13 +194,13 @@ describe("Consume L1 Request in EvacuMode", function () {
   });
 
   it("Success to consume all L1 requests in multiple batch", async function () {
-    const user1 = accounts[1];
-    const user1Addr = await user1.getAddress();
-    const newUser = accounts[3];
-    const newUserAddr = await newUser.getAddress();
+    const user1 = accounts.getUser(1);
+    const user1Addr = await user1.getAddr();
+    const newUser = accounts.getUser(3);
+    const newUserAddr = await newUser.getAddr();
 
     await weth
-      .connect(user1)
+      .connect(user1.signer)
       .approve(zkTrueUp.address, ethers.constants.MaxUint256);
 
     usdc = (await ethers.getContractAt(
@@ -271,7 +208,7 @@ describe("Consume L1 Request in EvacuMode", function () {
       baseTokenAddresses[TsTokenId.USDC]
     )) as ERC20Mock;
     await usdc
-      .connect(newUser)
+      .connect(newUser.signer)
       .mint(
         newUserAddr,
         utils.parseUnits("10000", TS_BASE_TOKEN.USDC.decimals)
@@ -279,28 +216,28 @@ describe("Consume L1 Request in EvacuMode", function () {
 
     // approve usdc to zkTrueUp
     await usdc
-      .connect(newUser)
+      .connect(newUser.signer)
       .approve(zkTrueUp.address, ethers.constants.MaxUint256);
 
     // Add 4 L1 requests after last committed request
     // 1. user1 deposit
     const user1DepositAmt = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
     await diamondAcc
-      .connect(user1)
+      .connect(user1.signer)
       .deposit(user1Addr, DEFAULT_ETH_ADDRESS, user1DepositAmt, {
         value: user1DepositAmt,
       });
 
     // 2. user1 force withdraw
-    await diamondAcc.connect(user1).forceWithdraw(DEFAULT_ETH_ADDRESS);
+    await diamondAcc.connect(user1.signer).forceWithdraw(DEFAULT_ETH_ADDRESS);
 
     // 3. new user register (register request + deposit request)
     // 4. new user deposit
-    const chainId = Number((await user1.getChainId()).toString());
+    const chainId = Number((await user1.signer.getChainId()).toString());
     const tsSigner = await getTsRollupSignerFromWallet(
       chainId,
       diamondAcc.address,
-      newUser as Wallet
+      newUser.signer as Wallet
     );
     const tsPubKey = {
       X: tsSigner.tsPubKey[0].toString(),
@@ -311,7 +248,7 @@ describe("Consume L1 Request in EvacuMode", function () {
       TS_BASE_TOKEN.USDC.decimals
     );
     await diamondAcc
-      .connect(newUser)
+      .connect(newUser.signer)
       .register(tsPubKey.X, tsPubKey.Y, usdc.address, newUserRegisterAmt);
 
     // expiration period = 14 days
@@ -434,12 +371,12 @@ describe("Consume L1 Request in EvacuMode", function () {
 
     // check user1 successfully withdraw after consume l1 request
     await diamondAcc
-      .connect(user1)
+      .connect(user1.signer)
       .withdraw(DEFAULT_ETH_ADDRESS, user1DepositAmt);
 
     // check new user successfully refund after consume l1 request
     await diamondEvacuation
-      .connect(newUser)
+      .connect(newUser.signer)
       .refundDeregisteredAddr(
         usdc.address,
         newUserRegisterAmt,
@@ -449,12 +386,12 @@ describe("Consume L1 Request in EvacuMode", function () {
 
   it("Fail to consume L1 request, not in evacuation mode", async function () {
     // register
-    const user1 = accounts[1];
-    const user1Addr = await user1.getAddress();
+    const user1 = accounts.getUser(1);
+    const user1Addr = await user1.getAddr();
     const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await weth.connect(user1).approve(zkTrueUp.address, amount);
+    await weth.connect(user1.signer).approve(zkTrueUp.address, amount);
     await diamondAcc
-      .connect(user1)
+      .connect(user1.signer)
       .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
         value: amount,
       });
@@ -481,12 +418,12 @@ describe("Consume L1 Request in EvacuMode", function () {
 
   it("Fail to consume L1 request, invalid public data length", async function () {
     // register
-    const user1 = accounts[1];
-    const user1Addr = await user1.getAddress();
+    const user1 = accounts.getUser(1);
+    const user1Addr = await user1.getAddr();
     const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await weth.connect(user1).approve(zkTrueUp.address, amount);
+    await weth.connect(user1.signer).approve(zkTrueUp.address, amount);
     await diamondAcc
-      .connect(user1)
+      .connect(user1.signer)
       .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
         value: amount,
       });
@@ -522,12 +459,12 @@ describe("Consume L1 Request in EvacuMode", function () {
 
   it("Fail to consume L1 request, invalid public data", async function () {
     // register
-    const user1 = accounts[1];
-    const user1Addr = await user1.getAddress();
+    const user1 = accounts.getUser(1);
+    const user1Addr = await user1.getAddr();
     const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await weth.connect(user1).approve(zkTrueUp.address, amount);
+    await weth.connect(user1.signer).approve(zkTrueUp.address, amount);
     await diamondAcc
-      .connect(user1)
+      .connect(user1.signer)
       .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
         value: amount,
       });

@@ -1,6 +1,7 @@
 import { BigNumber, Signer } from "ethers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
-import { ethers, network } from "hardhat";
+import { ethers } from "hardhat";
+import { expect } from "chai";
 import {
   DEFAULT_ETH_ADDRESS,
   TS_BASE_TOKEN,
@@ -56,6 +57,10 @@ export class User {
     public tsPubKeyX: string,
     public tsPubKeyY: string
   ) {}
+
+  async getAddr() {
+    return await this.signer.getAddress();
+  }
 
   async prepareToken(tokenId: number, tokenAddr: string, l2_amount: BigNumber) {
     const tokenDecimals = getDecimals(tokenId);
@@ -360,7 +365,7 @@ export const handler = async (
   return numOfL1RequestToBeProcessed;
 };
 
-export const preprocessBlocks = async (
+export const preprocessAndRollupBlocks = async (
   blockNumber: number,
   rollupData: any,
   diamondAcc: AccountFacet,
@@ -391,13 +396,13 @@ export const preprocessBlocks = async (
       i += numOfL1RequestToBeProcessed;
     }
 
-    const { newLatestStoredBlock } = await rollupOneBlock(
+    const { newStoredBlock } = await rollupOneBlock(
       diamondRollup,
       operator,
       block,
       latestStoredBlock
     );
-    latestStoredBlock = newLatestStoredBlock;
+    latestStoredBlock = newStoredBlock;
   }
   return latestStoredBlock;
 };
@@ -408,36 +413,104 @@ export const rollupOneBlock = async (
   block: BlockData,
   latestStoredBlock: StoredBlockStruct
 ) => {
+  const commitBlockTx = await commitOneBlock(
+    diamondRollup,
+    operator,
+    block,
+    latestStoredBlock
+  );
+  const verifyBlockTx = await verifyOneBlock(diamondRollup, operator, block);
+  const executeBlockTx = await executeOneBlock(diamondRollup, operator, block);
+
+  return {
+    commitBlockTx,
+    verifyBlockTx,
+    executeBlockTx,
+    newStoredBlock: block.storedBlock,
+  };
+};
+
+export const commitOneBlock = async (
+  diamondRollup: RollupFacet,
+  operator: Signer,
+  block: BlockData,
+  latestStoredBlock: StoredBlockStruct
+) => {
   // Mock timestamp to test case timestamp
   await time.increaseTo(Number(block.commitBlock.timestamp));
+
+  // get state before commit
+  const [oriCommittedBlockNum, ,] = await diamondRollup.getBlockNum();
+  const [oriCommittedL1RequestNum, ,] = await diamondRollup.getL1RequestNum();
 
   // Commit block
   const commitBlockTx = await diamondRollup
     .connect(operator)
     .commitBlocks(latestStoredBlock, [block.commitBlock]);
-  const newLatestStoredBlock = block.storedBlock;
 
   await commitBlockTx.wait();
+
+  // get state after commit
+  const [newCommittedBlockNum, ,] = await diamondRollup.getBlockNum();
+  const [newCommittedL1RequestNum, ,] = await diamondRollup.getL1RequestNum();
+
+  // verify state transition
+  expect(newCommittedBlockNum - oriCommittedBlockNum).to.be.eq(1);
+  expect(newCommittedL1RequestNum.sub(oriCommittedL1RequestNum)).to.be.eq(
+    block.storedBlock.l1RequestNum
+  );
+
+  return commitBlockTx;
+};
+
+export const verifyOneBlock = async (
+  diamondRollup: RollupFacet,
+  operator: Signer,
+  block: BlockData
+) => {
+  const [, oriProvedBlockNum] = await diamondRollup.getBlockNum();
 
   // Verify block
   const verifyBlockTx = await diamondRollup.connect(operator).verifyBlocks([
     {
-      storedBlock: newLatestStoredBlock,
+      storedBlock: block.storedBlock,
       proof: block.proof,
     },
   ]);
   await verifyBlockTx.wait();
 
+  const [, newProvedBlockNum] = await diamondRollup.getBlockNum();
+  expect(newProvedBlockNum - oriProvedBlockNum).to.be.eq(1);
+
+  return verifyBlockTx;
+};
+
+export const executeOneBlock = async (
+  diamondRollup: RollupFacet,
+  operator: Signer,
+  block: BlockData
+) => {
+  const [, , oriExecutedBlockNum] = await diamondRollup.getBlockNum();
+  const [, oriExecutedL1RequestId] = await diamondRollup.getL1RequestNum();
+
   // Execute block
   const executeBlockTx = await diamondRollup.connect(operator).executeBlocks([
     {
-      storedBlock: newLatestStoredBlock,
+      storedBlock: block.storedBlock,
       pendingRollupTxPubData: block.pendingRollupTxPubData,
     },
   ]);
   await executeBlockTx.wait();
 
-  return { commitBlockTx, verifyBlockTx, executeBlockTx, newLatestStoredBlock };
+  const [, , newExecutedBlockNum] = await diamondRollup.getBlockNum();
+  const [, newExecutedL1RequestId] = await diamondRollup.getL1RequestNum();
+
+  expect(newExecutedBlockNum - oriExecutedBlockNum).to.be.eq(1);
+  expect(newExecutedL1RequestId.sub(oriExecutedL1RequestId)).to.be.eq(
+    block.storedBlock.l1RequestNum
+  );
+
+  return executeBlockTx;
 };
 
 export type BlockData = {
