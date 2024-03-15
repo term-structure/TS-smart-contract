@@ -27,14 +27,11 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import {
-  actionDispatcher,
   getExecuteBlock,
   getPendingRollupTxPubData,
-  initTestData,
 } from "../../utils/rollupHelper";
 import {
   CommitBlockStruct,
-  ExecuteBlockStruct,
   ProofStruct,
   StoredBlockStruct,
   VerifyBlockStruct,
@@ -50,6 +47,7 @@ import {
   Users,
   preprocessAndRollupBlocks,
 } from "../../utils/rollBorrowRollupHelper";
+import { restoreData } from "../../data/rollup/restore_test_data";
 
 const initStateRoot = utils.hexZeroPad(
   utils.hexlify(BigInt(rollupData.initState.stateRoot)),
@@ -103,6 +101,7 @@ describe("Restore protocol", function () {
   let committedBlockNum = 0;
   let provedBlockNum = 0;
   let executedBlockNum = 0;
+  let latestStoredBlock: StoredBlockStruct;
 
   // simulate the situation before restore protocol
   // 1. over 14 days since the last block executed
@@ -141,7 +140,7 @@ describe("Restore protocol", function () {
     baseTokenAddresses = res.baseTokenAddresses;
     const EXECUTED_BLOCK_NUM = 21;
 
-    const latestStoredBlock = await preprocessAndRollupBlocks(
+    latestStoredBlock = await preprocessAndRollupBlocks(
       EXECUTED_BLOCK_NUM,
       rollupData,
       diamondAcc,
@@ -154,6 +153,9 @@ describe("Restore protocol", function () {
       baseTokenAddresses,
       genesisBlock
     );
+    committedBlockNum = EXECUTED_BLOCK_NUM;
+    provedBlockNum = EXECUTED_BLOCK_NUM;
+    executedBlockNum = EXECUTED_BLOCK_NUM;
 
     // add total request number for consume after evacuation activated
     const user1 = accounts.getUser(1);
@@ -222,14 +224,14 @@ describe("Restore protocol", function () {
     ] = await diamondRollup.getL1RequestNum();
 
     // generate new blocks
-    const restoreBlock1Data = restoreData[0];
+    const restoreBlock1Data = restoreData.blocks[0];
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
     const commitBlock: CommitBlockStruct = {
       blockNumber,
-      newStateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
-      newTsRoot: restoreBlock1Data.commitBlock.newFlowInfo.tsRoot,
-      publicData: restoreBlock1Data.commitBlock.o_chunk,
+      newStateRoot: restoreBlock1Data.commitBlock.newStateRoot,
+      newTsRoot: restoreBlock1Data.commitBlock.newTsRoot,
+      publicData: restoreBlock1Data.commitBlock.publicData,
       chunkIdDeltas: restoreBlock1Data.commitBlock.chunkIdDeltas,
       timestamp: restoreBlock1Data.commitBlock.timestamp,
     };
@@ -241,11 +243,11 @@ describe("Restore protocol", function () {
       .commitEvacuBlocks(lastCommittedBlock, [commitBlock]);
     const storedBlock = {
       blockNumber,
-      l1RequestNum: restoreBlock1Data.commitBlock.l1RequestNum,
-      pendingRollupTxHash: restoreBlock1Data.commitBlock.pendingRollupTxHash,
-      commitment: restoreBlock1Data.commitBlock.commitment,
-      stateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
-      timestamp: restoreBlock1Data.commitBlock.timestamp,
+      l1RequestNum: restoreBlock1Data.storedBlock.l1RequestNum,
+      pendingRollupTxHash: restoreBlock1Data.storedBlock.pendingRollupTxHash,
+      commitment: restoreBlock1Data.storedBlock.commitment,
+      stateRoot: restoreBlock1Data.storedBlock.stateRoot,
+      timestamp: restoreBlock1Data.storedBlock.timestamp,
     };
 
     storedBlocks.push(storedBlock);
@@ -256,20 +258,17 @@ describe("Restore protocol", function () {
     const committedBlock = storedBlocks[provedBlockNum];
     committedBlocks.push(committedBlock);
 
-    const proof: ProofStruct = restoreBlock1Data.callData;
-
     const verifyingBlock: VerifyBlockStruct = {
       storedBlock: committedBlock,
-      proof: proof,
+      proof: restoreBlock1Data.proof as ProofStruct,
     };
 
     await diamondRollup.connect(operator).verifyEvacuBlocks([verifyingBlock]);
     provedBlockNum += 1;
 
-    const pendingRollupTxPubData = getPendingRollupTxPubData(restoreBlock1Data);
     const executeBlock = getExecuteBlock(
       storedBlocks[executedBlockNum],
-      pendingRollupTxPubData
+      restoreBlock1Data.pendingRollupTxPubData
     );
 
     // execute evacu blocks
@@ -281,14 +280,14 @@ describe("Restore protocol", function () {
     expect(await diamondEvacuation.isEvacuMode()).to.be.true;
 
     // generate new blocks
-    const restoreBlock2Data = restoreData[1];
+    const restoreBlock2Data = restoreData.blocks[1];
     const lastCommittedBlock2 = storedBlocks[committedBlockNum - 1];
     const blockNumber2 = BigNumber.from(lastCommittedBlock2.blockNumber).add(1);
     const commitBlock2: CommitBlockStruct = {
       blockNumber: blockNumber2,
-      newStateRoot: restoreBlock2Data.commitBlock.newFlowInfo.stateRoot,
-      newTsRoot: restoreBlock2Data.commitBlock.newFlowInfo.tsRoot,
-      publicData: restoreBlock2Data.commitBlock.o_chunk,
+      newStateRoot: restoreBlock2Data.commitBlock.newStateRoot,
+      newTsRoot: restoreBlock2Data.commitBlock.newTsRoot,
+      publicData: restoreBlock2Data.commitBlock.publicData,
       chunkIdDeltas: restoreBlock2Data.commitBlock.chunkIdDeltas,
       timestamp: restoreBlock2Data.commitBlock.timestamp,
     };
@@ -300,11 +299,11 @@ describe("Restore protocol", function () {
       .commitEvacuBlocks(lastCommittedBlock2, [commitBlock2]);
     const storedBlock2 = {
       blockNumber: blockNumber2,
-      l1RequestNum: restoreBlock2Data.commitBlock.l1RequestNum,
-      pendingRollupTxHash: restoreBlock2Data.commitBlock.pendingRollupTxHash,
-      commitment: restoreBlock2Data.commitBlock.commitment,
-      stateRoot: restoreBlock2Data.commitBlock.newFlowInfo.stateRoot,
-      timestamp: restoreBlock2Data.commitBlock.timestamp,
+      l1RequestNum: restoreBlock2Data.storedBlock.l1RequestNum,
+      pendingRollupTxHash: restoreBlock2Data.storedBlock.pendingRollupTxHash,
+      commitment: restoreBlock2Data.storedBlock.commitment,
+      stateRoot: restoreBlock2Data.storedBlock.stateRoot,
+      timestamp: restoreBlock2Data.storedBlock.timestamp,
     };
 
     storedBlocks.push(storedBlock2);
@@ -312,20 +311,17 @@ describe("Restore protocol", function () {
 
     // verify evacu blocks
     const committedBlock2 = storedBlocks[provedBlockNum];
-    const proof2: ProofStruct = restoreBlock2Data.callData;
     const verifyingBlock2: VerifyBlockStruct = {
       storedBlock: committedBlock2,
-      proof: proof2,
+      proof: restoreBlock2Data.proof as ProofStruct,
     };
 
     await diamondRollup.connect(operator).verifyEvacuBlocks([verifyingBlock2]);
     provedBlockNum += 1;
 
-    const pendingRollupTxPubData2 =
-      getPendingRollupTxPubData(restoreBlock2Data);
     const executeBlock2 = getExecuteBlock(
       storedBlocks[executedBlockNum],
-      pendingRollupTxPubData2
+      restoreBlock2Data.pendingRollupTxPubData
     );
 
     // execute evacu blocks
@@ -368,16 +364,16 @@ describe("Restore protocol", function () {
 
   it("Fail to restore protocol, invalid chunk id delta (the first delta not zero)", async function () {
     // generate new blocks
-    const restoreBlock1Data = restoreData[0];
+    const restoreBlock1Data = restoreData.blocks[0];
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
     const invalidChunkIdDelta = restoreBlock1Data.commitBlock.chunkIdDeltas;
     invalidChunkIdDelta[0] = 2; // invalid chunk id delta (the first delta not zero)
     const commitBlock: CommitBlockStruct = {
       blockNumber,
-      newStateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
-      newTsRoot: restoreBlock1Data.commitBlock.newFlowInfo.tsRoot,
-      publicData: restoreBlock1Data.commitBlock.o_chunk,
+      newStateRoot: restoreBlock1Data.commitBlock.newStateRoot,
+      newTsRoot: restoreBlock1Data.commitBlock.newTsRoot,
+      publicData: restoreBlock1Data.commitBlock.publicData,
       chunkIdDeltas: invalidChunkIdDelta,
       timestamp: restoreBlock1Data.commitBlock.timestamp,
     };
@@ -393,16 +389,16 @@ describe("Restore protocol", function () {
 
   it("Fail to restore protocol, invalid chunk id delta (there are invalid deltas other than evacuation and noop)", async function () {
     // generate new blocks
-    const restoreBlock1Data = restoreData[0];
+    const restoreBlock1Data = restoreData.blocks[0];
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
     const invalidChunkIdDelta = restoreBlock1Data.commitBlock.chunkIdDeltas;
     invalidChunkIdDelta[1] = 3; // invalid chunk id delta (there are invalid deltas other than evacuation and noop)
     const commitBlock: CommitBlockStruct = {
       blockNumber,
-      newStateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
-      newTsRoot: restoreBlock1Data.commitBlock.newFlowInfo.tsRoot,
-      publicData: restoreBlock1Data.commitBlock.o_chunk,
+      newStateRoot: restoreBlock1Data.commitBlock.newStateRoot,
+      newTsRoot: restoreBlock1Data.commitBlock.newTsRoot,
+      publicData: restoreBlock1Data.commitBlock.publicData,
       chunkIdDeltas: invalidChunkIdDelta,
       timestamp: restoreBlock1Data.commitBlock.timestamp,
     };
@@ -418,15 +414,15 @@ describe("Restore protocol", function () {
 
   it("Fail to restore protocol, invalid public data", async function () {
     // generate new blocks
-    const restoreBlock1Data = restoreData[0];
+    const restoreBlock1Data = restoreData.blocks[0];
     const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
     const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
-    const invalidPublicData = restoreBlock1Data.commitBlock.o_chunk;
+    const invalidPublicData = restoreBlock1Data.commitBlock.publicData;
     const invalidPublicDataStr = invalidPublicData.slice(0, -2) + "01"; // replaced the last byte to non-zero
     const commitBlock: CommitBlockStruct = {
       blockNumber,
-      newStateRoot: restoreBlock1Data.commitBlock.newFlowInfo.stateRoot,
-      newTsRoot: restoreBlock1Data.commitBlock.newFlowInfo.tsRoot,
+      newStateRoot: restoreBlock1Data.commitBlock.newStateRoot,
+      newTsRoot: restoreBlock1Data.commitBlock.newTsRoot,
       publicData: invalidPublicDataStr,
       chunkIdDeltas: restoreBlock1Data.commitBlock.chunkIdDeltas,
       timestamp: restoreBlock1Data.commitBlock.timestamp,
