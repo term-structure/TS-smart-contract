@@ -189,7 +189,7 @@ describe("Restore protocol", function () {
     // consume l1 request
     await diamondEvacuation.consumeL1RequestInEvacuMode([depositPubDataBytes]);
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const lastExecutedBlock = latestStoredBlock;
     const evacuBlock1 = case01.newBlock;
     const evacuBlock2 = case02.newBlock;
     const evacuBlock3 = case03.newBlock;
@@ -225,7 +225,7 @@ describe("Restore protocol", function () {
 
     // generate new blocks
     const restoreBlock1Data = restoreData.blocks[0];
-    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
+    const lastCommittedBlock = latestStoredBlock;
     const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
     const commitBlock: CommitBlockStruct = {
       blockNumber,

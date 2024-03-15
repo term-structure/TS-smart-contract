@@ -2,7 +2,6 @@ import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { BigNumber, utils, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { resolve } from "path";
 import { useFacet } from "../../../utils/useFacet";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { FACET_NAMES } from "../../../utils/config";
@@ -27,21 +26,10 @@ import {
   WETH9,
   ZkTrueUp,
 } from "../../../typechain-types";
+import { readEvacuationPubData } from "../../utils/rollupHelper";
 import {
-  actionDispatcher,
-  getCommitBlock,
-  getExecuteBlock,
-  getPendingRollupTxPubData,
-  getStoredBlock,
-  initTestData,
-  readEvacuationPubData,
-} from "../../utils/rollupHelper";
-import {
-  CommitBlockStruct,
-  ExecuteBlockStruct,
   ProofStruct,
   StoredBlockStruct,
-  VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 import { toL1Amt, toL2Amt } from "../../utils/amountConvertor";
 import { rollupData } from "../../data/rollup/test_data";
@@ -100,7 +88,6 @@ describe("Evacuate", function () {
   let case01: typeof _case01;
   let case02: typeof _case02;
   let case05: typeof _case05;
-  let executedBlockNum = 0;
   let latestStoredBlock: StoredBlockStruct;
 
   beforeEach(async function () {
@@ -146,7 +133,6 @@ describe("Evacuate", function () {
       baseTokenAddresses,
       genesisBlock
     );
-    executedBlockNum = EXECUTED_BLOCK_NUM;
   });
 
   it("Success to evacuate", async function () {
