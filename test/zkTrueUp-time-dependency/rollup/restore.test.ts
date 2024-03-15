@@ -250,12 +250,11 @@ describe("Restore protocol", function () {
       timestamp: restoreBlock1Data.storedBlock.timestamp,
     };
 
-    storedBlocks.push(storedBlock);
     committedBlockNum += 1;
 
     // verify evacu blocks
     const committedBlocks: StoredBlockStruct[] = [];
-    const committedBlock = storedBlocks[provedBlockNum];
+    const committedBlock = storedBlock;
     committedBlocks.push(committedBlock);
 
     const verifyingBlock: VerifyBlockStruct = {
@@ -267,7 +266,7 @@ describe("Restore protocol", function () {
     provedBlockNum += 1;
 
     const executeBlock = getExecuteBlock(
-      storedBlocks[executedBlockNum],
+      storedBlock,
       restoreBlock1Data.pendingRollupTxPubData
     );
 
@@ -281,7 +280,7 @@ describe("Restore protocol", function () {
 
     // generate new blocks
     const restoreBlock2Data = restoreData.blocks[1];
-    const lastCommittedBlock2 = storedBlocks[committedBlockNum - 1];
+    const lastCommittedBlock2 = storedBlock;
     const blockNumber2 = BigNumber.from(lastCommittedBlock2.blockNumber).add(1);
     const commitBlock2: CommitBlockStruct = {
       blockNumber: blockNumber2,
@@ -306,11 +305,10 @@ describe("Restore protocol", function () {
       timestamp: restoreBlock2Data.storedBlock.timestamp,
     };
 
-    storedBlocks.push(storedBlock2);
     committedBlockNum += 1;
 
     // verify evacu blocks
-    const committedBlock2 = storedBlocks[provedBlockNum];
+    const committedBlock2 = storedBlock2;
     const verifyingBlock2: VerifyBlockStruct = {
       storedBlock: committedBlock2,
       proof: restoreBlock2Data.proof as ProofStruct,
@@ -320,7 +318,7 @@ describe("Restore protocol", function () {
     provedBlockNum += 1;
 
     const executeBlock2 = getExecuteBlock(
-      storedBlocks[executedBlockNum],
+      storedBlock2,
       restoreBlock2Data.pendingRollupTxPubData
     );
 
@@ -365,7 +363,7 @@ describe("Restore protocol", function () {
   it("Fail to restore protocol, invalid chunk id delta (the first delta not zero)", async function () {
     // generate new blocks
     const restoreBlock1Data = restoreData.blocks[0];
-    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
+    const lastCommittedBlock = latestStoredBlock;
     const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
     const invalidChunkIdDelta = restoreBlock1Data.commitBlock.chunkIdDeltas;
     invalidChunkIdDelta[0] = 2; // invalid chunk id delta (the first delta not zero)
@@ -390,7 +388,7 @@ describe("Restore protocol", function () {
   it("Fail to restore protocol, invalid chunk id delta (there are invalid deltas other than evacuation and noop)", async function () {
     // generate new blocks
     const restoreBlock1Data = restoreData.blocks[0];
-    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
+    const lastCommittedBlock = latestStoredBlock;
     const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
     const invalidChunkIdDelta = restoreBlock1Data.commitBlock.chunkIdDeltas;
     invalidChunkIdDelta[1] = 3; // invalid chunk id delta (there are invalid deltas other than evacuation and noop)
@@ -415,7 +413,7 @@ describe("Restore protocol", function () {
   it("Fail to restore protocol, invalid public data", async function () {
     // generate new blocks
     const restoreBlock1Data = restoreData.blocks[0];
-    const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
+    const lastCommittedBlock = latestStoredBlock;
     const blockNumber = BigNumber.from(lastCommittedBlock.blockNumber).add(1);
     const invalidPublicData = restoreBlock1Data.commitBlock.publicData;
     const invalidPublicDataStr = invalidPublicData.slice(0, -2) + "01"; // replaced the last byte to non-zero
