@@ -141,7 +141,6 @@ describe("Restore protocol", function () {
     baseTokenAddresses = res.baseTokenAddresses;
     const EXECUTED_BLOCK_NUM = 21;
 
-    // preprocess tx and rollup the first 3 blocks
     const latestStoredBlock = await preprocessAndRollupBlocks(
       EXECUTED_BLOCK_NUM,
       rollupData,

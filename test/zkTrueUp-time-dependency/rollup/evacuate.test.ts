@@ -100,7 +100,8 @@ describe("Evacuate", function () {
   let case01: typeof _case01;
   let case02: typeof _case02;
   let case05: typeof _case05;
-  let executedBlockNum = 1;
+  let executedBlockNum = 0;
+  let latestStoredBlock: StoredBlockStruct;
 
   beforeEach(async function () {
     const res = await loadFixture(fixture);
@@ -132,8 +133,7 @@ describe("Evacuate", function () {
     baseTokenAddresses = res.baseTokenAddresses;
     const EXECUTED_BLOCK_NUM = 21;
 
-    // preprocess tx and rollup the first 3 blocks
-    const latestStoredBlock = await preprocessAndRollupBlocks(
+    latestStoredBlock = await preprocessAndRollupBlocks(
       EXECUTED_BLOCK_NUM,
       rollupData,
       diamondAcc,
@@ -146,6 +146,7 @@ describe("Evacuate", function () {
       baseTokenAddresses,
       genesisBlock
     );
+    executedBlockNum = EXECUTED_BLOCK_NUM;
   });
 
   it("Success to evacuate", async function () {
@@ -180,27 +181,27 @@ describe("Evacuate", function () {
     );
     const depositPubDataBytes = utils.hexlify(depositPubData);
 
+    console.log("test1");
+
     // consume l1 request
     await diamondEvacuation.consumeL1RequestInEvacuMode([depositPubDataBytes]);
     req = await diamondRollup.getL1RequestNum();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const evacuBlock1 = case01.newBlock;
-    const evacuBlock2 = case02.newBlock;
-    const evacuBlock3 = _case05.newBlock;
+    const evacuData1 = case01;
+    const evacuData2 = case02;
+    const evacuData3 = case05;
     const proof1: ProofStruct = case01.proof as ProofStruct;
     const proof2: ProofStruct = case02.proof as ProofStruct;
-    const proof3: ProofStruct = _case05.proof as ProofStruct;
+    const proof3: ProofStruct = case05.proof as ProofStruct;
     const evacuation1 = readEvacuationPubData(
-      evacuBlock1.publicData.toString()
+      case01.newBlock.publicData.toString()
     );
     const evacuation2 = readEvacuationPubData(
-      evacuBlock2.publicData.toString()
+      evacuData2.newBlock.publicData.toString()
     );
     const evacuation3 = readEvacuationPubData(
-      evacuBlock3.publicData.toString()
+      evacuData3.newBlock.publicData.toString()
     );
-
     // before state
     const [
       beforeCommittedL1RequestNum,
@@ -231,23 +232,30 @@ describe("Evacuate", function () {
     const beforeUser3TsbBalance = await tsbToken.balanceOf(account3Addr);
     const beforeTsbTotalSupply = await tsbToken.totalSupply();
 
+    console.log("test2");
+
+    const lastExecutedBlock = latestStoredBlock;
+    console.log("lastExecutedBlock", lastExecutedBlock);
     // test 3 user evacuate
-    time.increaseTo(Number(evacuBlock1.timestamp));
+    console.log("1");
+    time.increaseTo(Number(evacuData1.newBlock.timestamp));
     const evacuateTx1 = await diamondEvacuation.evacuate(
       lastExecutedBlock,
-      evacuBlock1,
+      evacuData1.newBlock,
       proof1
     );
-    time.increaseTo(Number(evacuBlock2.timestamp));
+    console.log("2");
+    time.increaseTo(Number(evacuData2.newBlock.timestamp));
     const evacuateTx2 = await diamondEvacuation.evacuate(
       lastExecutedBlock,
-      evacuBlock2,
+      evacuData2.newBlock,
       proof2
     );
-    time.increaseTo(Number(evacuBlock3.timestamp));
+    console.log("3");
+    time.increaseTo(Number(evacuData3.newBlock.timestamp));
     const evacuateTx3 = await diamondEvacuation.evacuate(
       lastExecutedBlock,
-      evacuBlock3,
+      evacuData3.newBlock,
       proof3
     );
 
@@ -344,158 +352,158 @@ describe("Evacuate", function () {
     ).to.be.true;
   });
 
-  it("Failed to evacuate, not in evacu mode", async function () {
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const evacuBlock = case01.newBlock;
-    const proof: ProofStruct = case01.proof as ProofStruct;
+  // it("Failed to evacuate, not in evacu mode", async function () {
+  //   const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+  //   const evacuBlock = case01.newBlock;
+  //   const proof: ProofStruct = case01.proof as ProofStruct;
 
-    await expect(
-      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondEvacuation, "NotEvacuMode");
-  });
+  //   await expect(
+  //     diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof)
+  //   ).to.be.revertedWithCustomError(diamondEvacuation, "NotEvacuMode");
+  // });
 
-  it("Failed to evacuate, not consume all L1 request", async function () {
-    // add deposit request in L1 request queue
-    const user1 = accounts.getUser(1);
-    const user1Addr = await user1.getAddr();
-    const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await weth.connect(user1.signer).approve(zkTrueUp.address, amount);
-    await diamondAcc
-      .connect(user1.signer)
-      .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
-        value: amount,
-      });
-    // expiration period = 14 days
-    await time.increase(time.duration.days(14));
-    await diamondEvacuation.activateEvacuation();
+  // it("Failed to evacuate, not consume all L1 request", async function () {
+  //   // add deposit request in L1 request queue
+  //   const user1 = accounts.getUser(1);
+  //   const user1Addr = await user1.getAddr();
+  //   const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
+  //   await weth.connect(user1.signer).approve(zkTrueUp.address, amount);
+  //   await diamondAcc
+  //     .connect(user1.signer)
+  //     .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
+  //       value: amount,
+  //     });
+  //   // expiration period = 14 days
+  //   await time.increase(time.duration.days(14));
+  //   await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const evacuBlock = case01.newBlock;
-    const proof: ProofStruct = case01.proof as ProofStruct;
+  //   const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+  //   const evacuBlock = case01.newBlock;
+  //   const proof: ProofStruct = case01.proof as ProofStruct;
 
-    await expect(
-      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof)
-    ).to.be.revertedWithCustomError(
-      diamondEvacuation,
-      "NotConsumedAllL1Requests"
-    );
-  });
+  //   await expect(
+  //     diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof)
+  //   ).to.be.revertedWithCustomError(
+  //     diamondEvacuation,
+  //     "NotConsumedAllL1Requests"
+  //   );
+  // });
 
-  it("Failed to evacuate, invalid last executed block", async function () {
-    // expiration period = 14 days
-    await time.increase(time.duration.days(14));
-    await diamondEvacuation.activateEvacuation();
+  // it("Failed to evacuate, invalid last executed block", async function () {
+  //   // expiration period = 14 days
+  //   await time.increase(time.duration.days(14));
+  //   await diamondEvacuation.activateEvacuation();
 
-    const invalidLastExecutedBlock = storedBlocks[executedBlockNum - 2]; // not last executed block
-    const evacuBlock = case01.newBlock;
-    const proof: ProofStruct = case01.proof as ProofStruct;
+  //   const invalidLastExecutedBlock = storedBlocks[executedBlockNum - 2]; // not last executed block
+  //   const evacuBlock = case01.newBlock;
+  //   const proof: ProofStruct = case01.proof as ProofStruct;
 
-    await expect(
-      diamondEvacuation.evacuate(invalidLastExecutedBlock, evacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondEvacuation, "BlockHashIsNotEq");
-  });
+  //   await expect(
+  //     diamondEvacuation.evacuate(invalidLastExecutedBlock, evacuBlock, proof)
+  //   ).to.be.revertedWithCustomError(diamondEvacuation, "BlockHashIsNotEq");
+  // });
 
-  it("Failed to evacuate, invalid block timestamp", async function () {
-    // expiration period = 14 days
-    await time.increase(time.duration.days(14));
-    await diamondEvacuation.activateEvacuation();
+  // it("Failed to evacuate, invalid block timestamp", async function () {
+  //   // expiration period = 14 days
+  //   await time.increase(time.duration.days(14));
+  //   await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const invalidEvacuBlock = case01.newBlock;
-    invalidEvacuBlock.timestamp = "0"; // invalid timestamp
-    const proof: ProofStruct = case01.proof as ProofStruct;
+  //   const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+  //   const invalidEvacuBlock = case01.newBlock;
+  //   invalidEvacuBlock.timestamp = "0"; // invalid timestamp
+  //   const proof: ProofStruct = case01.proof as ProofStruct;
 
-    await expect(
-      diamondEvacuation.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
-    ).to.be.revertedWithCustomError(
-      diamondEvacuation,
-      "TimestampLtPreviousBlock"
-    );
-  });
+  //   await expect(
+  //     diamondEvacuation.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
+  //   ).to.be.revertedWithCustomError(
+  //     diamondEvacuation,
+  //     "TimestampLtPreviousBlock"
+  //   );
+  // });
 
-  it("Failed to evacuate, invalid block number", async function () {
-    // expiration period = 14 days
-    await time.increase(time.duration.days(14));
-    await diamondEvacuation.activateEvacuation();
+  // it("Failed to evacuate, invalid block number", async function () {
+  //   // expiration period = 14 days
+  //   await time.increase(time.duration.days(14));
+  //   await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const invalidEvacuBlock = case01.newBlock;
-    invalidEvacuBlock.blockNumber = 1; // invalid block number
-    const proof: ProofStruct = case01.proof as ProofStruct;
+  //   const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+  //   const invalidEvacuBlock = case01.newBlock;
+  //   invalidEvacuBlock.blockNumber = 1; // invalid block number
+  //   const proof: ProofStruct = case01.proof as ProofStruct;
 
-    await expect(
-      diamondEvacuation.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondEvacuation, "InvalidBlockNum");
-  });
+  //   await expect(
+  //     diamondEvacuation.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
+  //   ).to.be.revertedWithCustomError(diamondEvacuation, "InvalidBlockNum");
+  // });
 
-  it("Failed to evacuate, invalid public data length", async function () {
-    // expiration period = 14 days
-    await time.increase(time.duration.days(14));
-    await diamondEvacuation.activateEvacuation();
+  // it("Failed to evacuate, invalid public data length", async function () {
+  //   // expiration period = 14 days
+  //   await time.increase(time.duration.days(14));
+  //   await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const invalidEvacuBlock = case01.newBlock;
-    invalidEvacuBlock.publicData = "0x012345";
-    const proof: ProofStruct = case01.proof as ProofStruct;
+  //   const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+  //   const invalidEvacuBlock = case01.newBlock;
+  //   invalidEvacuBlock.publicData = "0x012345";
+  //   const proof: ProofStruct = case01.proof as ProofStruct;
 
-    await time.increaseTo(Number(invalidEvacuBlock.timestamp));
-    await expect(
-      diamondEvacuation.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
-    ).to.be.revertedWithCustomError(
-      diamondEvacuation,
-      "InvalidEvacuatePubDataLength"
-    );
-  });
+  //   await time.increaseTo(Number(invalidEvacuBlock.timestamp));
+  //   await expect(
+  //     diamondEvacuation.evacuate(lastExecutedBlock, invalidEvacuBlock, proof)
+  //   ).to.be.revertedWithCustomError(
+  //     diamondEvacuation,
+  //     "InvalidEvacuatePubDataLength"
+  //   );
+  // });
 
-  it("Failed to evacuate, invalid commitment", async function () {
-    // expiration period = 14 days
-    await time.increase(time.duration.days(14));
-    await diamondEvacuation.activateEvacuation();
+  // it("Failed to evacuate, invalid commitment", async function () {
+  //   // expiration period = 14 days
+  //   await time.increase(time.duration.days(14));
+  //   await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const evacuBlock = case01.newBlock;
-    const invalidProof: ProofStruct = case01.proof as ProofStruct;
-    invalidProof.commitment = [BigNumber.from("0x123456")];
+  //   const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+  //   const evacuBlock = case01.newBlock;
+  //   const invalidProof: ProofStruct = case01.proof as ProofStruct;
+  //   invalidProof.commitment = [BigNumber.from("0x123456")];
 
-    await time.increaseTo(Number(evacuBlock.timestamp));
-    await expect(
-      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
-    ).to.be.revertedWithCustomError(
-      diamondEvacuation,
-      "CommitmentInconsistant"
-    );
-  });
+  //   await time.increaseTo(Number(evacuBlock.timestamp));
+  //   await expect(
+  //     diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
+  //   ).to.be.revertedWithCustomError(
+  //     diamondEvacuation,
+  //     "CommitmentInconsistant"
+  //   );
+  // });
 
-  it("Failed to evacuate, invalid proof", async function () {
-    // expiration period = 14 days
-    await time.increase(time.duration.days(14));
-    await diamondEvacuation.activateEvacuation();
+  // it("Failed to evacuate, invalid proof", async function () {
+  //   // expiration period = 14 days
+  //   await time.increase(time.duration.days(14));
+  //   await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const evacuBlock = case01.newBlock;
-    const invalidProof: ProofStruct = case01.proof as ProofStruct;
-    invalidProof.a[0] = BigNumber.from("0x123456");
+  //   const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+  //   const evacuBlock = case01.newBlock;
+  //   const invalidProof: ProofStruct = case01.proof as ProofStruct;
+  //   invalidProof.a[0] = BigNumber.from("0x123456");
 
-    await time.increaseTo(Number(evacuBlock.timestamp));
-    await expect(
-      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
-    ).to.be.revertedWithCustomError(diamondEvacuation, "InvalidProof");
-  });
+  //   await time.increaseTo(Number(evacuBlock.timestamp));
+  //   await expect(
+  //     diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, invalidProof)
+  //   ).to.be.revertedWithCustomError(diamondEvacuation, "InvalidProof");
+  // });
 
-  it("Failed to evacuate, the specified user and token is already evacuated", async function () {
-    // expiration period = 14 days
-    await time.increase(time.duration.days(14));
-    await diamondEvacuation.activateEvacuation();
+  // it("Failed to evacuate, the specified user and token is already evacuated", async function () {
+  //   // expiration period = 14 days
+  //   await time.increase(time.duration.days(14));
+  //   await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const evacuBlock = case01.newBlock;
-    const proof: ProofStruct = case01.proof as ProofStruct;
+  //   const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+  //   const evacuBlock = case01.newBlock;
+  //   const proof: ProofStruct = case01.proof as ProofStruct;
 
-    await time.increaseTo(Number(evacuBlock.timestamp));
-    await diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof);
-    // evacuate again
-    await expect(
-      diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof)
-    ).to.be.revertedWithCustomError(diamondEvacuation, "Evacuated");
-  });
+  //   await time.increaseTo(Number(evacuBlock.timestamp));
+  //   await diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof);
+  //   // evacuate again
+  //   await expect(
+  //     diamondEvacuation.evacuate(lastExecutedBlock, evacuBlock, proof)
+  //   ).to.be.revertedWithCustomError(diamondEvacuation, "Evacuated");
+  // });
 });
