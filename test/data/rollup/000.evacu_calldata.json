@@ -1,41 +1,43 @@
 {
-  "lastExecutedBlock": {
-    "blockNumber": 21,
-    "l1RequestNum": 0,
-    "pendingRollupTxHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-    "commitment": "0x878765058f2c3d5dabc1163a68d0796090ea4bc58caa3b084784a540dc917f56",
-    "stateRoot": "0x251833acaa60a99023ff2dd1f66450d75d3f9ace36c78d900fa5533c598e4f0c",
-    "timestamp": "1691561500"
-  },
-  "newBlock": {
-    "blockNumber": 22,
-    "newStateRoot": "0x251833acaa60a99023ff2dd1f66450d75d3f9ace36c78d900fa5533c598e4f0c",
-    "newTsRoot": "0x14958637ee94e97a887e8a0d04503a9e168a3fcccc6b3dba0ae6e26016c9790b",
-    "timestamp": "1692944099",
-    "chunkIdDeltas": [0],
-    "publicData": "0x180000000100010000000000000000000000174876e80000"
-  },
-  "proof": {
-    "a": [
-      "0x20511a2a0b21469b4a99a7aed089636e53cd0fda7708a50db9840ad5603f8f5e",
-      "0x036fcef80749244c19889f9bed0d8ba2134492bd5ce2d3fa60277b5048b7f591"
-    ],
-    "b": [
-      [
-        "0x2d85b0a550d7a2451c9e93a8e182bfe3ae27e68838d85357e7e5df77a6db3a27",
-        "0x1225771d3c05f01cc6c721aa02dfcfd26966de877e99bd59a39d06bc7bc7b44b"
-      ],
-      [
-        "0x29cf7e9a413fd3e5729d1f7eb0552474b700a97a7dcbc83c0f2e602249266fcc",
-        "0x2661bbf08b4e6a15b9d87ea0f39c5db07a6102e6ee996f601350da6f27e611ca"
-      ]
-    ],
-    "c": [
-      "0x115700b457eb77cb8214b21c86f0dfada776567f8ae1b5393b28bfae57372d23",
-      "0x05cfab79c8247ee48a4f6df08956fb93f1ffd387a6c5a50c1956bebf4c51607c"
-    ],
-    "commitment": [
-      "0x26c5319828347eda9417643c0688787b07da3e5479088b77f3e02e15a2f5018f"
-    ]
-  }
+    "lastExecutedBlock": {
+        "blockNumber": 21,
+        "l1RequestNum": 0,
+        "pendingRollupTxHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+        "commitment": "0x4c0edb760022fced00c60f1457a814337e75471fb17cad80eedb71835ab5abf4",
+        "stateRoot": "0x00ab7cfb77d717d4c3dfc68134cc1397432bfc75127e36fcb9d273ee6c68ddba",
+        "timestamp": "1691561500"
+    },
+    "newBlock": {
+        "blockNumber": 22,
+        "newStateRoot": "0x00ab7cfb77d717d4c3dfc68134cc1397432bfc75127e36fcb9d273ee6c68ddba",
+        "newTsRoot": "0x14958637ee94e97a887e8a0d04503a9e168a3fcccc6b3dba0ae6e26016c9790b",
+        "timestamp": "1692944099",
+        "chunkIdDeltas": [
+            0
+        ],
+        "publicData": "0x180000000100010000000000000000000000174876e80000"
+    },
+    "proof": {
+        "a": [
+            "0x1cbd5bd4cc55b8e0625941953fb258e89c8023d3c7f9532004cf1fb36bb71796",
+            "0x1d3b577b63787c6528174f435bb3e9175ed8c80aa9ebef81e736d69220c8a856"
+        ],
+        "b": [
+            [
+                "0x2ce4b422fa02d3d7d58d4a04f23886ebee7584adb9581f19da9dd59239f5f515",
+                "0x007550b8627ebfe9d40b488d136f5a751539bdf3e3c98c07378c93970a67de1d"
+            ],
+            [
+                "0x0e047a6338f655f2879cb4d11952003289d0082e883d6bec90785cd140e6b18a",
+                "0x0ffb58d0381d37d67dc3a8b2b8a2db236710ffa2613d65ce5c6a9232c6ed4694"
+            ]
+        ],
+        "c": [
+            "0x201c04a4b1a11a038f7f562e56dbeb2bc2db44e615c28a30b478844b3f13a6f1",
+            "0x10f0a033b9ff858a51d5bdad520dcef6f71913df6e01a1d88a2d97706f1a052a"
+        ],
+        "commitment": [
+            "0x18580348bf637a731d701223c4f8253d3aa012792077b6e426027f2a937d5082"
+        ]
+    }
 }

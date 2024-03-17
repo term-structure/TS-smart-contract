@@ -1,1 +1,43 @@
-{"lastExecutedBlock":{"blockNumber":21,"l1RequestNum":0,"pendingRollupTxHash":"0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470","commitment":"0x878765058f2c3d5dabc1163a68d0796090ea4bc58caa3b084784a540dc917f56","stateRoot":"0x251833acaa60a99023ff2dd1f66450d75d3f9ace36c78d900fa5533c598e4f0c","timestamp":"1691561500"},"newBlock":{"blockNumber":22,"newStateRoot":"0x251833acaa60a99023ff2dd1f66450d75d3f9ace36c78d900fa5533c598e4f0c","newTsRoot":"0x14958637ee94e97a887e8a0d04503a9e168a3fcccc6b3dba0ae6e26016c9790b","timestamp":"1692944103","chunkIdDeltas":[0],"publicData":"0x1800000003000900000000000000000000002e94ba9cd000"},"proof":{"a":["0x17489a6b4976378f5cf4031913cdb1c18738b937a407035075abd9e73fd12bf6","0x0664aa1edc7b39812aa34fcd8c198adbc4beea6ab65ea3294b442b5b0fd19a49"],"b":[["0x1a5b95658813d74bdae93d6e342962eea749096bf21a4c296341e561254e4f7b","0x0ff632d6a1eba82d34b212beb3c86ad0588c500783c946a1324aacac839f4f4c"],["0x23527baaf42ea0cccb6fa7ae13b0ff5e3f738da3d57b05c289b2bc097bafcd5a","0x167f54040087efb9eed9d42adbb29c8c9be1e3676a72ab7a13108c69f03bc93f"]],"c":["0x1d3ca7979181794374ace0fc1fc04f6f400dfcd97cf9eee16ddfab677e3a4c84","0x0793880cfa0fe53ba20886a718d2f007a30e3261160161dabe8a1ce529cc695c"],"commitment":["0x1a7acf1b3151220894a9c6a7a7c30d99b200dcd4708ebe3cd066b56db47dc1f3"]}}
+{
+    "lastExecutedBlock": {
+        "blockNumber": 21,
+        "l1RequestNum": 0,
+        "pendingRollupTxHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+        "commitment": "0x4c0edb760022fced00c60f1457a814337e75471fb17cad80eedb71835ab5abf4",
+        "stateRoot": "0x00ab7cfb77d717d4c3dfc68134cc1397432bfc75127e36fcb9d273ee6c68ddba",
+        "timestamp": "1691561500"
+    },
+    "newBlock": {
+        "blockNumber": 22,
+        "newStateRoot": "0x00ab7cfb77d717d4c3dfc68134cc1397432bfc75127e36fcb9d273ee6c68ddba",
+        "newTsRoot": "0x14958637ee94e97a887e8a0d04503a9e168a3fcccc6b3dba0ae6e26016c9790b",
+        "timestamp": "1692944103",
+        "chunkIdDeltas": [
+            0
+        ],
+        "publicData": "0x1800000003000900000000000000000000002e94ba9cd000"
+    },
+    "proof": {
+        "a": [
+            "0x2cbe54933b02b7497fa0aca99c1c4b8ef7843992d97481fe6abd3d5ceea3b786",
+            "0x2a86c3b6c82e638592ea92d9db1b648eead28012d3978946a8ab1fb3f949ff50"
+        ],
+        "b": [
+            [
+                "0x1fff0ee34b69c3df30853bf8c6e79589f9781aebef53885431f0d3323a201789",
+                "0x2f952a220b61b1c59b8ecc99397cf7b3457966a566b55806187b801724a0985b"
+            ],
+            [
+                "0x0e6a01a74474d7657de7f9eadf386fb668ff106eee02e57741973184393540be",
+                "0x290f596da07c1ca5ff3ce59078904d5589c65419c83f7319fb74570f9e824e49"
+            ]
+        ],
+        "c": [
+            "0x0a43bc2b4515c8e16d6b4a1a36b08f54e7928b3666758bdb198eddbe4aa82d34",
+            "0x184a1e61b84076ce1ac622e24f40b8a25e3cafd2fa79f642efb35bcad5cbdfde"
+        ],
+        "commitment": [
+            "0x1d0b80c888f3cce35442d7295e9fabfd5008a7764e39f606b696847e6001f7ba"
+        ]
+    }
+}
