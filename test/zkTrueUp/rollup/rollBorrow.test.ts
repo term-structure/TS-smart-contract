@@ -17,7 +17,6 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import { StoredBlockStruct } from "../../../typechain-types/contracts/zkTrueUp/rollup/IRollupFacet";
-import initStates from "../../data/rollupData/rollup/initStates.json";
 import { updateRoundData } from "../../utils/updateRoundData";
 import { rollupData } from "../../data/rollupData/rollBorrow/rollup";
 import {
@@ -34,8 +33,13 @@ import {
   resolveRollOverEndPubData,
 } from "../../utils/publicDataHelper";
 
+const initStateRoot = utils.hexZeroPad(
+  utils.hexlify(BigInt(rollupData.initState.stateRoot)),
+  32
+);
+
 const fixture = async () => {
-  const res = await deployAndInit(FACET_NAMES, false, "RollBorrowVerifier");
+  const res = await deployAndInit(FACET_NAMES, false, "RollBorrowVerifier", initStateRoot);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp.address
@@ -64,7 +68,7 @@ describe("Roll borrow", function () {
   let baseTokenAddresses: BaseTokenAddresses;
   const genesisBlock: StoredBlockStruct = {
     blockNumber: BigNumber.from("0"),
-    stateRoot: initStates.stateRoot,
+    stateRoot: initStateRoot,
     l1RequestNum: BigNumber.from("0"),
     pendingRollupTxHash: EMPTY_HASH,
     commitment: utils.defaultAbiCoder.encode(
