@@ -39,7 +39,12 @@ const initStateRoot = utils.hexZeroPad(
 );
 
 const fixture = async () => {
-  const res = await deployAndInit(FACET_NAMES, false, "RollBorrowVerifier", initStateRoot);
+  const res = await deployAndInit(
+    FACET_NAMES,
+    false,
+    "RollBorrowVerifier",
+    initStateRoot
+  );
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp.address
