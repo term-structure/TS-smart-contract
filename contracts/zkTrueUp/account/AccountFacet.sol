@@ -77,6 +77,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
         _withdraw(msg.sender, accountAddr, accountId, token, amount);
     }
 
+    //! mainnet-audit
     /**
      * @inheritdoc IAccountFacet
      */
@@ -249,6 +250,7 @@ contract AccountFacet is IAccountFacet, ReentrancyGuard {
 
     /* ============ Internal Pure Functions to Calculate Struct Hash ============ */
 
+    //! mainnet-audit
     /// @notice Calculate the hash of the struct for the withdrawal permit
     /// @param token The token to be withdrawn
     /// @param amount The amount of the token to be withdrawn

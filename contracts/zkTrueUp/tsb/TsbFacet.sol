@@ -83,6 +83,7 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
         _redeem(msg.sender, accountAddr, accountId, tsbToken, amount, redeemAndDeposit);
     }
 
+    //! mainnet-audit
     /**
      * @inheritdoc ITsbFacet
      * @dev TSB token can be redeemed only after maturity

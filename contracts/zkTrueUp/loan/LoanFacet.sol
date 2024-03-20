@@ -76,6 +76,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         _removeCollateral(lsl, loanInfo, loanId, msg.sender, loanOwner, amount);
     }
 
+    //! mainnet-audit
     /**
      * @inheritdoc ILoanFacet
      */
@@ -120,6 +121,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         _repay(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt, repayAndDeposit, msg.value);
     }
 
+    //! mainnet-audit
     /**
      * @inheritdoc ILoanFacet
      */
@@ -174,6 +176,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         _rollToAave(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt);
     }
 
+    //! mainnet-audit
     /**
      * @inheritdoc ILoanFacet
      * @notice Should be `approveDelegation` before `borrow from AAVE V3 pool`
@@ -234,6 +237,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanOwner, rollBorrowOrder.loanId, newMaturityTime);
     }
 
+    //! mainnet-audit
     /**
      * @inheritdoc ILoanFacet
      * @dev Cannot roll total collateral amount because the original loan will be not strict healthy if success
@@ -296,6 +300,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         );
     }
 
+    //! mainnet-audit
     /**
      * @inheritdoc ILoanFacet
      * @dev The force cancel roll borrow action will add this request in L1 request queue,
@@ -847,6 +852,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return newMaturityTime;
     }
 
+    //! mainnet-audit
     /// @notice Internal function to roll borrow
     /// @dev Should simulate this roll borrow order before being matched in L2,
     ///      to make sure both the original and new loan are strictly healthy (buffering to liquidation threshold)
@@ -928,6 +934,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         emit RollBorrowOrderPlaced(loanId, caller, loanOwner, rollBorrowReq);
     }
 
+    //! mainnet-audit
     /// @notice Internal function to force cancel roll borrow
     /// @param lsl The loan storage layout
     /// @param caller The caller to force cancel roll borrow
@@ -963,6 +970,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
     /* ============ Internal Pure Functions to Calculate Struct Hash ============ */
 
+    //! mainnet-audit
     /// @notice Calculate the hash of the struct for the remove collateral permit
     /// @param loanId The id of the loan
     /// @param amount The amount of the collateral to be added
@@ -977,6 +985,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return keccak256(abi.encode(REMOVE_COLLATERAL_TYPEHASH, loanId, amount, nonce, deadline));
     }
 
+    //! mainnet-audit
     /// @notice Calculate the hash of the struct for the repay collateral permit
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of the collateral to be added
@@ -995,6 +1004,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return keccak256(abi.encode(REPAY_TYPEHASH, loanId, collateralAmt, debtAmt, repayAndDeposit, nonce, deadline));
     }
 
+    //! mainnet-audit
     /// @notice Calculate the hash of the struct for the roll borrow permit
     /// @param rollBorrowOrder The roll borrow order
     /// @param nonce The nonce of the permit
@@ -1020,6 +1030,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
             );
     }
 
+    //! mainnet-audit
     /// @notice Calculate the hash of the struct for the force cancel roll borrow permit
     /// @param loanId The id of the loan
     /// @param nonce The nonce of the permit
@@ -1032,6 +1043,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         return keccak256(abi.encode(FORCE_CANCEL_ROLL_BORROW_TYPEHASH, loanId, nonce, deadline));
     }
 
+    //! mainnet-audit
     /// @notice Calculate the hash of the struct for the roll to AAVE permit
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of the collateral to be supplied to AAVE
