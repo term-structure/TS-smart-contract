@@ -2,43 +2,38 @@ import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BigNumber, Signer, utils } from "ethers";
-import { resolve } from "path";
 import { BaseTokenAddresses } from "../../../utils/type";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import { useFacet } from "../../../utils/useFacet";
 import { FACET_NAMES } from "../../../utils/config";
-import { EMPTY_HASH, MIN_DEPOSIT_AMOUNT, TsTokenId } from "term-structure-sdk";
-import { register } from "../../utils/register";
+import { EMPTY_HASH } from "term-structure-sdk";
 import {
   AccountFacet,
   EvacuationFacet,
+  LoanFacet,
   RollupFacet,
   TokenFacet,
   TsbFacet,
   ZkTrueUp,
 } from "../../../typechain-types";
+import { StoredBlockStruct } from "../../../typechain-types/contracts/zkTrueUp/rollup/IRollupFacet";
 import {
-  actionDispatcher,
-  getCommitBlock,
-  getExecuteBlock,
-  getPendingRollupTxPubData,
-  getStoredBlock,
-  initTestData,
-} from "../../utils/rollupHelper";
-import {
-  CommitBlockStruct,
-  ExecuteBlockStruct,
-  ProofStruct,
-  StoredBlockStruct,
-  VerifyBlockStruct,
-} from "../../../typechain-types/contracts/zkTrueUp/rollup/IRollupFacet";
-import initStates from "../../data/rollupData/rollup/initStates.json";
-const testDataPath = resolve("./test/data/rollupData/rollup");
-const testData = initTestData(testDataPath);
+  Users,
+  commitOneBlock,
+  handler,
+  preprocessAndRollupBlocks,
+  verifyOneBlock,
+} from "../../utils/rollBorrowRollupHelper";
+import { rollupData } from "../../data/rollup/test_data";
+
+const initStateRoot = utils.hexZeroPad(
+  utils.hexlify(BigInt(rollupData.initState.stateRoot)),
+  32
+);
 
 const fixture = async () => {
-  const res = await deployAndInit(FACET_NAMES);
+  const res = await deployAndInit(FACET_NAMES, false, undefined, initStateRoot);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp.address
@@ -53,8 +48,7 @@ const fixture = async () => {
 };
 
 describe("Activating evacuation", function () {
-  let [user1]: Signer[] = [];
-  let accounts: Signer[];
+  let accounts: Users;
   let storedBlocks: StoredBlockStruct[] = [];
   let zkTrueUp: ZkTrueUp;
   let operator: Signer;
@@ -62,11 +56,12 @@ describe("Activating evacuation", function () {
   let diamondRollup: RollupFacet;
   let diamondToken: TokenFacet;
   let diamondTsb: TsbFacet;
+  let diamondLoan: LoanFacet;
   let diamondEvacuation: EvacuationFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   const genesisBlock: StoredBlockStruct = {
     blockNumber: BigNumber.from("0"),
-    stateRoot: initStates.stateRoot,
+    stateRoot: initStateRoot,
     l1RequestNum: BigNumber.from("0"),
     pendingRollupTxHash: EMPTY_HASH,
     commitment: utils.defaultAbiCoder.encode(
@@ -78,16 +73,19 @@ describe("Activating evacuation", function () {
 
   beforeEach(async function () {
     const res = await loadFixture(fixture);
-    [user1] = await ethers.getSigners();
-    accounts = await ethers.getSigners();
     zkTrueUp = res.zkTrueUp;
     operator = res.operator;
     const zkTrueUpAddr = zkTrueUp.address;
+    accounts = new Users(await ethers.getSigners());
+    rollupData.user_data.forEach((user) =>
+      accounts.addUser(user.tsPubKeyX, user.tsPubKeyY)
+    );
     diamondAcc = (await useFacet("AccountFacet", zkTrueUpAddr)) as AccountFacet;
     diamondRollup = (await useFacet(
       "RollupFacet",
       zkTrueUpAddr
     )) as RollupFacet;
+    diamondLoan = (await useFacet("LoanFacet", zkTrueUpAddr)) as LoanFacet;
     diamondToken = (await useFacet("TokenFacet", zkTrueUpAddr)) as TokenFacet;
     diamondTsb = (await useFacet("TsbFacet", zkTrueUpAddr)) as TsbFacet;
     diamondEvacuation = (await useFacet(
@@ -96,88 +94,58 @@ describe("Activating evacuation", function () {
     )) as EvacuationFacet;
     baseTokenAddresses = res.baseTokenAddresses;
     storedBlocks.push(genesisBlock);
-    let committedBlockNum: number = 0;
-    let provedBlockNum: number = 0;
-    let executedBlockNum: number = 0;
     const COMMITTED_BLOCK_NUM = 5;
     const EXECUTED_BLOCK_NUM = 3;
 
-    // commit and verify 5 blocks and execute 3 blocks
-    for (let k = 0; k < COMMITTED_BLOCK_NUM; k++) {
-      const testCase = testData[k];
-      committedBlockNum += 1;
-      provedBlockNum += 1;
-      executedBlockNum += 1;
+    // preprocess tx and rollup the first 3 blocks
+    const latestStoredBlock = await preprocessAndRollupBlocks(
+      EXECUTED_BLOCK_NUM,
+      rollupData,
+      diamondAcc,
+      diamondRollup,
+      diamondTsb,
+      diamondToken,
+      diamondLoan,
+      operator,
+      accounts,
+      baseTokenAddresses,
+      genesisBlock
+    );
 
-      // do some L1 requests from test case
-      for (let i = 0; i < testCase.reqDataList.length; i++) {
-        const reqType = testCase.reqDataList[i][0];
-        await actionDispatcher(
-          reqType,
-          operator,
-          accounts,
-          baseTokenAddresses,
-          testCase,
-          i,
-          diamondAcc,
+    // commit and verify the 4th and 5th blocks but not execute
+    let newStoredBlock = latestStoredBlock;
+    for (let j = EXECUTED_BLOCK_NUM; j < COMMITTED_BLOCK_NUM; j++) {
+      const block = rollupData.blocks[j];
+      for (let i = 0; i < block.l1RequestPubData.length; ) {
+        // do l1 behavior before rollup
+        const numOfL1RequestToBeProcessed = await handler(
+          diamondTsb,
           diamondToken,
-          diamondTsb
+          diamondLoan,
+          diamondAcc,
+          operator,
+          block.l1RequestPubData[i],
+          block.l1RequestPubData[i + 1],
+          accounts,
+          baseTokenAddresses
         );
+        i += numOfL1RequestToBeProcessed;
       }
 
-      // commit blocks
-      const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
-      const newBlocks: CommitBlockStruct[] = [];
-      const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
-      newBlocks.push(commitBlock);
+      await commitOneBlock(
+        diamondRollup,
+        operator,
+        block as any,
+        newStoredBlock
+      );
 
-      // mock timestamp to test case timestamp
-      await time.increaseTo(Number(commitBlock.timestamp));
+      newStoredBlock = block.storedBlock;
 
-      await diamondRollup
-        .connect(operator)
-        .commitBlocks(lastCommittedBlock, newBlocks);
-      const storedBlock = getStoredBlock(commitBlock, testCase);
-      storedBlocks.push(storedBlock);
-
-      // verify block
-      const committedBlocks: StoredBlockStruct[] = [];
-      const committedBlock = storedBlocks[provedBlockNum];
-      committedBlocks.push(committedBlock);
-      const proofs: ProofStruct[] = [];
-      const proof: ProofStruct = testCase.callData;
-      proofs.push(proof);
-      const verifyingBlocks: VerifyBlockStruct[] = [];
-      verifyingBlocks.push({
-        storedBlock: committedBlock,
-        proof: proof,
-      });
-      await diamondRollup.connect(operator).verifyBlocks(verifyingBlocks);
-
-      if (k < EXECUTED_BLOCK_NUM) {
-        // execute block
-        const pendingBlocks: ExecuteBlockStruct[] = [];
-        const pendingRollupTxPubData = getPendingRollupTxPubData(testCase);
-        const executeBlock = getExecuteBlock(
-          storedBlocks[executedBlockNum],
-          pendingRollupTxPubData
-        );
-        pendingBlocks.push(executeBlock);
-        await diamondRollup.connect(operator).executeBlocks(pendingBlocks);
-      }
+      await verifyOneBlock(diamondRollup, operator, block as any);
     }
   });
 
   it("Success to activateEvacuation", async function () {
-    // register acc1
-    const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await register(
-      user1,
-      Number(TsTokenId.ETH),
-      amount,
-      baseTokenAddresses,
-      diamondAcc
-    );
     const [oldCommittedBlockNum, oldVerifiedBlockNum, oldExecutedBlockNum] =
       await diamondRollup.getBlockNum();
     const [
@@ -216,16 +184,6 @@ describe("Activating evacuation", function () {
   });
 
   it("Failed to activate evacuation, since there is no L1 request expired", async function () {
-    // register acc1
-    const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await register(
-      user1,
-      Number(TsTokenId.ETH),
-      amount,
-      baseTokenAddresses,
-      diamondAcc
-    );
-
     // expiration period = 14 days
     await time.increase(time.duration.days(13));
     expect(await diamondEvacuation.isEvacuMode()).to.equal(false);
@@ -235,16 +193,6 @@ describe("Activating evacuation", function () {
   });
 
   it("Failed to activate evacuation, because the system is in evacuation mode", async function () {
-    // register acc1
-    const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await register(
-      user1,
-      Number(TsTokenId.ETH),
-      amount,
-      baseTokenAddresses,
-      diamondAcc
-    );
-
     // expiration period = 14 days
     await time.increase(time.duration.days(14));
     expect(await diamondEvacuation.isEvacuMode()).to.equal(false);

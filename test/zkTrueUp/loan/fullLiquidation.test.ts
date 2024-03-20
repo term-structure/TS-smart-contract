@@ -137,10 +137,12 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
     // collateral = 1 eth, debt = 500 usdc
     const loan: LoanData = {
       accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
       collateralTokenId: loanData.collateralTokenId,
       collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtTokenId: loanData.debtTokenId,
       debtAmt: BigNumber.from(loanData.debtAmt),
+      matchedTime: BigNumber.from(loanData.matchedTime),
+      maturityTime: BigNumber.from(tsbTokenData.maturity),
     };
     let loanOwner: string;
     let loanId: string;
@@ -999,10 +1001,12 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
     // collateral = 100 usdt, debt = 90 dai
     const loan: LoanData = {
       accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
       collateralTokenId: loanData.collateralTokenId,
       collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtTokenId: loanData.debtTokenId,
       debtAmt: BigNumber.from(loanData.debtAmt),
+      matchedTime: BigNumber.from(loanData.matchedTime),
+      maturityTime: BigNumber.from(tsbTokenData.maturity),
     };
     let loanOwner: string;
     let loanId: string;
@@ -1654,10 +1658,12 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
     // collateral = 1 eth, debt = 500 usdc
     const loan: LoanData = {
       accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
       collateralTokenId: loanData.collateralTokenId,
       collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtTokenId: loanData.debtTokenId,
       debtAmt: BigNumber.from(loanData.debtAmt),
+      matchedTime: BigNumber.from(loanData.matchedTime),
+      maturityTime: BigNumber.from(tsbTokenData.maturity),
     };
     let loanOwner: string;
     let loanId: string;
@@ -2043,10 +2049,12 @@ describe("Full liquidation, the liquidator can liquidate max to 100% of the debt
     // collateral = 100000 usdt, debt = 90000 usdc
     const loan: LoanData = {
       accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
       collateralTokenId: loanData.collateralTokenId,
       collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtTokenId: loanData.debtTokenId,
       debtAmt: BigNumber.from(loanData.debtAmt),
+      matchedTime: BigNumber.from(loanData.matchedTime),
+      maturityTime: BigNumber.from(tsbTokenData.maturity),
     };
     let loanOwner: string;
     let loanId: string;

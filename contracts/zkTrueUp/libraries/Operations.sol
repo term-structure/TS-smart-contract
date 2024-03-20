@@ -77,10 +77,12 @@ library Operations {
 
     struct AuctionEnd {
         uint32 accountId;
-        uint16 tsbTokenId;
         uint16 collateralTokenId;
         uint128 collateralAmt;
+        uint16 debtTokenId;
         uint128 debtAmt;
+        uint32 matchedTime;
+        uint32 maturityTime;
     }
 
     struct CreateTsbToken {
@@ -262,8 +264,10 @@ library Operations {
         (offset, auctionEnd.accountId) = Bytes.readUInt32(data, offset);
         (offset, auctionEnd.collateralTokenId) = Bytes.readUInt16(data, offset);
         (offset, auctionEnd.collateralAmt) = Bytes.readUInt128(data, offset);
-        (offset, auctionEnd.tsbTokenId) = Bytes.readUInt16(data, offset);
-        (, auctionEnd.debtAmt) = Bytes.readUInt128(data, offset);
+        (offset, auctionEnd.debtTokenId) = Bytes.readUInt16(data, offset);
+        (offset, auctionEnd.debtAmt) = Bytes.readUInt128(data, offset);
+        (offset, auctionEnd.matchedTime) = Bytes.readUInt32(data, offset);
+        (, auctionEnd.maturityTime) = Bytes.readUInt32(data, offset);
         return auctionEnd;
     }
 

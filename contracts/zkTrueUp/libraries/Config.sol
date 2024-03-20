@@ -63,6 +63,9 @@ library Config {
     /// @notice The bytes lengths of four chunks
     uint8 internal constant BYTES_OF_FOUR_CHUNKS = 4 * BYTES_OF_CHUNK;
 
+    /// @notice The bytes lengths of five chunks
+    uint8 internal constant BYTES_OF_FIVE_CHUNKS = 5 * BYTES_OF_CHUNK;
+
     /// @notice The bytes lengths of six chunks
     uint8 internal constant BYTES_OF_SIX_CHUNKS = 6 * BYTES_OF_CHUNK;
 

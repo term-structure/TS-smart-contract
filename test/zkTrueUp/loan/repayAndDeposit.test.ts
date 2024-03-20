@@ -122,10 +122,12 @@ describe("Repay and deposit", () => {
     const loanData = loanDataJSON[2]; // DAI -> ETH
     const loan: LoanData = {
       accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
       collateralTokenId: loanData.collateralTokenId,
       collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtTokenId: loanData.debtTokenId,
       debtAmt: BigNumber.from(loanData.debtAmt),
+      matchedTime: BigNumber.from(loanData.matchedTime),
+      maturityTime: BigNumber.from(tsbTokenData.maturity),
     };
     let loanId: string;
     let ethAnswer: BigNumber;
@@ -712,10 +714,12 @@ describe("Repay and deposit", () => {
     const loanData = stableCoinPairLoanDataJSON[2]; // DAI -> USDT, loan owner is user2
     const loan: LoanData = {
       accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
       collateralTokenId: loanData.collateralTokenId,
       collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtTokenId: loanData.debtTokenId,
       debtAmt: BigNumber.from(loanData.debtAmt),
+      matchedTime: BigNumber.from(loanData.matchedTime),
+      maturityTime: BigNumber.from(tsbTokenData.maturity),
     };
     let loanId: string;
     let daiAnswer: BigNumber;
