@@ -302,7 +302,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
      *      to force this transaction must to be packaged in rollup block
      *      to avoid the `UserCancelRollBorrow` operation be maliciously ignored in L2
      */
-    function forceCancelrollBorrowWithPermit(bytes12 loanId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+    function forceCancelRollBorrowWithPermit(bytes12 loanId, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         if (!lsl.getRollerState()) revert RollIsNotActivated();
 
