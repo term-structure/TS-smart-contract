@@ -403,10 +403,12 @@ describe("Flash loan", () => {
     // collateral = 1 eth, debt = 500 usdc
     const loan: LoanData = {
       accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
       collateralTokenId: loanData.collateralTokenId,
       collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtTokenId: loanData.debtTokenId,
       debtAmt: BigNumber.from(loanData.debtAmt),
+      matchedTime: BigNumber.from(loanData.matchedTime),
+      maturityTime: BigNumber.from(tsbTokenData.maturity),
     };
     let loanId: string;
     let usdc: ERC20Mock;

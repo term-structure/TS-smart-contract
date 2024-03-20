@@ -30,10 +30,12 @@ export type RoundData = {
 
 export type LoanData = {
   accountId: number;
-  tsbTokenId: number;
   collateralTokenId: number;
   collateralAmt: BigNumber;
+  debtTokenId: number;
   debtAmt: BigNumber;
+  matchedTime: BigNumber;
+  maturityTime: BigNumber;
 };
 
 export type FacetInfo = {

@@ -86,6 +86,24 @@ library Bytes {
         return data;
     }
 
+    /// @notice slice public data to get the length of the five chunks (60 bytes)
+    /// @param pubData The public data of the rollup
+    /// @param start The start index of the five chunks length
+    /// @return data The data of the five chunks length
+    function sliceFiveChunksBytes(bytes memory pubData, uint256 start) internal pure returns (bytes memory) {
+        uint256 bytesLength = Config.BYTES_OF_FIVE_CHUNKS; // 60 bytes
+        _validSliceLength(pubData.length, start, bytesLength);
+        bytes memory data = new bytes(bytesLength);
+        assembly {
+            let slice_curr := add(data, 0x20)
+            let array_curr := add(pubData, add(start, 0x20))
+            // mstore 3 times for 60 bytes
+            mstore(slice_curr, mload(array_curr))
+            mstore(add(slice_curr, 0x20), mload(add(array_curr, 0x20)))
+        }
+        return data;
+    }
+
     /// @notice slice public data to get the length of the six chunks (72 bytes)
     /// @param pubData The public data of the rollup
     /// @param start The start index of the six chunks length

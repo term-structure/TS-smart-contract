@@ -6,7 +6,6 @@ import {
   BASE_TOKEN_ASSET_CONFIG,
   ETH_ASSET_CONFIG,
   FACET_NAMES,
-  DEFAULT_GENESIS_STATE_ROOT,
   INIT_FUNCTION_NAME,
   MAINNET_ADDRESS,
 } from "../../utils/config";
@@ -17,12 +16,13 @@ import { safeInitFacet } from "diamond-engraver";
 import initStates from "../data/rollupData/rollup/initStates.json";
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
-const genesisStateRoot = initStates.stateRoot;
+const default_genesis_state_root = initStates.stateRoot;
 
 export const deployAndInit = async (
   facetNames?: string[],
   isMainnetForkTesting?: boolean,
-  verifierContractName?: string
+  verifierContractName?: string,
+  genesisStateRoot?: string
 ) => {
   const [deployer, admin, operator] = await ethers.getSigners();
   const provider = ethers.provider;
@@ -150,7 +150,7 @@ export const deployAndInit = async (
       treasury.address,
       insurance.address,
       vault.address,
-      genesisStateRoot ?? DEFAULT_GENESIS_STATE_ROOT,
+      genesisStateRoot ? genesisStateRoot : default_genesis_state_root,
       {
         isStableCoin: ETH_ASSET_CONFIG.isStableCoin,
         isTsbToken: ETH_ASSET_CONFIG.isTsbToken,

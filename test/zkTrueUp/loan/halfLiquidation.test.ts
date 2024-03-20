@@ -139,10 +139,12 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
     // collateral > 10000 usd
     const loan: LoanData = {
       accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
       collateralTokenId: loanData.collateralTokenId,
       collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtTokenId: loanData.debtTokenId,
       debtAmt: BigNumber.from(loanData.debtAmt),
+      matchedTime: BigNumber.from(loanData.matchedTime),
+      maturityTime: BigNumber.from(tsbTokenData.maturity),
     };
     let loanOwner: string;
     let loanId: string;
@@ -661,10 +663,12 @@ describe("Half Liquidation, the liquidator can liquidate max to 50% of the debt"
     // collateral > 10000 usd
     const loan: LoanData = {
       accountId: loanData.accountId,
-      tsbTokenId: loanData.tsbTokenId,
       collateralTokenId: loanData.collateralTokenId,
       collateralAmt: BigNumber.from(loanData.collateralAmt),
+      debtTokenId: loanData.debtTokenId,
       debtAmt: BigNumber.from(loanData.debtAmt),
+      matchedTime: BigNumber.from(loanData.matchedTime),
+      maturityTime: BigNumber.from(tsbTokenData.maturity),
     };
     let loanOwner: string;
     let loanId: string;
