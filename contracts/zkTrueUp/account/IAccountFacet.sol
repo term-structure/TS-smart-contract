@@ -37,6 +37,7 @@ interface IAccountFacet {
     /// @param amount The amount of the token to be withdrawn
     function withdraw(address accountAddr, IERC20 token, uint256 amount) external;
 
+    //! mainnet-audit
     /// @notice Withdraw Ether or ERC20 from ZkTrueUp with permit
     /// @param accountAddr The address of the L2 account to be withdrawn
     /// @param token The token to be withdrawn
@@ -61,6 +62,7 @@ interface IAccountFacet {
     /// @param token The token to be withdrawn
     function forceWithdraw(IERC20 token) external;
 
+    //! mainnet-audit
     /// @notice Set the delegatee of the account
     /// @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
     /// @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to delegate the withdraw action)
@@ -82,12 +84,14 @@ interface IAccountFacet {
     /// @return accountNum The number of registered accounts
     function getAccountNum() external view returns (uint32 accountNum);
 
+    //! mainnet-audit
     /// @notice Return the permit nonce of the account
     /// @dev The nonce is used to prevent signature replay attack
     /// @param accountAddr The address of the account
     /// @return nonce The permit nonce of the account
     function getPermitNonce(address accountAddr) external view returns (uint256);
 
+    //! mainnet-audit
     /// @notice Return the isDelegated status of the account
     /// @dev Refer to each action mask in the library for different delegated actions (path: ../libraries/Delegate.sol)
     /// @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to check if the withdraw action is delegated)
@@ -97,6 +101,7 @@ interface IAccountFacet {
     /// @return isDelegated The isDelegated status of the account
     function getIsDelegated(address delegator, address delegatee, uint256 actionMask) external view returns (bool);
 
+    //! mainnet-audit
     /// @notice Return the delegated actions of the account
     /// @param delegator The address of the delegator
     /// @param delegatee The address of the delegatee

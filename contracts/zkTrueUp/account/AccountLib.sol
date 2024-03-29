@@ -173,6 +173,7 @@ library AccountLib {
         emit Withdrawal(caller, accountAddr, accountId, token, tokenId, amount);
     }
 
+    //! mainnet-audit
     /// @notice Internal function to validate permit signature and increase nonce
     /// @param s The account storage layout
     /// @param expectedSigner The expected signer of the permit signature
@@ -196,6 +197,7 @@ library AccountLib {
         s.increaseNonce(expectedSigner);
     }
 
+    //! mainnet-audit
     /// @notice Internal function to increase the nonce of the address
     /// @param s The account storage layout
     /// @param addr The address to be increased nonce
