@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-/* ============ The type hash of sign typed data v4 for permit functions ============ */
-
-// withdraw function type hash
-bytes32 constant WITHDRAW_TYPEHASH = keccak256("Withdraw(address token,uint256 amount,uint256 nonce,uint256 deadline)");
-
 /**
  * @title Term Structure Account Storage
  * @author Term Structure Labs

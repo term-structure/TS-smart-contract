@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/ReentrancyGuard.sol";
-import {AccountStorage, WITHDRAW_TYPEHASH} from "./AccountStorage.sol";
+import {AccountStorage} from "./AccountStorage.sol";
 import {AddressStorage} from "../address/AddressStorage.sol";
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {TokenStorage, AssetConfig} from "../token/TokenStorage.sol";
@@ -18,6 +18,7 @@ import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {BabyJubJub, Point} from "../libraries/BabyJubJub.sol";
 import {DELEGATE_WITHDRAW_MASK} from "../libraries/Delegate.sol";
+import {WITHDRAW_TYPEHASH} from "../libraries/TypeHash.sol";
 
 /**
  * @title Term Structure Account Facet Contract

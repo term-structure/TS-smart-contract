@@ -48,33 +48,6 @@ struct LiquidationAmt {
     uint128 protocolPenaltyAmt;
 }
 
-/* ============ The type hash of sign typed data v4 for permit functions ============ */
-
-// Remove collateral function type hash
-bytes32 constant REMOVE_COLLATERAL_TYPEHASH = keccak256(
-    "RemoveCollateral(bytes12 loanId,uint128 amount,uint256 nonce,uint256 deadline)"
-);
-
-// Repay function type hash
-bytes32 constant REPAY_TYPEHASH = keccak256(
-    "Repay(bytes12 loanId,uint128 collateralAmt,uint128 debtAmt,bool repayAndDeposit,uint256 nonce,uint256 deadline)"
-);
-
-// Borrow function type hash
-bytes32 constant ROLL_BORROW_TYPEHASH = keccak256(
-    "RollBorrow(bytes12 loanId,uint32 expiredTime,uint32 maxAnnualPercentageRate,uint128 maxCollateralAmt,uint128 maxBorrowAmt,address tsbTokenAddr,uint256 nonce,uint256 deadline)"
-);
-
-// Force cancel roll borrow function type hash
-bytes32 constant FORCE_CANCEL_ROLL_BORROW_TYPEHASH = keccak256(
-    "ForceCancelRollBorrow(bytes12 loanId,uint256 nonce,uint256 deadline)"
-);
-
-// Roll to Aave function type hash
-bytes32 constant ROLL_TO_AAVE_TYPEHASH = keccak256(
-    "RollToAave(bytes12 loanId,uint128 collateralAmt,uint128 debtAmt,uint256 nonce,uint256 deadline)"
-);
-
 /// @notice The data of the roll borrow order
 /// @dev maxAnnualPercentageRate means the maximum annual percentage rate that borrower can accept,
 ///      the actual annual percentage rate may be less than or equal to it when the order matched in L2

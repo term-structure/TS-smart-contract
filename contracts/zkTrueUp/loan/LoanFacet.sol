@@ -24,8 +24,9 @@ import {AssetConfig} from "../token/TokenStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
-import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo, RollBorrowOrder, REMOVE_COLLATERAL_TYPEHASH, REPAY_TYPEHASH, ROLL_BORROW_TYPEHASH, FORCE_CANCEL_ROLL_BORROW_TYPEHASH, ROLL_TO_AAVE_TYPEHASH} from "./LoanStorage.sol";
+import {LoanStorage, LiquidationFactor, Loan, LiquidationAmt, LoanInfo, RollBorrowOrder} from "./LoanStorage.sol";
 import {DELEGATE_REMOVE_COLLATERAL_MASK, DELEGATE_REPAY_MASK, DELEGATE_ROLL_TO_AAVE_MASK, DELEGATE_ROLL_BORROW_MASK, DELEGATE_FORCE_CANCEL_ROLL_BORROW_MASK} from "../libraries/Delegate.sol";
+import {REMOVE_COLLATERAL_TYPEHASH, REPAY_TYPEHASH, ROLL_BORROW_TYPEHASH, FORCE_CANCEL_ROLL_BORROW_TYPEHASH, ROLL_TO_AAVE_TYPEHASH} from "../libraries/TypeHash.sol";
 
 /**
  * @title Term Structure Loan Facet Contract

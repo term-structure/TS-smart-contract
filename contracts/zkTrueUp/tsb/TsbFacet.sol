@@ -8,7 +8,7 @@ import {ReentrancyGuard} from "@solidstate/contracts/security/reentrancy_guard/R
 import {AccountStorage} from "../account/AccountStorage.sol";
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
-import {TsbStorage, REDEEM_TYPEHASH} from "./TsbStorage.sol";
+import {TsbStorage} from "./TsbStorage.sol";
 import {TsbLib} from "./TsbLib.sol";
 import {ITsbFacet} from "./ITsbFacet.sol";
 import {TsbToken} from "../tsb/TsbToken.sol";
@@ -19,6 +19,7 @@ import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
 import {DELEGATE_REDEEM_MASK} from "../libraries/Delegate.sol";
+import {REDEEM_TYPEHASH} from "../libraries/TypeHash.sol";
 
 /**
  * @title Term Structure Bond Facet Contract
