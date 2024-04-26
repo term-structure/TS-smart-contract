@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
+import {IStETH} from "./IStETH.sol";
 
 /**
  * @title The interface of the Lido WstETH contract
@@ -23,15 +24,4 @@ interface IWstETH is IERC20Permit {
     function stEthPerToken() external view returns (uint256);
 
     function tokensPerStEth() external view returns (uint256);
-}
-
-/**
- * @title The interface of the Lido stETH contract
- */
-interface IStETH is IERC20 {
-    function getPooledEthByShares(uint256 _sharesAmount) external view returns (uint256);
-
-    function getSharesByPooledEth(uint256 _pooledEthAmount) external view returns (uint256);
-
-    function submit(address _referral) external payable returns (uint256);
 }
