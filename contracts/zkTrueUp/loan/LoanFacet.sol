@@ -832,11 +832,11 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ) internal view returns (uint32) {
         // check the tsb token of next maturity time is exist
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(rollBorrowOrder.tsbTokenAddr));
-        if (!assetConfig.isTsbToken) revert InvalidTsbTokenAddr(rollBorrowOrder.tsbTokenAddr);
+        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(rollBorrowOrder.tsbToken));
+        if (!assetConfig.isTsbToken) revert InvalidTsbToken(rollBorrowOrder.tsbToken);
 
         uint32 oldMaturityTime = loanInfo.maturityTime;
-        (, uint32 newMaturityTime) = ITsbToken(rollBorrowOrder.tsbTokenAddr).tokenInfo();
+        (, uint32 newMaturityTime) = ITsbToken(rollBorrowOrder.tsbToken).tokenInfo();
 
         // assert: expireTime > block.timestamp && expireTime + 1 day <= old maturityTime
         // solhint-disable-next-line not-rely-on-time
@@ -1023,7 +1023,7 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
                     rollBorrowOrder.maxAnnualPercentageRate,
                     rollBorrowOrder.maxCollateralAmt,
                     rollBorrowOrder.maxBorrowAmt,
-                    rollBorrowOrder.tsbTokenAddr,
+                    rollBorrowOrder.tsbToken,
                     nonce,
                     deadline
                 )

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {AssetConfig} from "../token/TokenStorage.sol";
+import {ITsbToken} from "../interfaces/ITsbToken.sol";
 
 /// @notice Liquidation factor of the loan
 /// @dev liquidationLtvThreshold: the liquidation threshold of the loan-to-value ratio,
@@ -60,7 +61,7 @@ struct RollBorrowOrder {
     uint32 maxAnnualPercentageRate; // base is 1e8 (APR)
     uint128 maxCollateralAmt;
     uint128 maxBorrowAmt;
-    address tsbTokenAddr; // the tsb token address of the new term of the loan
+    ITsbToken tsbToken; // the tsb token of the new term of the loan
 }
 
 /**
