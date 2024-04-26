@@ -42,7 +42,7 @@ interface IEvacuationFacet {
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
     event Evacuation(
-        address accountAddr,
+        address indexed accountAddr,
         uint32 indexed accountId,
         IERC20 token,
         uint16 indexed tokenId,
@@ -65,7 +65,7 @@ interface IEvacuationFacet {
     ///         this is for user can still refund their asset by `refundDeregisteredAddr`
     /// @param accountAddr The address of the account
     /// @param accountId The id of the account
-    event AccountDeregistration(address accountAddr, uint32 indexed accountId);
+    event AccountDeregistration(address indexed accountAddr, uint32 indexed accountId);
 
     /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
     function activateEvacuation() external;
