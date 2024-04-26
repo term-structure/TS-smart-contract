@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
+
 /* ============ The type hash of sign typed data v4 for permit functions ============ */
 
 // withdraw function type hash

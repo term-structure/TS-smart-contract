@@ -275,8 +275,7 @@ library RollupLib {
         Operations.Register memory register
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.REGISTER);
-        if (Operations.isRegisterHashedPubDataMatched(register, request.hashedPubData)) return true;
-        return false;
+        return Operations.isRegisterHashedPubDataMatched(register, request.hashedPubData);
     }
 
     /// @notice Internal function to check whether the deposit request is in the L1 request queue
@@ -288,8 +287,7 @@ library RollupLib {
         Operations.Deposit memory deposit
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.DEPOSIT);
-        if (Operations.isDepositHashedPubDataMatched(deposit, request.hashedPubData)) return true;
-        return false;
+        return Operations.isDepositHashedPubDataMatched(deposit, request.hashedPubData);
     }
 
     /// @notice Internal function to check whether the force withdraw request is in the L1 request queue
@@ -301,8 +299,7 @@ library RollupLib {
         Operations.ForceWithdraw memory forceWithdraw
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.FORCE_WITHDRAW);
-        if (Operations.isForceWithdrawHashedPubDataMatched(forceWithdraw, request.hashedPubData)) return true;
-        return false;
+        return Operations.isForceWithdrawHashedPubDataMatched(forceWithdraw, request.hashedPubData);
     }
 
     /// @notice Internal function to check whether the evacuation is in the L1 request queue
@@ -314,8 +311,7 @@ library RollupLib {
         Operations.Evacuation memory evacuation
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.EVACUATION);
-        if (Operations.isEvacuationHashedPubDataMatched(evacuation, request.hashedPubData)) return true;
-        return false;
+        return Operations.isEvacuationHashedPubDataMatched(evacuation, request.hashedPubData);
     }
 
     /// @notice Internal function to check whether the roll borrow request is in the L1 request queue
@@ -327,8 +323,7 @@ library RollupLib {
         Operations.RollBorrow memory rollBorrow
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.ROLL_BORROW_ORDER);
-        if (Operations.isRollBorrowHashedPubDataMatched(rollBorrow, request.hashedPubData)) return true;
-        return false;
+        return Operations.isRollBorrowHashedPubDataMatched(rollBorrow, request.hashedPubData);
     }
 
     /// @notice Internal function to check whether the force cancel roll borrow request is in the L1 request queue
@@ -340,9 +335,7 @@ library RollupLib {
         Operations.CancelRollBorrow memory forceCancelRollBorrow
     ) internal pure returns (bool) {
         requireMatchedOpType(request.opType, Operations.OpType.FORCE_CANCEL_ROLL_BORROW);
-        if (Operations.isForceCancelRollBorrowHashedPubDataMatched(forceCancelRollBorrow, request.hashedPubData))
-            return true;
-        return false;
+        return Operations.isForceCancelRollBorrowHashedPubDataMatched(forceCancelRollBorrow, request.hashedPubData);
     }
 
     /// @notice Internal function check if the operation type is matched
