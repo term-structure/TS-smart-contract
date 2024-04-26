@@ -49,6 +49,8 @@ contract EvacuationFacet is IEvacuationFacet, ReentrancyGuard {
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
+        if (executedL1RequestNum == 0) revert NoExecutedL1Request();
+
         uint64 lastExecutedL1RequestId = executedL1RequestNum - 1;
         uint32 expirationTime = rsl.getL1Request(lastExecutedL1RequestId).expirationTime;
         // solhint-disable-next-line not-rely-on-time
@@ -78,6 +80,8 @@ contract EvacuationFacet is IEvacuationFacet, ReentrancyGuard {
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
+        if (totalL1RequestNum == 0) revert NoL1Request();
+
         uint64 lastL1RequestId = totalL1RequestNum - 1;
         // The last L1 request cannot be evacuation
         // because the evacuate action can only be called after consumed all L1 non-executed request

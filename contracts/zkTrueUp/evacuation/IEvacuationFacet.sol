@@ -30,6 +30,10 @@ interface IEvacuationFacet {
     error InvalidChunkIdDelta(uint16[] chunkIdDeltas);
     /// @notice Error for the specified accountId and tokenId is already evacuated
     error Evacuated(uint32 accountId, uint16 tokenId);
+    /// @notice Error for no executed L1 request
+    error NoExecutedL1Request();
+    /// @notice Error for no L1 request
+    error NoL1Request();
 
     /// @notice Emit when there is an evacuation
     /// @param accountAddr The address of the account
