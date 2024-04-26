@@ -214,7 +214,7 @@ export class User {
       maxAnnualPercentageRate: pIR.sub(100000000), // convert PIR to APR (i.e. 105% PIR -> 5% APR)
       maxCollateralAmt,
       maxBorrowAmt,
-      tsbTokenAddr,
+      tsbToken: tsbTokenAddr,
     };
 
     const rollOverFee = await diamondLoan.getRollOverFee();

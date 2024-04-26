@@ -231,7 +231,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       const rollBorrowTx = await diamondLoan
@@ -313,7 +313,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       // want to roll again but loan is locked
@@ -345,7 +345,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       // want to roll again but loan is locked
@@ -377,7 +377,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       // set invalid roll borrow fee 0.005 ETH
@@ -409,7 +409,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       // success to roll
@@ -448,7 +448,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: invalidTsbTokenAddr,
+        tsbToken: invalidTsbTokenAddr,
       };
 
       // roll to an invalid TSB token address
@@ -456,7 +456,7 @@ describe("Roll Borrow", () => {
         diamondLoan
           .connect(user1)
           .rollBorrow(rollBorrowOrder, { value: utils.parseEther("0.01") })
-      ).to.be.revertedWithCustomError(diamondLoan, "InvalidTsbTokenAddr");
+      ).to.be.revertedWithCustomError(diamondLoan, "InvalidTsbToken");
     });
 
     it("Fail to roll, invalid expired time", async () => {
@@ -482,7 +482,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(5e6), // 5% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       await expect(
@@ -634,7 +634,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       const rollBorrowTx = await diamondLoan
@@ -721,7 +721,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       const rollBorrowTx = await diamondLoan
@@ -803,7 +803,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
       const deadline = BigNumber.from("4294967295");
       const { v, r, s } = await signRollBorrowPermit(
@@ -891,7 +891,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       // want to roll again but loan is locked
@@ -923,7 +923,7 @@ describe("Roll Borrow", () => {
         maxAnnualPercentageRate: BigNumber.from(1e6), // 1% (base 1e8)
         maxCollateralAmt: collateralAmt,
         maxBorrowAmt: debtAmt,
-        tsbTokenAddr: nextTsbTokenAddr,
+        tsbToken: nextTsbTokenAddr,
       };
 
       // want to roll again but loan is locked

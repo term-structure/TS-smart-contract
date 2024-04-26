@@ -74,7 +74,7 @@ export const signRollBorrowPermit = async (
     maxAnnualPercentageRate: rollBorrowOrder.maxAnnualPercentageRate,
     maxCollateralAmt: rollBorrowOrder.maxCollateralAmt,
     maxBorrowAmt: rollBorrowOrder.maxBorrowAmt,
-    tsbTokenAddr: rollBorrowOrder.tsbTokenAddr,
+    tsbTokenAddr: rollBorrowOrder.tsbToken,
     nonce: nonce,
     deadline: deadline,
   };
