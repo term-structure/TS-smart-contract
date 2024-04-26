@@ -20,9 +20,9 @@ library Signature {
     bytes32 internal constant EIP712_TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
-    bytes32 internal constant EIP712_NAME_HASH = keccak256(bytes("ZkTrueUp"));
+    bytes32 internal constant EIP712_NAME_HASH = keccak256("ZkTrueUp");
 
-    bytes32 internal constant EIP712_VERSION_HASH = keccak256(bytes("1"));
+    bytes32 internal constant EIP712_VERSION_HASH = keccak256("1");
 
     function verifyDeadline(uint256 deadline) internal view {
         if (deadline < block.timestamp) revert SignatureExpired(deadline, block.timestamp);
