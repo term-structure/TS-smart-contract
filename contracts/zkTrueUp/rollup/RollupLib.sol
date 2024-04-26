@@ -151,9 +151,9 @@ library RollupLib {
     function requireConsumedAllNonExecutedReq(RollupStorage.Layout storage s) internal view {
         uint64 executedL1RequestNum = s.getExecutedL1RequestNum();
         uint64 totalL1RequestNum = s.getTotalL1RequestNum();
-        uint64 lastL1RequestId = totalL1RequestNum - 1;
         // the last executed L1 req == the total L1 req (end of consume)
         if (executedL1RequestNum != totalL1RequestNum) {
+            uint64 lastL1RequestId = totalL1RequestNum - 1;
             // the last L1 req is evacuation (end of consume and someone already evacuated)
             bool isLastL1RequestEvacuation = s.getL1Request(lastL1RequestId).opType == Operations.OpType.EVACUATION;
             if (!isLastL1RequestEvacuation) revert NotConsumedAllL1Requests(executedL1RequestNum, totalL1RequestNum);
