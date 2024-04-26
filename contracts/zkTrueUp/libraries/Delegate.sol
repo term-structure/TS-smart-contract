@@ -16,6 +16,6 @@ library Delegate {
     /// @param delegatedActions The delegated actions
     /// @param actionMask The mask of the action to check
     function isDelegated(uint256 delegatedActions, uint256 actionMask) internal pure returns (bool) {
-        return (delegatedActions & actionMask) != 0;
+        return delegatedActions & actionMask != 0;
     }
 }
