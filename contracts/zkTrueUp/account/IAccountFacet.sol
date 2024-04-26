@@ -97,8 +97,8 @@ interface IAccountFacet {
     /// @dev (i.e. use `DELEGATE_WITHDRAW_MASK` to check if the withdraw action is delegated)
     /// @param delegator The address of the delegator
     /// @param delegatee The address of the delegatee
-    /// @param actionMask The mask of the action to check
-    /// @return isDelegated The isDelegated status of the account
+    /// @param actionMask The mask of the action to check if it is delegated
+    /// @return isDelegated The action is delegated or not
     function getIsDelegated(address delegator, address delegatee, uint256 actionMask) external view returns (bool);
 
     //! mainnet-audit
