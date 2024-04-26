@@ -115,11 +115,11 @@ contract EvacuationFacet is IEvacuationFacet, ReentrancyGuard {
                 AccountStorage.Layout storage asl = AccountStorage.layout();
                 address registerAddr = asl.accountAddresses[registerReq.accountId];
                 delete asl.accountIds[registerAddr];
-                emit AccountDeregistered(registerAddr, registerReq.accountId);
+                emit AccountDeregistration(registerAddr, registerReq.accountId);
             }
 
             ++executedL1RequestNum;
-            emit L1RequestConsumed(executedL1RequestNum, opType, pubData);
+            emit L1RequestConsumption(executedL1RequestNum, opType, pubData);
         }
         rsl.committedL1RequestNum = executedL1RequestNum;
         rsl.executedL1RequestNum = executedL1RequestNum;

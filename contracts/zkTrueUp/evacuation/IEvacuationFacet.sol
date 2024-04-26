@@ -57,7 +57,7 @@ interface IEvacuationFacet {
     /// @param executedL1RequestNum The number of the executed L1 request
     /// @param opType The type of the L1 request
     /// @param pubData The public data of the L1 request
-    event L1RequestConsumed(uint64 executedL1RequestNum, Operations.OpType opType, bytes pubData);
+    event L1RequestConsumption(uint64 executedL1RequestNum, Operations.OpType opType, bytes pubData);
 
     /// @notice Emit when an account is de-registered
     /// @notice De-registered only remove the accountAddr -> accountId mapping,
@@ -65,7 +65,7 @@ interface IEvacuationFacet {
     ///         this is for user can still refund their asset by `refundDeregisteredAddr`
     /// @param accountAddr The address of the account
     /// @param accountId The id of the account
-    event AccountDeregistered(address accountAddr, uint32 indexed accountId);
+    event AccountDeregistration(address accountAddr, uint32 indexed accountId);
 
     /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
     function activateEvacuation() external;
