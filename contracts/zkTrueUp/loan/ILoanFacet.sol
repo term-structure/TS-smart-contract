@@ -22,19 +22,9 @@ interface ILoanFacet {
     /// @notice Error for liquidate the loan with invalid repay amount
     error RepayAmtExceedsMaxRepayAmt(uint128 repayAmt, uint128 maxRepayAmt);
     /// @notice Error for supply to Aave with string reason
-    error SupplyToAaveFailedLogString(IERC20 collateralToken, uint128 collateralAmt, string reason);
-    /// @notice Error for supply to Aave with bytes reason
-    error SupplyToAaveFailedLogBytes(IERC20 collateralToken, uint128 collateralAmt, bytes reason);
-    /// @notice Error for borrow from Aave with string reason
-    error BorrowFromAaveFailedLogString(
-        IERC20 collateralToken,
-        uint128 collateralAmt,
-        IERC20 debtToken,
-        uint128 debtAmt,
-        string reason
-    );
+    error SupplyToAaveFailed(IERC20 collateralToken, uint128 collateralAmt, bytes reason);
     /// @notice Error for borrow from Aave with bytes reason
-    error BorrowFromAaveFailedLogBytes(
+    error BorrowFromAaveFailed(
         IERC20 collateralToken,
         uint128 collateralAmt,
         IERC20 debtToken,
