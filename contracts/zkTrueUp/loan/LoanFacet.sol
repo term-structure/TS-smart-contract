@@ -13,7 +13,6 @@ import {ProtocolParamsStorage} from "../protocolParams/ProtocolParamsStorage.sol
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
 import {IPool} from "../interfaces/aaveV3/IPool.sol";
-import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {ILoanFacet} from "./ILoanFacet.sol";
 import {ProtocolParamsLib} from "../protocolParams/ProtocolParamsLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
