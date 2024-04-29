@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
@@ -19,11 +20,12 @@ import {Config} from "../libraries/Config.sol";
  * @author Term Structure Labs
  */
 library LoanLib {
-    using Math for uint256;
+    using Math for *;
     using AccountLib for AccountStorage.Layout;
     using TokenLib for TokenStorage.Layout;
     using RollupLib for RollupStorage.Layout;
     using LoanLib for *;
+    using SafeCast for uint256;
 
     /// @notice Error for collateral amount is not enough when removing collateral
     error CollateralAmtIsNotEnough(uint128 collateralAmt, uint128 amount);
@@ -354,6 +356,51 @@ library LoanLib {
         uint8 collateralDecimals
     ) internal pure returns (uint256) {
         return normalizedCollateralPrice.mulDiv(collateralAmt, 10 ** collateralDecimals) / 10 ** 18;
+    }
+
+    /// @notice Internal function to calculate the interest rate
+    /// @param annualPercentageRate The annual percentage rate
+    /// @param maturityTime The maturity time
+    /// @return interestRate The interest rate
+    function calcInterestRate(uint32 annualPercentageRate, uint32 maturityTime) internal view returns (uint32) {
+        // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
+        uint32 interestRate = annualPercentageRate
+        // solhint-disable-next-line not-rely-on-time
+            .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
+            .toUint32();
+
+        return interestRate;
+    }
+
+    /// @notice Internal function to calculate the borrow fee
+    /// @param borrowAmt The amount of the borrow
+    /// @param interestRate The interest rate
+    /// @param borrowFeeRate The borrow fee rate
+    /// @return borrowFee The borrow fee
+    function calcBorrowFee(
+        uint128 borrowAmt,
+        uint32 interestRate,
+        uint32 borrowFeeRate
+    ) internal pure returns (uint128) {
+        // borrowFee = borrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
+        uint128 borrowFee = borrowAmt
+            .mulDiv(uint256(interestRate), Config.SYSTEM_UNIT_BASE)
+            .mulDiv(borrowFeeRate, Config.SYSTEM_UNIT_BASE)
+            .toUint128();
+
+        return borrowFee;
+    }
+
+    /// @notice Internal function to calculate the debt amount
+    /// @param borrowAmt The amount of the borrow
+    /// @param interestRate The interest rate
+    /// @return debtAmt The debt amount
+    function calcDebtAmt(uint128 borrowAmt, uint32 interestRate) internal pure returns (uint128) {
+        // debtAmt = borrowAmt + interest
+        // ==> debtAmt = borrowAmt + borrowAmt * interestRate / SYSTEM_UNIT_BASE
+        uint128 debtAmt = borrowAmt + borrowAmt.mulDiv(interestRate, Config.SYSTEM_UNIT_BASE).toUint128();
+
+        return debtAmt;
     }
 
     /// @notice Internal function to get the loan id by the loan info

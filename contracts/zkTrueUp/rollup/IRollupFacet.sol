@@ -63,20 +63,6 @@ interface IRollupFacet {
     /// @param blockNumber The number of the reverted block
     event BlockRevert(uint32 indexed blockNumber);
 
-    /// @notice Emit when there is an evacuation
-    /// @param accountAddr The address of the account
-    /// @param accountId The id of the account
-    /// @param token The token to be evacuated
-    /// @param tokenId The id of the token
-    /// @param amount The amount of the token
-    event Evacuation(
-        address accountAddr,
-        uint32 indexed accountId,
-        IERC20 token,
-        uint16 indexed tokenId,
-        uint256 amount
-    );
-
     /// @notice Emitted when evacuation mode is deactivated
     event EvacuModeDeactivation();
 

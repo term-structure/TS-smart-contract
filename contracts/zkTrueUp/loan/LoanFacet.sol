@@ -875,24 +875,9 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
         // {} scope to avoid stack too deep error
         {
-            // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
-            uint32 maxInterestRate = rollBorrowOrder
-                .maxAnnualPercentageRate
-                // solhint-disable-next-line not-rely-on-time
-                .mulDiv(newMaturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
-                .toUint32();
-
-            // borrowFee = borrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
-            // ==> maxBorrowFee = maxBorrowAmt * (maxInterestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
-            uint128 maxBorrowFee = rollBorrowOrder
-                .maxBorrowAmt
-                .mulDiv(uint256(maxInterestRate) * borrowFeeRate, Config.SYSTEM_UNIT_BASE * Config.SYSTEM_UNIT_BASE)
-                .toUint128();
-
-            // debtAmt = borrowAmt + interest
-            // ==> maxDebtAmt = maxBorrowAmt + maxBorrowAmt * maxInterestRate / SYSTEM_UNIT_BASE
-            uint128 maxDebtAmt = rollBorrowOrder.maxBorrowAmt +
-                rollBorrowOrder.maxBorrowAmt.mulDiv(maxInterestRate, Config.SYSTEM_UNIT_BASE).toUint128();
+            uint32 maxInterestRate = rollBorrowOrder.maxAnnualPercentageRate.calcInterestRate(newMaturityTime);
+            uint128 maxBorrowFee = rollBorrowOrder.maxBorrowAmt.calcBorrowFee(maxInterestRate, borrowFeeRate);
+            uint128 maxDebtAmt = rollBorrowOrder.maxBorrowAmt.calcDebtAmt(maxInterestRate);
 
             // check the original loan will be strictly healthy after roll over
             Loan memory loan = loanInfo.loan;

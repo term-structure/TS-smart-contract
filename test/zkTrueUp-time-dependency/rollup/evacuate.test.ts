@@ -243,9 +243,10 @@ describe("Evacuate", function () {
     const evacuation2Amt = toL1Amt(evacuation2.amount, TS_BASE_TOKEN.WBTC);
     // tsb token's L1 and L2 decimals are same
     const evacuation3Amt = evacuation3.amount;
+
     // check event
     await expect(evacuateTx1)
-      .to.emit(diamondRollup, "Evacuation")
+      .to.emit(diamondEvacuation, "Evacuation")
       .withArgs(
         account1Addr,
         evacuation1.accountId,
@@ -253,8 +254,9 @@ describe("Evacuate", function () {
         token1Id,
         evacuation1Amt
       );
+
     await expect(evacuateTx2)
-      .to.emit(diamondRollup, "Evacuation")
+      .to.emit(diamondEvacuation, "Evacuation")
       .withArgs(
         account2Addr,
         evacuation2.accountId,
@@ -263,7 +265,7 @@ describe("Evacuate", function () {
         evacuation2Amt
       );
     await expect(evacuateTx3)
-      .to.emit(diamondRollup, "Evacuation")
+      .to.emit(diamondEvacuation, "Evacuation")
       .withArgs(
         account3Addr,
         evacuation3.accountId,
