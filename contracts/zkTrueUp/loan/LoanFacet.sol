@@ -91,20 +91,17 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ) external nonReentrant {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        address loanOwner;
 
-        // {} scope to avoid stack too deep error
-        {
-            AccountStorage.Layout storage asl = AccountStorage.layout();
-            loanOwner = asl.getAccountAddr(loanInfo.accountId);
-            bytes32 structHash = _calcRemoveCollateralStructHash(
-                loanId,
-                amount,
-                asl.getPermitNonce(loanOwner),
-                deadline
-            );
-            asl.validatePermitAndIncreaseNonce(loanOwner, structHash, deadline, v, r, s);
-        }
+        address loanOwner = _validateSignature(
+            REMOVE_COLLATERAL_TYPEHASH,
+            loanId,
+            loanInfo.accountId,
+            LoanLib.encodeRemoveCollateralParams(amount),
+            deadline,
+            v,
+            r,
+            s
+        );
 
         _removeCollateral(lsl, loanInfo, loanId, msg.sender, loanOwner, amount);
     }
@@ -138,22 +135,17 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ) external payable {
         LoanStorage.Layout storage lsl = LoanStorage.layout();
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        address loanOwner;
 
-        // {} scope to avoid stack too deep error
-        {
-            AccountStorage.Layout storage asl = AccountStorage.layout();
-            loanOwner = asl.getAccountAddr(loanInfo.accountId);
-            bytes32 structHash = _calcRepayStructHash(
-                loanId,
-                collateralAmt,
-                debtAmt,
-                repayAndDeposit,
-                asl.getPermitNonce(loanOwner),
-                deadline
-            );
-            asl.validatePermitAndIncreaseNonce(loanOwner, structHash, deadline, v, r, s);
-        }
+        address loanOwner = _validateSignature(
+            REPAY_TYPEHASH,
+            loanId,
+            loanInfo.accountId,
+            LoanLib.encodeRepayParams(collateralAmt, debtAmt, repayAndDeposit),
+            deadline,
+            v,
+            r,
+            s
+        );
 
         _repay(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt, repayAndDeposit, msg.value);
     }
@@ -198,21 +190,17 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         if (!lsl.getRollerState()) revert RollIsNotActivated();
 
         LoanInfo memory loanInfo = lsl.getLoanInfo(loanId);
-        address loanOwner;
 
-        // {} scope to avoid stack too deep error
-        {
-            AccountStorage.Layout storage asl = AccountStorage.layout();
-            loanOwner = asl.getAccountAddr(loanInfo.accountId);
-            bytes32 structHash = _calcRollToAaveStructHash(
-                loanId,
-                collateralAmt,
-                debtAmt,
-                asl.getPermitNonce(loanOwner),
-                deadline
-            );
-            asl.validatePermitAndIncreaseNonce(loanOwner, structHash, deadline, v, r, s);
-        }
+        address loanOwner = _validateSignature(
+            ROLL_TO_AAVE_TYPEHASH,
+            loanId,
+            loanInfo.accountId,
+            LoanLib.encodeRollToAaveParams(collateralAmt, debtAmt),
+            deadline,
+            v,
+            r,
+            s
+        );
 
         _rollToAave(lsl, loanInfo, msg.sender, loanOwner, loanId, collateralAmt, debtAmt);
     }
@@ -257,17 +245,18 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         Utils.transferNativeToken(ProtocolParamsStorage.layout().getVaultAddr(), msg.value);
 
         LoanInfo memory loanInfo = lsl.getLoanInfo(rollBorrowOrder.loanId);
-        address loanOwner;
-
-        // {} scope to avoid stack too deep error
-        {
-            AccountStorage.Layout storage asl = AccountStorage.layout();
-            loanOwner = asl.getAccountAddr(loanInfo.accountId);
-            bytes32 structHash = _calcRollBorrowStructHash(rollBorrowOrder, asl.getPermitNonce(loanOwner), deadline);
-            asl.validatePermitAndIncreaseNonce(loanOwner, structHash, deadline, v, r, s);
-        }
-
         uint32 newMaturityTime = _requireValidOrder(rollBorrowOrder, loanInfo, rollBorrowOrder.loanId);
+
+        address loanOwner = _validateSignature(
+            ROLL_BORROW_TYPEHASH,
+            rollBorrowOrder.loanId,
+            loanInfo.accountId,
+            LoanLib.encodeRollBorrowParams(rollBorrowOrder),
+            deadline,
+            v,
+            r,
+            s
+        );
 
         _rollBorrow(lsl, rollBorrowOrder, loanInfo, msg.sender, loanOwner, rollBorrowOrder.loanId, newMaturityTime);
     }
@@ -315,15 +304,17 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
         (uint32 accountId, uint32 maturityTime, uint16 debtTokenId, uint16 collateralTokenId) = LoanLib.resolveLoanId(
             loanId
         );
-        address loanOwner;
 
-        // {} scope to avoid stack too deep error
-        {
-            AccountStorage.Layout storage asl = AccountStorage.layout();
-            loanOwner = asl.getAccountAddr(accountId);
-            bytes32 structHash = _calcForceCancelRollBorrowStructHash(loanId, asl.getPermitNonce(loanOwner), deadline);
-            asl.validatePermitAndIncreaseNonce(loanOwner, structHash, deadline, v, r, s);
-        }
+        address loanOwner = _validateSignature(
+            FORCE_CANCEL_ROLL_BORROW_TYPEHASH,
+            loanId,
+            accountId,
+            LoanLib.encodeForceCancelRollBorrowParams(),
+            deadline,
+            v,
+            r,
+            s
+        );
 
         _forceCancelRollBorrow(
             lsl,
@@ -828,11 +819,11 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
     ) internal view returns (uint32) {
         // check the tsb token of next maturity time is exist
         TokenStorage.Layout storage tsl = TokenStorage.layout();
-        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(IERC20(rollBorrowOrder.tsbToken));
+        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(rollBorrowOrder.tsbToken);
         if (!assetConfig.isTsbToken) revert InvalidTsbToken(rollBorrowOrder.tsbToken);
 
         uint32 oldMaturityTime = loanInfo.maturityTime;
-        (, uint32 newMaturityTime) = ITsbToken(rollBorrowOrder.tsbToken).tokenInfo();
+        (, uint32 newMaturityTime) = rollBorrowOrder.tsbToken.tokenInfo();
 
         // assert: expireTime > block.timestamp && expireTime + 1 day <= old maturityTime
         // solhint-disable-next-line not-rely-on-time
@@ -947,6 +938,40 @@ contract LoanFacet is ILoanFacet, AccessControlInternal, ReentrancyGuard {
 
         LoanLib.addForceCancelRollBorrowReq(RollupStorage.layout(), loanOwner, forceCancelRollBorrowReq);
         emit RollBorrowOrderForceCancelPlaced(loanId, caller, loanOwner);
+    }
+
+    /// @notice Internal function to validate the signature
+    /// @param typeHash The type hash of the permit
+    /// @param loanId The id of the loan
+    /// @param accountId The account id of the loan owner
+    /// @param encodedParams The encoded parameters of the permit
+    /// @param deadline The deadline of the permit
+    /// @param v The recovery id of the permit
+    /// @param r The r value of the permit
+    /// @param s The s value of the permit
+    /// @return loanOwner The owner of the loan
+    function _validateSignature(
+        bytes32 typeHash,
+        bytes12 loanId,
+        uint32 accountId,
+        bytes memory encodedParams,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal returns (address) {
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        address loanOwner = asl.getAccountAddr(accountId);
+        bytes32 structHash = LoanLib.calcStructHash(
+            typeHash,
+            loanId,
+            encodedParams,
+            asl.getPermitNonce(loanOwner),
+            deadline
+        );
+        asl.validatePermitAndIncreaseNonce(loanOwner, structHash, deadline, v, r, s);
+
+        return loanOwner;
     }
 
     /* ============ Internal Pure Functions to Calculate Struct Hash ============ */

@@ -7,7 +7,7 @@ import {TokenLib} from "../token/TokenLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
-import {LoanStorage, Loan, LiquidationFactor, LoanInfo} from "./LoanStorage.sol";
+import {LoanStorage, Loan, LiquidationFactor, LoanInfo, RollBorrowOrder} from "./LoanStorage.sol";
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
@@ -422,6 +422,97 @@ library LoanLib {
                     (uint96(maturityTime) << 32) |
                     (uint96(accountId) << 64)
             );
+    }
+
+    /// @notice Internal function to calculate the EIP712 struct hash
+    /// @param typeHash The type hash of the function
+    /// @param loanId The loan id
+    /// @param encodedParams The encoded params of the function
+    /// @param nonce The nonce of the function
+    /// @param deadline The deadline of the function
+    /// @return h The struct hash
+    function calcStructHash(
+        bytes32 typeHash,
+        bytes12 loanId,
+        bytes memory encodedParams,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        bytes32 h;
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            let p := mload(0x40)
+            mstore(p, typeHash)
+            mstore(add(p, 32), loanId)
+
+            let t := div(add(mload(encodedParams), 31), 32)
+
+            for {
+                let i := 0
+            } lt(i, t) {
+                i := add(i, 1)
+            } {
+                mstore(add(p, add(64, mul(i, 32))), mload(add(encodedParams, add(32, mul(i, 32)))))
+            }
+
+            mstore(add(p, add(64, mul(t, 32))), nonce)
+            mstore(add(p, add(96, mul(t, 32))), deadline)
+
+            mstore(0x40, add(p, add(128, mul(t, 32))))
+
+            h := keccak256(p, add(128, mul(t, 32)))
+        }
+
+        return h;
+    }
+
+    /// @notice Internal function to encode the add collateral params
+    /// @param amount The amount of the collateral to be added
+    /// @return The encoded add collateral params
+    function encodeRemoveCollateralParams(uint128 amount) internal pure returns (bytes memory) {
+        return abi.encode(amount);
+    }
+
+    /// @notice Internal function to encode the repay params
+    /// @param collateralAmt The amount of the collateral to be removed
+    /// @param debtAmt The amount of the debt to be repaid
+    /// @param repayAndDeposit Whether repay and deposit
+    /// @return The encoded repay params
+    function encodeRepayParams(
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        bool repayAndDeposit
+    ) internal pure returns (bytes memory) {
+        return abi.encode(collateralAmt, debtAmt, repayAndDeposit);
+    }
+
+    /// @notice Internal function to encode the roll to aave params
+    /// @param collateralAmt The amount of the collateral to be rolled
+    /// @param debtAmt The amount of the debt to be rolled
+    /// @return The encoded roll to aave params
+    function encodeRollToAaveParams(uint128 collateralAmt, uint128 debtAmt) internal pure returns (bytes memory) {
+        return abi.encode(collateralAmt, debtAmt);
+    }
+
+    /// @notice Internal function to encode the roll borrow params
+    /// @param rollBorrowOrder The roll borrow order
+    /// @return The encoded roll borrow params
+    function encodeRollBorrowParams(RollBorrowOrder memory rollBorrowOrder) internal pure returns (bytes memory) {
+        return
+            abi.encode(
+                rollBorrowOrder.expiredTime,
+                rollBorrowOrder.maxAnnualPercentageRate,
+                rollBorrowOrder.maxCollateralAmt,
+                rollBorrowOrder.maxBorrowAmt,
+                rollBorrowOrder.tsbToken
+            );
+    }
+
+    /// @notice Internal function to encode the force cancel roll borrow params
+    /// @return The encoded force cancel roll borrow params
+    function encodeForceCancelRollBorrowParams() internal pure returns (bytes memory) {
+        return abi.encode();
     }
 
     /// @notice Resolve the loan id
