@@ -5,7 +5,7 @@ async function main() {
   console.log("mnemonic: ", mnemonic, "\n");
   const node = ethers.utils.HDNode.fromMnemonic(mnemonic);
 
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 1; i++) {
     // eslint-disable-next-line quotes
     const wallet = node.derivePath("m/44'/60'/0'/0/" + i);
     console.log(`\n[${i}] ` + ":");

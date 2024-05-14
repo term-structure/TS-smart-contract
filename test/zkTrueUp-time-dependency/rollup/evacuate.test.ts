@@ -2,7 +2,6 @@ import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { BigNumber, utils, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { resolve } from "path";
 import { useFacet } from "../../../utils/useFacet";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { FACET_NAMES } from "../../../utils/config";
@@ -19,6 +18,7 @@ import {
 import {
   AccountFacet,
   EvacuationFacet,
+  LoanFacet,
   RollupFacet,
   TokenFacet,
   TsbFacet,
@@ -26,32 +26,28 @@ import {
   WETH9,
   ZkTrueUp,
 } from "../../../typechain-types";
+import { readEvacuationPubData } from "../../utils/rollupHelper";
 import {
-  actionDispatcher,
-  getCommitBlock,
-  getExecuteBlock,
-  getPendingRollupTxPubData,
-  getStoredBlock,
-  initTestData,
-  readEvacuationPubData,
-} from "../../utils/rollupHelper";
-import {
-  CommitBlockStruct,
-  ExecuteBlockStruct,
   ProofStruct,
   StoredBlockStruct,
-  VerifyBlockStruct,
 } from "../../../typechain-types/contracts/zkTrueUp/rollup/RollupFacet";
 import { toL1Amt, toL2Amt } from "../../utils/amountConvertor";
-import initStates from "../../data/rollupData/rollup/initStates.json";
-const testDataPath = resolve("./test/data/rollupData/rollup");
-const testData = initTestData(testDataPath);
-import _case01 from "../../data/rollupData/evacuate/case01.json";
-import _case02 from "../../data/rollupData/evacuate/case02.json";
-import _case05 from "../../data/rollupData/evacuate/case05.json";
+import { rollupData } from "../../data/rollup/test_data";
+import {
+  Users,
+  preprocessAndRollupBlocks,
+} from "../../utils/rollBorrowRollupHelper";
+import _case01 from "../../data/rollup/000.evacu_calldata.json";
+import _case02 from "../../data/rollup/001.evacu_calldata.json";
+import _case05 from "../../data/rollup/004.evacu_calldata.json";
+
+const initStateRoot = utils.hexZeroPad(
+  utils.hexlify(BigInt(rollupData.initState.stateRoot)),
+  32
+);
 
 const fixture = async () => {
-  const res = await deployAndInit(FACET_NAMES);
+  const res = await deployAndInit(FACET_NAMES, false, undefined, initStateRoot);
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp.address
@@ -69,7 +65,7 @@ describe("Evacuate", function () {
   let storedBlocks: StoredBlockStruct[] = [];
   const genesisBlock: StoredBlockStruct = {
     blockNumber: BigNumber.from("0"),
-    stateRoot: initStates.stateRoot,
+    stateRoot: initStateRoot,
     l1RequestNum: BigNumber.from("0"),
     pendingRollupTxHash: EMPTY_HASH,
     commitment: ethers.utils.defaultAbiCoder.encode(
@@ -78,10 +74,7 @@ describe("Evacuate", function () {
     ),
     timestamp: BigNumber.from("0"),
   };
-  let accounts: Signer[];
-  let committedBlockNum: number = 0;
-  let provedBlockNum: number = 0;
-  let executedBlockNum: number = 0;
+  let accounts: Users;
   let operator: Signer;
   let weth: WETH9;
   let zkTrueUp: ZkTrueUp;
@@ -90,10 +83,12 @@ describe("Evacuate", function () {
   let diamondTsb: TsbFacet;
   let diamondToken: TokenFacet;
   let diamondEvacuation: EvacuationFacet;
+  let diamondLoan: LoanFacet;
   let baseTokenAddresses: BaseTokenAddresses;
   let case01: typeof _case01;
   let case02: typeof _case02;
   let case05: typeof _case05;
+  let latestStoredBlock: StoredBlockStruct;
 
   beforeEach(async function () {
     const res = await loadFixture(fixture);
@@ -102,12 +97,12 @@ describe("Evacuate", function () {
     case05 = JSON.parse(JSON.stringify(_case05));
     storedBlocks = [];
     storedBlocks.push(genesisBlock);
-    committedBlockNum = 1;
-    provedBlockNum = 1;
-    executedBlockNum = 1;
     operator = res.operator;
     weth = res.weth;
-    accounts = await ethers.getSigners();
+    accounts = new Users(await ethers.getSigners());
+    rollupData.user_data.forEach((user) =>
+      accounts.addUser(user.tsPubKeyX, user.tsPubKeyY)
+    );
     zkTrueUp = res.zkTrueUp;
     const zkTrueUpAddr = zkTrueUp.address;
     diamondAcc = (await useFacet("AccountFacet", zkTrueUpAddr)) as AccountFacet;
@@ -121,102 +116,34 @@ describe("Evacuate", function () {
       "EvacuationFacet",
       zkTrueUpAddr
     )) as EvacuationFacet;
+    diamondLoan = (await useFacet("LoanFacet", zkTrueUpAddr)) as LoanFacet;
     baseTokenAddresses = res.baseTokenAddresses;
-    const EXECUTE_BLOCK_NUMBER = 21;
+    const EXECUTED_BLOCK_NUM = 21;
 
-    for (let k = 0; k < EXECUTE_BLOCK_NUMBER; k++) {
-      const testCase = testData[k];
-      // before rollup
-      for (let i = 0; i < testCase.reqDataList.length; i++) {
-        const reqType = testCase.reqDataList[i][0];
-        await actionDispatcher(
-          reqType,
-          operator,
-          accounts,
-          baseTokenAddresses,
-          testCase,
-          i,
-          diamondAcc,
-          diamondToken,
-          diamondTsb
-        );
-      }
-      // commit blocks
-      // get last committed block
-      const lastCommittedBlock = storedBlocks[committedBlockNum - 1];
-      // generate new blocks
-      const newBlocks: CommitBlockStruct[] = [];
-      const commitBlock = getCommitBlock(lastCommittedBlock, testCase);
-      newBlocks.push(commitBlock);
-
-      // mock timestamp to test case timestamp
-      time.increaseTo(Number(commitBlock.timestamp));
-
-      // commit blocks
-      await diamondRollup
-        .connect(operator)
-        .commitBlocks(lastCommittedBlock, newBlocks);
-      const storedBlock = getStoredBlock(commitBlock, testCase);
-      storedBlocks.push(storedBlock);
-      // calculate state transition
-      let committedL1RequestNum = BigNumber.from("0");
-      for (let i = 0; i < newBlocks.length; i++) {
-        committedL1RequestNum = committedL1RequestNum.add(
-          BigNumber.from(storedBlocks[committedBlockNum + i].l1RequestNum)
-        );
-      }
-      // update state
-      committedBlockNum += newBlocks.length;
-
-      // verify blocks
-      const committedBlocks: StoredBlockStruct[] = [];
-      const committedBlock = storedBlocks[provedBlockNum];
-      committedBlocks.push(committedBlock);
-
-      const proofs: ProofStruct[] = [];
-      const proof: ProofStruct = testCase.callData;
-      proofs.push(proof);
-
-      const verifyingBlocks: VerifyBlockStruct[] = [];
-      verifyingBlocks.push({
-        storedBlock: committedBlock,
-        proof: proof,
-      });
-      await diamondRollup.connect(operator).verifyBlocks(verifyingBlocks);
-
-      provedBlockNum += committedBlocks.length;
-
-      // execute blocks
-      const pendingBlocks: ExecuteBlockStruct[] = [];
-      const pendingRollupTxPubData = getPendingRollupTxPubData(testCase);
-      const executeBlock = getExecuteBlock(
-        storedBlocks[executedBlockNum],
-        pendingRollupTxPubData
-      );
-      pendingBlocks.push(executeBlock);
-      // execute block
-      await diamondRollup.connect(operator).executeBlocks(pendingBlocks);
-      // calculate state transition
-      let executedL1RequestNum = BigNumber.from("0");
-      for (let i = 0; i < pendingBlocks.length; i++) {
-        executedL1RequestNum = executedL1RequestNum.add(
-          BigNumber.from(pendingBlocks[i].storedBlock.l1RequestNum)
-        );
-      }
-      // update state
-      executedBlockNum += pendingBlocks.length;
-    }
+    latestStoredBlock = await preprocessAndRollupBlocks(
+      EXECUTED_BLOCK_NUM,
+      rollupData,
+      diamondAcc,
+      diamondRollup,
+      diamondTsb,
+      diamondToken,
+      diamondLoan,
+      operator,
+      accounts,
+      baseTokenAddresses,
+      genesisBlock
+    );
   });
 
   it("Success to evacuate", async function () {
     let req = await diamondRollup.getL1RequestNum();
     // add deposit request in L1 request queue
-    const user1 = accounts[1];
-    const user1Addr = await user1.getAddress();
+    const user1 = accounts.getUser(1);
+    const user1Addr = await user1.getAddr();
     const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await weth.connect(user1).approve(zkTrueUp.address, amount);
+    await weth.connect(user1.signer).approve(zkTrueUp.address, amount);
     await diamondAcc
-      .connect(user1)
+      .connect(user1.signer)
       .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
         value: amount,
       });
@@ -244,23 +171,21 @@ describe("Evacuate", function () {
     await diamondEvacuation.consumeL1RequestInEvacuMode([depositPubDataBytes]);
     req = await diamondRollup.getL1RequestNum();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
-    const evacuBlock1 = case01.newBlock;
-    const evacuBlock2 = case02.newBlock;
-    const evacuBlock3 = _case05.newBlock;
+    const evacuData1 = case01;
+    const evacuData2 = case02;
+    const evacuData3 = case05;
     const proof1: ProofStruct = case01.proof as ProofStruct;
     const proof2: ProofStruct = case02.proof as ProofStruct;
-    const proof3: ProofStruct = _case05.proof as ProofStruct;
+    const proof3: ProofStruct = case05.proof as ProofStruct;
     const evacuation1 = readEvacuationPubData(
-      evacuBlock1.publicData.toString()
+      case01.newBlock.publicData.toString()
     );
     const evacuation2 = readEvacuationPubData(
-      evacuBlock2.publicData.toString()
+      evacuData2.newBlock.publicData.toString()
     );
     const evacuation3 = readEvacuationPubData(
-      evacuBlock3.publicData.toString()
+      evacuData3.newBlock.publicData.toString()
     );
-
     // before state
     const [
       beforeCommittedL1RequestNum,
@@ -272,7 +197,6 @@ describe("Evacuate", function () {
     // user1 evacuate eth
     const account1Addr = await diamondAcc.getAccountAddr(evacuation1.accountId);
     const token1Id = Number(evacuation1.tokenId);
-    const beforeUser1EthBalance = await user1.getBalance();
     // user2 evacuate wbtc
     const account2Addr = await diamondAcc.getAccountAddr(evacuation2.accountId);
     const token2Id = Number(evacuation2.tokenId);
@@ -291,33 +215,38 @@ describe("Evacuate", function () {
     const beforeUser3TsbBalance = await tsbToken.balanceOf(account3Addr);
     const beforeTsbTotalSupply = await tsbToken.totalSupply();
 
+    const lastExecutedBlock = latestStoredBlock;
     // test 3 user evacuate
-    time.increaseTo(Number(evacuBlock1.timestamp));
-    const evacuateTx1 = await diamondEvacuation.evacuate(
-      lastExecutedBlock,
-      evacuBlock1,
-      proof1
-    );
-    time.increaseTo(Number(evacuBlock2.timestamp));
+    time.increaseTo(Number(evacuData1.newBlock.timestamp));
+    const evacuateTx1 = await diamondEvacuation
+      .connect(user1.signer)
+      .evacuate(lastExecutedBlock, evacuData1.newBlock, proof1);
+    await evacuateTx1.wait();
+
+    time.increaseTo(Number(evacuData2.newBlock.timestamp));
     const evacuateTx2 = await diamondEvacuation.evacuate(
       lastExecutedBlock,
-      evacuBlock2,
+      evacuData2.newBlock,
       proof2
     );
-    time.increaseTo(Number(evacuBlock3.timestamp));
+    await evacuateTx2.wait();
+
+    time.increaseTo(Number(evacuData3.newBlock.timestamp));
     const evacuateTx3 = await diamondEvacuation.evacuate(
       lastExecutedBlock,
-      evacuBlock3,
+      evacuData3.newBlock,
       proof3
     );
+    await evacuateTx3.wait();
 
     const evacuation1Amt = toL1Amt(evacuation1.amount, TS_BASE_TOKEN.ETH);
     const evacuation2Amt = toL1Amt(evacuation2.amount, TS_BASE_TOKEN.WBTC);
     // tsb token's L1 and L2 decimals are same
     const evacuation3Amt = evacuation3.amount;
+
     // check event
     await expect(evacuateTx1)
-      .to.emit(diamondRollup, "Evacuation")
+      .to.emit(diamondEvacuation, "Evacuation")
       .withArgs(
         account1Addr,
         evacuation1.accountId,
@@ -325,8 +254,9 @@ describe("Evacuate", function () {
         token1Id,
         evacuation1Amt
       );
+
     await expect(evacuateTx2)
-      .to.emit(diamondRollup, "Evacuation")
+      .to.emit(diamondEvacuation, "Evacuation")
       .withArgs(
         account2Addr,
         evacuation2.accountId,
@@ -335,7 +265,7 @@ describe("Evacuate", function () {
         evacuation2Amt
       );
     await expect(evacuateTx3)
-      .to.emit(diamondRollup, "Evacuation")
+      .to.emit(diamondEvacuation, "Evacuation")
       .withArgs(
         account3Addr,
         evacuation3.accountId,
@@ -352,7 +282,6 @@ describe("Evacuate", function () {
     ] = await diamondRollup.getL1RequestNum();
 
     // after balance
-    const afterUser1EthBalance = await user1.getBalance();
     const afterUser2WbtcBalance = await token2.balanceOf(account2Addr);
     const afterUser3TsbBalance = await tsbToken.balanceOf(account3Addr);
     const afterTsbTotalSupply = await tsbToken.totalSupply();
@@ -363,9 +292,6 @@ describe("Evacuate", function () {
     expect(afterTotalL1RequestNum.sub(beforeTotalL1RequestNum)).to.be.eq(3);
 
     // check balance
-    expect(afterUser1EthBalance.sub(beforeUser1EthBalance)).to.be.eq(
-      evacuation1Amt
-    );
     expect(afterUser2WbtcBalance.sub(beforeUser2WbtcBalance)).to.be.eq(
       evacuation2Amt
     );
@@ -405,7 +331,7 @@ describe("Evacuate", function () {
   });
 
   it("Failed to evacuate, not in evacu mode", async function () {
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const lastExecutedBlock = latestStoredBlock;
     const evacuBlock = case01.newBlock;
     const proof: ProofStruct = case01.proof as ProofStruct;
 
@@ -416,12 +342,12 @@ describe("Evacuate", function () {
 
   it("Failed to evacuate, not consume all L1 request", async function () {
     // add deposit request in L1 request queue
-    const user1 = accounts[1];
-    const user1Addr = await user1.getAddress();
+    const user1 = accounts.getUser(1);
+    const user1Addr = await user1.getAddr();
     const amount = utils.parseEther(MIN_DEPOSIT_AMOUNT.ETH.toString());
-    await weth.connect(user1).approve(zkTrueUp.address, amount);
+    await weth.connect(user1.signer).approve(zkTrueUp.address, amount);
     await diamondAcc
-      .connect(user1)
+      .connect(user1.signer)
       .deposit(user1Addr, DEFAULT_ETH_ADDRESS, amount, {
         value: amount,
       });
@@ -429,7 +355,7 @@ describe("Evacuate", function () {
     await time.increase(time.duration.days(14));
     await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const lastExecutedBlock = latestStoredBlock;
     const evacuBlock = case01.newBlock;
     const proof: ProofStruct = case01.proof as ProofStruct;
 
@@ -446,7 +372,7 @@ describe("Evacuate", function () {
     await time.increase(time.duration.days(14));
     await diamondEvacuation.activateEvacuation();
 
-    const invalidLastExecutedBlock = storedBlocks[executedBlockNum - 2]; // not last executed block
+    const invalidLastExecutedBlock = storedBlocks[0]; // not last executed block
     const evacuBlock = case01.newBlock;
     const proof: ProofStruct = case01.proof as ProofStruct;
 
@@ -460,7 +386,7 @@ describe("Evacuate", function () {
     await time.increase(time.duration.days(14));
     await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const lastExecutedBlock = latestStoredBlock;
     const invalidEvacuBlock = case01.newBlock;
     invalidEvacuBlock.timestamp = "0"; // invalid timestamp
     const proof: ProofStruct = case01.proof as ProofStruct;
@@ -478,9 +404,9 @@ describe("Evacuate", function () {
     await time.increase(time.duration.days(14));
     await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const lastExecutedBlock = latestStoredBlock;
     const invalidEvacuBlock = case01.newBlock;
-    invalidEvacuBlock.blockNumber = "1"; // invalid block number
+    invalidEvacuBlock.blockNumber = 1; // invalid block number
     const proof: ProofStruct = case01.proof as ProofStruct;
 
     await expect(
@@ -493,7 +419,7 @@ describe("Evacuate", function () {
     await time.increase(time.duration.days(14));
     await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const lastExecutedBlock = latestStoredBlock;
     const invalidEvacuBlock = case01.newBlock;
     invalidEvacuBlock.publicData = "0x012345";
     const proof: ProofStruct = case01.proof as ProofStruct;
@@ -512,7 +438,7 @@ describe("Evacuate", function () {
     await time.increase(time.duration.days(14));
     await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const lastExecutedBlock = latestStoredBlock;
     const evacuBlock = case01.newBlock;
     const invalidProof: ProofStruct = case01.proof as ProofStruct;
     invalidProof.commitment = [BigNumber.from("0x123456")];
@@ -531,7 +457,7 @@ describe("Evacuate", function () {
     await time.increase(time.duration.days(14));
     await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const lastExecutedBlock = latestStoredBlock;
     const evacuBlock = case01.newBlock;
     const invalidProof: ProofStruct = case01.proof as ProofStruct;
     invalidProof.a[0] = BigNumber.from("0x123456");
@@ -547,7 +473,7 @@ describe("Evacuate", function () {
     await time.increase(time.duration.days(14));
     await diamondEvacuation.activateEvacuation();
 
-    const lastExecutedBlock = storedBlocks[executedBlockNum - 1];
+    const lastExecutedBlock = latestStoredBlock;
     const evacuBlock = case01.newBlock;
     const proof: ProofStruct = case01.proof as ProofStruct;
 

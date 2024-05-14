@@ -29,6 +29,11 @@ export const GOERLI_ADDRESS = {
   WSTETH: "0x6320cD32aA674d2898A68ec82e869385Fc5f7E2f",
 };
 
+export const SEPOLIA_ADDRESS = {
+  MAKER_POT: "", // There is no Maker Pot contract on Sepolia
+  WSTETH: "0xB82381A3fBD3FaFA77B3a7bE693342618240067b",
+};
+
 export const INIT_FUNCTION_NAME = "init";
 
 export const LIBRARY_NAMES = [

@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IPot} from "./IPot.sol";
 
 /**
@@ -11,14 +12,15 @@ import {IPot} from "./IPot.sol";
  * @notice Use the customized price feed contract to normalized price feed interface for Term Structure Protocol
  */
 contract SDaiPriceFeed is AggregatorV3Interface {
-    using SafeCast for uint256;
+    using Math for uint256;
+    using SafeCast for *;
     // The stETH price feed contract from Chainlink
     AggregatorV3Interface internal immutable _daiPriceFeed;
 
     // The MakerDAO Pot contract
     // (see https://docs.makerdao.com/smart-contract-modules/rates-module/pot-detailed-documentation)
     IPot internal immutable _pot;
-    int256 internal constant CHI_DECIMALS = 1e27; // chi (rate accumulator) decimals
+    uint256 internal constant CHI_DECIMALS = 1e27; // chi (rate accumulator) decimals
 
     // error to call `getRoundData` function
     error GetRoundDataNotSupported();
@@ -66,7 +68,7 @@ contract SDaiPriceFeed is AggregatorV3Interface {
     {
         // sDai price = dai price * chi (rate accumulator) / CHI_DECIMALS
         (roundId, answer, startedAt, updatedAt, answeredInRound) = _daiPriceFeed.latestRoundData();
-        answer = (answer * _pot.chi().toInt256()) / CHI_DECIMALS;
+        answer = answer.toUint256().mulDiv(_pot.chi(), CHI_DECIMALS).toInt256();
         return (roundId, answer, startedAt, updatedAt, answeredInRound);
     }
 

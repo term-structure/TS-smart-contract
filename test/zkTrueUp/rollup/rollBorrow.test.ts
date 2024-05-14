@@ -17,14 +17,13 @@ import {
   ZkTrueUp,
 } from "../../../typechain-types";
 import { StoredBlockStruct } from "../../../typechain-types/contracts/zkTrueUp/rollup/IRollupFacet";
-import initStates from "../../data/rollupData/rollup/initStates.json";
 import { updateRoundData } from "../../utils/updateRoundData";
 import { rollupData } from "../../data/rollupData/rollBorrow/rollup";
 import {
   BlockData,
   Users,
   handler,
-  preprocessBlocks,
+  preprocessAndRollupBlocks,
   rollupOneBlock,
 } from "../../utils/rollBorrowRollupHelper";
 import { toL1Amt } from "../../utils/amountConvertor";
@@ -34,8 +33,18 @@ import {
   resolveRollOverEndPubData,
 } from "../../utils/publicDataHelper";
 
+const initStateRoot = utils.hexZeroPad(
+  utils.hexlify(BigInt(rollupData.initState.stateRoot)),
+  32
+);
+
 const fixture = async () => {
-  const res = await deployAndInit(FACET_NAMES, false, "RollBorrowVerifier");
+  const res = await deployAndInit(
+    FACET_NAMES,
+    false,
+    "RollBorrowVerifier",
+    initStateRoot
+  );
   const diamondToken = (await useFacet(
     "TokenFacet",
     res.zkTrueUp.address
@@ -64,7 +73,7 @@ describe("Roll borrow", function () {
   let baseTokenAddresses: BaseTokenAddresses;
   const genesisBlock: StoredBlockStruct = {
     blockNumber: BigNumber.from("0"),
-    stateRoot: initStates.stateRoot,
+    stateRoot: initStateRoot,
     l1RequestNum: BigNumber.from("0"),
     pendingRollupTxHash: EMPTY_HASH,
     commitment: utils.defaultAbiCoder.encode(
@@ -81,7 +90,6 @@ describe("Roll borrow", function () {
     rollupData.user_data.forEach((user) =>
       accounts.addUser(user.tsPubKeyX, user.tsPubKeyY)
     );
-
     zkTrueUp = res.zkTrueUp;
     admin = res.admin;
     operator = res.operator;
@@ -169,7 +177,7 @@ describe("Roll borrow", function () {
 
     // preprocess 4 blocks
     const NumOfPreProcessBlocks = 4;
-    let latestStoredBlock = await preprocessBlocks(
+    let latestStoredBlock = await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,
@@ -233,7 +241,7 @@ describe("Roll borrow", function () {
 
     // preprocess 5 blocks
     const NumOfPreProcessBlocks = 5;
-    let latestStoredBlock = await preprocessBlocks(
+    let latestStoredBlock = await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,
@@ -312,7 +320,7 @@ describe("Roll borrow", function () {
 
     // preprocess 7 blocks
     const NumOfPreProcessBlocks = 7;
-    let latestStoredBlock = await preprocessBlocks(
+    let latestStoredBlock = await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,
@@ -415,7 +423,7 @@ describe("Roll borrow", function () {
 
     // preprocess 7 blocks
     const NumOfPreProcessBlocks = 7;
-    let latestStoredBlock = await preprocessBlocks(
+    let latestStoredBlock = await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,
@@ -448,9 +456,10 @@ describe("Roll borrow", function () {
       .forceCancelRollBorrow(loanId);
 
     // check event
+    const loanOwner = await user.signer.getAddress();
     await expect(forceCancelRollBorrowTx)
       .to.emit(diamondLoan, "RollBorrowOrderForceCancelPlaced")
-      .withArgs(await user.signer.getAddress(), loanId);
+      .withArgs(loanId, loanOwner, loanOwner);
 
     await rollupOneBlock(
       diamondRollup,
@@ -480,7 +489,7 @@ describe("Roll borrow", function () {
 
     // preprocess 7 blocks
     const NumOfPreProcessBlocks = 7;
-    await preprocessBlocks(
+    await preprocessAndRollupBlocks(
       NumOfPreProcessBlocks,
       rollupData,
       diamondAcc,
@@ -510,7 +519,7 @@ describe("Roll borrow", function () {
     const fakeUser = user2;
     await expect(
       diamondLoan.connect(fakeUser).forceCancelRollBorrow(loanId)
-    ).to.be.revertedWithCustomError(diamondLoan, "isNotLoanOwner");
+    ).to.be.revertedWithCustomError(diamondLoan, "InvalidCaller");
   });
   it("Success to set and get roll-over fee", async function () {
     const newRollOverFee = utils.parseEther("0.05");

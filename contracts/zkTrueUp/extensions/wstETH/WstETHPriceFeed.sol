@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IWstETH} from "./IWstETH.sol";
 
 /**
@@ -11,14 +12,15 @@ import {IWstETH} from "./IWstETH.sol";
  * @notice Use the customized price feed contract to normalized price feed interface for Term Structure Protocol
  */
 contract WstETHPriceFeed is AggregatorV3Interface {
-    using SafeCast for uint256;
+    using Math for uint256;
+    using SafeCast for *;
     // The stETH price feed contract from Chainlink
     AggregatorV3Interface internal immutable _stETHPriceFeed;
 
     // The Lido WstETH contract
     // (see https://docs.lido.fi/contracts/wsteth/)
     IWstETH internal immutable _wstETH;
-    int256 internal constant STETH_PER_WSTETH_DECIMALS = 1e18;
+    uint256 internal constant STETH_PER_WSTETH_DECIMALS = 1e18;
 
     // error to call `getRoundData` function
     error GetRoundDataNotSupported();
@@ -66,7 +68,7 @@ contract WstETHPriceFeed is AggregatorV3Interface {
     {
         // wstETH price = stETH price * stETHPerWstETH / STETH_PER_WSTETH_DECIMALS
         (roundId, answer, startedAt, updatedAt, answeredInRound) = _stETHPriceFeed.latestRoundData();
-        answer = (answer * _wstETH.stEthPerToken().toInt256()) / STETH_PER_WSTETH_DECIMALS;
+        answer = answer.toUint256().mulDiv(_wstETH.stEthPerToken(), STETH_PER_WSTETH_DECIMALS).toInt256();
         return (roundId, answer, startedAt, updatedAt, answeredInRound);
     }
 

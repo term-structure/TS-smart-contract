@@ -25,11 +25,15 @@ interface IEvacuationFacet {
     /// @notice Error for refund deregistered address but the account is not deregistered
     error NotDeregisteredAddr(address accountAddr, uint32 accountId);
     /// @notice Error for account address is not the msg.sender
-    error AccountAddrIsNotSender(address accountAddr, address sender);
+    error AccountAddrIsNotCaller(address accountAddr, address sender);
     /// @notice Error for invalid chunk id delta when commit evacublock in evacuation mode
     error InvalidChunkIdDelta(uint16[] chunkIdDeltas);
     /// @notice Error for the specified accountId and tokenId is already evacuated
     error Evacuated(uint32 accountId, uint16 tokenId);
+    /// @notice Error for no executed L1 request
+    error NoExecutedL1Request();
+    /// @notice Error for no L1 request
+    error NoL1Request();
 
     /// @notice Emit when there is an evacuation
     /// @param accountAddr The address of the account
@@ -38,7 +42,7 @@ interface IEvacuationFacet {
     /// @param tokenId The id of the token
     /// @param amount The amount of the token
     event Evacuation(
-        address accountAddr,
+        address indexed accountAddr,
         uint32 indexed accountId,
         IERC20 token,
         uint16 indexed tokenId,
@@ -53,7 +57,7 @@ interface IEvacuationFacet {
     /// @param executedL1RequestNum The number of the executed L1 request
     /// @param opType The type of the L1 request
     /// @param pubData The public data of the L1 request
-    event L1RequestConsumed(uint64 executedL1RequestNum, Operations.OpType opType, bytes pubData);
+    event L1RequestConsumption(uint64 executedL1RequestNum, Operations.OpType opType, bytes pubData);
 
     /// @notice Emit when an account is de-registered
     /// @notice De-registered only remove the accountAddr -> accountId mapping,
@@ -61,7 +65,7 @@ interface IEvacuationFacet {
     ///         this is for user can still refund their asset by `refundDeregisteredAddr`
     /// @param accountAddr The address of the account
     /// @param accountId The id of the account
-    event AccountDeregistered(address accountAddr, uint32 indexed accountId);
+    event AccountDeregistration(address indexed accountAddr, uint32 indexed accountId);
 
     /// @notice When L2 system is down, anyone can call this function to activate the evacuation mode
     function activateEvacuation() external;

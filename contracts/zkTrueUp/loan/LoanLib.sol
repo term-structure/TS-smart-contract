@@ -2,11 +2,12 @@
 pragma solidity ^0.8.17;
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {AccountLib} from "../account/AccountLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {AccountStorage} from "../account/AccountStorage.sol";
-import {LoanStorage, Loan, LiquidationFactor, LoanInfo} from "./LoanStorage.sol";
+import {LoanStorage, Loan, LiquidationFactor, LoanInfo, RollBorrowOrder} from "./LoanStorage.sol";
 import {RollupStorage} from "../rollup/RollupStorage.sol";
 import {RollupLib} from "../rollup/RollupLib.sol";
 import {TokenStorage} from "../token/TokenStorage.sol";
@@ -19,11 +20,12 @@ import {Config} from "../libraries/Config.sol";
  * @author Term Structure Labs
  */
 library LoanLib {
-    using Math for uint256;
+    using Math for *;
     using AccountLib for AccountStorage.Layout;
     using TokenLib for TokenStorage.Layout;
     using RollupLib for RollupStorage.Layout;
     using LoanLib for *;
+    using SafeCast for uint256;
 
     /// @notice Error for collateral amount is not enough when removing collateral
     error CollateralAmtIsNotEnough(uint128 collateralAmt, uint128 amount);
@@ -42,6 +44,8 @@ library LoanLib {
     error LoanIsNotExist(bytes12 loanId);
     /// @notice Error for collateral amount is less than locked collateral amount
     error CollateralAmtLtLockedCollateralAmt(uint128 collateralAmt, uint128 lockedCollateralAmt);
+    /// @notice Error for invalid caller
+    error InvalidCaller(address caller, address loanOwner);
 
     /// @notice Internal function to add collateral to the loan
     /// @param loan The loan to be added collateral
@@ -282,14 +286,6 @@ library LoanLib {
         return healthFactor >= Config.HEALTH_FACTOR_THRESHOLD;
     }
 
-    /// @notice Internal function to check if the address is the loan owner
-    /// @param addr The address to be checked
-    /// @param accountId The account id
-    function requireLoanOwner(address addr, uint32 accountId) internal view {
-        address loanOwner = AccountStorage.layout().getAccountAddr(accountId);
-        if (addr != loanOwner) revert isNotLoanOwner(addr, loanOwner);
-    }
-
     /// @notice Internal function to check if the loan is healthy (not liquidable)
     /// @param loan The loan to be checked
     /// @param liquidationFactor The liquidation factor of the loan
@@ -362,6 +358,51 @@ library LoanLib {
         return normalizedCollateralPrice.mulDiv(collateralAmt, 10 ** collateralDecimals) / 10 ** 18;
     }
 
+    /// @notice Internal function to calculate the interest rate
+    /// @param annualPercentageRate The annual percentage rate
+    /// @param maturityTime The maturity time
+    /// @return interestRate The interest rate
+    function calcInterestRate(uint32 annualPercentageRate, uint32 maturityTime) internal view returns (uint32) {
+        // interestRate = APR * (maturityTime - block.timestamp) / SECONDS_OF_ONE_YEAR
+        uint32 interestRate = annualPercentageRate
+        // solhint-disable-next-line not-rely-on-time
+            .mulDiv(maturityTime - block.timestamp, Config.SECONDS_OF_ONE_YEAR)
+            .toUint32();
+
+        return interestRate;
+    }
+
+    /// @notice Internal function to calculate the borrow fee
+    /// @param borrowAmt The amount of the borrow
+    /// @param interestRate The interest rate
+    /// @param borrowFeeRate The borrow fee rate
+    /// @return borrowFee The borrow fee
+    function calcBorrowFee(
+        uint128 borrowAmt,
+        uint32 interestRate,
+        uint32 borrowFeeRate
+    ) internal pure returns (uint128) {
+        // borrowFee = borrowAmt * (interestRate / SYSTEM_UNIT_BASE) * (borrowFeeRate / SYSTEM_UNIT_BASE)
+        uint128 borrowFee = borrowAmt
+            .mulDiv(uint256(interestRate), Config.SYSTEM_UNIT_BASE)
+            .mulDiv(borrowFeeRate, Config.SYSTEM_UNIT_BASE)
+            .toUint128();
+
+        return borrowFee;
+    }
+
+    /// @notice Internal function to calculate the debt amount
+    /// @param borrowAmt The amount of the borrow
+    /// @param interestRate The interest rate
+    /// @return debtAmt The debt amount
+    function calcDebtAmt(uint128 borrowAmt, uint32 interestRate) internal pure returns (uint128) {
+        // debtAmt = borrowAmt + interest
+        // ==> debtAmt = borrowAmt + borrowAmt * interestRate / SYSTEM_UNIT_BASE
+        uint128 debtAmt = borrowAmt + borrowAmt.mulDiv(interestRate, Config.SYSTEM_UNIT_BASE).toUint128();
+
+        return debtAmt;
+    }
+
     /// @notice Internal function to get the loan id by the loan info
     /// @param accountId The account id
     /// @param maturityTime The maturity time
@@ -381,6 +422,97 @@ library LoanLib {
                     (uint96(maturityTime) << 32) |
                     (uint96(accountId) << 64)
             );
+    }
+
+    /// @notice Internal function to calculate the EIP712 struct hash
+    /// @param typeHash The type hash of the function
+    /// @param loanId The loan id
+    /// @param encodedParams The encoded params of the function
+    /// @param nonce The nonce of the function
+    /// @param deadline The deadline of the function
+    /// @return h The struct hash
+    function calcStructHash(
+        bytes32 typeHash,
+        bytes12 loanId,
+        bytes memory encodedParams,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        bytes32 h;
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            let p := mload(0x40)
+            mstore(p, typeHash)
+            mstore(add(p, 32), loanId)
+
+            let t := div(add(mload(encodedParams), 31), 32)
+
+            for {
+                let i := 0
+            } lt(i, t) {
+                i := add(i, 1)
+            } {
+                mstore(add(p, add(64, mul(i, 32))), mload(add(encodedParams, add(32, mul(i, 32)))))
+            }
+
+            mstore(add(p, add(64, mul(t, 32))), nonce)
+            mstore(add(p, add(96, mul(t, 32))), deadline)
+
+            mstore(0x40, add(p, add(128, mul(t, 32))))
+
+            h := keccak256(p, add(128, mul(t, 32)))
+        }
+
+        return h;
+    }
+
+    /// @notice Internal function to encode the add collateral params
+    /// @param amount The amount of the collateral to be added
+    /// @return The encoded add collateral params
+    function encodeRemoveCollateralParams(uint128 amount) internal pure returns (bytes memory) {
+        return abi.encode(amount);
+    }
+
+    /// @notice Internal function to encode the repay params
+    /// @param collateralAmt The amount of the collateral to be removed
+    /// @param debtAmt The amount of the debt to be repaid
+    /// @param repayAndDeposit Whether repay and deposit
+    /// @return The encoded repay params
+    function encodeRepayParams(
+        uint128 collateralAmt,
+        uint128 debtAmt,
+        bool repayAndDeposit
+    ) internal pure returns (bytes memory) {
+        return abi.encode(collateralAmt, debtAmt, repayAndDeposit);
+    }
+
+    /// @notice Internal function to encode the roll to aave params
+    /// @param collateralAmt The amount of the collateral to be rolled
+    /// @param debtAmt The amount of the debt to be rolled
+    /// @return The encoded roll to aave params
+    function encodeRollToAaveParams(uint128 collateralAmt, uint128 debtAmt) internal pure returns (bytes memory) {
+        return abi.encode(collateralAmt, debtAmt);
+    }
+
+    /// @notice Internal function to encode the roll borrow params
+    /// @param rollBorrowOrder The roll borrow order
+    /// @return The encoded roll borrow params
+    function encodeRollBorrowParams(RollBorrowOrder memory rollBorrowOrder) internal pure returns (bytes memory) {
+        return
+            abi.encode(
+                rollBorrowOrder.expiredTime,
+                rollBorrowOrder.maxAnnualPercentageRate,
+                rollBorrowOrder.maxCollateralAmt,
+                rollBorrowOrder.maxBorrowAmt,
+                rollBorrowOrder.tsbToken
+            );
+    }
+
+    /// @notice Internal function to encode the force cancel roll borrow params
+    /// @return The encoded force cancel roll borrow params
+    function encodeForceCancelRollBorrowParams() internal pure returns (bytes memory) {
+        return abi.encode();
     }
 
     /// @notice Resolve the loan id

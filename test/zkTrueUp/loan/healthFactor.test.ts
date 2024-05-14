@@ -109,10 +109,12 @@ describe("Health factor", () => {
       // test update loan
       const loan: LoanData = {
         accountId: 0,
-        tsbTokenId: loanData.tsbTokenId,
         collateralTokenId: loanData.collateralTokenId,
         collateralAmt: BigNumber.from(loanData.collateralAmt),
+        debtTokenId: loanData.debtTokenId,
         debtAmt: BigNumber.from(loanData.debtAmt),
+        matchedTime: BigNumber.from(loanData.matchedTime),
+        maturityTime: BigNumber.from(tsbTokenData.maturity),
       };
 
       // update test loan data
@@ -162,10 +164,12 @@ describe("Health factor", () => {
       // test update loan
       const loan: LoanData = {
         accountId: 0,
-        tsbTokenId: loanData.tsbTokenId,
         collateralTokenId: loanData.collateralTokenId,
         collateralAmt: BigNumber.from(loanData.collateralAmt),
+        debtTokenId: loanData.debtTokenId,
         debtAmt: BigNumber.from(loanData.debtAmt),
+        matchedTime: BigNumber.from(loanData.matchedTime),
+        maturityTime: BigNumber.from(tsbTokenData.maturity),
       };
 
       // update test loan data
@@ -213,10 +217,12 @@ describe("Health factor", () => {
       // test update loan
       const loan: LoanData = {
         accountId: loanData.accountId,
-        tsbTokenId: loanData.tsbTokenId,
         collateralTokenId: loanData.collateralTokenId,
         collateralAmt: BigNumber.from(loanData.collateralAmt),
+        debtTokenId: loanData.debtTokenId,
         debtAmt: BigNumber.from(loanData.debtAmt),
+        matchedTime: BigNumber.from(loanData.matchedTime),
+        maturityTime: BigNumber.from(tsbTokenData.maturity),
       };
 
       // update test loan data
@@ -290,10 +296,12 @@ describe("Health factor", () => {
         // test update loan
         const loan: LoanData = {
           accountId: loanData.accountId,
-          tsbTokenId: loanData.tsbTokenId,
           collateralTokenId: loanData.collateralTokenId,
           collateralAmt: BigNumber.from(loanData.collateralAmt),
+          debtTokenId: loanData.debtTokenId,
           debtAmt: BigNumber.from(loanData.debtAmt),
+          matchedTime: BigNumber.from(loanData.matchedTime),
+          maturityTime: BigNumber.from(tsbTokenData.maturity),
         };
 
         // update test loan data
@@ -404,10 +412,12 @@ describe("Health factor", () => {
         // test loan data
         const loan: LoanData = {
           accountId: loanData.accountId,
-          tsbTokenId: loanData.tsbTokenId,
           collateralTokenId: loanData.collateralTokenId,
           collateralAmt: BigNumber.from(loanData.collateralAmt),
+          debtTokenId: loanData.debtTokenId,
           debtAmt: BigNumber.from(loanData.debtAmt),
+          matchedTime: BigNumber.from(loanData.matchedTime),
+          maturityTime: BigNumber.from(tsbTokenData.maturity),
         };
 
         // update loan

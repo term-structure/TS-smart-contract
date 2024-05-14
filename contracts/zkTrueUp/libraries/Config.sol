@@ -63,6 +63,9 @@ library Config {
     /// @notice The bytes lengths of four chunks
     uint8 internal constant BYTES_OF_FOUR_CHUNKS = 4 * BYTES_OF_CHUNK;
 
+    /// @notice The bytes lengths of five chunks
+    uint8 internal constant BYTES_OF_FIVE_CHUNKS = 5 * BYTES_OF_CHUNK;
+
     /// @notice The bytes lengths of six chunks
     uint8 internal constant BYTES_OF_SIX_CHUNKS = 6 * BYTES_OF_CHUNK;
 
@@ -77,7 +80,7 @@ library Config {
     bytes internal constant EVACUATION_COMMITMENT_OFFSET = hex"80";
 
     /// @notice The max tolerance between the L2 block timestamp and the L1 block timestamp
-    ///         i.e. the block created on L2 must be commit to L1 within 1 day
+    ///         i.e. the block created on L2 must be commit to L1 within 3 day
     uint256 internal constant COMMIT_BLOCK_TIMESTAMP_MAX_TOLERANCE = 3 days;
 
     /// @notice The max deviation between the L2 block timestamp and the L1 block timestamp

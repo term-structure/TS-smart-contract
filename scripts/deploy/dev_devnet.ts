@@ -151,7 +151,8 @@ export const main = async () => {
       poseidonUnit2Contract.address,
       verifier.address,
       evacuVerifier.address,
-      adminAddr,
+      //! adminAddr, only for test to easily update the contract
+      deployer.address,
       operatorAddr,
       treasuryAddr,
       insuranceAddr,

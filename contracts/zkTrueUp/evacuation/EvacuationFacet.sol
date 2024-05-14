@@ -49,6 +49,8 @@ contract EvacuationFacet is IEvacuationFacet, ReentrancyGuard {
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         uint64 executedL1RequestNum = rsl.getExecutedL1RequestNum();
+        if (executedL1RequestNum == 0) revert NoExecutedL1Request();
+
         uint64 lastExecutedL1RequestId = executedL1RequestNum - 1;
         uint32 expirationTime = rsl.getL1Request(lastExecutedL1RequestId).expirationTime;
         // solhint-disable-next-line not-rely-on-time
@@ -78,6 +80,8 @@ contract EvacuationFacet is IEvacuationFacet, ReentrancyGuard {
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
         uint64 totalL1RequestNum = rsl.getTotalL1RequestNum();
+        if (totalL1RequestNum == 0) revert NoL1Request();
+
         uint64 lastL1RequestId = totalL1RequestNum - 1;
         // The last L1 request cannot be evacuation
         // because the evacuate action can only be called after consumed all L1 non-executed request
@@ -111,11 +115,11 @@ contract EvacuationFacet is IEvacuationFacet, ReentrancyGuard {
                 AccountStorage.Layout storage asl = AccountStorage.layout();
                 address registerAddr = asl.accountAddresses[registerReq.accountId];
                 delete asl.accountIds[registerAddr];
-                emit AccountDeregistered(registerAddr, registerReq.accountId);
+                emit AccountDeregistration(registerAddr, registerReq.accountId);
             }
 
             ++executedL1RequestNum;
-            emit L1RequestConsumed(executedL1RequestNum, opType, pubData);
+            emit L1RequestConsumption(executedL1RequestNum, opType, pubData);
         }
         rsl.committedL1RequestNum = executedL1RequestNum;
         rsl.executedL1RequestNum = executedL1RequestNum;
@@ -170,13 +174,13 @@ contract EvacuationFacet is IEvacuationFacet, ReentrancyGuard {
         address accountAddr = asl.getAccountAddr(accountId);
         // check the account is deregistered (accountAddr mapping to accountId is deleted)
         if (asl.getAccountId(accountAddr) == accountId) revert NotDeregisteredAddr(accountAddr, accountId);
-        if (accountAddr != msg.sender) revert AccountAddrIsNotSender(accountAddr, msg.sender);
+        if (accountAddr != msg.sender) revert AccountAddrIsNotCaller(accountAddr, msg.sender);
 
         TokenStorage.Layout storage tsl = TokenStorage.layout();
         (uint16 tokenId, AssetConfig memory assetConfig) = tsl.getValidToken(token);
 
         RollupStorage.Layout storage rsl = RollupStorage.layout();
-        AccountLib.updateWithdrawalRecord(rsl, accountAddr, accountId, token, tokenId, amount);
+        AccountLib.updateWithdrawalRecord(rsl, msg.sender, accountAddr, accountId, token, tokenId, amount);
 
         Utils.tokenTransfer(token, payable(accountAddr), amount, assetConfig.isTsbToken);
     }

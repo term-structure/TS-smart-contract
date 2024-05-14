@@ -15,10 +15,11 @@ import {TsbToken} from "../tsb/TsbToken.sol";
 import {TokenLib} from "../token/TokenLib.sol";
 import {AssetConfig} from "../token/TokenStorage.sol";
 import {AccountLib} from "../account/AccountLib.sol";
-import {RollupLib} from "../rollup/RollupLib.sol";
 import {ITsbToken} from "../interfaces/ITsbToken.sol";
 import {Config} from "../libraries/Config.sol";
 import {Utils} from "../libraries/Utils.sol";
+import {DELEGATE_REDEEM_MASK} from "../libraries/Delegate.sol";
+import {REDEEM_TYPEHASH} from "../libraries/TypeHash.sol";
 
 /**
  * @title Term Structure Bond Facet Contract
@@ -70,36 +71,48 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
      * @dev TSB token can be redeemed only after maturity
      * @dev TSB token decimals is 8 and should be converted to underlying asset decimals when 1:1 redeem
      */
-    function redeem(ITsbToken tsbToken, uint128 amount, bool redeemAndDeposit) external nonReentrant {
-        TokenStorage.Layout storage tsl = TokenStorage.layout();
-        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(tsbToken);
-        if (!assetConfig.isTsbToken) revert InvalidTsbToken(tsbToken);
+    function redeem(
+        address accountAddr,
+        ITsbToken tsbToken,
+        uint128 amount,
+        bool redeemAndDeposit
+    ) external nonReentrant {
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        asl.requireValidCaller(msg.sender, accountAddr, DELEGATE_REDEEM_MASK);
 
-        (IERC20 underlyingAsset, uint32 maturityTime) = tsbToken.tokenInfo();
-        TsbLib.requireMatured(tsbToken, maturityTime);
+        uint32 accountId = asl.getValidAccount(accountAddr);
+        _redeem(msg.sender, accountAddr, accountId, tsbToken, amount, redeemAndDeposit);
+    }
 
-        TsbLib.burnTsbToken(tsbToken, msg.sender, amount);
-        emit Redemption(msg.sender, tsbToken, underlyingAsset, amount, redeemAndDeposit);
+    //! mainnet-audit
+    /**
+     * @inheritdoc ITsbFacet
+     * @dev TSB token can be redeemed only after maturity
+     * @dev TSB token decimals is 8 and should be converted to underlying asset decimals when 1:1 redeem
+     */
+    function redeemWithPermit(
+        address accountAddr,
+        ITsbToken tsbToken,
+        uint128 amount,
+        bool redeemAndDeposit,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external nonReentrant {
+        AccountStorage.Layout storage asl = AccountStorage.layout();
+        bytes32 structHash = _calcRedeemStructHash(
+            tsbToken,
+            amount,
+            redeemAndDeposit,
+            asl.getPermitNonce(accountAddr),
+            deadline
+        );
+        asl.validatePermitAndIncreaseNonce(accountAddr, structHash, deadline, v, r, s);
 
-        (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = tsl.getValidToken(underlyingAsset);
-        // convert amount by decimals to 1:1 redeem underlying asset
-        uint128 underlyingAssetAmt = SafeCast.toUint128(amount.toL1Amt(underlyingAssetConfig.decimals));
+        uint32 accountId = asl.getValidAccount(accountAddr);
 
-        if (redeemAndDeposit) {
-            uint32 accountId = AccountStorage.layout().getValidAccount(msg.sender);
-            TokenLib.validDepositAmt(underlyingAssetAmt, underlyingAssetConfig.minDepositAmt);
-            AccountLib.addDepositReq(
-                RollupStorage.layout(),
-                msg.sender,
-                accountId,
-                underlyingAssetConfig.token,
-                tokenId,
-                underlyingAssetConfig.decimals,
-                underlyingAssetAmt
-            );
-        } else {
-            Utils.transfer(underlyingAsset, payable(msg.sender), underlyingAssetAmt);
-        }
+        _redeem(msg.sender, accountAddr, accountId, tsbToken, amount, redeemAndDeposit);
     }
 
     /* ============ External View Functions ============ */
@@ -147,5 +160,71 @@ contract TsbFacet is ITsbFacet, AccessControlInternal, ReentrancyGuard {
     function getMaturityTime(ITsbToken tsbToken) external view returns (uint32) {
         (, uint32 maturityTime) = tsbToken.tokenInfo();
         return maturityTime;
+    }
+
+    /* ============ Internal Functions ============ */
+
+    /// @notice Internal redeem collateral function
+    /// @param caller The caller of the function
+    /// @param accountAddr The address of the account in L1
+    /// @param accountId The id of the account in L2
+    /// @param tsbToken The TsbToken to be redeemed
+    /// @param amount The amount of the TsbToken to be redeemed
+    /// @param redeemAndDeposit The flag of redeem and deposit
+    function _redeem(
+        address caller,
+        address accountAddr,
+        uint32 accountId,
+        ITsbToken tsbToken,
+        uint128 amount,
+        bool redeemAndDeposit
+    ) internal {
+        TokenStorage.Layout storage tsl = TokenStorage.layout();
+        (, AssetConfig memory assetConfig) = tsl.getAssetConfig(tsbToken);
+        if (!assetConfig.isTsbToken) revert InvalidTsbToken(tsbToken);
+
+        (IERC20 underlyingAsset, uint32 maturityTime) = tsbToken.tokenInfo();
+        TsbLib.requireMatured(tsbToken, maturityTime);
+
+        TsbLib.burnTsbToken(tsbToken, accountAddr, amount);
+        emit Redemption(caller, accountAddr, tsbToken, underlyingAsset, amount, redeemAndDeposit);
+
+        (uint16 tokenId, AssetConfig memory underlyingAssetConfig) = tsl.getValidToken(underlyingAsset);
+        // convert amount by decimals to 1:1 redeem underlying asset
+        uint128 underlyingAssetAmt = SafeCast.toUint128(amount.toL1Amt(underlyingAssetConfig.decimals));
+
+        if (redeemAndDeposit) {
+            TokenLib.validDepositAmt(underlyingAssetAmt, underlyingAssetConfig.minDepositAmt);
+            AccountLib.addDepositReq(
+                RollupStorage.layout(),
+                caller,
+                accountAddr,
+                accountId,
+                underlyingAssetConfig.token,
+                tokenId,
+                underlyingAssetConfig.decimals,
+                underlyingAssetAmt
+            );
+        } else {
+            Utils.transfer(underlyingAsset, payable(accountAddr), underlyingAssetAmt);
+        }
+    }
+
+    /* ============ Internal Pure Functions to Calculate Struct Hash ============ */
+
+    /// @notice Calculate the hash of the struct for the redeem permit
+    /// @param tsbToken The TsbToken to be redeemed
+    /// @param amount The amount of the TsbToken to be redeemed
+    /// @param redeemAndDeposit The flag of redeem and deposit
+    /// @param nonce The nonce of the permit
+    /// @param deadline The deadline of the permit
+    function _calcRedeemStructHash(
+        ITsbToken tsbToken,
+        uint128 amount,
+        bool redeemAndDeposit,
+        uint256 nonce,
+        uint256 deadline
+    ) internal pure returns (bytes32) {
+        return keccak256(abi.encode(REDEEM_TYPEHASH, tsbToken, amount, redeemAndDeposit, nonce, deadline));
     }
 }

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {RollupStorage, Proof, CommitBlock, StoredBlock, VerifyBlock, ExecuteBlock, Request} from "./RollupStorage.sol";
+import {CommitBlock, StoredBlock, VerifyBlock, ExecuteBlock, Request} from "./RollupStorage.sol";
 import {Operations} from "../libraries/Operations.sol";
 
 /**
@@ -62,20 +62,6 @@ interface IRollupFacet {
     /// @notice Emit when there is a new block reverted
     /// @param blockNumber The number of the reverted block
     event BlockRevert(uint32 indexed blockNumber);
-
-    /// @notice Emit when there is an evacuation
-    /// @param accountAddr The address of the account
-    /// @param accountId The id of the account
-    /// @param token The token to be evacuated
-    /// @param tokenId The id of the token
-    /// @param amount The amount of the token
-    event Evacuation(
-        address accountAddr,
-        uint32 indexed accountId,
-        IERC20 token,
-        uint16 indexed tokenId,
-        uint256 amount
-    );
 
     /// @notice Emitted when evacuation mode is deactivated
     event EvacuModeDeactivation();
