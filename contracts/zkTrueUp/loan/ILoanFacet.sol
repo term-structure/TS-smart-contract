@@ -171,7 +171,6 @@ interface ILoanFacet {
     /// @param amount The amount of the collateral
     function removeCollateral(bytes12 loanId, uint128 amount) external;
 
-    //! mainnet-audit
     /// @notice Remove collateral from the loan with permit signature
     /// @param loanId The id of the loan
     /// @param amount The amount of the collateral
@@ -195,7 +194,6 @@ interface ILoanFacet {
     /// @param repayAndDeposit Whether to deposit the collateral after repay the loan
     function repay(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt, bool repayAndDeposit) external payable;
 
-    //! mainnet-audit
     /// @notice Repay the loan with permit signature
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of collateral to be returned
@@ -222,7 +220,6 @@ interface ILoanFacet {
     /// @param debtAmt The amount of debt to be repaid
     function rollToAave(bytes12 loanId, uint128 collateralAmt, uint128 debtAmt) external;
 
-    //! mainnet-audit
     /// @notice Roll the loan to Aave with permit signature
     /// @param loanId The id of the loan
     /// @param collateralAmt The amount of collateral to be returned
@@ -248,7 +245,6 @@ interface ILoanFacet {
     /// @param rollBorrowOrder The roll borrow order
     function rollBorrow(RollBorrowOrder memory rollBorrowOrder) external payable;
 
-    //! mainnet-audit
     /// @notice Place a roll borrow order with permit signature
     /// @notice User want to roll the original loan to a new loan without repay
     /// @notice The roll borrow is an action to place a borrow order on L1,
@@ -268,7 +264,6 @@ interface ILoanFacet {
     /// @param loanId The id of the loan to be cancelled
     function forceCancelRollBorrow(bytes12 loanId) external;
 
-    //! mainnet-audit
     /// @notice Cancel the roll borrow order with permit signature
     /// @notice User can force cancel their roll borrow order on L1
     ///         to avoid sequencer ignore his cancel request in L2
