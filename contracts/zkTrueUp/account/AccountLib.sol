@@ -173,7 +173,7 @@ library AccountLib {
         emit Withdrawal(caller, accountAddr, accountId, token, tokenId, amount);
     }
 
-=    /// @notice Internal function to validate permit signature and increase nonce
+    /// @notice Internal function to validate permit signature and increase nonce
     /// @param s The account storage layout
     /// @param expectedSigner The expected signer of the permit signature
     /// @param structHash The hash of the struct
