@@ -8,13 +8,13 @@ pragma solidity ^0.8.17;
  */
 library InitialConfig {
     /// @notice The initial weight of the treasury
-    uint16 internal constant INIT_TREASURY_WEIGHT = 0.5e4; // 50%
+    uint16 internal constant INIT_TREASURY_WEIGHT = uint16(0); // 0%
 
     /// @notice The initial weight of the insurance fund
-    uint16 internal constant INIT_INSURANCE_WEIGHT = 0.1e4; // 10%
+    uint16 internal constant INIT_INSURANCE_WEIGHT = uint16(0); // 0%
 
     /// @notice The initial weight of the vault
-    uint16 internal constant INIT_VAULT_WEIGHT = 0.4e4; // 40%
+    uint16 internal constant INIT_VAULT_WEIGHT = 1e4; // 100%
 
     /// @notice Initial half liquidation threshold
     /// @dev If the collateral value is larger than half liquidation threshold, the liquidator can only liquidate half of the loan

@@ -18,6 +18,7 @@ export const cutFacets = async (
       facetAddress,
       facetFactory
     );
+    // console.log(`Added ${facetName} to zkTrueUp`);
     selectors[facetName] = facetSelectors;
   }
   return selectors;

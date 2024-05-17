@@ -661,13 +661,9 @@ describe("Deploy", () => {
       insurance.address
     );
     expect(await diamondProtocolParams.getVaultAddr()).to.equal(vault.address);
-    expect((await diamondProtocolParams.getFundWeight()).treasury).to.equal(
-      5000
-    );
-    expect((await diamondProtocolParams.getFundWeight()).insurance).to.equal(
-      1000
-    );
-    expect((await diamondProtocolParams.getFundWeight()).vault).to.equal(4000);
+    expect((await diamondProtocolParams.getFundWeight()).treasury).to.equal(0);
+    expect((await diamondProtocolParams.getFundWeight()).insurance).to.equal(0);
+    expect((await diamondProtocolParams.getFundWeight()).vault).to.equal(10000);
 
     // check loan facet init
     const diamondLoan = (await useFacet(

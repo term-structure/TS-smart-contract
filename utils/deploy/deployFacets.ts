@@ -17,15 +17,16 @@ export const deployFacets = async (
     const feeData = deployer.provider
       ? await deployer.provider.getFeeData()
       : null;
-    const deployedFacet = await facetFactory.connect(deployer).deploy({
-      nonce: currentDeployerNonce ? currentDeployerNonce++ : undefined,
-      maxFeePerGas: feeData?.maxFeePerGas?.add(
-        ethers.utils.parseUnits("20", "gwei")
-      ),
-      maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas?.add(
-        ethers.utils.parseUnits("3", "gwei")
-      ),
-    });
+    const deployedFacet = await facetFactory.connect(deployer).deploy();
+    // ({
+    //   nonce: currentDeployerNonce ? currentDeployerNonce++ : undefined,
+    //   maxFeePerGas: feeData?.maxFeePerGas?.add(
+    //     ethers.utils.parseUnits("200", "gwei")
+    //   ),
+    //   maxPriorityFeePerGas: feeData?.maxPriorityFeePerGas?.add(
+    //     ethers.utils.parseUnits("30", "gwei")
+    //   ),
+    // });
 
     await deployedFacet.deployed();
     facetFactories[facet] = facetFactory;
