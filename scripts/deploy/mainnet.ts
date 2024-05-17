@@ -75,7 +75,7 @@ export const main = async () => {
   // cut facets
   console.log("Cutting facets...");
   const facetInfos: FacetInfo[] = Object.keys(facets).map((facetName) => {
-    // console.log("facetName: ", facetName);
+    console.log("facetName: ", facetName);
     return {
       facetName: facetName,
       facetAddress: facets[facetName].address,
