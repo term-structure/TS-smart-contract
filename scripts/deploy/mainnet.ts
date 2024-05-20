@@ -187,6 +187,7 @@ export const main = async () => {
   for (const facetName of Object.keys(facets)) {
     result[facetName] = facets[facetName].address;
   }
+  result["weth"] = process.env.MAINNET_WETH_ADDRESS;
   result["zk_true_up_init"] = zkTrueUpInit.address;
   result["zk_true_up"] = zkTrueUp.address;
   result["creation_block_number"] = creationTx.blockNumber.toString();
