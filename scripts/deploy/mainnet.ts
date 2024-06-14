@@ -10,6 +10,13 @@ import {
 } from "../../utils/config";
 import { safeInitFacet } from "diamond-engraver";
 import { AssetConfigStruct } from "../../typechain-types/contracts/zkTrueUp/token/ITokenFacet";
+import {
+  getCurrentBranch,
+  getLatestCommit,
+  createDirectoryIfNotExists,
+} from "../../utils/deployHelper";
+import * as fs from "fs";
+
 const circomlibjs = require("circomlibjs");
 const { createCode, generateABI } = circomlibjs.poseidonContract;
 
@@ -19,6 +26,7 @@ export const main = async () => {
   );
 
   const operatorAddr = getString(process.env.MAINNET_OPERATOR_ADDRESS);
+  const governorAddr = getString(process.env.MAINNET_GOVERNOR_ADDRESS);
   const deployerPrivKey = getString(process.env.MAINNET_DEPLOYER_PRIVATE_KEY);
   const deployer = new Wallet(deployerPrivKey, provider);
   const adminAddr = getString(process.env.MAINNET_ADMIN_ADDRESS);
@@ -105,7 +113,9 @@ export const main = async () => {
       poseidonUnit2Contract.address,
       verifier.address,
       evacuVerifier.address,
-      adminAddr,
+      //! use deployer address as the admin for now, will be changed to multisig later
+      // adminAddr,
+      deployer.address,
       operatorAddr,
       treasuryAddr,
       insuranceAddr,
@@ -135,7 +145,68 @@ export const main = async () => {
     initData,
     onlyCall
   );
+
+  // change operator role from operator to governor
+  const OPERATOR_ROLE = ethers.utils.id("OPERATOR_ROLE");
+  let tx = await zkTrueUp
+    .connect(deployer)
+    .grantRole(OPERATOR_ROLE, governorAddr);
+  await tx.wait();
+  tx = await zkTrueUp.connect(deployer).revokeRole(OPERATOR_ROLE, operatorAddr);
+  await tx.wait();
+
+  // change admin role from deployer to admin
+  const ADMIN_ROLE = ethers.utils.id("ADMIN_ROLE");
+  tx = await zkTrueUp.connect(deployer).grantRole(ADMIN_ROLE, adminAddr);
+  await tx.wait();
+  tx = await zkTrueUp
+    .connect(deployer)
+    .revokeRole(ADMIN_ROLE, deployer.address);
+  await tx.wait();
+
   console.log("Diamond initialized successfully 💎💎💎");
+
+  const creationTx = await zkTrueUp.provider.getTransactionReceipt(
+    zkTrueUp.deployTransaction.hash
+  );
+
+  const result: { [key: string]: unknown } = {};
+  result["current_branch"] = getCurrentBranch();
+  result["latest_commit"] = getLatestCommit();
+  result["genesis_state_root"] = genesisStateRoot;
+  result["deployer"] = deployer.address;
+  result["operator"] = operatorAddr;
+  result["governor"] = governorAddr;
+  result["admin"] = adminAddr;
+  result["treasury"] = treasuryAddr;
+  result["insurance"] = insuranceAddr;
+  result["vault"] = vaultAddr;
+  result["poseidon_unit_2"] = poseidonUnit2Contract.address;
+  result["verifier"] = verifier.address;
+  result["evacu_verifier"] = evacuVerifier.address;
+  for (const facetName of Object.keys(facets)) {
+    result[facetName] = facets[facetName].address;
+  }
+  result["weth"] = process.env.MAINNET_WETH_ADDRESS;
+  result["zk_true_up_init"] = zkTrueUpInit.address;
+  result["zk_true_up"] = zkTrueUp.address;
+  result["creation_block_number"] = creationTx.blockNumber.toString();
+
+  await createDirectoryIfNotExists("tmp");
+  const jsonString = JSON.stringify(result, null, 2);
+  const currentDate = new Date();
+  const year = currentDate.getFullYear().toString();
+  const month = (currentDate.getMonth() + 1).toString().padStart(2, "0"); // Month is 0-indexed, add 1 to it, pad with zero if needed
+  const day = currentDate.getDate().toString().padStart(2, "0"); // Pad the day with zero if needed
+  const dateString = `${year}${month}${day}`;
+  const outFile = `tmp/deploy_mainnet_${dateString}.json`;
+  fs.writeFile(outFile, jsonString, "utf8", (err: unknown) => {
+    if (err) {
+      console.error("An error occurred:", err);
+    } else {
+      console.log(`JSON saved to ${outFile}`);
+    }
+  });
 
   // log addresses
   console.log("PoseidonUnit2 address:", poseidonUnit2Contract.address);
