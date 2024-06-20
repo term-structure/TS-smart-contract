@@ -1,38 +1,22 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import {
-  BigNumber,
-  Signer,
-  TypedDataDomain,
-  TypedDataField,
-  utils,
-} from "ethers";
+import { Signer, utils } from "ethers";
 import { BaseTokenAddresses } from "../../../utils/type";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
 import { useFacet } from "../../../utils/useFacet";
-import { DEFAULT_ZERO_ADDR } from "../../../utils/config";
 import { register } from "../../utils/register";
-import { tsbTokensJSON } from "../../data/tsbTokens";
-import { baseTokensJSON } from "../../data/baseTokens";
 import {
   AccountMock,
-  ERC20Mock,
   TokenFacet,
   TsbFacet,
   TsbLib,
   WETH9,
   ZkTrueUp,
 } from "../../../typechain-types";
-import {
-  DEFAULT_ETH_ADDRESS,
-  TS_BASE_TOKEN,
-  TS_DECIMALS,
-  TsTokenId,
-} from "term-structure-sdk";
+import { DEFAULT_ETH_ADDRESS, TS_BASE_TOKEN } from "term-structure-sdk";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { signWithdrawPermit } from "../../utils/permitSignature";
 import {
   DELEGATE_REDEEM_MASK,
   DELEGATE_WITHDRAW_MASK,
