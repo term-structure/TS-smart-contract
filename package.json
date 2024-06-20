@@ -56,6 +56,7 @@
     "test:rollToAave": "cross-env IS_FORK_MAINNET=true hardhat test test/mainnetFork/roll/rollToAave.test.ts",
     "test:wsteth": "cross-env IS_FORK_MAINNET=true hardhat test test/mainnetFork/extension/wsteth.test.ts",
     "test:sdai": "cross-env IS_FORK_MAINNET=true hardhat test test/mainnetFork/extension/sdai.test.ts",
+    "test:wrapper": "hardhat test test/zkTrueUp/extension/wrapperRouter.test.ts",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js",
     "generate:docs": "hardhat docgen",
     "format": "prettier --write 'contracts/**/*.sol' '**/*.{js,ts}' && eslint --fix '**/*.{js,ts}'",
@@ -100,6 +101,7 @@
   },
   "dependencies": {
     "@chainlink/contracts": "^0.6.1",
+    "@pendle/core-v2": "^4.7.0",
     "@safe-global/protocol-kit": "^1.2.0",
     "@safe-global/safe-core-sdk-types": "^2.2.0",
     "circomlibjs": "^0.1.7",
