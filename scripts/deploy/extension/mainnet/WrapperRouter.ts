@@ -2,6 +2,7 @@ import { ethers } from "hardhat";
 import { getString } from "../../../../utils/type";
 import { Wallet } from "ethers";
 import { WrapperRouter__factory } from "../../../../typechain-types";
+const { upgrades } = require("hardhat");
 
 const zkTrueUpAddr = "";
 
@@ -23,9 +24,18 @@ export const main = async () => {
     "WrapperRouter"
   )) as WrapperRouter__factory;
 
-  const wrapperRouter = await WrapperRouterFactory.deploy(zkTrueUpAddr);
-  await wrapperRouter.deployed();
-  console.log("WrapperRouter address:", wrapperRouter.address);
+  const proxy = await upgrades.deployProxy(
+    WrapperRouterFactory,
+    [zkTrueUpAddr],
+    { initializer: "initialize", kind: "uups" }
+  );
+
+  console.log("Proxy address", proxy.address);
+  const receipt = await proxy.deployTransaction.wait(2);
+  console.log(
+    "Implementation address:",
+    await upgrades.erc1967.getImplementationAddress(proxy.address)
+  );
 };
 
 main().catch((error) => {

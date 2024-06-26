@@ -13,6 +13,7 @@ import { resolve } from "path";
 import { getBoolean, getString } from "./utils/type";
 import { existsSync, mkdirSync, rmSync } from "fs";
 import "./tasks";
+require("@openzeppelin/hardhat-upgrades");
 
 task("storage-layout", "Prints the storage layout", async (_, hre) => {
   await hre.storageLayout.export();
@@ -32,6 +33,9 @@ const config: HardhatUserConfig = {
     tests: getBoolean(process.env.IS_FORK_MAINNET, false)
       ? "./test/mainnetFork"
       : "./test/zkTrueUp",
+  },
+  mocha: {
+    timeout: 100000000,
   },
   solidity: {
     compilers: [
@@ -82,8 +86,13 @@ const config: HardhatUserConfig = {
       },
       allowUnlimitedContractSize: true,
       initialDate: new Date("2022-08-01T00:00:00.000Z").toISOString(),
-      forking: getBoolean(process.env.IS_FORK_MAINNET, false)
-        ? { url: getString(process.env.MAINNET_RPC_URL), blockNumber: 17426510 }
+      forking: getBoolean(process.env.IS_FORK_MAINNET_LATEST, false)
+        ? { url: getString(process.env.MAINNET_RPC_URL) }
+        : getBoolean(process.env.IS_FORK_MAINNET, false)
+        ? {
+            url: getString(process.env.MAINNET_RPC_URL),
+            blockNumber: 17426510,
+          }
         : undefined,
     },
     // devnet: {

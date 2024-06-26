@@ -11,10 +11,8 @@ import { BaseTokenAddresses } from "../../../utils/type";
 import {
   AccountMock,
   ERC20Mock,
-  RollupFacet,
   TokenFacet,
   TokenWrapper,
-  TsbFacet,
   WrapperRouter,
   ZkTrueUp,
 } from "../../../typechain-types";
@@ -24,6 +22,7 @@ import {
   TsTokenId,
 } from "term-structure-sdk";
 import { DELEGATE_WITHDRAW_MASK } from "../../utils/delegate";
+const { upgrades } = require("hardhat");
 
 //! use AccountMock instead of AccountFacet for testing
 export const FACET_NAMES_MOCK = [
@@ -63,7 +62,7 @@ describe("WrapperRouter", function () {
   let baseTokenAddresses: BaseTokenAddresses;
   let usdt: ERC20Mock;
   let wrappedUsdt: TokenWrapper;
-  let wrappedRouter: WrapperRouter;
+  let wrapperRouter: WrapperRouter;
 
   beforeEach(async function () {
     const res = await loadFixture(fixture);
@@ -96,10 +95,15 @@ describe("WrapperRouter", function () {
     await wrappedUsdt.deployed();
 
     // deploy wrapper router
-    const wrappedRouterFactory = await ethers.getContractFactory(
+    const WrapperRouterFactory = await ethers.getContractFactory(
       "WrapperRouter"
     );
-    wrappedRouter = await wrappedRouterFactory.deploy(zkTrueUpAddr);
+    const proxy = await upgrades.deployProxy(
+      WrapperRouterFactory,
+      [zkTrueUpAddr],
+      { initializer: "initialize" }
+    );
+    wrapperRouter = await ethers.getContractAt("WrapperRouter", proxy.address);
 
     // add wrapped token to zkTrueUp
     const assetConfig = {
@@ -140,8 +144,8 @@ describe("WrapperRouter", function () {
       const beforeWUsdtTotalSupply = await wrappedUsdt.totalSupply();
 
       // call deposit
-      await usdt.connect(user1).approve(wrappedRouter.address, amount);
-      await wrappedRouter
+      await usdt.connect(user1).approve(wrapperRouter.address, amount);
+      await wrapperRouter
         .connect(user1)
         .wrapToDeposit(wrappedUsdt.address, amount);
 
@@ -172,8 +176,8 @@ describe("WrapperRouter", function () {
       // prepare usdt
       const amount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
       await usdt.connect(user1).mint(user1Addr, amount);
-      await usdt.connect(user1).approve(wrappedRouter.address, amount);
-      await wrappedRouter
+      await usdt.connect(user1).approve(wrapperRouter.address, amount);
+      await wrapperRouter
         .connect(user1)
         .wrapToDeposit(wrappedUsdt.address, amount);
 
@@ -190,14 +194,14 @@ describe("WrapperRouter", function () {
       // set router as delegatee to withdraw
       await diamondAccMock
         .connect(user1)
-        .setDelegatee(wrappedRouter.address, DELEGATE_WITHDRAW_MASK);
+        .setDelegatee(wrapperRouter.address, DELEGATE_WITHDRAW_MASK);
 
       // pre-approve wrapped router
-      await wrappedUsdt.connect(user1).approve(wrappedRouter.address, amount);
+      await wrappedUsdt.connect(user1).approve(wrapperRouter.address, amount);
 
-      await wrappedRouter
+      await wrapperRouter
         .connect(user1)
-        .unwrapToWithdraw(wrappedUsdt.address, amount); //! ignore _withdraw in AccountMock
+        .withdrawToUnwrap(wrappedUsdt.address, amount); //! ignore _withdraw in AccountMock
 
       // after balance
       const afterZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
