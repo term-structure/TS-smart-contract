@@ -128,7 +128,7 @@ describe("WrapperRouter", function () {
   });
 
   describe("Deposit Wrapped Token", function () {
-    it("Success to deposit by wrapper router", async function () {
+    it("Success to deposit by wrapper router, wrap amount = deposit amount", async function () {
       // prepare usdt
       const amount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
       await usdt.connect(user1).mint(user1Addr, amount);
@@ -147,7 +147,7 @@ describe("WrapperRouter", function () {
       await usdt.connect(user1).approve(wrapperRouter.address, amount);
       await wrapperRouter
         .connect(user1)
-        .wrapToDeposit(wrappedUsdt.address, amount);
+        .wrapToDeposit(wrappedUsdt.address, amount, amount);
 
       const afterZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
         zkTrueUp.address
@@ -170,16 +170,125 @@ describe("WrapperRouter", function () {
         amount
       );
     });
+    it("Success to deposit by wrapper router, wrap amount < deposit amount", async function () {
+      // prepare usdt
+      const wrapAmount = utils.parseUnits("5", TS_BASE_TOKEN.USDT.decimals);
+      const depositAmount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
+      await usdt.connect(user1).mint(user1Addr, depositAmount);
+      await usdt
+        .connect(user1)
+        .approve(wrappedUsdt.address, depositAmount.sub(wrapAmount));
+      await wrappedUsdt
+        .connect(user1)
+        .depositFor(user1Addr, depositAmount.sub(wrapAmount));
+
+      // before deposit
+      const beforeZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
+        zkTrueUp.address
+      );
+      const beforeUserWUsdtBalance = await wrappedUsdt.balanceOf(user1Addr);
+      const beforeUserUsdtBalance = await usdt.balanceOf(user1Addr);
+      const beforeTokenWrapperUsdtBalance = await usdt.balanceOf(
+        wrappedUsdt.address
+      );
+      const beforeWUsdtTotalSupply = await wrappedUsdt.totalSupply();
+
+      // call deposit
+      await usdt.connect(user1).approve(wrapperRouter.address, wrapAmount);
+      await wrappedUsdt
+        .connect(user1)
+        .approve(wrapperRouter.address, depositAmount.sub(wrapAmount));
+      await wrapperRouter
+        .connect(user1)
+        .wrapToDeposit(wrappedUsdt.address, wrapAmount, depositAmount);
+
+      const afterZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
+        zkTrueUp.address
+      );
+      const afterUserWUsdtBalance = await wrappedUsdt.balanceOf(user1Addr);
+      const afterUserUsdtBalance = await usdt.balanceOf(user1Addr);
+      const afterTokenWrapperUsdtBalance = await usdt.balanceOf(
+        wrappedUsdt.address
+      );
+      const afterWUsdtTotalSupply = await wrappedUsdt.totalSupply();
+
+      // check
+      expect(
+        afterZkTrueUpWUsdtBalance.sub(beforeZkTrueUpWUsdtBalance)
+      ).to.be.eq(depositAmount);
+      expect(beforeUserWUsdtBalance.sub(afterUserWUsdtBalance)).to.be.eq(
+        depositAmount.sub(wrapAmount)
+      );
+      expect(beforeUserUsdtBalance.sub(afterUserUsdtBalance)).to.be.eq(
+        wrapAmount
+      );
+      expect(
+        afterTokenWrapperUsdtBalance.sub(beforeTokenWrapperUsdtBalance)
+      ).to.be.eq(wrapAmount);
+      expect(afterWUsdtTotalSupply.sub(beforeWUsdtTotalSupply)).to.be.eq(
+        wrapAmount
+      );
+    });
+    it("Success to deposit by wrapper router, wrap amount > deposit amount", async function () {
+      // prepare usdt
+      const wrapAmount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
+      const depositAmount = utils.parseUnits("5", TS_BASE_TOKEN.USDT.decimals);
+      await usdt.connect(user1).mint(user1Addr, wrapAmount);
+
+      // before deposit
+      const beforeZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
+        zkTrueUp.address
+      );
+      const beforeUserWUsdtBalance = await wrappedUsdt.balanceOf(user1Addr);
+      const beforeUserUsdtBalance = await usdt.balanceOf(user1Addr);
+      const beforeTokenWrapperUsdtBalance = await usdt.balanceOf(
+        wrappedUsdt.address
+      );
+      const beforeWUsdtTotalSupply = await wrappedUsdt.totalSupply();
+
+      // call deposit
+      await usdt.connect(user1).approve(wrapperRouter.address, wrapAmount);
+      await wrapperRouter
+        .connect(user1)
+        .wrapToDeposit(wrappedUsdt.address, wrapAmount, depositAmount);
+
+      const afterZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
+        zkTrueUp.address
+      );
+      const afterUserWUsdtBalance = await wrappedUsdt.balanceOf(user1Addr);
+      const afterUserUsdtBalance = await usdt.balanceOf(user1Addr);
+      const afterTokenWrapperUsdtBalance = await usdt.balanceOf(
+        wrappedUsdt.address
+      );
+      const afterWUsdtTotalSupply = await wrappedUsdt.totalSupply();
+
+      // check
+      expect(
+        afterZkTrueUpWUsdtBalance.sub(beforeZkTrueUpWUsdtBalance)
+      ).to.be.eq(depositAmount);
+      expect(afterUserWUsdtBalance.sub(beforeUserWUsdtBalance)).to.be.eq(
+        depositAmount
+      );
+      expect(beforeUserUsdtBalance.sub(afterUserUsdtBalance)).to.be.eq(
+        wrapAmount
+      );
+      expect(
+        afterTokenWrapperUsdtBalance.sub(beforeTokenWrapperUsdtBalance)
+      ).to.be.eq(wrapAmount);
+      expect(afterWUsdtTotalSupply.sub(beforeWUsdtTotalSupply)).to.be.eq(
+        wrapAmount
+      );
+    });
   });
   describe("Withdraw  Wrapped Token", function () {
-    it("Success to withdraw by wrapper router", async function () {
+    it("Success to withdraw by wrapper router, unwrap amount = withdraw amount", async function () {
       // prepare usdt
       const amount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
       await usdt.connect(user1).mint(user1Addr, amount);
       await usdt.connect(user1).approve(wrapperRouter.address, amount);
       await wrapperRouter
         .connect(user1)
-        .wrapToDeposit(wrappedUsdt.address, amount);
+        .wrapToDeposit(wrappedUsdt.address, amount, amount);
 
       // before withdraw
       const beforeZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
@@ -201,7 +310,7 @@ describe("WrapperRouter", function () {
 
       await wrapperRouter
         .connect(user1)
-        .withdrawToUnwrap(wrappedUsdt.address, amount); //! ignore _withdraw in AccountMock
+        .withdrawToUnwrap(wrappedUsdt.address, amount, amount); //! ignore _withdraw in AccountMock
 
       // after balance
       const afterZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
@@ -225,6 +334,147 @@ describe("WrapperRouter", function () {
       ).to.be.eq(amount);
       expect(beforeWUsdtTotalSupply.sub(afterWUsdtTotalSupply)).to.be.eq(
         amount
+      );
+    });
+    it("Success to withdraw by wrapper router, unwrap amount < withdraw amount", async function () {
+      // prepare usdt
+      const depositAmount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
+      await usdt.connect(user1).mint(user1Addr, depositAmount);
+      await usdt.connect(user1).approve(wrapperRouter.address, depositAmount);
+      await wrapperRouter
+        .connect(user1)
+        .wrapToDeposit(wrappedUsdt.address, depositAmount, depositAmount);
+
+      const unwrapAmount = utils.parseUnits("5", TS_BASE_TOKEN.USDT.decimals);
+      const withdrawAmount = utils.parseUnits(
+        "10",
+        TS_BASE_TOKEN.USDT.decimals
+      );
+
+      // before withdraw
+      const beforeZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
+        zkTrueUp.address
+      );
+      const beforeUserWUsdtBalance = await wrappedUsdt.balanceOf(user1Addr);
+      const beforeUserUsdtBalance = await usdt.balanceOf(user1Addr);
+      const beforeTokenWrapperUsdtBalance = await usdt.balanceOf(
+        wrappedUsdt.address
+      );
+      const beforeWUsdtTotalSupply = await wrappedUsdt.totalSupply();
+
+      // set router as delegatee to withdraw
+      await diamondAccMock
+        .connect(user1)
+        .setDelegatee(wrapperRouter.address, DELEGATE_WITHDRAW_MASK);
+
+      // pre-approve wrapped router
+      await wrappedUsdt
+        .connect(user1)
+        .approve(wrapperRouter.address, unwrapAmount);
+
+      await wrapperRouter
+        .connect(user1)
+        .withdrawToUnwrap(wrappedUsdt.address, unwrapAmount, withdrawAmount); //! ignore _withdraw in AccountMock
+
+      // after balance
+      const afterZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
+        zkTrueUp.address
+      );
+      const afterUserWUsdtBalance = await wrappedUsdt.balanceOf(user1Addr);
+      const afterUserUsdtBalance = await usdt.balanceOf(user1Addr);
+      const afterTokenWrapperUsdtBalance = await usdt.balanceOf(
+        wrappedUsdt.address
+      );
+      const afterWUsdtTotalSupply = await wrappedUsdt.totalSupply();
+
+      // check
+      expect(
+        beforeZkTrueUpWUsdtBalance.sub(afterZkTrueUpWUsdtBalance)
+      ).to.be.eq(withdrawAmount);
+      expect(afterUserWUsdtBalance.sub(beforeUserWUsdtBalance)).to.be.eq(
+        withdrawAmount.sub(unwrapAmount)
+      );
+      expect(afterUserUsdtBalance.sub(beforeUserUsdtBalance)).to.be.eq(
+        unwrapAmount
+      );
+      expect(
+        beforeTokenWrapperUsdtBalance.sub(afterTokenWrapperUsdtBalance)
+      ).to.be.eq(unwrapAmount);
+      expect(beforeWUsdtTotalSupply.sub(afterWUsdtTotalSupply)).to.be.eq(
+        unwrapAmount
+      );
+    });
+    it("Success to withdraw by wrapper router, unwrap amount > withdraw amount", async function () {
+      // prepare usdt
+      const depositAmount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
+      await usdt.connect(user1).mint(user1Addr, depositAmount);
+      await usdt.connect(user1).approve(wrapperRouter.address, depositAmount);
+      await wrapperRouter
+        .connect(user1)
+        .wrapToDeposit(wrappedUsdt.address, depositAmount, depositAmount);
+
+      const unwrapAmount = utils.parseUnits("10", TS_BASE_TOKEN.USDT.decimals);
+      const withdrawAmount = utils.parseUnits("5", TS_BASE_TOKEN.USDT.decimals);
+      // prepare diff amount
+      await usdt.connect(user1).mint(user1Addr, unwrapAmount);
+      await usdt
+        .connect(user1)
+        .approve(wrappedUsdt.address, unwrapAmount.sub(withdrawAmount));
+      await wrappedUsdt
+        .connect(user1)
+        .depositFor(user1Addr, unwrapAmount.sub(withdrawAmount));
+
+      // before withdraw
+      const beforeZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
+        zkTrueUp.address
+      );
+      const beforeUserWUsdtBalance = await wrappedUsdt.balanceOf(user1Addr);
+      const beforeUserUsdtBalance = await usdt.balanceOf(user1Addr);
+      const beforeTokenWrapperUsdtBalance = await usdt.balanceOf(
+        wrappedUsdt.address
+      );
+      const beforeWUsdtTotalSupply = await wrappedUsdt.totalSupply();
+
+      // set router as delegatee to withdraw
+      await diamondAccMock
+        .connect(user1)
+        .setDelegatee(wrapperRouter.address, DELEGATE_WITHDRAW_MASK);
+
+      // pre-approve wrapped router
+      await wrappedUsdt
+        .connect(user1)
+        .approve(wrapperRouter.address, unwrapAmount);
+
+      await wrapperRouter
+        .connect(user1)
+        .withdrawToUnwrap(wrappedUsdt.address, unwrapAmount, withdrawAmount); //! ignore _withdraw in AccountMock
+
+      // after balance
+      const afterZkTrueUpWUsdtBalance = await wrappedUsdt.balanceOf(
+        zkTrueUp.address
+      );
+      const afterUserWUsdtBalance = await wrappedUsdt.balanceOf(user1Addr);
+      const afterUserUsdtBalance = await usdt.balanceOf(user1Addr);
+      const afterTokenWrapperUsdtBalance = await usdt.balanceOf(
+        wrappedUsdt.address
+      );
+      const afterWUsdtTotalSupply = await wrappedUsdt.totalSupply();
+
+      // check
+      expect(
+        beforeZkTrueUpWUsdtBalance.sub(afterZkTrueUpWUsdtBalance)
+      ).to.be.eq(withdrawAmount);
+      expect(afterUserWUsdtBalance.sub(beforeUserWUsdtBalance)).to.be.eq(
+        withdrawAmount.sub(unwrapAmount)
+      );
+      expect(afterUserUsdtBalance.sub(beforeUserUsdtBalance)).to.be.eq(
+        unwrapAmount
+      );
+      expect(
+        beforeTokenWrapperUsdtBalance.sub(afterTokenWrapperUsdtBalance)
+      ).to.be.eq(unwrapAmount);
+      expect(beforeWUsdtTotalSupply.sub(afterWUsdtTotalSupply)).to.be.eq(
+        unwrapAmount
       );
     });
   });

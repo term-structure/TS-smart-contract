@@ -6,6 +6,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {ITokenWrapper} from "./ITokenWrapper.sol";
 import {IAccountFacet} from "../account/IAccountFacet.sol";
 
@@ -17,13 +18,13 @@ import {IAccountFacet} from "../account/IAccountFacet.sol";
 contract WrapperRouter is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
     using SafeERC20 for ITokenWrapper;
+    using SafeCast for *;
 
     // The zkTrueUp contract address
     address public ZK_TRUEUP;
 
-    // constructor() {
-    //     _disableInitializers();
-    // }
+    error FailedToDeposit();
+    error FailedToWithdraw();
 
     function initialize(address zkTrueUp) external initializer {
         ZK_TRUEUP = zkTrueUp;
@@ -38,27 +39,52 @@ contract WrapperRouter is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUp
     /**
      * @notice Wrap the underlying token and deposit to zkTrueUp
      * @param wrappedToken The wrapped token address
-     * @param amount The amount to wrap and deposit
+     * @param wrapAmount The amount to wrap
+     * @param depositAmount The amount to deposit
      */
-    function wrapToDeposit(ITokenWrapper wrappedToken, uint128 amount) external nonReentrant {
-        wrappedToken.underlying().safeTransferFrom(msg.sender, address(this), amount);
-        wrappedToken.underlying().approve(address(wrappedToken), amount);
+    function wrapToDeposit(
+        ITokenWrapper wrappedToken,
+        uint256 wrapAmount,
+        uint128 depositAmount
+    ) external nonReentrant {
+        wrappedToken.underlying().safeTransferFrom(msg.sender, address(this), wrapAmount);
+        wrappedToken.underlying().approve(address(wrappedToken), wrapAmount);
+        wrappedToken.depositFor(address(this), wrapAmount);
 
-        wrappedToken.depositFor(address(this), amount);
-        wrappedToken.approve(ZK_TRUEUP, amount);
+        int256 diff = wrapAmount.toInt256() - depositAmount.toInt256();
+        if (diff < 0) {
+            // if wrapAmount < depositAmount, send the diff from the sender to deposit
+            wrappedToken.safeTransferFrom(msg.sender, address(this), uint256(-diff));
+        }
 
-        IAccountFacet(ZK_TRUEUP).deposit(msg.sender, IERC20(address(wrappedToken)), amount);
+        wrappedToken.approve(ZK_TRUEUP, depositAmount);
+
+        try IAccountFacet(ZK_TRUEUP).deposit(msg.sender, IERC20(address(wrappedToken)), depositAmount) {
+            if (diff > 0) {
+                // if wrapAmount > depositAmount, send the diff back to the sender
+                wrappedToken.safeTransfer(msg.sender, uint256(diff));
+            }
+        } catch {
+            revert FailedToDeposit();
+        }
     }
 
     /**
      * @notice Withdraw from zkTrueUp and unwrap the token to the underlying token
      * @param wrappedToken The wrapped token address
-     * @param amount The amount to withdraw and unwrap
+     * @param unwrapAmount The amount to unwrap
+     * @param withdrawAmount The amount to withdraw
      */
-    function withdrawToUnwrap(ITokenWrapper wrappedToken, uint256 amount) external nonReentrant {
-        IAccountFacet(ZK_TRUEUP).withdraw(msg.sender, IERC20(address(wrappedToken)), amount);
-
-        wrappedToken.safeTransferFrom(msg.sender, address(this), amount);
-        wrappedToken.withdrawTo(msg.sender, amount);
+    function withdrawToUnwrap(
+        ITokenWrapper wrappedToken,
+        uint256 unwrapAmount,
+        uint256 withdrawAmount
+    ) external nonReentrant {
+        try IAccountFacet(ZK_TRUEUP).withdraw(msg.sender, IERC20(address(wrappedToken)), withdrawAmount) {
+            wrappedToken.safeTransferFrom(msg.sender, address(this), unwrapAmount);
+            wrappedToken.withdrawTo(msg.sender, unwrapAmount);
+        } catch {
+            revert FailedToWithdraw();
+        }
     }
 }
