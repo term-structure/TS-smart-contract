@@ -34,6 +34,14 @@ contract PTWithRedStonePriceFeed is AggregatorV3Interface {
     // error when Pendle PY LP oracle is not ready
     error OracleIsNotReady();
 
+    /**
+     * @notice Construct the PT price feed contract
+     * @param pendlePYLpOracle The Pendle PY LP oracle contract
+     * @param market The Pendle market contract
+     * @param duration The TWAP duration
+     * @param ptToAssetRateBase The PT to asset rate base
+     * @param redStonePriceFeed The RedStone price feed interface
+     */
     constructor(
         PendlePYLpOracle pendlePYLpOracle,
         IPMarket market,

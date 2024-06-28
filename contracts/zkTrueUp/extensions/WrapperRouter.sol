@@ -26,6 +26,10 @@ contract WrapperRouter is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUp
     error FailedToDeposit();
     error FailedToWithdraw();
 
+    /**
+     * @notice Initialize the contract
+     * @param zkTrueUp The zkTrueUp contract address
+     */
     function initialize(address zkTrueUp) external initializer {
         ZK_TRUEUP = zkTrueUp;
         __ReentrancyGuard_init_unchained();
