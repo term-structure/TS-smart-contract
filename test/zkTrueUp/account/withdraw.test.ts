@@ -1,13 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import {
-  BigNumber,
-  Signer,
-  TypedDataDomain,
-  TypedDataField,
-  utils,
-} from "ethers";
+import { BigNumber, Signer, utils } from "ethers";
 import { BaseTokenAddresses } from "../../../utils/type";
 import { deployAndInit } from "../../utils/deployAndInit";
 import { whiteListBaseTokens } from "../../utils/whitelistToken";
