@@ -128,4 +128,57 @@ describe("WrapperRouter", function () {
       ).to.be.revertedWithCustomError(wrappedETH, "InvalidMsgValue");
     });
   });
+  describe("Unwrap ETH", function () {
+    it("Success to unwrap ETH", async function () {
+      // prepare ETH
+      const amount = utils.parseEther("1");
+      await wrappedETH
+        .connect(user1)
+        .depositForETH(user1Addr, amount, { value: amount });
+
+      // before unwrap
+      const beforeUserETHBalance = await user1.getBalance();
+      const beforeWrappedETHWETHBalance = await weth.balanceOf(
+        wrappedETH.address
+      );
+      const beforeWrappedETHTotalSupply = await wrappedETH.totalSupply();
+
+      // unwrap
+      const tx = await wrappedETH
+        .connect(user1)
+        .withdrawToETH(user1Addr, amount);
+      const receipt = await tx.wait();
+      const gasCost = receipt.gasUsed.mul(ethers.BigNumber.from(tx.gasPrice));
+
+      // after unwrap
+      const afterUserETHBalance = await user1.getBalance();
+      const afterWrappedETHWETHBalance = await weth.balanceOf(
+        wrappedETH.address
+      );
+      const afterWrappedETHTotalSupply = await wrappedETH.totalSupply();
+
+      // check
+      expect(afterUserETHBalance.sub(beforeUserETHBalance)).to.be.eq(
+        amount.sub(gasCost)
+      );
+      expect(
+        beforeWrappedETHWETHBalance.sub(afterWrappedETHWETHBalance)
+      ).to.be.eq(amount);
+      expect(
+        beforeWrappedETHTotalSupply.sub(afterWrappedETHTotalSupply)
+      ).to.be.eq(amount);
+    });
+    it("Fail to unwrap ETH, withdraw amount > balance", async function () {
+      // prepare ETH
+      const depositAmount = utils.parseEther("1");
+      const withdrawAmount = utils.parseEther("2");
+      await wrappedETH
+        .connect(user1)
+        .depositForETH(user1Addr, depositAmount, { value: depositAmount });
+
+      expect(
+        wrappedETH.connect(user1).withdrawToETH(user1Addr, withdrawAmount)
+      ).to.be.revertedWith("");
+    });
+  });
 });

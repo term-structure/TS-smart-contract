@@ -5,13 +5,15 @@ import {ERC20Wrapper} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IWETH} from "../interfaces/IWETH.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "hardhat/console.sol";
 
 /**
  * @title The Token Wrapper contract inherits from the ERC20Wrapper contract
  * @author Term Structure Labs
  * @notice This contract is used to wrap an underlying token
  */
-contract TokenWrapper is ERC20Wrapper {
+contract TokenWrapper is ERC20Wrapper, ReentrancyGuard {
     constructor(
         IERC20 underlyingToken,
         string memory name,
@@ -32,11 +34,15 @@ contract TokenWrapper is ERC20Wrapper {
         return true;
     }
 
-    function withdrawToETH(address account, uint256 amount) external returns (bool) {
+    function withdrawToETH(address account, uint256 amount) external nonReentrant returns (bool) {
         _burn(_msgSender(), amount);
         IWETH(address(underlying())).withdraw(amount);
         (bool success, ) = payable(account).call{value: amount}("");
         require(success, "Transfer failed");
         return true;
+    }
+
+    receive() external payable {
+        // solhint-disable-previous-line no-empty-blocks
     }
 }
