@@ -30,4 +30,20 @@ interface ITokenWrapper is IERC20 {
      * @return Whether the withdraw is successful
      */
     function withdrawTo(address account, uint256 amount) external returns (bool);
+
+    /**
+     * @notice Deposit ETH to the contract and mint the wrapped token
+     * @param account The account to deposit the wrapped token to
+     * @param amount The amount of ETH to deposit
+     * @return bool Returns true if the deposit is successful
+     */
+    function depositForETH(address account, uint256 amount) external payable returns (bool);
+
+    /**
+     * @notice Withdraw the wrapped token to ETH
+     * @param account The account to withdraw the wrapped token from
+     * @param amount The amount of wrapped token to withdraw
+     * @return bool Returns true if the withdrawal is successful
+     */
+    function withdrawToETH(address account, uint256 amount) external returns (bool);
 }

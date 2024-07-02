@@ -25,6 +25,12 @@ contract TokenWrapper is ERC20Wrapper, ReentrancyGuard {
     error InvalidMsgValue();
     error InvalidMsgSender();
 
+    /**
+     * @notice Deposit ETH to the contract and mint the wrapped token
+     * @param account The account to deposit the wrapped token to
+     * @param amount The amount of ETH to deposit
+     * @return bool Returns true if the deposit is successful
+     */
     function depositForETH(address account, uint256 amount) external payable returns (bool) {
         address sender = _msgSender();
         if (sender == address(this)) revert InvalidMsgSender();
@@ -34,6 +40,12 @@ contract TokenWrapper is ERC20Wrapper, ReentrancyGuard {
         return true;
     }
 
+    /**
+     * @notice Withdraw the wrapped token to ETH
+     * @param account The account to withdraw the wrapped token from
+     * @param amount The amount of wrapped token to withdraw
+     * @return bool Returns true if the withdrawal is successful
+     */
     function withdrawToETH(address account, uint256 amount) external nonReentrant returns (bool) {
         _burn(_msgSender(), amount);
         IWETH(address(underlying())).withdraw(amount);
