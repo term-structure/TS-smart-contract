@@ -59,6 +59,7 @@
     "test:sdai": "cross-env IS_FORK_MAINNET=true hardhat test test/mainnetFork/extension/sdai.test.ts",
     "test:ptsusde": "cross-env IS_FORK_MAINNET=true IS_FORK_MAINNET_LATEST=true hardhat test test/mainnetFork/extension/PTsUSDe.test.ts",
     "test:wrapper": "hardhat test test/zkTrueUp/extension/wrapperRouter.test.ts",
+    "test:tokenWrapper": "hardhat test test/zkTrueUp/extension/tokenWrapper.test.ts",
     "coverage": "hardhat coverage --solcoverjs ./.solcover.js",
     "generate:docs": "hardhat docgen",
     "format": "prettier --write 'contracts/**/*.sol' '**/*.{js,ts}' && eslint --fix '**/*.{js,ts}'",
