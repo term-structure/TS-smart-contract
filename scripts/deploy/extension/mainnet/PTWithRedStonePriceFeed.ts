@@ -6,7 +6,6 @@ import { PTWithRedStonePriceFeed__factory } from "../../../../typechain-types";
 const PendlePYLpOracleAddr = "0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2";
 const marketAddr = "";
 const duration = 900;
-const PtToAssetRateBase = BigNumber.from(10).pow(18);
 const redstonePriceFeedAddr = "";
 
 export const main = async () => {
@@ -31,7 +30,6 @@ export const main = async () => {
     PendlePYLpOracleAddr,
     marketAddr,
     duration,
-    PtToAssetRateBase,
     redstonePriceFeedAddr,
     { gasLimit: 10000000 }
   );

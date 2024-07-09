@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {PendlePYLpOracle} from "@pendle/core-v2/contracts/oracles/PendlePYLpOracle.sol";
 import {PendlePYOracleLib} from "@pendle/core-v2/contracts/oracles/PendlePYOracleLib.sol";
+import {PMath} from "@pendle/core-v2/contracts/core/libraries/math/PMath.sol";
 import {IPMarket} from "@pendle/core-v2/contracts/interfaces/IPMarket.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -24,8 +25,6 @@ contract PTWithRedStonePriceFeed is AggregatorV3Interface {
     IPMarket public immutable MARKET;
     // TWAP duration
     uint32 public immutable DURATION;
-    // PT to asset rate base (i.e. 1e18 for decimals 18)
-    uint256 internal immutable PT_TO_ASSET_RATE_BASE;
     // RedStone price feed interface
     AggregatorV3Interface public immutable REDSTONE_PRICE_FEED;
 
@@ -33,26 +32,28 @@ contract PTWithRedStonePriceFeed is AggregatorV3Interface {
     error GetRoundDataNotSupported();
     // error when Pendle PY LP oracle is not ready
     error OracleIsNotReady();
+    // error when price is zero
+    error PriceIsZero();
 
     /**
      * @notice Construct the PT price feed contract
      * @param pendlePYLpOracle The Pendle PY LP oracle contract
      * @param market The Pendle market contract
      * @param duration The TWAP duration
-     * @param ptToAssetRateBase The PT to asset rate base
      * @param redStonePriceFeed The RedStone price feed interface
      */
     constructor(
         PendlePYLpOracle pendlePYLpOracle,
         IPMarket market,
         uint32 duration,
-        uint256 ptToAssetRateBase,
         AggregatorV3Interface redStonePriceFeed
     ) {
+        (, int256 answer, , , ) = redStonePriceFeed.latestRoundData();
+        if (answer == 0) revert PriceIsZero();
+
         PY_LP_ORACLE = pendlePYLpOracle;
         MARKET = market;
         DURATION = duration;
-        PT_TO_ASSET_RATE_BASE = ptToAssetRateBase;
         REDSTONE_PRICE_FEED = redStonePriceFeed;
 
         if (!_oracleIsReady()) revert OracleIsNotReady();
@@ -95,7 +96,7 @@ contract PTWithRedStonePriceFeed is AggregatorV3Interface {
         uint256 ptRateInSy = MARKET.getPtToSyRate(DURATION); // PT -> SY
 
         (roundId, answer, startedAt, updatedAt, answeredInRound) = REDSTONE_PRICE_FEED.latestRoundData();
-        answer = ptRateInSy.mulDiv(answer.toUint256(), PT_TO_ASSET_RATE_BASE).toInt256();
+        answer = ptRateInSy.mulDiv(answer.toUint256(), PMath.ONE).toInt256();
 
         return (roundId, answer, startedAt, updatedAt, answeredInRound);
     }

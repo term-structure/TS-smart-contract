@@ -11,7 +11,6 @@ import {
 const PendlePYLpOracleAddr = "0x9a9Fa8338dd5E5B2188006f1Cd2Ef26d921650C2";
 const marketAddr = "0xd1d7d99764f8a52aff007b7831cc02748b2013b5";
 const duration = 900;
-const PtToAssetRateBase = BigNumber.from(10).pow(18);
 const redstonePriceFeedAddr = "0xb99D174ED06c83588Af997c8859F93E83dD4733f";
 
 describe("Customized PT oracle contract", () => {
@@ -27,7 +26,6 @@ describe("Customized PT oracle contract", () => {
       PendlePYLpOracleAddr,
       marketAddr,
       duration,
-      PtToAssetRateBase,
       redstonePriceFeedAddr,
       { gasLimit: 10000000 }
     );
